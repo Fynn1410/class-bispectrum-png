@@ -1634,6 +1634,14 @@ int fourier_init(
     }
   }
 
+  else if (pfo->method == nl_oneloopPT) {
+
+    class_call(oneloopPT_init(ppr,pba,ppt,pfo),
+               pfo->error_message,
+               pfo->error_message);
+    
+  }
+  
   /** - if the nl_method could not be identified */
   else {
     class_stop(pfo->error_message,

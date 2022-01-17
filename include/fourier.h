@@ -12,7 +12,7 @@
 
 #define _MAX_NUM_EXTRAPOLATION_ 100000
 
-enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
+enum non_linear_method {nl_none,nl_halofit,nl_HMcode,nl_oneloopPT};
 enum pk_outputs {pk_linear,pk_nonlinear};
 
 enum source_extrapolation {extrap_zero,extrap_only_max,extrap_only_max_units,extrap_max_scaled,extrap_hmcode,extrap_user_defined};
