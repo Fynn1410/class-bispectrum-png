@@ -56,29 +56,6 @@ struct globals gb;
  * @return an integer if succeeded
  */
 
-int Cosmology_init(struct Cosmology *Cx, double pk_kmax, double pk_zmax, 
-                  int nlines, int * line_types, size_t npoints_interp, double M_min, long mode_mf)
-{
-
-  long mode_nu = Cx->mode_nu;
-
-  CL_Cosmology_initilize(Cx,pk_kmax,pk_zmax);
-
-  if (nlines > 0){
-    Cx->NLines = nlines;
-
-    // Allocating array of line objects
-    Cx->Lines = (struct Line **)malloc(sizeof(struct Line *) * nlines);
-
-    for(int i=0; i<nlines; i++){
-      Cx->Lines[i] = Line_alloc_init(Cx, line_types[i], npoints_interp, M_min, mode_mf);
-    }
-  }
-
-  return _SUCCESS_;
-}
-
-
 /**
  * Free the memory allocated to cosmology structure
  * 
@@ -88,10 +65,6 @@ int Cosmology_init(struct Cosmology *Cx, double pk_kmax, double pk_zmax,
 
 int Cosmology_free(struct Cosmology *Cx)
 {
-  for(int i=0; i<(Cx->NLines); i++){
-    Line_free(Cx->Lines[i]);
-  }
-
   free(Cx->Lines);
 
   CL_Cosmology_free(Cx);
@@ -110,7 +83,7 @@ int Cosmology_free(struct Cosmology *Cx)
  * @return the error status
  */
 
-int CL_Cosmology_initilize(struct Cosmology *Cx, double pk_kmax, double pk_zmax)
+int CL_Cosmology_initialize(struct Cosmology *Cx, double pk_kmax, double pk_zmax)
 {
 
   ////To interpolate P(k,z) at  various values of (k,z), enter 'z_max_pk', the maximum value of z at which
@@ -266,11 +239,6 @@ int CL_Cosmology_initilize(struct Cosmology *Cx, double pk_kmax, double pk_zmax)
     pfc.read[counter] = _TRUE_;
     counter++;
 
-    sprintf(pfc.name[counter],"bessels_verbose");
-    sprintf(pfc.value[counter],"0");
-    pfc.read[counter] = _TRUE_;
-    counter++;
-
     sprintf(pfc.name[counter],"transfer_verbose");
     sprintf(pfc.value[counter],"0");
     pfc.read[counter] = _TRUE_;
@@ -281,12 +249,12 @@ int CL_Cosmology_initilize(struct Cosmology *Cx, double pk_kmax, double pk_zmax)
     pfc.read[counter] = _TRUE_;
     counter++;
 
-    sprintf(pfc.name[counter],"spectra_verbose");
+    sprintf(pfc.name[counter],"harmonic_verbose");
     sprintf(pfc.value[counter],"0");
     pfc.read[counter] = _TRUE_;
     counter++;
 
-    sprintf(pfc.name[counter],"nonlinear_verbose");
+    sprintf(pfc.name[counter],"fourier_verbose");
     sprintf(pfc.value[counter],"0");
     pfc.read[counter] = _TRUE_;
     counter++;
@@ -296,10 +264,10 @@ int CL_Cosmology_initilize(struct Cosmology *Cx, double pk_kmax, double pk_zmax)
     pfc.size = counter;
 
   ///////////////////////////////////
-    // Calling CLASS 2.5.0
-    ///////////////////////////////////
-
-  if (input_init(&pfc ,&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.th,&Cx->ccs.pt,&Cx->ccs.tr,&Cx->ccs.pm,&Cx->ccs.sp,&Cx->ccs.nl,&Cx->ccs.le,&Cx->ccs.op, Cx->ccs.errmsg) == _FAILURE_) {
+  // Calling CLASS 3.1.1
+  ///////////////////////////////////
+ 
+ if (input_read_from_file(&pfc ,&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.th,&Cx->ccs.pt,&Cx->ccs.tr,&Cx->ccs.pm,&Cx->ccs.hr,&Cx->ccs.fo,&Cx->ccs.le, &Cx->ccs.sd, &Cx->ccs.op, Cx->ccs.errmsg) == _FAILURE_) {
         printf("\n\nError running input_init\n=>%s\n",Cx->ccs.errmsg); 
         return _FAILURE_;
   }
@@ -314,12 +282,12 @@ int CL_Cosmology_initilize(struct Cosmology *Cx, double pk_kmax, double pk_zmax)
     return _FAILURE_;
   }
 
-  if (perturb_init(&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.th,&Cx->ccs.pt) == _FAILURE_) {
+  if (perturbations_init(&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.th,&Cx->ccs.pt) == _FAILURE_) {
     printf("\n\nError in perturb_init \n=>%s\n",Cx->ccs.pt.error_message);
     return _FAILURE_;
   }
 
-  if (transfer_init(&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.th,&Cx->ccs.pt,&Cx->ccs.nl,&Cx->ccs.tr) == _FAILURE_) {
+  if (transfer_init(&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.th,&Cx->ccs.pt,&Cx->ccs.fo,&Cx->ccs.tr) == _FAILURE_) {
     printf("\n\nError in transfer_init \n=>%s\n",Cx->ccs.tr.error_message);
     return _FAILURE_;
   }
@@ -329,13 +297,13 @@ int CL_Cosmology_initilize(struct Cosmology *Cx, double pk_kmax, double pk_zmax)
     return _FAILURE_;
   }
 
-  if (nonlinear_init(&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.th,&Cx->ccs.pt,&Cx->ccs.pm,&Cx->ccs.nl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_init \n=>%s\n",Cx->ccs.nl.error_message);
+  if (fourier_init(&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.th,&Cx->ccs.pt,&Cx->ccs.pm,&Cx->ccs.fo) == _FAILURE_) {
+    printf("\n\nError in nonlinear_init \n=>%s\n",Cx->ccs.fo.error_message);
     return _FAILURE_;
   }
  
-  if (spectra_init(&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.pt,&Cx->ccs.pm,&Cx->ccs.nl,&Cx->ccs.tr,&Cx->ccs.sp) == _FAILURE_) {
-    printf("\n\nError in spectra_init \n=>%s\n",Cx->ccs.sp.error_message);
+  if (harmonic_init(&Cx->ccs.pr,&Cx->ccs.ba,&Cx->ccs.pt,&Cx->ccs.pm,&Cx->ccs.fo,&Cx->ccs.tr,&Cx->ccs.hr) == _FAILURE_) {
+    printf("\n\nError in spectra_init \n=>%s\n",Cx->ccs.hr.error_message);
     return _FAILURE_;
   }
 
@@ -359,13 +327,13 @@ int CL_Cosmology_initilize(struct Cosmology *Cx, double pk_kmax, double pk_zmax)
 int CL_Cosmology_free(struct Cosmology *Cx)
 {
   
-  if (spectra_free(&Cx->ccs.sp) == _FAILURE_) {
-    printf("\n\nError in spectra_free \n=>%s\n",Cx->ccs.sp.error_message);
+  if (harmonic_free(&Cx->ccs.hr) == _FAILURE_) {
+    printf("\n\nError in spectra_free \n=>%s\n",Cx->ccs.hr.error_message);
     return _FAILURE_;
   }
 
-  if (nonlinear_free(&Cx->ccs.nl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_free \n=>%s\n",Cx->ccs.nl.error_message);
+  if (fourier_free(&Cx->ccs.fo) == _FAILURE_) {
+    printf("\n\nError in nonlinear_free \n=>%s\n",Cx->ccs.fo.error_message);
     return _FAILURE_;
   }
 
@@ -379,12 +347,7 @@ int CL_Cosmology_free(struct Cosmology *Cx)
     return _FAILURE_;
   }
 
-  //if (bessel_free(&Cx->ccs.bs) == _FAILURE_) {
-  //  printf("\n\nError in primordial_free \n=>%s\n",Cx->ccs.bs.error_message);
-   // return _FAILURE_;
- // }
-
-  if (perturb_free(&Cx->ccs.pt) == _FAILURE_) {
+  if (perturbations_free(&Cx->ccs.pt) == _FAILURE_) {
     printf("\n\nError in perturb_free \n=>%s\n",Cx->ccs.pt.error_message);
     return _FAILURE_;
   }
@@ -425,140 +388,28 @@ int CL_Cosmology_free(struct Cosmology *Cx)
 double Pk_dlnPk(struct Cosmology *Cx, double k, double z, int mode)
 {
 
-  double pk,pk_cb;
   double result;
-
-  double *pk_ic    = (double*) calloc(Cx -> ccs.sp.ic_ic_size[Cx -> ccs.sp.index_md_scalars], sizeof(double));
-  double *pk_cb_ic = (double*) calloc(Cx -> ccs.sp.ic_ic_size[Cx -> ccs.sp.index_md_scalars], sizeof(double)); 
+  double pk_cb;
 
   if(k< PS_KMIN || k>  PS_KMAX){
-    printf("Error in PS: the requested value of k (%12.6e) exceeds the tabulation.\nReturning 0.0", k);
+    printf("Error in PS: the requested value of k (%12.6e) exceeds the tabulation up to (%12.6e).\nReturning 0.0", k,PS_KMAX);
     return 0.0;
   } 
   else if (k>= PS_KMIN && k<= PS_KMAX){ /* make sure that the requested k-value is within the range set for CLASS*/
     if (mode == LPOWER){
-      spectra_pk_at_k_and_z(&Cx -> ccs.ba, &Cx -> ccs.pm, &Cx -> ccs.sp, k, z, &pk, pk_ic, &pk_cb, pk_cb_ic); 
+      // harmonic_pk_at_k_and_z(&Cx -> ccs.ba, &Cx -> ccs.pm, &Cx -> ccs.hr, k, z, &pk, pk_ic, &pk_cb, pk_cb_ic); 
+      fourier_pk_at_k_and_z(&Cx -> ccs.ba, &Cx -> ccs.pm, &Cx -> ccs.fo, pk_linear, k, z, Cx -> ccs.fo.index_pk_cb, &pk_cb, NULL);
     }
     else if (mode == NLPOWER){
-      spectra_pk_nl_at_k_and_z(&Cx->ccs.ba, &Cx->ccs.pm, &Cx->ccs.sp, k, z, &pk, &pk_cb); 
+      fourier_pk_at_k_and_z(&Cx -> ccs.ba, &Cx -> ccs.pm, &Cx -> ccs.fo, pk_nonlinear, k, z, Cx -> ccs.fo.index_pk_cb, &pk_cb, NULL);
+
     }
   }
-       
-  result = pk;
-
-  free(pk_ic);
-  free(pk_cb_ic);
+  
+  result = pk_cb;
 
   return result;
 } 
-
-
-/**
- * Read in the linear power spectrum, used to set the initial conditions of Hidden-Valley sims
- *   
- * Input k is in unit of 1/Mpc. First convert it to h/Mpc, and also convert the final matter power spectrum in unit of (Mpc/h)^3
- * 
- * @param Cx                Input: pointer to Cosmology structure
- * @param k                 Input: wavenumbber in unit of 1/Mpc
- * @param z                 Input: redshift to compute the spectrum
- * @param mode              Input: switch to decide whether to evaluate the interpolator of the power spectrum or free the interpolator
- * @return the HV linear matter power spectrum
- */
-
-double Pk_dlnPk_HV(struct Cosmology *Cx, double k, double z, int mode)
-{
-
-  static gsl_interp_accel   *pk_accel_ptr;
-  static gsl_spline         *pk_spline_ptr;
-  FILE *pk_file;
-
-  int i,j;
-  static double kmin=0., kmax=0.;
-  static int first = 1;
-  if(first == 1){
-    char pk_filename[FILENAME_MAX];
-    sprintf(pk_filename,"/Volumes/Data/Documents/Git/LIM_PS_HM/Output/matter_L/pklin_1.0000_HVsims.txt");
-
-    int nlines = 0;
-    nlines     = count_lines_in_file(pk_filename);
-
-    double *k_in, *pk_lin, *log_k, *log_pk;
-    k_in    = make_1Darray(nlines);
-    log_k   = make_1Darray(nlines);
-    pk_lin  = make_1Darray(nlines);
-    log_pk  = make_1Darray(nlines);
-    pk_file = fopen(pk_filename,"r");
-
-    if(pk_file==NULL){
-      printf("Failed to open the file with k-values");
-      exit(1);
-    }
-
-
-    char line[MAXL];
-    int err;
-    while(fgets(line, sizeof line, pk_file) != NULL )
-    { 
-      if(*line == '#')  continue; 
-      for(i=0;i<nlines;i++){
-        err = fscanf(pk_file,"%lg %lg\n",&k_in[i],&pk_lin[i]); 
-        // printf("%12.6e %12.6e \n",k_in[i],pk_lin[i] );
-        log_k[i] = log(k_in[i]);
-        log_pk[i] = log(pk_lin[i]);
-      }
-    }
-    fclose(pk_file);
-
-    pk_accel_ptr  = gsl_interp_accel_alloc();
-    pk_spline_ptr = gsl_spline_alloc(gsl_interp_cspline,nlines);
-
-    gsl_spline_init(pk_spline_ptr,log_k,log_pk,nlines);
-
-    kmax = k_in[nlines-1];
-    kmin = k_in[0];
-
-    free(k_in);
-    free(log_k);
-    free(pk_lin);
-    free(log_pk);
-    
-    first = 0;
-  }   
-
-
-  double kk = k/gb.h;
-  double pk, log_pk, logk;
-  if(kk<kmin || kk >kmax) {
-    pk = 0.;
-  }
-  else{
-    logk   = log(kk);
-    log_pk = gsl_spline_eval(pk_spline_ptr,logk,pk_accel_ptr);
-    pk     = exp(log_pk);
-  }
-    
-  // double growth;  
-  // if(z == 0.)
-  //   growth = 1. ;
-  // else if(z == 2.)
-  //   growth = 0.41806802;
-  // else if(z == 4.)
-  //   growth = 0.2537648;
-
-  double pkz, growth2;
-  if(mode == LPOWER){
-    growth2 = pow(growth_D(Cx, z),2.);
-    pkz     = growth2 * pk/pow(gb.h,3.);  
-  }  
-  else if (mode == CLEANUP){
-        gsl_interp_accel_free(pk_accel_ptr);
-        gsl_spline_free(pk_spline_ptr);
-  }
-
-
-  return pkz;
-    
-}
 
 
 /**
@@ -579,30 +430,26 @@ double Pk_dlnPk_HV(struct Cosmology *Cx, double k, double z, int mode)
 
 double Mk_dlnMk(struct Cosmology *Cx, double k, double z, int mode)
 {
-  double *tk;
-  double t_cdm = 0.0;
-  // double t_m = 0.0;
 
-  class_alloc(tk,sizeof(double)* Cx -> ccs.sp.tr_size,Cx -> ccs.errmsg);
+  double f = 0.;
 
-
-  if (k>= PS_KMIN && k<= PS_KMAX){
-    if(mode == TRANS){
-        spectra_tk_at_k_and_z(&Cx -> ccs.ba, &Cx -> ccs.sp, k , z, tk);  ////This class function calculates the linear transfer function for an arbitrary wavenumber and redshift
-        t_cdm = -tk[Cx -> ccs.sp.index_tr_delta_cdm];  
-        // t_m = -tk[Cx -> ccs.sp.index_tr_delta_tot];   
-    }
-    else if(mode == DER){
-      t_cdm =0.;
-    }         
+  if(mode == CDM){
+    double t_cdm =0.;
+    perturbations_sources_at_k_and_z(&Cx -> ccs.ba, &Cx -> ccs.pt, Cx -> ccs.pt.index_md_scalars, Cx -> ccs.pt.index_ic_ad, Cx -> ccs.pt.index_tp_delta_cdm,k,z,&t_cdm);
+    f = - t_cdm;
+  }
+  else if(mode == BA){
+    double t_ba =0.;
+    perturbations_sources_at_k_and_z(&Cx -> ccs.ba, &Cx -> ccs.pt, Cx -> ccs.pt.index_md_scalars, Cx -> ccs.pt.index_ic_ad, Cx -> ccs.pt.index_tp_delta_b ,k,z,&t_ba);
+    f = - t_ba;
+  }
+  else if(mode == TOT){
+    double t_tot =0.;
+    perturbations_sources_at_k_and_z(&Cx -> ccs.ba, &Cx -> ccs.pt, Cx -> ccs.pt.index_md_scalars, Cx -> ccs.pt.index_ic_ad, Cx -> ccs.pt.index_tp_delta_tot,k,z,&t_tot);
+    f = - t_tot;
   }
 
-  free(tk);
-
-  return t_cdm; 
-  //return t_m; 
-
-
+  return f; 
 }
 
 
@@ -776,7 +623,7 @@ double growth_D(struct Cosmology *Cx, double z)
 
   class_call(background_tau_of_z(&Cx -> ccs.ba,z,&tau),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
-  class_call(background_at_tau(&Cx -> ccs.ba,tau,Cx -> ccs.ba.long_info,Cx -> ccs.ba.inter_normal,&last_index,pvecback),
+  class_call(background_at_tau(&Cx -> ccs.ba,tau,long_info,inter_normal,&last_index,pvecback),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
 
   double Dz = pvecback[Cx -> ccs.ba.index_bg_D];
@@ -813,7 +660,7 @@ double growth_f(struct Cosmology *Cx, double z)
 
   class_call(background_tau_of_z(&Cx -> ccs.ba,z,&tau),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
-  class_call(background_at_tau(&Cx -> ccs.ba,tau,Cx -> ccs.ba.long_info,Cx -> ccs.ba.inter_normal,&last_index,pvecback),
+  class_call(background_at_tau(&Cx -> ccs.ba,tau,long_info,inter_normal,&last_index,pvecback),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
 
   double fz = pvecback[Cx -> ccs.ba.index_bg_f];
@@ -845,7 +692,7 @@ double Hubble(struct Cosmology *Cx, double z)
   
   class_call(background_tau_of_z(&Cx -> ccs.ba,z,&tau),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
-  class_call(background_at_tau(&Cx -> ccs.ba,tau,Cx -> ccs.ba.long_info,Cx -> ccs.ba.inter_normal,&last_index,pvecback),
+  class_call(background_at_tau(&Cx -> ccs.ba,tau,long_info,inter_normal,&last_index,pvecback),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
  
   double H = gb.c*pvecback[Cx -> ccs.ba.index_bg_H];
@@ -869,7 +716,6 @@ double Hubble(struct Cosmology *Cx, double z)
  * @param z                 Input: redshift to compute the spectrum
  * @return  D_A
  */
-
 double angular_distance(struct Cosmology *Cx, double z)
 {
        
@@ -881,7 +727,7 @@ double angular_distance(struct Cosmology *Cx, double z)
 
   class_call(background_tau_of_z(&Cx -> ccs.ba,z,&tau),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
-  class_call(background_at_tau(&Cx -> ccs.ba,tau,Cx -> ccs.ba.long_info,Cx -> ccs.ba.inter_normal,&last_index,pvecback),
+  class_call(background_at_tau(&Cx -> ccs.ba,tau,long_info,inter_normal,&last_index,pvecback),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
 
   double D_A = pvecback[Cx -> ccs.ba.index_bg_ang_distance];
@@ -906,19 +752,21 @@ double comoving_radial_distance(struct Cosmology *Cx, double z)
   double tau;
   int last_index; ///junk
   double * pvecback;
-
-  ///For a flat cosmology, comoving distance is equal to conformal distance. This pieace of code is how 
-  ///the comving distance for flat and nonflat cases are computed. Chnage the expression of D_A below
-  ///According to this if considering non-flat cosmology. 
-  // if (pba->sgnK == 0) comoving_radius = pvecback[pba->index_bg_conf_distance];
-  // else if (pba->sgnK == 1) comoving_radius = sin(sqrt(pba->K)*pvecback[pba->index_bg_conf_distance])/sqrt(pba->K);
-  // else if (pba->sgnK == -1) comoving_radius = sinh(sqrt(-pba->K)*pvecback[pba->index_bg_conf_distance])/sqrt(-pba->K);
+ 
+ /*
+  * For a flat cosmology, comoving distance is equal to conformal distance. This pieace of code is how 
+  * the comving distance for flat and nonflat cases are computed. Chnage the expression of D_A below
+  * According to this if considering non-flat cosmology. 
+  * if (pba->sgnK == 0) comoving_radius = pvecback[pba->index_bg_conf_distance];
+  * else if (pba->sgnK == 1) comoving_radius = sin(sqrt(pba->K)*pvecback[pba->index_bg_conf_distance])/sqrt(pba->K);
+  * else if (pba->sgnK == -1) comoving_radius = sinh(sqrt(-pba->K)*pvecback[pba->index_bg_conf_distance])/sqrt(-pba->K);
+  */
 
   pvecback = (double*) calloc(Cx -> ccs.ba.bg_size,sizeof(double));
 
   class_call(background_tau_of_z(&Cx -> ccs.ba,z,&tau),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
-  class_call(background_at_tau(&Cx -> ccs.ba,tau,Cx -> ccs.ba.long_info,Cx -> ccs.ba.inter_normal,&last_index,pvecback),
+  class_call(background_at_tau(&Cx -> ccs.ba,tau,long_info,inter_normal,&last_index,pvecback),
             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
 
   double D_c = pvecback[Cx -> ccs.ba.index_bg_conf_distance];
@@ -1143,7 +991,88 @@ double derR_logwindow_g(double k, double R)
   return f; 
 }
 
+/**
+ * computes the halo biases for three mass functions, press-schecter, Sheth-Tormen, and Tinker mass functions
+ * 
+ * @param Cx            Input: Cosmology structure
+ * @param M             Input: halo mass
+ * @param z             Input: redshift
+ * @param mode_mf       Input: switch for setting the model of mass function, can be set to PSC, ST, TR
+ * @param bias_arr      Output: the output array containning linear and quadratic local-in-matter halo biases, and quadratic and cubic tidal biases
+ * @return void    
+ */
 
+void halo_bias(struct Cosmology *Cx, double M, double z, long mode_mf, double *bias_arr)
+{
+	double delta_c = 1.686;
+	double R       = R_scale(Cx, M);   
+	double sigma   = sqrt(sig_sq(Cx, z, R));
+	double nu      = delta_c/sigma ;
+
+  double epsilon1 = 0., epsilon2 = 0., E1 = 0., E2 =0.;
+  double b1 =0., b2 =0., bg2=0., btd = 0.;
+  double alpha = 0., p = 0.;
+  double a =0., b =0., c=0.;
+
+  ///Note that for PSC and ST mass functions, same form of the biases can be assumed, with different coefficents.
+  ///See astro-ph/0006319
+	if(mode_mf == PSC){
+      epsilon1  = (pow(nu,2.)-1.)/delta_c;
+      epsilon2  = pow(nu/delta_c,2.)*(pow(nu,2.)-3.);
+      b1        = 1. + epsilon1; 
+      b2        = 2. * (1.-17./21.) * epsilon1 + epsilon2;
+  }
+	else if(mode_mf == ST){ 
+      ///Assuming spherical collapse
+      alpha     = 0.707;
+      p         = 0.3 ;
+      epsilon1  = (alpha*pow(nu,2.)-1.)/delta_c;
+      epsilon2  = alpha*pow(nu/delta_c,2.)*(alpha*pow(nu,2.)-3.);
+      E1        = (2.*p/delta_c)/(1.+pow(alpha*pow(nu,2.),p));
+      E2        = E1 * ((1.+2.*p)/delta_c + 2.*epsilon1);  
+
+      b1        = 1. + epsilon1 + E1;
+      b2        = 2. * (1.-17./21.) * (epsilon1 + E1) + epsilon2 + E2;
+    
+    ////Assuming ellipsoidal collapse, astro-ph/9907024
+  		// double a = 0.707;
+  		// double b = 0.5;
+  		// double c = 0.6;
+  		// b1 = 1.+1./(sqrt(a) * delta_c) * (sqrt(a)*(a*pow(nu,2.)) + sqrt(a) *b * pow(a*pow(nu,2.),1.-c)\
+  		//   - pow(a*pow(nu,2.),c)/(pow(a*pow(nu,2.),c)+b*(1.-c)*(1.-c/2.))); 
+	}
+	else if(mode_mf == TR){
+		//// Bias of Tinker et al 2008 arxiv: 0803.2706 for Delta =200
+      a = 0.707;   
+		  b = 0.35;
+		  c = 0.80;
+		  b1 = 1.+1./(sqrt(a)*delta_c)*(sqrt(a)*(a*pow(nu,2.))+sqrt(a)*b*pow(a*pow(nu,2.),1.-c)\
+		     - pow(a*pow(nu,2.),c)/(pow(a*pow(nu,2.),c)+b*(1.-c)*(1.-c/2.))); 
+  	
+		//// Bias of Tinker et al 2010 arxiv:1001.3162 for Delta =200
+		// double Delta = 200.;  
+		// double y = log10(Delta);
+		// double A = 1. + 0.24 *y * exp(-pow(4./y,4.));
+		// double B = 0.183 ;
+		// double C = 0.019 + 0.107 *y + 0.19 *exp(-pow(4./y,4.));
+		// double aa = 0.44 * y - 0.88;
+		// double bb = 1.5;
+		// double cc = 2.4;
+		// b1 = 1. - A*pow(nu,aa)/(pow(nu,aa) + pow(delta_c,aa)) + B *pow(nu,bb) + C* pow(nu,cc);
+	}
+
+  bg2 = -2./7. * (b1-1.);
+  btd =  23./42. * (b1-1.);   
+
+  bias_arr[0] = b1;
+  bias_arr[1] = b2;
+  bias_arr[2] = bg2;
+  bias_arr[3] = btd;
+
+  // printf("%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e \n",nu,M*gb.h,b1,b2,bg2,btd);
+
+	return;
+}
 
 
 

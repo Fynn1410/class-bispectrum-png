@@ -93,6 +93,11 @@
 #define HALO 		148L
 
 
+#define CDM 		90L
+#define BA 			91L
+#define TOT 		92L
+
+
 #define PS_KMIN        1.0e-7
 #define PS_KMAX        1.0e4
 
@@ -108,15 +113,10 @@
 #include "Global_Structs.h"
 #include "cosmology.h"
 #include "utilities.h"
-#include "survey_specs.h"
 #include "primordial.h"
-#include "line_ingredients.h"	
 #include "wnw_split.h"
 #include "IR_res.h"
 #include "ps_halo_1loop.h"
-#include "ps_line_pt.h"
-#include "ps_line_hm.h"
-#include "cubature.h"
 
 
 /** 

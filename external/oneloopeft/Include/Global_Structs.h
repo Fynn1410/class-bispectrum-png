@@ -7,19 +7,20 @@
 
 
 /**
- * Structure to store cosmology structure from CLASS code
+ * Structure to store cosmology structure from CLASS-v3.1 
 */
-struct Class_Cosmology_Struct{
+struct Class_Cosmology_Struct{ 
 
     struct precision                    pr;             /* for precision parameters */
     struct background                   ba;             /* for cosmological background */
-    struct thermo                       th;             /* for thermodynamics */
-    struct perturbs                     pt;             /* for source functions */
-    struct transfers                    tr;             /* for transfer functions */
+    struct thermodynamics               th;             /* for thermodynamics */ 
+    struct perturbations                pt;             /* for source functions */
+    struct transfer                     tr;             /* for transfer functions */
     struct primordial                   pm;             /* for primordial spectra */
-    struct spectra                      sp;             /* for output spectra */
-    struct nonlinear                    nl;             /* for non-linear spectra */
+    struct harmonic                     hr;             /* for output spectra */
+    struct fourier                      fo;             /* for non-linear spectra */
     struct lensing                      le;             /* for lensed spectra */
+    struct distortions					sd;				/* for CMB distortions*/
     struct output                       op;             /* for output files */
     ErrorMsg errmsg;                    /* for error messages */
 };

@@ -4,7 +4,7 @@
 int Cosmology_init(struct Cosmology *Cx, double pk_kmax, double pk_zmax, 
             int nlines, int * line_types, size_t npoints_interp, double M_min, long mode_mf);
 int Cosmology_free(struct Cosmology *Cx);
-int CL_Cosmology_initilize(struct Cosmology *Cx, double pk_kmax, double z_pk);
+int CL_Cosmology_initialize(struct Cosmology *Cx, double pk_kmax, double z_pk);
 int CL_Cosmology_free(struct Cosmology *Cx);
 
 double Pk_dlnPk(struct Cosmology *Cx, double k, double z , int mode);

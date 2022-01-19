@@ -33,14 +33,15 @@ double pm_IR_LO(struct Cosmology *Cx, double k, double z, long SPLIT)
 {
     double kf0 = 1.e-4;
     static double sig2_LO = - 1.;
+    printf("Hello1\n");
     if(sig2_LO == - 1.){
+          printf("Hello2\n");
           sig2_LO = IR_Sigma2(Cx,z, kf0, SPLIT);
     }
     double p_nowiggle = pm_nowiggle(Cx, k, z, kf0, 0, SPLIT);
     double p_wiggle   = Pk_dlnPk(Cx, k, z, LPOWER) - p_nowiggle;
     double sup        = exp(-k * k * sig2_LO);
     double f          = p_nowiggle + sup * p_wiggle;
-
     return f;
 
 }
@@ -135,7 +136,7 @@ double IR_Sigma2(struct Cosmology *Cx, double z, double kf0, long SPLIT)
 
     double kmin = 1.e-6;
     double kmax = 0.2;
-
+    printf("Hello3\n");
     gsl_function F;
     F.function = &IR_Sigma2_integrand;
     F.params = &par;
@@ -145,8 +146,9 @@ double IR_Sigma2(struct Cosmology *Cx, double z, double kf0, long SPLIT)
     par.p5  = z;
     par.p6  = kf0;
     par.p13 = SPLIT;
-
+    printf("Hello4\n");
     gsl_integration_qags(&F,kmin,kmax,0.0,1.0e-3,1000000,w,&result,&error);
+    printf("Hello5\n");
     gsl_integration_workspace_free(w);
 
     return result;
