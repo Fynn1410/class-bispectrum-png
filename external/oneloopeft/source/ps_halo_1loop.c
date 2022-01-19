@@ -19,7 +19,7 @@
  * -# S2()
  */
 
-#include "header.h"
+#include "../include/header.h"
 //struct globals gb;
 
 /**
