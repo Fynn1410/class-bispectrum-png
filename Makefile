@@ -51,6 +51,7 @@ LDFLAG = -g -fPIC
 HYREC = external/HyRec2020
 RECFAST = external/RecfastCLASS
 HEATING = external/heating
+ONELOOPEFT = external/oneloopeft
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -87,6 +88,12 @@ INCLUDES += -I../$(HYREC)
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o energy_injection.o
 HEADERFILES += $(wildcard ./$(HYREC)/*.h)
 endif
+
+# update flags for including oneloopeft
+vpath %.c $(ONELOOPEFT)
+INCLUDES += -I../$(ONELOOPEFT)/include
+EXTERNAL += source/ps_halo_1loop.o source/utilities.o
+HEADERFILES += $(wildcard ./$(ONELOOPEFT)/include/header.h)
 
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o

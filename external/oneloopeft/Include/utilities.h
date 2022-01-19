@@ -1,7 +1,7 @@
-	#include <stdlib.h>
-	#include <stdio.h>
-	#include <math.h>
-    #include <string.h>
+//JL#include <stdlib.h>
+//JL#include <stdio.h>
+//JL#include <math.h>
+//JL#include <string.h>
 
 	int *make_1D_int_array(long size);
 	double 	*make_1Darray(long size);
@@ -14,5 +14,3 @@
     long count_cols_in_file(char *fname);
 
 	double *log10init_1Darray(long n, double inc, double xmin);
-
-

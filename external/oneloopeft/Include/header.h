@@ -1,40 +1,43 @@
 
 
 /** @file header.h
- * 
+ *
  */
 #ifndef HEADER_H_
 #define HEADER_H_
 
 #define _GNU_SOURCE
 
-#include <time.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <float.h>
-#include <string.h>
-#include <omp.h>
-#include <mpi.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_spline.h>
-#include <gsl/gsl_interp2d.h>
-#include <gsl/gsl_spline2d.h>
-#include <gsl/gsl_sf_bessel.h>
-#include <gsl/gsl_sf_legendre.h>
-#include <gsl/gsl_integration.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_monte.h>
-#include <gsl/gsl_monte_vegas.h>
-#include <gsl/gsl_odeiv2.h>  /// For solving ODER
-#include <gsl/gsl_roots.h>	 // For finding the root of algebraic equation	
-#include <gsl/gsl_sf_expint.h>
-#include <ctype.h>
-#include "../Class/include/class.h"
-#include "cuba.h"
+#include "../../../include/common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
+#include "../../../include/background.h"
+
+//#include <time.h>
+//#include <unistd.h>
+//#include <stdlib.h>
+//#include <stdio.h>
+//#include <math.h>
+//#include <float.h>
+//#include <string.h>
+//#include <omp.h>
+//#include <mpi.h>
+//#include <gsl/gsl_errno.h>
+//#include <gsl/gsl_spline.h>
+//#include <gsl/gsl_interp2d.h>
+//#include <gsl/gsl_spline2d.h>
+//#include <gsl/gsl_sf_bessel.h>
+//#include <gsl/gsl_sf_legendre.h>
+//#include <gsl/gsl_integration.h>
+//#include <gsl/gsl_matrix.h>
+//#include <gsl/gsl_linalg.h>
+//#include <gsl/gsl_blas.h>
+//#include <gsl/gsl_monte.h>
+//#include <gsl/gsl_monte_vegas.h>
+//#include <gsl/gsl_odeiv2.h>  /// For solving ODER
+//#include <gsl/gsl_roots.h>	 // For finding the root of algebraic equation
+//#include <gsl/gsl_sf_expint.h>
+//#include <ctype.h>
+//#include "../Class/include/class.h"
+#include "../library/Cuba-4.2.1/cuba.h"
 
 
 #define PSC  		101L
@@ -80,12 +83,12 @@
 #define LINEMATTER	139L
 #define LINE 		140L
 
-#define DST			141L	
+#define DST			141L
 #define GFILTER		142L
 #define BSPLINE		143L
 
 
-#define TREE		144L	
+#define TREE		144L
 #define LOOP		145L
 #define WIR			146L
 #define NOIR		147L
@@ -101,25 +104,25 @@
 #define PS_KMIN        1.0e-7
 #define PS_KMAX        1.0e4
 
-#define CLEANUP        1 
+#define CLEANUP        1
 
 #define DO_NOT_EVALUATE -1.0
 
 #define MAXL 2000
 
-/** 
+/**
  * List of limHaloPT header files
  */
-#include "Global_Structs.h"
-#include "cosmology.h"
+//JL#include "Global_Structs.h"
+//JL#include "cosmology.h"
 #include "utilities.h"
-#include "primordial.h"
-#include "wnw_split.h"
-#include "IR_res.h"
+//JL#include "primordial.h"
+//JL#include "wnw_split.h"
+//JL#include "IR_res.h"
 #include "ps_halo_1loop.h"
 
 
-/** 
+/**
  * Function declarations of main.c module
  */
 void  initialize();
@@ -158,7 +161,7 @@ struct integrand_parameters2
 
 	double p4;
 	double p5;
-	double p6; 
+	double p6;
 	double p7;
 	double p8;
 	double p9;
@@ -178,13 +181,6 @@ struct integrand_parameters2
 	double *p20;
 	size_t p22;
 };
-	
+
 
 #endif
-
-
-
-
-
-
-
