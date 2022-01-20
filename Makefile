@@ -91,9 +91,9 @@ endif
 
 # update flags for including oneloopeft
 vpath %.c $(ONELOOPEFT)
-INCLUDES += -I../$(ONELOOPEFT) 
+INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.1 -I../$(ONELOOPEFT) 
 EXTERNAL += ps_halo_1loop.o utilities.o cosmology.o 
-HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h) 
+HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)  $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.1/*.h)
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
