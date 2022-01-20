@@ -6,6 +6,7 @@ double PS_hh_G(
                struct precision * ppr,
                struct background * pba,
                struct perturbations * ppt,
+               struct primordial * ppm,
                struct fourier * pfo,
                double k, double z, double M, long mode, long IR_switch, long SPLIT, long mode_mf);
 
@@ -18,11 +19,15 @@ void Compute_G_loops(
                      double k, double z, long IR_switch, long hm_switch, long SPLIT, double *result);
 
 
-static int G_loop_integrands(const int *ndim,
-                              const cubareal x[],
-                              const int *ncomp,
-                              cubareal ff[],
-                              void *p);
+static int G_loop_integrands(
+                             struct primordial * ppm,
+                             struct background * pba,
+                             struct fourier * pfo,
+                             const int *ndim,
+                             const cubareal x[],
+                             const int *ncomp,
+                             cubareal ff[],
+                             void *p);
 
 double F2_s(double k1,double k2,double mu);
 double S2_s(double k1,double k2,double mu);

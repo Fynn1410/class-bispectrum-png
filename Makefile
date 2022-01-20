@@ -90,11 +90,10 @@ HEADERFILES += $(wildcard ./$(HYREC)/*.h)
 endif
 
 # update flags for including oneloopeft
-vpath %.c $(ONELOOPEFT)/source
-INCLUDES += -I../$(ONELOOPEFT)/include 
-EXTERNAL += ps_halo_1loop.o utilities.o
-HEADERFILES += $(wildcard ./$(ONELOOPEFT)/include/header.h)
-
+vpath %.c $(ONELOOPEFT)
+INCLUDES += -I../$(ONELOOPEFT) 
+EXTERNAL += ps_halo_1loop.o utilities.o cosmology.o 
+HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h) 
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 

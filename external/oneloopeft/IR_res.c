@@ -29,7 +29,12 @@
  * 
  * @return value of leading IR-ressumed power spectrum           
  */
-double pm_IR_LO(struct Cosmology *Cx, double k, double z, long SPLIT)
+double pm_IR_LO(struct background * pba,
+                struct primordial * ppm,
+                struct fourier * pfo,  
+                double k, 
+                double z, 
+                long SPLIT)
 {
     double kf0 = 1.e-4;
     static double sig2_LO = - 1.;
@@ -39,7 +44,7 @@ double pm_IR_LO(struct Cosmology *Cx, double k, double z, long SPLIT)
           sig2_LO = IR_Sigma2(Cx,z, kf0, SPLIT);
     }
     double p_nowiggle = pm_nowiggle(Cx, k, z, kf0, 0, SPLIT);
-    double p_wiggle   = Pk_dlnPk(Cx, k, z, LPOWER) - p_nowiggle;
+    double p_wiggle   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER) - p_nowiggle;
     double sup        = exp(-k * k * sig2_LO);
     double f          = p_nowiggle + sup * p_wiggle;
     return f;

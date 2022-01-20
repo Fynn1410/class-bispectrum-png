@@ -19,7 +19,7 @@
  * -# S2()
  */
 
-#include "../include/header.h"
+#include "header.h"
 //struct globals gb;
 
 /**
@@ -41,6 +41,7 @@ double PS_hh_G(
                struct precision * ppr,
                struct background * pba,
                struct perturbations * ppt,
+               struct primordial * ppm,
                struct fourier * pfo,
                double k,
                double z,
@@ -55,14 +56,15 @@ double PS_hh_G(
 
       double pm_lin = 0., pm_lin_IR = 0., pm_1loop_IR = 0., pm_22 = 0., pm_13 = 0., pm_1loop =0., pm_ct = 0., ph_tot = 0.;
 
-      double *bias_arr = make_1Darray(4);
+      //DL
+      //double *bias_arr = make_1Darray(4);
       //halo_bias(Cx, M, z, mode_mf, bias_arr);
       // double b1  = bias_arr[0];
       // double b2  = bias_arr[1];
       // double bG2 = bias_arr[2];
       // double btd = bias_arr[3];
 
-      // CLASS-PT values page 30
+      //DL CLASS-PT values page 30
       double b1  = 2.0;
       double b2  = -1.0;
       double bG2 = 0.1;
@@ -96,7 +98,7 @@ double PS_hh_G(
             double khat     = 1. * pba->h;
 
             if(IR_switch == NOIR){
-              //JLpm_lin   = Pk_dlnPk(Cx, k, z, LPOWER);
+                pm_lin   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
                 pm_22    = ps_mloops[0];
                 pm_13    = ps_mloops[1];
                 pm_1loop = pm_lin + pm_22 + pm_13;
@@ -104,11 +106,11 @@ double PS_hh_G(
                 ph_tot   = (pow(b1, 2.) * (pm_1loop + pm_ct) + ph_loops);
             }
             else if(IR_switch == WIR){
-              //JLpm_lin      = Pk_dlnPk(Cx,k, z, LPOWER);
+                pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
                 pm_22       = ps_mloops[0];
                 pm_13       = ps_mloops[1];
-                //JLpm_lin_IR   = pm_IR_LO(Cx,k, z, SPLIT);
-                //JLpm_1loop_IR = pm_IR_NLO(Cx,k, z, SPLIT);
+                //DLpm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+                //DLpm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
                 pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
                 ph_tot      = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
             }
@@ -128,10 +130,10 @@ double PS_hh_G(
             free(ps_mloops);
       }
       else if(mode_pt == TREE){
-        //JLph_tot  = pow(b1, 2.) * Pk_dlnPk(Cx, k, z, LPOWER);
+        ph_tot  = pow(b1, 2.) * Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
       }
 
-      free(bias_arr);
+      //free(bias_arr);
 
       return ph_tot;
 }
@@ -216,10 +218,10 @@ void Compute_G_loops(
       int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e8;
       int nregions, neval;
 
-      Cuhre(ndim,ncomp, G_loop_integrands, &par, nvec,
-              RelErr, AbsErr, verbose | last,
-               mineval, maxeval, key,
-               NULL, NULL, &nregions, &neval, fail, result, error, prob);
+      //DL Cuhre(ndim,ncomp, G_loop_integrands, &par, nvec,
+      //         RelErr, AbsErr, verbose | last,
+      //          mineval, maxeval, key,
+      //          NULL, NULL, &nregions, &neval, fail, result, error, prob);
 
       // for(int i =0; i<ncomp; i++)
       //     printf("Gloops integral : %d %12.6e %12.6e %12.6e %12.6e %d \n", i, k, result[i], error[i], prob[i], fail[i]);
@@ -228,7 +230,11 @@ void Compute_G_loops(
       return;
 }
 
-static int G_loop_integrands(const int *ndim,
+static int G_loop_integrands(
+                             struct primordial * ppm,
+                             struct background * pba,
+                             struct fourier * pfo,
+                             const int *ndim,
                              const cubareal x[],
                              const int *ncomp,
                              cubareal ff[],
@@ -305,11 +311,10 @@ static int G_loop_integrands(const int *ndim,
 
       if(kmq <= exp(logqmax) && kmq>=exp(logqmin) && kpq <= exp(logqmax) && kpq>=exp(logqmin)){
         if(IR_switch == NOIR){
-          //JLplin_k   =  Pk_dlnPk(Cx, k, z, LPOWER);
-          //JLplin_q   =  Pk_dlnPk(Cx, q, z, LPOWER);
-          //JLplin_kmq =  Pk_dlnPk(Cx, kmq, z, LPOWER);
-          //JLplin_kpq =  Pk_dlnPk(Cx, kpq, z, LPOWER);
-
+          plin_k   =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+          plin_q   =  Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
+          plin_kmq =  Pk_dlnPk(pba, ppm, pfo, kmq, z, LPOWER);
+          plin_kpq =  Pk_dlnPk(pba, ppm, pfo, kpq, z, LPOWER);
 
 
             if(hm_switch == HALO)

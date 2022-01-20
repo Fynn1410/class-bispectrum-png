@@ -8,8 +8,10 @@
 
 #define _GNU_SOURCE
 
-#include "../../../include/common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
-#include "../../../include/background.h"
+#include "../../include/common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
+#include "../../include/background.h"
+#include "../../include/fourier.h"
+#include "../../include/primordial.h"
 
 //#include <time.h>
 //#include <unistd.h>
@@ -37,7 +39,7 @@
 //#include <gsl/gsl_sf_expint.h>
 //#include <ctype.h>
 //#include "../Class/include/class.h"
-#include "../library/Cuba-4.2.1/cuba.h"
+#include "library/Cuba-4.2.1/cuba.h"
 
 
 #define PSC  		101L
@@ -114,7 +116,7 @@
  * List of limHaloPT header files
  */
 //JL#include "Global_Structs.h"
-//JL#include "cosmology.h"
+#include "cosmology.h"
 #include "utilities.h"
 //JL#include "primordial.h"
 //JL#include "wnw_split.h"
