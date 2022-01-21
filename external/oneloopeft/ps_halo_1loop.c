@@ -115,17 +115,6 @@ double PS_hh_G(
                 ph_tot      = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
             }
 
-            
-            FILE *fp;
-            char filename1[FILENAME_MAX];
-            sprintf(filename1,"output.txt");
-
-            fp = fopen(filename1, "a");
-            fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e \n"\
-                    ,k, pow(b1, 2.) * pm_lin, pow(b1,2.)* pm_1loop_IR, pow(b1,2.) *pm_ct, pow(b1,2.) * pm_22, pow(b1,2.) *pm_13, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl,ph_tot);
-            fclose(fp);
-            
-
             free(ps_hloops);
             free(ps_mloops);
       }
@@ -188,7 +177,7 @@ void Compute_G_loops(
       par.pfo = pfo;
       par.p4  = k;
       par.p5  = z;
-      par.p6  = log(1.e-4);
+      par.p6  = log(1.e-5);
       par.p7  = log(100.);
       par.p13 = IR_switch;
       par.p14 = hm_switch;

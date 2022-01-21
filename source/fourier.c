@@ -1636,7 +1636,7 @@ int fourier_init(
 
   else if (pfo->method == nl_oneloopPT) {
 
-    class_call(PS_hh_G(ppr,pba,ppt,pfo, 1.0, 0.0, 0.0, 145L, 147L, 141L, 0.0),
+    class_call(PS_hh_G(ppr, pba, ppt, ppm, pfo, pfo->k[index_k], z, 0.0, 145L, 147L, 141L, 0.0),
                pfo->error_message,
                pfo->error_message);
     
