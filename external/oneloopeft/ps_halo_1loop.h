@@ -12,17 +12,13 @@ double PS_hh_G(
 
 void Compute_G_loops(
                      //struct Cosmology *Cx,
-                     struct precision * ppr,
                      struct background * pba,
-                     struct perturbations * ppt,
                      struct fourier * pfo,
+                     struct primordial * ppm,
                      double k, double z, long IR_switch, long hm_switch, long SPLIT, double *result);
 
 
 static int G_loop_integrands(
-                             struct primordial * ppm,
-                             struct background * pba,
-                             struct fourier * pfo,
                              const int *ndim,
                              const cubareal x[],
                              const int *ncomp,

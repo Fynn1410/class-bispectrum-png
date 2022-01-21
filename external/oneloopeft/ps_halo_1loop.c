@@ -78,12 +78,12 @@ double PS_hh_G(
             ps_mloops = make_1Darray(2);
 
             if(IR_switch == WIR){
-              //JLCompute_G_loops(Cx, k, z, WIR, HALO, SPLIT, ps_hloops);
-              //JLCompute_G_loops(Cx, k, z, WIR, MATTER, SPLIT,ps_mloops);
+              Compute_G_loops(pba, pfo, ppm, k, z, WIR, HALO, SPLIT, ps_hloops);
+              Compute_G_loops(pba, pfo, ppm, k, z, WIR, MATTER, SPLIT, ps_mloops);
             }
             else if(IR_switch == NOIR){
-              //JLCompute_G_loops(Cx, k, z, NOIR, HALO, SPLIT, ps_hloops);
-              //JLCompute_G_loops(Cx, k, z, NOIR, MATTER, SPLIT,ps_mloops);
+              Compute_G_loops(pba, pfo, ppm, k, z, NOIR, HALO, SPLIT, ps_hloops);
+              Compute_G_loops(pba, pfo, ppm, k, z, NOIR, MATTER, SPLIT, ps_mloops);
             }
 
             double pb1b2    = b1 * b2  * ps_hloops[0];
@@ -115,16 +115,16 @@ double PS_hh_G(
                 ph_tot      = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
             }
 
-            /*
+            
             FILE *fp;
             char filename1[FILENAME_MAX];
-            sprintf(filename1,"%s/ph_IR_z%d_comps.txt", gb.output_dir,(int)z);
+            sprintf(filename1,"output.txt");
 
             fp = fopen(filename1, "a");
             fprintf(fp, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e \n"\
                     ,k, pow(b1, 2.) * pm_lin, pow(b1,2.)* pm_1loop_IR, pow(b1,2.) *pm_ct, pow(b1,2.) * pm_22, pow(b1,2.) *pm_13, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl,ph_tot);
             fclose(fp);
-            */
+            
 
             free(ps_hloops);
             free(ps_mloops);
@@ -156,10 +156,9 @@ double PS_hh_G(
 
 void Compute_G_loops(
                      //struct Cosmology *Cx,
-                     struct precision * ppr,
                      struct background * pba,
-                     struct perturbations * ppt,
                      struct fourier * pfo,
+                     struct primordial * ppm,
                      double k, double z, long IR_switch, long hm_switch,long SPLIT, double *result)
 {
       struct integrand_parameters2 par;
@@ -182,7 +181,11 @@ void Compute_G_loops(
         //JLplin_IR_k   = pm_IR_LO(Cx, k, z, SPLIT);
       }
       else{plin_IR_k = 0;}
-      //JLpar.p1  = Cx;
+
+      // Parsing information to the integrand
+      par.ppm = ppm;
+      par.pba = pba;
+      par.pfo = pfo;
       par.p4  = k;
       par.p5  = z;
       par.p6  = log(1.e-4);
@@ -230,9 +233,6 @@ void Compute_G_loops(
 }
 
 static int G_loop_integrands(
-                             struct primordial * ppm,
-                             struct background * pba,
-                             struct fourier * pfo,
                              const int *ndim,
                              const cubareal x[],
                              const int *ncomp,
@@ -243,15 +243,17 @@ static int G_loop_integrands(
       struct integrand_parameters2 pij;
       pij = *((struct integrand_parameters2 *)p);
 
-      //JLstruct Cosmology *Cx = pij.p1;
-      double k            = pij.p4;
-      double z            = pij.p5;
-      double logqmin      = pij.p6;
-      double logqmax      = pij.p7;
-      long IR_switch      = pij.p13;
-      long hm_switch      = pij.p14;
-      long SPLIT          = pij.p15;
-      double plin_IR_k    = pij.p8;
+      struct background *pba = pij.pba;
+      struct primordial *ppm = pij.ppm;
+      struct fourier *pfo    = pij.pfo;
+      double k               = pij.p4;
+      double z               = pij.p5;
+      double logqmin         = pij.p6;
+      double logqmax         = pij.p7;
+      long IR_switch         = pij.p13;
+      long hm_switch         = pij.p14;
+      long SPLIT             = pij.p15;
+      double plin_IR_k       = pij.p8;
 
 
       double logq  = (x[0] * (logqmax - logqmin) + logqmin);

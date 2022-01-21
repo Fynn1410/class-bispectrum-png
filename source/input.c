@@ -3452,6 +3452,11 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
 
       class_read_double("z_infinity", pfo->z_infinity);
     }
+    else if((strstr(string1,"oneloopPT") != NULL) || (strstr(string1,"1loopPT") != NULL) || (strstr(string1,"OneloopPT") != NULL)) {
+      pfo->method=nl_oneloopPT;
+      ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->nonlinear_min_k_max);
+    }
     else if(strstr(string1,"no")!=NULL){
       pfo->method=nl_none;
       ppt->has_nl_corrections_based_on_delta_m = _FALSE_;

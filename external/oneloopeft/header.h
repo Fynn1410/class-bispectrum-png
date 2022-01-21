@@ -157,9 +157,9 @@ struct integrand_parameters
 struct integrand_parameters2
 {
 
-	struct Cosmology *p1;
-	struct Cosmology *p2;
-	struct Cosmology *p3;
+    struct background *pba;
+	struct primordial *ppm;
+    struct fourier *pfo;
 
 	double p4;
 	double p5;
