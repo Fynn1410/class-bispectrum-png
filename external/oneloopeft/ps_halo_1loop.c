@@ -218,14 +218,13 @@ void Compute_G_loops(
       int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e8;
       int nregions, neval;
 
-      //DL Cuhre(ndim,ncomp, G_loop_integrands, &par, nvec,
-      //         RelErr, AbsErr, verbose | last,
-      //          mineval, maxeval, key,
-      //          NULL, NULL, &nregions, &neval, fail, result, error, prob);
+      Cuhre(ndim,ncomp, G_loop_integrands, &par, nvec,
+              RelErr, AbsErr, verbose | last,
+               mineval, maxeval, key,
+               NULL, NULL, &nregions, &neval, fail, result, error, prob);
 
-      // for(int i =0; i<ncomp; i++)
-      //     printf("Gloops integral : %d %12.6e %12.6e %12.6e %12.6e %d \n", i, k, result[i], error[i], prob[i], fail[i]);
-
+      for(int i =0; i<ncomp; i++)
+          printf("Gloops integral : %d %12.6e %12.6e %12.6e %12.6e %d \n", i, k, result[i], error[i], prob[i], fail[i]);
 
       return;
 }
@@ -252,7 +251,7 @@ static int G_loop_integrands(
       long IR_switch      = pij.p13;
       long hm_switch      = pij.p14;
       long SPLIT          = pij.p15;
-      double plin_IR_k   = pij.p8;
+      double plin_IR_k    = pij.p8;
 
 
       double logq  = (x[0] * (logqmax - logqmin) + logqmin);
@@ -290,8 +289,6 @@ static int G_loop_integrands(
       double plin_kpq;
       double plin_IR_q;
       double plin_IR_kmq;
-
-      //JLplin_k   =  Pk_dlnPk(Cx, k, z, LPOWER);
 
       if(kmq>=q)
         theta_kmq = 1.;
