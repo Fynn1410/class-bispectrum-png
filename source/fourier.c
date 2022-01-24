@@ -1643,6 +1643,7 @@ int fourier_init(
     //              pfo->error_message,
     //              pfo->error_message);
     double pk_nl;
+
     for (index_k=0; index_k<pfo->k_size; index_k++) {
       if (pfo->k[index_k] <= 0.01) {
         fprintf(stderr,"copy linear value for k=%e\n",pfo->k[index_k]);
