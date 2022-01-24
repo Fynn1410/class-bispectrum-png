@@ -8,7 +8,7 @@ double PS_hh_G(
                struct perturbations * ppt,
                struct primordial * ppm,
                struct fourier * pfo,
-               double k, double z, double M, long mode, long IR_switch, long SPLIT, long mode_mf);
+               int index_pk, int index_k, double z, double M, long mode, long IR_switch, long SPLIT, long mode_mf);
 
 void Compute_G_loops(
                      //struct Cosmology *Cx,
