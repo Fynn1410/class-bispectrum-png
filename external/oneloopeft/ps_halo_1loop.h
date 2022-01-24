@@ -1,5 +1,6 @@
 #ifndef LINE_PS_PT_H
 #define LINE_PS_PT_H
+#include "cuba.h"
 
 double PS_hh_G(
                //struct Cosmology *Cx,

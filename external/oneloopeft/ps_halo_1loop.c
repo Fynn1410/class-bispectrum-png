@@ -53,6 +53,8 @@ double PS_hh_G(
                long mode_mf)
 {
 
+      double k = pfo->k[index_k];
+
       int cleanup = 0;
 
       double pm_lin = 0., pm_lin_IR = 0., pm_1loop_IR = 0., pm_22 = 0., pm_13 = 0., pm_1loop =0., pm_ct = 0., ph_tot = 0.;

@@ -2,6 +2,7 @@
 
 #include "primordial.h"
 #include "trigonometric_integrals.h"
+#include "ps_halo_1loop.h"
 
 #ifndef __FOURIER__
 #define __FOURIER__
