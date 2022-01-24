@@ -3463,7 +3463,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
     }
     else{
       class_stop(errmsg,
-                 "You specified 'non_linear' = '%s'. It has to be one of {'halofit','hmcode','none'}.",string1);
+                 "You specified 'non_linear' = '%s'. It has to be one of {'halofit','hmcode','oneloopPT','none'}.",string1);
     }
   }
 

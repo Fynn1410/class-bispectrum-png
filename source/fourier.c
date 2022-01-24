@@ -1635,21 +1635,29 @@ int fourier_init(
   }
 
   else if (pfo->method == nl_oneloopPT) {
+
+    if ((pfo->fourier_verbose > 0) && (pfo->method == nl_oneloopPT))
+      printf("Computing one-loop power spectrum including EFT terms (proper credits to Azadeh et al. will have to be added here)\n");
+
     // class_call(PS_hh_G(ppr, pba, ppt, ppm, pfo, index_pk, index_k, z, 0.0, 145L, 147L, 141L, 0.0),
     //              pfo->error_message,
     //              pfo->error_message);
     double pk_nl;
-    if (pfo->k[index_k] <= 0.01) {
-      fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_cb, &pk_nl, NULL); 
-      pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1)*pfo->k_size+index_k] = log(pk_nl);
+    for (index_k=0; index_k<pfo->k_size; index_k++) {
+      if (pfo->k[index_k] <= 0.01) {
+        fprintf(stderr,"copy linear value for k=%e\n",pfo->k[index_k]);
+        fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_m, &pk_nl, NULL);
+        pfo->ln_pk_nl[pfo->index_pk_m][(pfo->ln_tau_size-1)*pfo->k_size+index_k] = log(pk_nl);
       }
-    else{
-      class_call(PS_hh_G(ppr, pba, ppt, ppm, pfo, index_pk, index_k, z, 0.0, 145L, 147L, 141L, 0.0),
-                 pfo->error_message,
-                 pfo->error_message);
+      else{
+        fprintf(stderr,"call PS_hh_G for k=%e\n",pfo->k[index_k]);
+        class_call(PS_hh_G(ppr, pba, ppt, ppm, pfo, pfo->index_pk_m, index_k, z, 0.0, 145L, 147L, 141L, 0.0),
+                   pfo->error_message,
+                   pfo->error_message);
+      }
     }
   }
-  
+
   /** - if the nl_method could not be identified */
   else {
     class_stop(pfo->error_message,
