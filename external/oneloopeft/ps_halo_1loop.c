@@ -249,7 +249,7 @@ static int G_loop_integrands(
       long SPLIT             = pij.p15;
       double plin_IR_k       = pij.p8;
 
-
+      //fprintf(stderr,"%e, %e, %e,%e \n",k,z,logqmin,logqmax);
       double logq  = (x[0] * (logqmax - logqmin) + logqmin);
       double cos   = (2. * x[1] - 1.);
       double q     = exp(logq);
@@ -308,7 +308,7 @@ static int G_loop_integrands(
           plin_q   =  Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
           plin_kmq =  Pk_dlnPk(pba, ppm, pfo, kmq, z, LPOWER);
           plin_kpq =  Pk_dlnPk(pba, ppm, pfo, kpq, z, LPOWER);
-
+          fprintf(stderr,"%e, %e, %e => %e, %e, %e, %e,\n", k, x[0], x[1], plin_k, plin_q, plin_kmq, plin_kpq);
 
             if(hm_switch == HALO)
             {
@@ -318,7 +318,7 @@ static int G_loop_integrands(
                 ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(S2_s(q, k, cos), 2.);
                 ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * S2_s(q,k,cos);
                 ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q   * S2_s(q, k, cos) * F2(q, k, -cos);
-                fprintf(stderr,"%e => ff0 = %e\n",k,ff[0]);
+                //fprintf(stderr,"%e  %e => ff0 = %e\n",k,q,ff[0]);
             }
             else if(hm_switch == MATTER)
             {
