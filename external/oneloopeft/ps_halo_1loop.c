@@ -53,7 +53,7 @@ double PS_hh_G(
                long mode_mf)
 {
 
-      double k = pfo->k[index_k];
+      double k = 0.1; //pfo->k[index_k];
 
       int cleanup = 0;
 
@@ -126,6 +126,7 @@ double PS_hh_G(
       }
 
       //free(bias_arr);
+      fprintf(stderr,"%e => %e\n",k, ph_tot);
       pfo->ln_pk_nl[index_pk][index_k] = ph_tot;
       return ph_tot;
 }
@@ -169,10 +170,11 @@ void Compute_G_loops(
       double prob[ncomp];
       double plin_IR_k;
       // pm_IR_LO does not work: cant open file (gsl)
-      if(IR_switch == WIR){
-        //JLplin_IR_k   = pm_IR_LO(Cx, k, z, SPLIT);
-      }
-      else{plin_IR_k = 0;}
+      // if(IR_switch == WIR){
+      //   //JLplin_IR_k   = pm_IR_LO(Cx, k, z, SPLIT);
+      // }
+      // else{plin_IR_k = 0;}
+      plin_IR_k = 0;
 
       // Parsing information to the integrand
       par.ppm = ppm;
@@ -180,7 +182,7 @@ void Compute_G_loops(
       par.pfo = pfo;
       par.p4  = k;
       par.p5  = z;
-      par.p6  = log(1.e-5);
+      par.p6  = log(1.e-4);
       par.p7  = log(100.);
       par.p13 = IR_switch;
       par.p14 = hm_switch;
@@ -210,7 +212,7 @@ void Compute_G_loops(
       else if(hm_switch == HALO)
           key = 13;
 
-      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e8;
+      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e1;
       int nregions, neval;
 
       Cuhre(ndim,ncomp, G_loop_integrands, &par, nvec,
@@ -316,6 +318,7 @@ static int G_loop_integrands(
                 ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(S2_s(q, k, cos), 2.);
                 ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * S2_s(q,k,cos);
                 ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q   * S2_s(q, k, cos) * F2(q, k, -cos);
+                fprintf(stderr,"%e => ff0 = %e\n",k,ff[0]);
             }
             else if(hm_switch == MATTER)
             {
