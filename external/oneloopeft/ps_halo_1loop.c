@@ -53,7 +53,7 @@ double PS_hh_G(
                long mode_mf)
 {
 
-      double k = 0.1; //pfo->k[index_k];
+      double k = pfo->k[index_k];
 
       int cleanup = 0;
 
@@ -128,6 +128,70 @@ double PS_hh_G(
       //free(bias_arr);
       fprintf(stderr,"%e => %e\n",k, ph_tot);
       pfo->ln_pk_nl[index_pk][index_k] = ph_tot;
+      return ph_tot;
+}
+
+double PS_mm_G(
+               //struct Cosmology *Cx,
+               struct precision * ppr,
+               struct background * pba,
+               struct perturbations * ppt,
+               struct primordial * ppm,
+               struct fourier * pfo,
+               int index_pk,
+               int index_k,
+               double z,
+               long mode_pt,
+               long IR_switch,
+               long SPLIT)
+{
+
+      double k = pfo->k[index_k];
+
+      int cleanup = 0;
+
+      double pm_lin = 0., pm_lin_IR = 0., pm_22 = 0., pm_13 = 0., ph_tot = 0., pm_1loop_IR = 0., pm_ct = 0.;
+
+      if(mode_pt == LOOP){
+            double *ps_mloops;
+            ps_mloops = make_1Darray(2);
+
+            if(IR_switch == WIR){
+              Compute_G_loops(pba, pfo, ppm, k, z, WIR, MATTER, SPLIT, ps_mloops);
+            }
+            else if(IR_switch == NOIR){
+              Compute_G_loops(pba, pfo, ppm, k, z, NOIR, MATTER, SPLIT, ps_mloops);
+            }
+
+            double khat     = 1. * pba->h;
+            double cs2      = 0.2;
+
+            if(IR_switch == NOIR){
+                pm_lin   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+                pm_22    = ps_mloops[0];
+                pm_13    = ps_mloops[1];
+                pm_ct    = - 2. * cs2 * pow(k, 2.) * pm_lin;
+                ph_tot   = pm_lin + pm_22 + pm_13 + pm_ct;
+            }
+            else if(IR_switch == WIR){
+                pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+                pm_22       = ps_mloops[0];
+                pm_13       = ps_mloops[1];
+                //DLpm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+                //DLpm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
+                pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
+                ph_tot      = pm_1loop_IR + pm_ct;
+            }
+
+            free(ps_mloops);
+      }
+      else if(mode_pt == TREE){
+        ph_tot  =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+      }
+
+      //free(bias_arr);
+      fprintf(stderr,"%e => %e\n",k, ph_tot);
+      pfo->ln_pk_nl[index_pk][index_k] = log(ph_tot);
       return ph_tot;
 }
 
@@ -212,7 +276,7 @@ void Compute_G_loops(
       else if(hm_switch == HALO)
           key = 13;
 
-      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e1;
+      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e8;
       int nregions, neval;
 
       Cuhre(ndim,ncomp, G_loop_integrands, &par, nvec,
@@ -220,8 +284,8 @@ void Compute_G_loops(
                mineval, maxeval, key,
                NULL, NULL, &nregions, &neval, fail, result, error, prob);
 
-      for(int i =0; i<ncomp; i++)
-          printf("Gloops integral : %d %12.6e %12.6e %12.6e %12.6e %d \n", i, k, result[i], error[i], prob[i], fail[i]);
+      // for(int i =0; i<ncomp; i++)
+      //     printf("Gloops integral : %d %12.6e %12.6e %12.6e %12.6e %d \n", i, k, result[i], error[i], prob[i], fail[i]);
 
       return;
 }
@@ -308,8 +372,8 @@ static int G_loop_integrands(
           plin_q   =  Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
           plin_kmq =  Pk_dlnPk(pba, ppm, pfo, kmq, z, LPOWER);
           plin_kpq =  Pk_dlnPk(pba, ppm, pfo, kpq, z, LPOWER);
-          fprintf(stderr,"%e, %e, %e => %e, %e, %e, %e,\n", k, x[0], x[1], plin_k, plin_q, plin_kmq, plin_kpq);
-
+          //fprintf(stderr,"%e %e %e => %e %e %e %e\n", k, x[0], x[1], plin_k, plin_q, plin_kmq, plin_kpq);
+          //fprintf(stderr,"%e %e %e => %e %e %e \n", k, x[0], x[1], plin_k, plin_q, plin_kmq);
             if(hm_switch == HALO)
             {
                 ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos);
@@ -324,6 +388,7 @@ static int G_loop_integrands(
             {
                 ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(F2_s(q, k, cos), 2.);
                 ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q * F3_s(k, q, cos);
+                //fprintf(stderr,"%e  %e => ff1 = %e\n",k,q,ff[1]);
             }
             for(int i =0;i<nn;i++){
               if (isnan(ff[i]))
