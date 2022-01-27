@@ -35,8 +35,8 @@ int PS_mm_G(
 int Compute_G_loops(
                     //struct Cosmology *Cx,
                     struct background * pba,
-                    struct fourier * pfo,
                     struct primordial * ppm,
+                    struct fourier * pfo,
                     double k,
                     double z,
                     short has_ir,

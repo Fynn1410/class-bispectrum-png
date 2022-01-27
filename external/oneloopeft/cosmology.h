@@ -17,7 +17,7 @@
 // double sig_sq(struct Cosmology *Cx, double z, double R);
 // double der_lnsig_sq(struct Cosmology *Cx, double z, double R);
 
-// double growth_D(struct Cosmology *Cx, double z);
+double growth_D(struct background * pba, double z);
 // double growth_f(struct Cosmology *Cx, double z);
 // double scale_indep_growth_D(struct Cosmology *Cx, double z);
 // double scale_indep_growth_f(struct Cosmology *Cx, double z);

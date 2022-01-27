@@ -385,8 +385,7 @@
  * 
  * @return the double value of matter power spectrum
  */
-double Pk_dlnPk(
-                struct background * pba,
+double Pk_dlnPk(struct background * pba,
                 struct primordial * ppm,
                 struct fourier * pfo, 
                 double k, 
@@ -616,26 +615,31 @@ double Pk_dlnPk(
 //  * @return the growth factor, can be k-dep (ex. with nonzero neutrino mass)
 //  */
 
-// double growth_D(struct Cosmology *Cx, double z)
-// { 
+double growth_D(struct background * pba,
+                double z)
+{ 
 
-//   double tau;
-//   int last_index; ///junk
-//   double * pvecback;
+  double tau;
+  int last_index; ///junk
+  double * pvecback;
 
-//   pvecback = (double*) calloc(Cx -> ccs.ba.bg_size,sizeof(double));
+  pvecback = (double*) calloc(pba->bg_size,sizeof(double));
 
-//   class_call(background_tau_of_z(&Cx -> ccs.ba,z,&tau),
-//             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
-//   class_call(background_at_tau(&Cx -> ccs.ba,tau,long_info,inter_normal,&last_index,pvecback),
-//             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
+  background_tau_of_z(pba,z,&tau);
+  background_at_tau(pba,tau,long_info,inter_normal,&last_index,pvecback);
 
-//   double Dz = pvecback[Cx -> ccs.ba.index_bg_D];
+  // DL so perturbations should not be provided
+  // class_call(background_tau_of_z(pba,z,&tau),
+  //           pba.error_message,Cx->ccs.pt.error_message);
+  // class_call(background_at_tau(&Cx -> pba,tau,long_info,inter_normal,&last_index,pvecback),
+  //           Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
 
-//   free(pvecback);
+  double Dz = pvecback[pba->index_bg_D];
 
-//   return Dz;
-// }
+  free(pvecback);
+
+  return Dz;
+}
 
 
 

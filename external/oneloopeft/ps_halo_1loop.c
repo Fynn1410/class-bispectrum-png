@@ -82,12 +82,12 @@ double PS_hh_G(
           ps_mloops = make_1Darray(2);
 
           if (has_ir == _TRUE_) {
-            Compute_G_loops(pba, pfo, ppm, k, z, WIR, HALO, SPLIT, ps_hloops);
-            Compute_G_loops(pba, pfo, ppm, k, z, WIR, MATTER, SPLIT, ps_mloops);
+            Compute_G_loops(pba, ppm, pfo, k, z, WIR, HALO, SPLIT, ps_hloops);
+            Compute_G_loops(pba, ppm, pfo, k, z, WIR, MATTER, SPLIT, ps_mloops);
           }
           else {
-            Compute_G_loops(pba, pfo, ppm, k, z, NOIR, HALO, SPLIT, ps_hloops);
-            Compute_G_loops(pba, pfo, ppm, k, z, NOIR, MATTER, SPLIT, ps_mloops);
+            Compute_G_loops(pba, ppm, pfo, k, z, NOIR, HALO, SPLIT, ps_hloops);
+            Compute_G_loops(pba, ppm, pfo, k, z, NOIR, MATTER, SPLIT, ps_mloops);
           }
 
           double pb1b2    = b1 * b2  * ps_hloops[0];
@@ -179,8 +179,7 @@ int PS_mm_G(
   if (has_loop == _TRUE_) {
 
     ps_mloops = make_1Darray(2);
-
-    Compute_G_loops(pba, pfo, ppm, k, z, has_ir, MATTER, SPLIT, ps_mloops);
+    Compute_G_loops(pba, ppm, pfo, k, z, has_ir, MATTER, SPLIT, ps_mloops);
 
     khat = 1. * pba->h;
     cs2 = 0.2;
@@ -194,8 +193,8 @@ int PS_mm_G(
       ph_tot   = pm_lin + pm_22 + pm_13 + pm_ct;
     }
     else {
-      //DLpm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-      //DLpm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
+      pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
       pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
       ph_tot      = pm_1loop_IR + pm_ct;
     }
@@ -206,7 +205,6 @@ int PS_mm_G(
     ph_tot  =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
   }
 
-  //free(bias_arr);
   //fprintf(stderr,"%e => %e\n",k, ph_tot);
   *pk_nl = ph_tot;
 
@@ -232,8 +230,8 @@ int PS_mm_G(
 int Compute_G_loops(
                     //struct Cosmology *Cx,
                     struct background * pba,
-                    struct fourier * pfo,
                     struct primordial * ppm,
+                    struct fourier * pfo,
                     double k,
                     double z,
                     short has_ir,
@@ -256,12 +254,12 @@ int Compute_G_loops(
       double error[ncomp];
       double prob[ncomp];
       double plin_IR_k;
-      // pm_IR_LO does not work: cant open file (gsl)
-      // if(has_ir == _TRUE_) {
-      //   //JLplin_IR_k   = pm_IR_LO(Cx, k, z, SPLIT);
-      // }
-      // else{plin_IR_k = 0;}
-      plin_IR_k = 0;
+
+      if(has_ir == _TRUE_) {
+        plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      }
+      else{plin_IR_k = 0;}
+
 
       // Parsing information to the integrand
       par.ppm = ppm;
@@ -398,8 +396,7 @@ static int G_loop_integrands(
           plin_q   =  Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
           plin_kmq =  Pk_dlnPk(pba, ppm, pfo, kmq, z, LPOWER);
           plin_kpq =  Pk_dlnPk(pba, ppm, pfo, kpq, z, LPOWER);
-          //fprintf(stderr,"%e %e %e => %e %e %e %e\n", k, x[0], x[1], plin_k, plin_q, plin_kmq, plin_kpq);
-          //fprintf(stderr,"%e %e %e => %e %e %e \n", k, x[0], x[1], plin_k, plin_q, plin_kmq);
+
             if(hm_switch == HALO)
             {
                 ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos);
@@ -408,13 +405,11 @@ static int G_loop_integrands(
                 ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(S2_s(q, k, cos), 2.);
                 ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * S2_s(q,k,cos);
                 ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q   * S2_s(q, k, cos) * F2(q, k, -cos);
-                //fprintf(stderr,"%e  %e => ff0 = %e\n",k,q,ff[0]);
             }
             else if(hm_switch == MATTER)
             {
                 ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(F2_s(q, k, cos), 2.);
                 ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q * F3_s(k, q, cos);
-                //fprintf(stderr,"%e  %e => ff1 = %e\n",k,q,ff[1]);
             }
             for(int i =0;i<nn;i++){
               if (isnan(ff[i]))
@@ -423,34 +418,34 @@ static int G_loop_integrands(
 
         }
         else if(IR_switch == WIR){
-          //JLplin_IR_q   = pm_IR_LO(Cx, q, z, SPLIT);
-          //JLplin_IR_kmq = pm_IR_LO(Cx, kmq, z, SPLIT);
-            // double plin_IR_kpq = pm_IR_LO(Cx, kpq, z, SPLIT);
+          plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
+          plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
+          double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
 
-            if(hm_switch == HALO)
-            {
-                ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos);
-                ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
-                // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
-                ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq);
-                ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(S2_s(q, k, cos), 2.);
-                ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * S2_s(q, k, cos);
-                ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * S2_s(q, k, cos) * F2(q, k, -cos);
-            }
-            else if(hm_switch == MATTER)
-            {
-                // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.) * theta_kmq\
-                //       + 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kpq * pow(F2_s(q, k, -cos), 2.) * theta_kpq;
-                ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.);
-                ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * F3_s(k, q, cos);
-            }
+          if(hm_switch == HALO)
+          {
+              ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos);
+              ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
+              // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
+              ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq);
+              ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(S2_s(q, k, cos), 2.);
+              ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * S2_s(q, k, cos);
+              ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * S2_s(q, k, cos) * F2(q, k, -cos);
+          }
+          else if(hm_switch == MATTER)
+          {
+              // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.) * theta_kmq\
+              //       + 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kpq * pow(F2_s(q, k, -cos), 2.) * theta_kpq;
+              ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.);
+              ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * F3_s(k, q, cos);
+          }
 
 
-            for(int i =0;i<nn;i++){
-              if (isnan(ff[i]))
-                 printf("%d %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e \n",i, k, q, kmq, plin_IR_q, plin_IR_kmq, ff[i]);
+          for(int i =0;i<nn;i++){
+            if (isnan(ff[i]))
+                printf("%d %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e \n",i, k, q, kmq, plin_IR_q, plin_IR_kmq, ff[i]);
 
-            }
+          }
         }
     }
     else{

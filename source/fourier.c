@@ -1654,12 +1654,12 @@ int fourier_init(
 
       for (index_k=0; index_k<pfo->k_size; index_k++) {
         if (pfo->k[index_k] <= 0.001) {
-          fprintf(stderr,"copy linear value for k=%e\n",pfo->k[index_k]);
+          fprintf(stderr,"copy linear value for k/h=%e\n",pfo->k[index_k] / pba->h);
           fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_m, &pk_oneloop, NULL);
           pfo->ln_pk_nl[pfo->index_pk_m][(pfo->ln_tau_size-1)*pfo->k_size+index_k] = log(pk_oneloop);
         }
         else{
-          fprintf(stderr,"call PS_mm_G for k=%e\n",pfo->k[index_k]);
+          fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
           class_call(PS_mm_G(ppr,
                              pba,
                              ppt,
@@ -1669,8 +1669,8 @@ int fourier_init(
                              pfo->k[index_k],
                              z,
                              _TRUE_,
-                             _FALSE_,
-                             141L,
+                             _TRUE_,
+                             142L,
                              &pk_oneloop),
                      pfo->error_message,
                      pfo->error_message);

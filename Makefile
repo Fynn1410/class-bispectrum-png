@@ -92,7 +92,7 @@ endif
 # update flags for including oneloopeft
 vpath %.c $(ONELOOPEFT)
 INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.1 -I../$(ONELOOPEFT) 
-EXTERNAL += ps_halo_1loop.o utilities.o cosmology.o 
+EXTERNAL += ps_halo_1loop.o utilities.o cosmology.o IR_res.o wnw_split.o
 HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)  $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.1/*.h)
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
@@ -162,7 +162,7 @@ libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm -L./$(ONELOOPEFT)/library/Cuba-4.2.1 -lcuba
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm -L./$(ONELOOPEFT)/library/Cuba-4.2.1 -lcuba -lgsl -lgslcblas
 
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm

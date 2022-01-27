@@ -24,12 +24,14 @@
  * @param k0            Input: smallest value of k, i.e. the largest scale
  * @return broadband component in unit of (Mpc)^3
  */
-double pk_Gfilter_nw(struct Cosmology *Cx, double k, double k0)    
+double pk_Gfilter_nw(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k, double k0)    
 { 
     struct integrand_parameters2 par; 
-    par.p1 = Cx;
-    par.p4 = k;
-    par.p5 = k0;
+    par.ppm = ppm;
+    par.pba = pba;
+    par.pfo = pfo;
+    par.p4  = k;
+    par.p5  = k0;
 
     double a       = 0.25; 
     double logqmin =  log10(k) - 4.* a;
@@ -41,15 +43,14 @@ double pk_Gfilter_nw(struct Cosmology *Cx, double k, double k0)
     gsl_function F;
     F.function = &pk_nw_integrand;
     F.params = &par;
-
     gsl_integration_qags(&F,logqmin, logqmax,0.0,1.0e-3,1000000,w,&result,&error);
     gsl_integration_workspace_free (w);
    
-    double pk0     = Pk_dlnPk(Cx, k0, 0., LPOWER);
+    double pk0     = Pk_dlnPk(pba, ppm, pfo, k0, 0., LPOWER);
     double ratio   = 1./(sqrt(2.*M_PI)* a) * result; 
-    double out     =  EH_PS_nw(Cx, k, k0, pk0) * ratio;
+    double out     =  EH_PS_nw(pba, ppm, pfo, k, k0, pk0) * ratio;
 
-    // printf("%12.6e %12.6e %12.6e \n", k, out, Pk_dlnPk(Cx, k, z, LPOWER));
+    // printf("%12.6e %12.6e %12.6e \n", k, out, Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER));
 
     return out;
 }
@@ -68,17 +69,18 @@ double pk_nw_integrand(double x, void *par)  ///integration variable x = logq
     struct integrand_parameters2 pij;
     pij = *((struct integrand_parameters2 *)par);
 
-    struct Cosmology *Cx = pij.p1;
-    double k             = pij.p4;
-    double kf0           = pij.p5;
+    struct background *pba = pij.pba;
+    struct primordial *ppm = pij.ppm;
+    struct fourier *pfo    = pij.pfo;
+    double k               = pij.p4;
+    double kf0             = pij.p5;
 
     double logq  = x;
     double q     = pow(10.,logq);
     double logk  = log10(k);
     double a     = 0.25; 
-
-    double pkf0  = Pk_dlnPk(Cx,kf0, 0., LPOWER);
-    double ratio = Pk_dlnPk(Cx,q, 0., LPOWER)/EH_PS_nw(Cx,q, kf0, pkf0);  
+    double pkf0  = Pk_dlnPk(pba, ppm, pfo, kf0, 0., LPOWER);
+    double ratio = Pk_dlnPk(pba, ppm, pfo, q, 0., LPOWER)/EH_PS_nw(pba, ppm, pfo, q, kf0, pkf0);  
     double out   = ratio * exp(-1./(2.*pow(a,2.))*pow(logk-logq,2.));
 
     return out;
@@ -95,16 +97,16 @@ double pk_nw_integrand(double x, void *par)  ///integration variable x = logq
  * @return P_w(k) in unit of (Mpc)^3
  */
 
-double EH_PS_w( struct Cosmology *Cx, double k, double k0, double pk0)
+double EH_PS_w(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k, double k0, double pk0)
 {
-    double h    = Cx->cosmo_pars[2];
-    double ns   = Cx->cosmo_pars[1];
+    double h    = pba->h;
+    double ns   = ppm->n_s;
     double kh   = h*k;
     double kh0  = h*k0;
     // double norm = pk0/(pow(k0,ns)*pow(T(kh0,Cx),2.));
     // double out  = pow(k,ns) * pow(T(kh,Cx),2.) * norm;
-    double norm = pk0/(pow(k0,ns)*pow(T(Cx,k0),2.));
-    double out  = pow(k,ns) * pow(T(Cx,k),2.) * norm;
+    double norm = pk0/(pow(k0,ns)*pow(T(pba, ppm, pfo, k0),2.));
+    double out  = pow(k,ns) * pow(T(pba, ppm, pfo, k),2.) * norm;
 
     return out;
 }    
@@ -120,16 +122,16 @@ double EH_PS_w( struct Cosmology *Cx, double k, double k0, double pk0)
  * @return P_nw(k) in unit of (Mpc)^3
  */
 
-double EH_PS_nw( struct Cosmology *Cx, double k,double k0,double pk0) 
+double EH_PS_nw(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k,double k0,double pk0) 
 {
-    double h    = Cx->cosmo_pars[2];
-    double ns   = Cx->cosmo_pars[1];
+    double h    = pba->h;
+    double ns   = ppm->n_s;
     double kh   = h*k;
     double kh0  = h*k0;
     // double norm = p0/(pow(k0,ns)*pow(T(kh0,Cx),2.));
     // double out  = pow(k,ns) * pow(T0(kh,Cx),2.) * norm;
-    double norm = pk0/(pow(k0,ns)*pow(T(Cx,k0),2.));
-    double out  = pow(k,ns) * pow(T0(Cx,k),2.) * norm;
+    double norm = pk0/(pow(k0,ns)*pow(T(pba, ppm, pfo, k0),2.));
+    double out  = pow(k,ns) * pow(T0(pba, ppm, pfo, k),2.) * norm;
 
     return out;
 }
@@ -143,11 +145,11 @@ double EH_PS_nw( struct Cosmology *Cx, double k,double k0,double pk0)
  * @return value of nor-baryon transfer fit
  */
 
-double T0( struct Cosmology *Cx, double k)
+double T0(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k)
 {
-    double h     = Cx->cosmo_pars[2];
-    double ombh2 = pow(h,2.) * Cx->cosmo_pars[3];
-    double omch2 = pow(h,2.) * Cx->cosmo_pars[4];
+    double h     = pba->h;
+    double ombh2 = pow(h,2.) * pba->Omega0_b; 
+    double omch2 = pow(h,2.) * pba->Omega0_cdm; 
     double om0h2 = ombh2 + omch2;
     double om0   = om0h2/pow(h,2.);
     double theta = 2.728/2.7;    //OBBE-FIRAS value 
@@ -172,11 +174,11 @@ double T0( struct Cosmology *Cx, double k)
  * @return value of baryon+cdm transfer function
  */
 
-double T(struct Cosmology *Cx, double k)
+double T(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k)
 {
-    double h     = Cx->cosmo_pars[2];
-    double ombh2 = pow(h,2.) * Cx->cosmo_pars[3];
-    double omch2 = pow(h,2.) * Cx->cosmo_pars[4];
+    double h     = pba->h;
+    double ombh2 = pow(h,2.) * pba->Omega0_b;
+    double omch2 = pow(h,2.) * pba->Omega0_cdm;
     double om0h2 = ombh2 + omch2;
     double om0   = om0h2/pow(h,2.);
     double theta = 2.728/2.7;    //OBBE-FIRAS value 
@@ -208,8 +210,8 @@ double T(struct Cosmology *Cx, double k)
     double betab  = 0.5 + ombh2/om0h2 + (3.-2.*ombh2/om0h2) * sqrt(pow(17.2*om0h2,2.)+1.); 
     double f      = 1./(1.+pow(k*s/5.4, 4.));
 
-    double Tb = (Tt0(Cx,k,1.,1.)/(1.+pow(k*s/5.2,2.)) + alphab/(1.+pow(betab/(k*s),3.)) * exp(-pow(k/k_silk,1.4)))* gsl_sf_bessel_j0(k*st); ///Eq. 21 of EH ref.
-    double Tc = f*Tt0(Cx,k,1.,betac) + (1.-f) *Tt0(Cx,k,alphac,betac);       ///Eq. 17 of EH ref                                    
+    double Tb = (Tt0(pba,ppm,pfo,k,1.,1.)/(1.+pow(k*s/5.2,2.)) + alphab/(1.+pow(betab/(k*s),3.)) * exp(-pow(k/k_silk,1.4)))* gsl_sf_bessel_j0(k*st); ///Eq. 21 of EH ref.
+    double Tc = f*Tt0(pba,ppm,pfo,k,1.,betac) + (1.-f) *Tt0(pba,ppm,pfo,k,alphac,betac);       ///Eq. 17 of EH ref                                    
 
     double out = ombh2/om0h2 * Tb + omch2/om0h2 * Tc;
 
@@ -227,11 +229,16 @@ double T(struct Cosmology *Cx, double k)
  * @return            value of the function
  */
 
-double Tt0(struct Cosmology *Cx, double k, double x1, double x2) ///x1 = alphac, x2 = betac in Eq. 19.
+double Tt0(struct background *pba, 
+           struct primordial *ppm, 
+           struct fourier *pfo, 
+           double k, 
+           double x1, 
+           double x2) ///x1 = alphac, x2 = betac in Eq. 19.
 {
-    double h     = Cx->cosmo_pars[2];
-    double ombh2 = pow(h,2.) * Cx->cosmo_pars[3];
-    double omch2 = pow(h,2.) * Cx->cosmo_pars[4];
+    double h     = pba->h;
+    double ombh2 = pow(h,2.) * pba->Omega0_b;
+    double omch2 = pow(h,2.) * pba->Omega0_cdm;
     double om0h2 = ombh2 + omch2;
     double theta = 2.728/2.7;    //OBBE-FIRAS value 
 
