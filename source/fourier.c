@@ -1218,6 +1218,8 @@ int fourier_init(
   struct fourier_workspace nw;
   struct fourier_workspace * pnw;
 
+  double pk_oneloop;
+
   /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
         from the perturbations structure to the fourier structure */
   pfo->has_pk_matter = ppt->has_pk_matter;
@@ -1247,7 +1249,7 @@ int fourier_init(
   }
 
   /** --> check applicability of Halofit and HMcode */
-  if (pfo->method > nl_none) {
+  if ((pfo->method == nl_halofit) || (pfo->method == nl_HMcode)) {
 
     if (pba->has_ncdm == _TRUE_) {
       for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
@@ -1259,6 +1261,8 @@ int fourier_init(
       fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm_dr), which makes the use of Halofit or HMCode unreliable.\n");
     }
   }
+
+  //TODO: implement similar checks for the applicability of the one loop PT method
 
   /** - define indices in fourier structure (and allocate some arrays in the structure) */
 
@@ -1379,7 +1383,7 @@ int fourier_init(
   }
 
   /** --> Then go through common preliminary steps to the HALOFIT and HMcode methods */
-  else if ((pfo->method == nl_halofit) || ((pfo->method == nl_HMcode))) {
+  else if ((pfo->method == nl_halofit) || (pfo->method == nl_HMcode)) {
 
     if ((pfo->fourier_verbose > 0) && (pfo->method == nl_halofit))
       printf("Computing non-linear matter power spectrum with Halofit (including update Takahashi et al. 2012 and Bird 2014)\n");
@@ -1639,22 +1643,43 @@ int fourier_init(
     if ((pfo->fourier_verbose > 0) && (pfo->method == nl_oneloopPT))
       printf("Computing one-loop power spectrum including EFT terms (proper credits to Azadeh et al. will have to be added here)\n");
 
-    // class_call(PS_mm_G(ppr, pba, ppt, ppm, pfo, index_pk, index_k, z, 145L, 147L, 141L),
-    //              pfo->error_message,
-    //              pfo->error_message);
-    double pk_nl;
+    /** --> Loop over decreasing time/growing redhsift. For each
+        time/redshift, compute P_NL(k,z) using one loop algorithm */
 
-    for (index_k=0; index_k<pfo->k_size; index_k++) {
-      if (pfo->k[index_k] <= 0.001) {
-        fprintf(stderr,"copy linear value for k=%e\n",pfo->k[index_k]);
-        fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_m, &pk_nl, NULL);
-        pfo->ln_pk_nl[pfo->index_pk_m][(pfo->ln_tau_size-1)*pfo->k_size+index_k] = log(pk_nl);
-      }
-      else{
-        fprintf(stderr,"call PS_hh_G for k=%e\n",pfo->k[index_k]);
-        class_call(PS_mm_G(ppr, pba, ppt, ppm, pfo, pfo->index_pk_m, index_k, z, 145L, 147L, 141L),
-                   pfo->error_message,
-                   pfo->error_message);
+    // TODO: code only efficient and tested at z=0. Check other values of z / tau.
+
+    for (index_tau = pfo->ln_tau_size-1; index_tau>=0; index_tau--) {
+
+      fprintf(stderr,"index_tau = %d / %d\n",index_tau,pfo->ln_tau_size);
+
+      for (index_k=0; index_k<pfo->k_size; index_k++) {
+        if (pfo->k[index_k] <= 0.001) {
+          fprintf(stderr,"copy linear value for k=%e\n",pfo->k[index_k]);
+          fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_m, &pk_oneloop, NULL);
+          pfo->ln_pk_nl[pfo->index_pk_m][(pfo->ln_tau_size-1)*pfo->k_size+index_k] = log(pk_oneloop);
+        }
+        else{
+          fprintf(stderr,"call PS_mm_G for k=%e\n",pfo->k[index_k]);
+          class_call(PS_mm_G(ppr,
+                             pba,
+                             ppt,
+                             ppm,
+                             pfo,
+                             pfo->index_pk_m,
+                             pfo->k[index_k],
+                             z,
+                             _TRUE_,
+                             _FALSE_,
+                             141L,
+                             &pk_oneloop),
+                     pfo->error_message,
+                     pfo->error_message);
+
+          pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
+            = sqrt(pk_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
+
+          pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_oneloop);
+        }
       }
     }
   }

@@ -47,8 +47,8 @@ double PS_hh_G(
                int index_k,
                double z,
                double M,
-               long mode_pt,
-               long IR_switch,
+               short has_loop,
+               short has_ir,
                long SPLIT,
                long mode_mf)
 {
@@ -75,54 +75,56 @@ double PS_hh_G(
 
       //printf("Bias Vals: %12.6e %12.6e %12.6e %12.6e %12.6e  %12.6e \n",k,M,b1,b2,bG2,btd);
 
-      if(mode_pt == LOOP){
-            double *ps_hloops, *ps_mloops;
-            ps_hloops = make_1Darray(6);
-            ps_mloops = make_1Darray(2);
+      if (has_loop == _TRUE_) {
 
-            if(IR_switch == WIR){
-              Compute_G_loops(pba, pfo, ppm, k, z, WIR, HALO, SPLIT, ps_hloops);
-              Compute_G_loops(pba, pfo, ppm, k, z, WIR, MATTER, SPLIT, ps_mloops);
-            }
-            else if(IR_switch == NOIR){
-              Compute_G_loops(pba, pfo, ppm, k, z, NOIR, HALO, SPLIT, ps_hloops);
-              Compute_G_loops(pba, pfo, ppm, k, z, NOIR, MATTER, SPLIT, ps_mloops);
-            }
+          double *ps_hloops, *ps_mloops;
+          ps_hloops = make_1Darray(6);
+          ps_mloops = make_1Darray(2);
 
-            double pb1b2    = b1 * b2  * ps_hloops[0];
-            double pb1bg2   = 2. * b1 * bG2 * ps_hloops[1];
-            double pb22     = 0.25 * pow(b2, 2.) * ps_hloops[2];
-            double pbg22    = pow(bG2, 2.)  * ps_hloops[3];
-            double pb2bg2   = b2 * bG2 * ps_hloops[4];
-            double pb1b3nl  = 2. * b1 * (bG2 + 2./5. * btd) * ps_hloops[5];
-            double ph_loops =  pb1b2 + pb1bg2 + pb22+ pbg22 + pb2bg2 + pb1b3nl;
+          if (has_ir == _TRUE_) {
+            Compute_G_loops(pba, pfo, ppm, k, z, WIR, HALO, SPLIT, ps_hloops);
+            Compute_G_loops(pba, pfo, ppm, k, z, WIR, MATTER, SPLIT, ps_mloops);
+          }
+          else {
+            Compute_G_loops(pba, pfo, ppm, k, z, NOIR, HALO, SPLIT, ps_hloops);
+            Compute_G_loops(pba, pfo, ppm, k, z, NOIR, MATTER, SPLIT, ps_mloops);
+          }
 
-            double cs2      = 0.2;
-            double khat     = 1. * pba->h;
+          double pb1b2    = b1 * b2  * ps_hloops[0];
+          double pb1bg2   = 2. * b1 * bG2 * ps_hloops[1];
+          double pb22     = 0.25 * pow(b2, 2.) * ps_hloops[2];
+          double pbg22    = pow(bG2, 2.)  * ps_hloops[3];
+          double pb2bg2   = b2 * bG2 * ps_hloops[4];
+          double pb1b3nl  = 2. * b1 * (bG2 + 2./5. * btd) * ps_hloops[5];
+          double ph_loops =  pb1b2 + pb1bg2 + pb22+ pbg22 + pb2bg2 + pb1b3nl;
 
-            if(IR_switch == NOIR){
-                pm_lin   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-                pm_22    = ps_mloops[0];
-                pm_13    = ps_mloops[1];
-                pm_1loop = pm_lin + pm_22 + pm_13;
-                pm_ct    = - 2. * cs2 * pow(k, 2.) * pm_lin;
-                ph_tot   = (pow(b1, 2.) * (pm_1loop + pm_ct) + ph_loops);
-            }
-            else if(IR_switch == WIR){
-                pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-                pm_22       = ps_mloops[0];
-                pm_13       = ps_mloops[1];
-                //DLpm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-                //DLpm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
-                pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
-                ph_tot      = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
-            }
+          double cs2      = 0.2;
+          double khat     = 1. * pba->h;
 
-            free(ps_hloops);
-            free(ps_mloops);
+          if (has_ir == _FALSE_) {
+            pm_lin   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+            pm_22    = ps_mloops[0];
+            pm_13    = ps_mloops[1];
+            pm_1loop = pm_lin + pm_22 + pm_13;
+            pm_ct    = - 2. * cs2 * pow(k, 2.) * pm_lin;
+            ph_tot   = (pow(b1, 2.) * (pm_1loop + pm_ct) + ph_loops);
+          }
+          else {
+            pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+            pm_22       = ps_mloops[0];
+            pm_13       = ps_mloops[1];
+            //DLpm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+            //DLpm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
+            pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
+            ph_tot      = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
+          }
+
+          free(ps_hloops);
+          free(ps_mloops);
+
       }
-      else if(mode_pt == TREE){
-        ph_tot  = pow(b1, 2.) * Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+      else {
+          ph_tot  = pow(b1, 2.) * Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
       }
 
       //free(bias_arr);
@@ -131,68 +133,84 @@ double PS_hh_G(
       return ph_tot;
 }
 
-double PS_mm_G(
-               //struct Cosmology *Cx,
-               struct precision * ppr,
-               struct background * pba,
-               struct perturbations * ppt,
-               struct primordial * ppm,
-               struct fourier * pfo,
-               int index_pk,
-               int index_k,
-               double z,
-               long mode_pt,
-               long IR_switch,
-               long SPLIT)
-{
+/**
+ * Compute one loop matter power spectrum for Gaussian initial conditions
+ *
+ * @param ppr          Input: pointer to precision structure
+ * @param pba          Input: pointer to background structure
+ * @param ppt          Input: pointer to perturbation structure
+ * @param ppm          Input: pointer to primordial structure
+ * @param pfo          Input: pointer to fourier structure
+ * @param index_pk     Input: index for type of power spectrum (total matter m, baryon+CDM bc)
+ * @param k            Input: wavenumber
+ * @param z            Input: redshift
+ * @param mpt          Input: flag to decide whether to compute tree-level halo power spectrum or the 1loop
+ * @param IR_switch    Input: switch to decide whether to perform IR resummation or no
+ * @param SPLIT        Input: switch to set the method to perform the wiggle-nowiggle split of matter power spectrum
+ * @param pk_nl        Output: pointer to output non-linear P(k)
+ * @return the error status
+ */
 
-      double k = pfo->k[index_k];
+int PS_mm_G(
+            struct precision * ppr,
+            struct background * pba,
+            struct perturbations * ppt,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            int index_pk,
+            double k,
+            double z,
+            short has_loop,
+            short has_ir,
+            long SPLIT,
+            double * pk_nl) {
 
-      int cleanup = 0;
+  double pm_lin = 0.;
+  double pm_lin_IR = 0.;
+  double pm_22 = 0.;
+  double pm_13 = 0.;
+  double ph_tot = 0.;
+  double pm_1loop_IR = 0.;
+  double pm_ct = 0.;
+  double *ps_mloops;
+  double khat;
+  double cs2;
 
-      double pm_lin = 0., pm_lin_IR = 0., pm_22 = 0., pm_13 = 0., ph_tot = 0., pm_1loop_IR = 0., pm_ct = 0.;
+  if (has_loop == _TRUE_) {
 
-      if(mode_pt == LOOP){
-            double *ps_mloops;
-            ps_mloops = make_1Darray(2);
+    ps_mloops = make_1Darray(2);
 
-            if(IR_switch == WIR){
-              Compute_G_loops(pba, pfo, ppm, k, z, WIR, MATTER, SPLIT, ps_mloops);
-            }
-            else if(IR_switch == NOIR){
-              Compute_G_loops(pba, pfo, ppm, k, z, NOIR, MATTER, SPLIT, ps_mloops);
-            }
+    Compute_G_loops(pba, pfo, ppm, k, z, has_ir, MATTER, SPLIT, ps_mloops);
 
-            double khat     = 1. * pba->h;
-            double cs2      = 0.2;
+    khat = 1. * pba->h;
+    cs2 = 0.2;
 
-            if(IR_switch == NOIR){
-                pm_lin   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-                pm_22    = ps_mloops[0];
-                pm_13    = ps_mloops[1];
-                pm_ct    = - 2. * cs2 * pow(k, 2.) * pm_lin;
-                ph_tot   = pm_lin + pm_22 + pm_13 + pm_ct;
-            }
-            else if(IR_switch == WIR){
-                pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-                pm_22       = ps_mloops[0];
-                pm_13       = ps_mloops[1];
-                //DLpm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-                //DLpm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
-                pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
-                ph_tot      = pm_1loop_IR + pm_ct;
-            }
+    pm_lin   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+    pm_22    = ps_mloops[0];
+    pm_13    = ps_mloops[1];
 
-            free(ps_mloops);
-      }
-      else if(mode_pt == TREE){
-        ph_tot  =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-      }
+    if (has_ir == _FALSE_){
+      pm_ct    = - 2. * cs2 * pow(k, 2.) * pm_lin;
+      ph_tot   = pm_lin + pm_22 + pm_13 + pm_ct;
+    }
+    else {
+      //DLpm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      //DLpm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
+      pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
+      ph_tot      = pm_1loop_IR + pm_ct;
+    }
 
-      //free(bias_arr);
-      fprintf(stderr,"%e => %e\n",k, ph_tot);
-      pfo->ln_pk_nl[index_pk][index_k] = log(ph_tot);
-      return ph_tot;
+    free(ps_mloops);
+  }
+  else {
+    ph_tot  =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+  }
+
+  //free(bias_arr);
+  //fprintf(stderr,"%e => %e\n",k, ph_tot);
+  *pk_nl = ph_tot;
+
+  return _SUCCESS_;
 }
 
 /**
@@ -211,12 +229,17 @@ double PS_mm_G(
  * @return void
  */
 
-void Compute_G_loops(
-                     //struct Cosmology *Cx,
-                     struct background * pba,
-                     struct fourier * pfo,
-                     struct primordial * ppm,
-                     double k, double z, long IR_switch, long hm_switch,long SPLIT, double *result)
+int Compute_G_loops(
+                    //struct Cosmology *Cx,
+                    struct background * pba,
+                    struct fourier * pfo,
+                    struct primordial * ppm,
+                    double k,
+                    double z,
+                    short has_ir,
+                    long hm_switch,
+                    long SPLIT,
+                    double *result)
 {
       struct integrand_parameters2 par;
 
@@ -234,7 +257,7 @@ void Compute_G_loops(
       double prob[ncomp];
       double plin_IR_k;
       // pm_IR_LO does not work: cant open file (gsl)
-      // if(IR_switch == WIR){
+      // if(has_ir == _TRUE_) {
       //   //JLplin_IR_k   = pm_IR_LO(Cx, k, z, SPLIT);
       // }
       // else{plin_IR_k = 0;}
@@ -248,7 +271,10 @@ void Compute_G_loops(
       par.p5  = z;
       par.p6  = log(1.e-4);
       par.p7  = log(100.);
-      par.p13 = IR_switch;
+      if (has_ir == _TRUE_)
+        par.p13 = WIR;
+      else
+        par.p13 = NOIR;
       par.p14 = hm_switch;
       par.p15 = SPLIT;
       par.p8  = plin_IR_k;  /* Note: since cuhre integrator is parallelized, if evaluating all the
@@ -287,7 +313,7 @@ void Compute_G_loops(
       // for(int i =0; i<ncomp; i++)
       //     printf("Gloops integral : %d %12.6e %12.6e %12.6e %12.6e %d \n", i, k, result[i], error[i], prob[i], fail[i]);
 
-      return;
+      return _SUCCESS_;
 }
 
 static int G_loop_integrands(

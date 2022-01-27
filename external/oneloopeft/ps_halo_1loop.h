@@ -9,23 +9,40 @@ double PS_hh_G(
                struct perturbations * ppt,
                struct primordial * ppm,
                struct fourier * pfo,
-               int index_pk, int index_k, double z, double M, long mode, long IR_switch, long SPLIT, long mode_mf);
+               int index_pk,
+               int index_k,
+               double z,
+               double M,
+               short has_loop,
+               short has_ir,
+               long SPLIT,
+               long mode_mf);
 
-double PS_mm_G(
-               //struct Cosmology *Cx,
-               struct precision * ppr,
-               struct background * pba,
-               struct perturbations * ppt,
-               struct primordial * ppm,
-               struct fourier * pfo,
-               int index_pk, int index_k, double z, long mode_pt, long IR_switch, long SPLIT); 
+int PS_mm_G(
+            struct precision * ppr,
+            struct background * pba,
+            struct perturbations * ppt,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            int index_pk,
+            double k,
+            double z,
+            short has_loop,
+            short has_ir,
+            long SPLIT,
+            double * pk_nl);
 
-void Compute_G_loops(
-                     //struct Cosmology *Cx,
-                     struct background * pba,
-                     struct fourier * pfo,
-                     struct primordial * ppm,
-                     double k, double z, long IR_switch, long hm_switch, long SPLIT, double *result);
+int Compute_G_loops(
+                    //struct Cosmology *Cx,
+                    struct background * pba,
+                    struct fourier * pfo,
+                    struct primordial * ppm,
+                    double k,
+                    double z,
+                    short has_ir,
+                    long hm_switch,
+                    long SPLIT,
+                    double *result);
 
 
 static int G_loop_integrands(
