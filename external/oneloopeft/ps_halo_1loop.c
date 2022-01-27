@@ -113,8 +113,8 @@ double PS_hh_G(
             pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
             pm_22       = ps_mloops[0];
             pm_13       = ps_mloops[1];
-            //DLpm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-            //DLpm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
+            pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+            pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
             pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
             ph_tot      = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
           }
