@@ -115,13 +115,15 @@
 /**
  * List of limHaloPT header files
  */
-//JL#include "Global_Structs.h"
 #include "cosmology.h"
 #include "utilities.h"
-//JL#include "primordial.h"
 #include "wnw_split.h"
 #include "IR_res.h"
 #include "ps_halo_1loop.h"
+#include "FFTLog_ingredients.h"
+#include "FFTLog_matter_real.h"
+#include "FFTLog_galaxy_real.h"
+#include "pspec_FFTLog_real.h"
 
 
 /**
@@ -184,5 +186,18 @@ struct integrand_parameters2
 	size_t p22;
 };
 
+typedef struct fft_struct
+{
+	int nfft;
+	int fft_first;
+	double kmin_fft;
+	double fft_bias_m;
+	double fft_bias_g;
+	fftw_complex *etam_m;  
+      fftw_complex *cmsym_m; 
+      fftw_complex *etam_g;  
+      fftw_complex *cmsym_g;
+       
+}fft_struct;
 
 #endif
