@@ -89,18 +89,29 @@ double complex Gamma(double complex z)
  * @return void
  */
 
-void FFT_compute_coeff(struct Cosmology *cosmo, c_datablock * block,  void *config_in, struct interp_ptrs *ptrs, double z, 
-                      int nfft, double kmin_fft, double fft_bias, fftw_complex *biased_etam, fftw_complex *cmsym)
+void FFT_compute_coeff(struct background * pba,
+                       struct primordial * ppm,
+                       struct fourier * pfo,
+                       double z, 
+                       struct fft_struct *fft_input,
+                       long SPLIT, 
+                       long hm_switch)
 {
-      
-      options_config * config = (options_config*) config_in;
-
       int i, j, m;  
-      int Nmax        = nfft;
-      int Nmaxf       = nfft+1;
+      int Nmax        = *fft_input->nfft;
+      int Nmaxf       = *fft_input->nfft + 1;
       double Nmaxd    = (double)Nmax;
 
-      double kmax_fft = FFT_kmax_Brent_solver(cosmo->PK, z, kmin_fft, fft_bias);
+      // choosing a given bias for Matter or Galaxy/Halo calculations
+      if(hm_switch == MATTER){
+            double fft_bias = *fft_input->fft_bias_m;
+      }
+      else{
+            double fft_bias = *fft_input->fft_bias_g;
+      }
+
+      double k_min    = *fft_input->kmin_fft;
+      double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
       double Delta    = log(kmax_fft/kmin_fft)/(Nmaxd-1); 
 
       double *k      = make_1Darray(Nmax);
@@ -113,6 +124,9 @@ void FFT_compute_coeff(struct Cosmology *cosmo, c_datablock * block,  void *conf
       double kleft  = k[mleft];
       double kright = k[mright];
 
+      fftw_complex *biased_etam;
+      fftw_complex *cmsym;
+
       for(int n=0;n<Nmax;n++){
             k[n] = kmin_fft * exp(Delta * n);
             window[n] = 1;
@@ -121,7 +135,7 @@ void FFT_compute_coeff(struct Cosmology *cosmo, c_datablock * block,  void *conf
       
 
       for(int i=0;i<Nmax;i++){
-            pk_bin[i] = pm_IR_LO(cosmo, block, config, ptrs, k[i], z);
+            pk_bin[i] = pm_IR_LO(pba, ppm, pfo, k[i], z, SPLIT);
             // printf("all pk %12.6e %12.6e \n", k[i],pk_bin[i]);
       }      
 
@@ -174,6 +188,16 @@ void FFT_compute_coeff(struct Cosmology *cosmo, c_datablock * block,  void *conf
       // for(i=0; i < Nmax+1; i++)
       //       printf("%d %12.6e %12.6e %12.6e %12.6e \n",i , creal(cmsym[i]), cimag(cmsym[i]), creal(biased_etam[i]), cimag(biased_etam[i]));
       
+      // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
+      if(hm_switch == MATTER){
+            fft_input->etam_m  = biased_etam;
+            fft_input->cmsym_m = cmsym;
+      }
+      else{
+            fft_input->etam_g  = biased_etam;
+            fft_input->cmsym_g = cmsym;
+      }
+
       fftw_destroy_plan(my_plan);
       fftw_free(input);
       fftw_free(output);
@@ -227,23 +251,29 @@ double FFT_window(double k, double kmin, double kmax, double kleft, double krigh
  */
 double FFT_kmax_Brent(double kmax, void *params)
 {
-      struct integrand_parameters pij;
-      pij = *((struct integrand_parameters *)params);
+      struct integrand_parameters2 pij;
+      pij = *((struct integrand_parameters2 *)params);
 
-      double z           = pij.p1;
-      double kmin_fft    = pij.p2;
-      double bias_fft    = pij.p3;
-      Interpolator2D *PK = pij.p18;
+      struct background *pba = pij.pba;
+      struct primordial *ppm = pij.ppm;
+      struct fourier *pfo    = pij.pfo;
+      double z               = pij.p4;
+      double kmin_fft        = pij.p5;
+      double bias_fft        = pij.p6;
 
-      double f = pow(kmax,-bias_fft) * pk_lin(PK, kmax, z) - pow(kmin_fft, - bias_fft) * pk_lin(PK, kmin_fft, z);
+      double f = pow(kmax,-bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, - bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
       
       return f;   
 }
 
-double FFT_kmax_Brent_solver(Interpolator2D *PK, double z, double kmin_fft, double fft_bias)
+double FFT_kmax_Brent_solver(struct background * pba,
+                             struct primordial * ppm,
+                             struct fourier * pfo, 
+                             double z, 
+                             double kmin_fft, 
+                             double fft_bias)
 {
       int status;
-      extern struct globals gb;
 
       int iter = 0, max_iter = 100000;
       const gsl_root_fsolver_type *T;
@@ -252,12 +282,14 @@ double FFT_kmax_Brent_solver(Interpolator2D *PK, double z, double kmin_fft, doub
       double k_lo = 0.01, k_hi = 4000.;
       gsl_function F;
 
-      struct integrand_parameters par; 
+      struct integrand_parameters2 par; 
 
-      par.p1  = z;
-      par.p2  = kmin_fft;
-      par.p3  = fft_bias; 
-      par.p18 = PK;
+      par.ppm = ppm;
+      par.pba = pba;
+      par.pfo = pfo;
+      par.p4  = z;
+      par.p5  = kmin_fft;
+      par.p6  = fft_bias; 
 
       F.function = &FFT_kmax_Brent;
       F.params   = &par;

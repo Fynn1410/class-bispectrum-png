@@ -1,8 +1,8 @@
 
 
 
-double pm_IR_FFTLog(struct Cosmology *cosmo, c_datablock * block, void *config_in, 
-            struct interp_ptrs *ptrs, struct fft_struct  *fft_input, double k,  double z);
+int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
+                    double k,  double z, long SPLIT);
 
-double pg_IR_FFTLog(struct Cosmology *cosmo, c_datablock * block, void *config_in, 
-            struct interp_ptrs *ptrs, struct fft_struct  *fft_input, double k,  double z);
+int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
+                    double k,  double z, struct fft_struct  *fft_input, long SPLIT);

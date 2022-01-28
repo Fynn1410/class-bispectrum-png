@@ -1648,6 +1648,7 @@ int fourier_init(
 
     // TODO: code only efficient and tested at z=0. Check other values of z / tau.
 
+    int fft = 1;
     for (index_tau = pfo->ln_tau_size-1; index_tau>=0; index_tau--) {
 
       fprintf(stderr,"index_tau = %d / %d\n",index_tau,pfo->ln_tau_size);
@@ -1659,21 +1660,36 @@ int fourier_init(
           pfo->ln_pk_nl[pfo->index_pk_m][(pfo->ln_tau_size-1)*pfo->k_size+index_k] = log(pk_oneloop);
         }
         else{
-          fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call(PS_mm_G(ppr,
-                             pba,
-                             ppt,
-                             ppm,
-                             pfo,
-                             pfo->index_pk_m,
-                             pfo->k[index_k],
-                             z,
-                             _TRUE_,
-                             _TRUE_,
-                             142L,
-                             &pk_oneloop),
-                     pfo->error_message,
-                     pfo->error_message);
+          if (fft == 1){
+            fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            class_call(pm_IR_FFTLog(pba, 
+                                    ppm, 
+                                    pfo, 
+                                    pfo->index_pk_m, 
+                                    pfo->k[index_k], 
+                                    z, 
+                                    142L, 
+                                    &pk_oneloop),
+                      pfo->error_message,
+                      pfo->error_message);
+        }
+          else{
+            fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+            class_call(PS_mm_G(ppr,
+                              pba,
+                              ppt,
+                              ppm,
+                              pfo,
+                              pfo->index_pk_m,
+                              pfo->k[index_k],
+                              z,
+                              _TRUE_,
+                              _TRUE_,
+                              142L,
+                              &pk_oneloop),
+                      pfo->error_message,
+                      pfo->error_message);
+            }
 
           pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
             = sqrt(pk_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));

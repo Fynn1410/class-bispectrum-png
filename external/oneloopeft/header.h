@@ -22,9 +22,12 @@
 //#include <string.h>
 //#include <omp.h>
 //#include <mpi.h>
+
+#include <complex.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_interp2d.h>
+#include <gsl/gsl_sf_gamma.h>
 #include <gsl/gsl_spline2d.h>
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_sf_legendre.h>
@@ -37,6 +40,10 @@
 #include <gsl/gsl_odeiv2.h>  /// For solving ODER
 #include <gsl/gsl_roots.h>	 // For finding the root of algebraic equation
 #include <gsl/gsl_sf_expint.h>
+#include <gsl/gsl_complex.h>
+#include <gsl/gsl_complex_math.h>
+
+#include <fftw3.h>	// for DST
 //#include <ctype.h>
 //#include "../Class/include/class.h"
 #include "library/Cuba-4.2.1/cuba.h"
