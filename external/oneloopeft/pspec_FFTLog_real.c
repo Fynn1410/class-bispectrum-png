@@ -44,17 +44,17 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     // grwoth factor, needs to be found within CLASS -> workaround: working with the time evolution of pm_nonwiggle
     // double growth2    = pow(gsl_spline_eval(cosmo->DZ, z, NULL)/gsl_spline_eval(cosmo->DZ, 0., NULL), 2.);
-    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z);
+    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, k0, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
     double sigma2     = IR_Sigma2(pba, ppm, pfo, z, k0, SPLIT);
     double sup        = exp(-k * k * sigma2);
 
     // sigmav2 = 1/6pi^2 S dq P_lin(q)
     double sigmav2    = 1.0;
-    double P22_IR     = P22(&fft_par, k, z, cleanup_mloops);
-    double P13_IR     = pm_IR_LO(pba, ppm, pfo ptrs, k, z, SPLIT) 
-                      * P13(&fft_par, k, z, cleanup_mloops);
-    double P13_uv     = - 61./315. * pm_IR_LO(pba, ppm, pfo ptrs, k, z, SPLIT) * pow(k, 2.) * sigmav2;
+    double P22_IR     = P22(&fft_input, k, z, cleanup_mloops);
+    double P13_IR     = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) 
+                      * P13(&fft_input, k, z, cleanup_mloops);
+    double P13_uv     = - 61./315. * pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) * pow(k, 2.) * sigmav2;
     double P13_IR_tot = P13_IR + P13_uv;
     
     double ph_tot = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22_IR + P13_IR_tot); 
@@ -80,7 +80,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
  */
 
 int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    double k,  double z, struct fft_struct  *fft_input, long SPLIT, double * pk_nl)
+                    double k,  double z, struct fft_struct *fft_input, long SPLIT, double * pk_nl)
 
 { 
     static int cleanup_gloops = 0;
@@ -88,14 +88,15 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, HALO);
 
       //DL CLASS-PT values page 30
-      double b1  = 2.0;
+      double b1  =  2.0;
       double b2  = -1.0;
-      double bG2 = 0.1;
+      double bG2 =  0.1;
       double btd = -0.1;
+      double cs2 =  0.2;
 
     double pm_1loop_IR;
     pm_IR_FFTLog(pba, ppm, pfo, k, z, SPLIT, &pm_1loop_IR);
-    double pm_lin_IR   = pm_IR_LO(pba, ppm, pfo ptrs, k, z, SPLIT);
+    double pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
     double pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     
     /* 
