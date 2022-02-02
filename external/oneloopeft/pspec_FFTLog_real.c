@@ -66,7 +66,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     
     double ph_tot = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22_IR + P13_IR_tot); 
     
-    printf("%12.6e %12.6e %12.6e %12.6e %12.6e \n", k, plin, P22_IR, P13_IR_tot, ph_tot);
+    fprintf(stderr,"%12.6e %12.6e %12.6e %12.6e %12.6e \n", k, plin, P22_IR, P13_IR_tot, ph_tot);
 
     *pk_nl = ph_tot;
     return _SUCCESS_;
@@ -120,7 +120,7 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     pm_IR_FFTLog(pba, ppm, pfo, k, z, SPLIT, &pm_1loop_IR);
     double pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
     double pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-    
+
     /* 
      * Compute the 1loop IR-resummed loops of galaxy power spectrum
      */
@@ -146,7 +146,7 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
      */
     double ph_tot  = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
 
-    printf("%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e \n",\
+    fprintf(stderr, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e \n",\
         k, pm_lin, pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl,ph_tot);
 
     *pk_nl = ph_tot;

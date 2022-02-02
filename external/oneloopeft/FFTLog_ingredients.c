@@ -125,8 +125,8 @@ void FFT_compute_coeff(struct background * pba,
       double kleft  = k[mleft];
       double kright = k[mright];
 
-      fftw_complex *biased_etam;
-      fftw_complex *cmsym;
+      fftw_complex *biased_etam = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
+      fftw_complex *cmsym       = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
 
       for(int n=0;n<Nmax;n++){
             k[n] = kmin_fft * exp(Delta * n);
@@ -161,14 +161,11 @@ void FFT_compute_coeff(struct background * pba,
          etam[index_c]        = 2. * M_PI *  js[index_c] / (Nmaxd * Delta);
          biased_etam[index_c] = fft_bias + _Complex_I * etam[index_c];
       } 
-
       for (index_kd = 0; index_kd < Nmax; index_kd++)
          input[index_kd] = pk_bin[index_kd] * exp(- (double)index_kd * fft_bias * Delta);
 
       fftw_plan my_plan = fftw_plan_dft_1d(Nmax, input, output, FFTW_FORWARD, FFTW_ESTIMATE);
-
       fftw_execute(my_plan);
-
 
       /*
        * construct the rescaled fourier coeeficents
@@ -188,7 +185,7 @@ void FFT_compute_coeff(struct background * pba,
 
       // for(i=0; i < Nmax+1; i++)
       //       printf("%d %12.6e %12.6e %12.6e %12.6e \n",i , creal(cmsym[i]), cimag(cmsym[i]), creal(biased_etam[i]), cimag(biased_etam[i]));
-      
+
       // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
       if(hm_switch == MATTER){
             fft_input->etam_m  = biased_etam;

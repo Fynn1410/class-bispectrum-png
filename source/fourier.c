@@ -1688,7 +1688,6 @@ int fourier_init(
                       pfo->error_message,
                       pfo->error_message);
             }
-
           pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
             = sqrt(pk_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
