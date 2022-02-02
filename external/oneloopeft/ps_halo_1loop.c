@@ -49,7 +49,8 @@ double PS_hh_G(
                short has_loop,
                short has_ir,
                long SPLIT,
-               long mode_mf)
+               long mode_mf, 
+               double * pk_nl)
 {
 
       double k = pfo->k[index_k];
