@@ -9,3 +9,6 @@ double pm_IR_NLO(struct background * pba, struct primordial * ppm, struct fourie
 
 double IR_Sigma2_integrand(double x, void *par);
 double IR_Sigma2(struct background * pba, struct primordial * ppm, struct fourier * pfo, double z,double kf0, long SPLIT);
+
+double sigman2_integrand(double x, void *p);
+double sigman(struct background * pba, struct primordial * ppm, struct fourier * pfo, double z, double k_min, double k_max, long n, long SPLIT);

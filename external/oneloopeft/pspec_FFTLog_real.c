@@ -56,17 +56,17 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double sigma2     = IR_Sigma2(pba, ppm, pfo, z, k0, SPLIT);
     double sup        = exp(-k * k * sigma2);
 
-    // sigmav2 = 1/6pi^2 S dq P_lin(q)
-    double sigmav2    = 1.0;
+    double sigmav2    = sigman(pba, ppm, pfo, z, 1.e-5, 4000., -1, SPLIT);
     double P22_IR     = P22(fft_input, k, z, cleanup_mloops);
     double P13_IR     = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) 
                       * P13(fft_input, k, z, cleanup_mloops);
     double P13_uv     = - 61./315. * pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) * pow(k, 2.) * sigmav2;
     double P13_IR_tot = P13_IR + P13_uv;
+    fprintf(stderr,"sigmav2 = %e\n, P13_IR = %e, P13_UV = %e, P22__IR = %e\n",sigmav2,P13_IR, P13_uv, P22_IR);
     
     double ph_tot = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22_IR + P13_IR_tot); 
     
-    fprintf(stderr,"%12.6e %12.6e %12.6e %12.6e %12.6e \n", k, plin, P22_IR, P13_IR_tot, ph_tot);
+    //fprintf(stderr,"%12.6e %12.6e %12.6e %12.6e %12.6e \n", k, plin, P22_IR, P13_IR_tot, ph_tot);
 
     *pk_nl = ph_tot;
     return _SUCCESS_;
