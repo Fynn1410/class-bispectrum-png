@@ -43,7 +43,6 @@ double PS_hh_G(
                struct perturbations * ppt,
                struct primordial * ppm,
                struct fourier * pfo,
-               int index_pk,
                int index_k,
                double z,
                double M,
@@ -128,9 +127,9 @@ double PS_hh_G(
       }
 
       //free(bias_arr);
-      fprintf(stderr,"%e => %e\n",k, ph_tot);
-      pfo->ln_pk_nl[index_pk][index_k] = ph_tot;
-      return ph_tot;
+      *pk_nl = ph_tot;
+
+      return _SUCCESS_;
 }
 
 /**
@@ -157,7 +156,6 @@ int PS_mm_G(
             struct perturbations * ppt,
             struct primordial * ppm,
             struct fourier * pfo,
-            int index_pk,
             double k,
             double z,
             short has_loop,

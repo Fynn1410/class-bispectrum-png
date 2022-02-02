@@ -1680,7 +1680,6 @@ int fourier_init(
                               ppt,
                               ppm,
                               pfo,
-                              pfo->index_pk_m,
                               pfo->k[index_k],
                               z,
                               _TRUE_,
