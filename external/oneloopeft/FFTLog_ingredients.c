@@ -98,19 +98,20 @@ void FFT_compute_coeff(struct background * pba,
                        long hm_switch)
 {
       int i, j, m;  
-      int Nmax        = *fft_input->nfft;
-      int Nmaxf       = *fft_input->nfft + 1;
+      int Nmax        = fft_input->nfft;
+      int Nmaxf       = fft_input->nfft + 1;
       double Nmaxd    = (double)Nmax;
 
       // choosing a given bias for Matter or Galaxy/Halo calculations
+      double fft_bias = 0.0;
       if(hm_switch == MATTER){
-            double fft_bias = *fft_input->fft_bias_m;
+            fft_bias = fft_input->fft_bias_m;
       }
       else{
-            double fft_bias = *fft_input->fft_bias_g;
+            fft_bias = fft_input->fft_bias_g;
       }
 
-      double k_min    = *fft_input->kmin_fft;
+      double kmin_fft    = fft_input->kmin_fft;
       double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
       double Delta    = log(kmax_fft/kmin_fft)/(Nmaxd-1); 
 
@@ -261,7 +262,7 @@ double FFT_kmax_Brent(double kmax, void *params)
       double kmin_fft        = pij.p5;
       double bias_fft        = pij.p6;
 
-      double f = pow(kmax,-bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, - bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
+      double f = pow(kmax,-bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, -bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
       
       return f;   
 }

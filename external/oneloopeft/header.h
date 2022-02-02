@@ -127,10 +127,6 @@
 #include "wnw_split.h"
 #include "IR_res.h"
 #include "ps_halo_1loop.h"
-#include "FFTLog_ingredients.h"
-#include "FFTLog_matter_real.h"
-#include "FFTLog_galaxy_real.h"
-#include "pspec_FFTLog_real.h"
 
 
 /**
@@ -206,5 +202,10 @@ typedef struct fft_struct
       fftw_complex *cmsym_g;
        
 }fft_struct;
+
+#include "FFTLog_ingredients.h"
+#include "FFTLog_matter_real.h"
+#include "FFTLog_galaxy_real.h"
+#include "pspec_FFTLog_real.h"
 
 #endif

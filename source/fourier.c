@@ -1665,7 +1665,6 @@ int fourier_init(
             class_call(pm_IR_FFTLog(pba, 
                                     ppm, 
                                     pfo, 
-                                    pfo->index_pk_m, 
                                     pfo->k[index_k], 
                                     z, 
                                     142L, 

@@ -26,19 +26,26 @@
  */
 
 int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    double k,  double z, long SPLIT, double * pk_nl)
+                 double k,  double z, long SPLIT, double * pk_nl)
 {
     static int cleanup_mloops  = 0;
 
     // setting fft_parameters
-    struct fft_struct fft_input;
-    fft_input.nfft       = 256;
-    fft_input.fft_first  = 1;
-    fft_input.kmin_fft   = 5.e-5;
-    fft_input.fft_bias_g = -1.6; // CLASS-PT value
-    fft_input.fft_bias_m = -0.3; // CLASS-PT value
+    struct fft_struct *fft_input;
+	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
 
-    FFT_compute_coeff(pba, ppm, pfo, z, &fft_input, SPLIT, MATTER);
+	fft_input -> nfft 	    = 200;
+	fft_input -> kmin_fft   = 5.e-6;
+	fft_input -> fft_bias_g = - 1.6;  //for halos
+	fft_input -> fft_bias_m = - 0.3; //for matter
+
+    fft_input -> fft_first   = 1;
+	fft_input -> etam_m  	 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    fft_input -> cmsym_m     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    fft_input -> etam_g      = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    fft_input -> cmsym_g     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+
+    FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, MATTER);
 
     double k0         = 1.e-4;
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
@@ -51,9 +58,9 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     // sigmav2 = 1/6pi^2 S dq P_lin(q)
     double sigmav2    = 1.0;
-    double P22_IR     = P22(&fft_input, k, z, cleanup_mloops);
+    double P22_IR     = P22(fft_input, k, z, cleanup_mloops);
     double P13_IR     = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) 
-                      * P13(&fft_input, k, z, cleanup_mloops);
+                      * P13(fft_input, k, z, cleanup_mloops);
     double P13_uv     = - 61./315. * pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) * pow(k, 2.) * sigmav2;
     double P13_IR_tot = P13_IR + P13_uv;
     
@@ -80,10 +87,25 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
  */
 
 int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    double k,  double z, struct fft_struct *fft_input, long SPLIT, double * pk_nl)
+                    double k,  double z, long SPLIT, double * pk_nl)
 
 { 
     static int cleanup_gloops = 0;
+
+    // setting fft_parameters
+    struct fft_struct *fft_input;
+	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
+
+	fft_input -> nfft 	    = 200;
+	fft_input -> kmin_fft   = 5.e-6;
+	fft_input -> fft_bias_g = - 1.6;  //for halos
+	fft_input -> fft_bias_m = - 0.3; //for matter
+
+    fft_input -> fft_first   = 1;
+	fft_input -> etam_m  	 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    fft_input -> cmsym_m     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    fft_input -> etam_g      = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    fft_input -> cmsym_g     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
 
     FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, HALO);
 
