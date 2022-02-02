@@ -262,7 +262,7 @@ double FFT_kmax_Brent(double kmax, void *params)
       double kmin_fft        = pij.p5;
       double bias_fft        = pij.p6;
 
-      double f = pow(kmax,-bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, -bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
+      double f = pow(kmax,bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
       
       return f;   
 }
@@ -291,6 +291,7 @@ double FFT_kmax_Brent_solver(struct background * pba,
       par.p4  = z;
       par.p5  = kmin_fft;
       par.p6  = fft_bias; 
+      //fprintf(stderr, "z = %e, k_min = %e, bias = %e, P(k_min) = %e, k_min**bias * P(k_min) = %e\n", z, kmin_fft, fft_bias, Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER), Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER)*pow(kmin_fft, -fft_bias));
 
       F.function = &FFT_kmax_Brent;
       F.params   = &par;
