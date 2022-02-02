@@ -259,7 +259,7 @@ double FFT_kmax_Brent(double kmax, void *params)
       double kmin_fft        = pij.p5;
       double bias_fft        = pij.p6;
 
-      double f = pow(kmax,bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
+      double f = pow(kmax, -bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, -bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
       
       return f;   
 }
