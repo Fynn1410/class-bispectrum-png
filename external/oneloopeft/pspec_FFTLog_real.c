@@ -47,7 +47,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, MATTER);
 
-    double k0         = 1.e-4;
+    double k0         = 3.e-4;
     double k_max      = 1.e3;
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     // grwoth factor, needs to be found within CLASS -> workaround: working with the time evolution of pm_nonwiggle
@@ -57,11 +57,11 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double sigma2     = IR_Sigma2(pba, ppm, pfo, z, k0, SPLIT);
     double sup        = exp(-k * k * sigma2);
 
-    double sigmav2    = sigman(pba, ppm, pfo, z, k0, k_max, -1, SPLIT);
+    double sigmav2    = 68;//sigman(pba, ppm, pfo, z, k0, k_max, -1, SPLIT);
     double P22_IR     = P22(fft_input, k, z, cleanup_mloops);
     double P13_IR     = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) 
                       * P13(fft_input, k, z, cleanup_mloops);
-    double P13_uv     = - 61./315. * pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) * pow(k, 2.) * sigmav2;
+    double P13_uv     = - 61./105. * pm_IR_LO(pba, ppm, pfo, k, z, SPLIT) * pow(k, 2.) * sigmav2;
     double P13_IR_tot = P13_IR + P13_uv;
     
     double ph_tot = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22_IR + P13_IR_tot); 
