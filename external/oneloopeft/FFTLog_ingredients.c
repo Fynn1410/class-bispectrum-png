@@ -43,8 +43,8 @@ double complex Ifunc(double complex nu1, double complex nu2)
       double complex nu12 = nu1 + nu2;
       double complex numerator    = Gamma(3./2.-nu1) * Gamma(3./2.-nu2) * Gamma(nu12-3./2.);
       double complex denominator  = Gamma(nu1) * Gamma(nu2) * Gamma(3.-nu12);
-      // double complex out          = 1./(8. * pow(M_PI, 3./2.)) * numerator/denominator; 
-      double complex out          = pow(M_PI, 3./2.) * numerator/denominator; 
+      double complex out          = 1./(8. * pow(M_PI, 3./2.)) * numerator/denominator; 
+      //double complex out          = pow(M_PI, 3./2.) * numerator/denominator; 
 
       return out;
 }
@@ -137,6 +137,7 @@ void FFT_compute_coeff(struct background * pba,
 
       for(int i=0;i<Nmax;i++){
             pk_bin[i] = pm_IR_LO(pba, ppm, pfo, k[i], z, SPLIT);
+            // pk_bin[i] = Pk_dlnPk(pba, ppm, pfo, k[i], z, LPOWER);
             // printf("all pk %12.6e %12.6e \n", k[i],pk_bin[i]);
       }      
 
@@ -185,6 +186,16 @@ void FFT_compute_coeff(struct background * pba,
 
       // for(i=0; i < Nmax+1; i++)
       //       printf("%d %12.6e %12.6e %12.6e %12.6e \n",i , creal(cmsym[i]), cimag(cmsym[i]), creal(biased_etam[i]), cimag(biased_etam[i]));
+      
+      // fprintf(stderr, "biased_etam: \n");
+      // for (index_c=0; index_c < Nmax+1; index_c++){
+      //       fprintf(stderr, "%e %e\n", creal(biased_etam[index_c]), cimag(biased_etam[index_c]));
+      // }
+
+      // fprintf(stderr, "cmsym: \n");
+      // for (index_c=0; index_c < Nmax+1; index_c++){
+      //       fprintf(stderr, "%e %e\n", creal(cmsym[index_c]), cimag(cmsym[index_c]));
+      // }
 
       // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
       if(hm_switch == MATTER){
