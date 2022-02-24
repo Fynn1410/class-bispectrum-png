@@ -396,7 +396,7 @@ double Pk_dlnPk(struct background * pba,
   double result;
   double pk_cb;
 
-  if(k< PS_KMIN || k>  PS_KMAX){
+  if(1==0){//k< PS_KMIN || k>  PS_KMAX){
     printf("Error in PS: the requested value of k (%12.6e) exceeds the tabulation up to (%12.6e).\nReturning 0.0", k,PS_KMAX);
     return 0.0;
   } 
