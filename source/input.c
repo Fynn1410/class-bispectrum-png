@@ -4540,10 +4540,10 @@ int input_read_parameters_spectra(struct file_content * pfc,
                "You can only enter one of 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc'.");
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
-      ppt->k_max_for_pk=param1*pba->h;
+      ppt->k_max_for_pk=MAX(param1*pba->h, ppt->k_max_for_pk);
     }
     if (flag2 == _TRUE_){
-      ppt->k_max_for_pk=param2;
+      ppt->k_max_for_pk=MAX(param2, ppt->k_max_for_pk);
     }
 
     /** 3.a.1) Maximum k in primordial P(k) */
