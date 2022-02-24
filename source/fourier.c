@@ -1661,7 +1661,7 @@ int fourier_init(
         }
         else{
           if (fft == 1){
-            fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            //fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
             class_call(pm_IR_FFTLog(pba, 
                                     ppm, 
                                     pfo, 
@@ -1673,7 +1673,7 @@ int fourier_init(
                       pfo->error_message);
         }
           else{
-            fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+            //fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
             class_call(PS_mm_G(ppr,
                               pba,
                               ppt,
@@ -1682,7 +1682,7 @@ int fourier_init(
                               pfo->k[index_k],
                               z,
                               _TRUE_,
-                              _TRUE_,
+                              _FALSE_,
                               142L,
                               &pk_oneloop),
                       pfo->error_message,
@@ -1928,7 +1928,7 @@ int fourier_get_k_list(
   k_max = ppt->k[pfo->index_md_scalars][pfo->k_size-1];
 
   /** - if k extrapolation necessary, compute number of required extra values */
-  if (pfo->method == nl_HMcode){
+  if (pfo->method == nl_HMcode || pfo->method == nl_oneloopPT){
     index_k=0;
     while(k < ppr->hmcode_max_k_extra && index_k < _MAX_NUM_EXTRAPOLATION_){
       index_k++;
