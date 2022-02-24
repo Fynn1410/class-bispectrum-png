@@ -503,9 +503,11 @@ double sigman2_integrand(double x, void *p)
 	long 	 n 		           = pij.p14;
   long   SPLIT           = pij.p15;
 	double window  = 1;
-      double pm = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
+  
+  double pm = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
 
-      f = 4. * M_PI * pow(q, 2. * (n + 1) + 1) * pow(window, 2.) * pm;
+  f = pm/ (6*pow(M_PI,2));
+  //f = 4. * M_PI * pow(q, 2. * (n + 1) + 1) * pow(window, 2.) * pm;
 
 	return f;
 
