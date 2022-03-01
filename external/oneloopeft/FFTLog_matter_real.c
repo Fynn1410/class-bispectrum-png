@@ -192,8 +192,6 @@ double complex M13(double complex nu1)
 {
       double complex numerator   = (1. + 9. * nu1) * ctan(nu1 * M_PI);
       double complex denominator = (112. *  M_PI * nu1 * (-6. + 5. * nu1 + 5. * cpow(nu1, 2.) - 5. * cpow(nu1, 3.) + cpow(nu1, 4.)));
-      // double complex numerator   = (1. + 9. * nu1) * pow(M_PI,2.) * ctan(nu1 * M_PI);
-      // double complex denominator = (14. * nu1 * (-6. + 5. * nu1 + 5. * cpow(nu1, 2.) - 5. * cpow(nu1, 3.) + cpow(nu1, 4.)));
       double complex out          = numerator/denominator;
 
       return out;

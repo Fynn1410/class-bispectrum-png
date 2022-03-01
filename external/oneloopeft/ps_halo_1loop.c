@@ -190,12 +190,14 @@ int PS_mm_G(
     if (has_ir == _FALSE_){
       pm_ct    = - 2. * cs2 * pow(k, 2.) * pm_lin;
       ph_tot   = pm_lin + pm_22 + pm_13 + pm_ct;
+      fprintf(stderr,"%e %e %e %e %e %e\n",k, pm_lin, pm_13, pm_22, pm_ct, ph_tot);
     }
     else {
       pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
       pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
       pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
       ph_tot      = pm_1loop_IR + pm_ct;
+      fprintf(stderr,"%e %e %e %e %e %e %e\n",k, pm_lin, pm_13, pm_22, pm_lin_IR, pm_ct, ph_tot);
     }
 
     free(ps_mloops);
