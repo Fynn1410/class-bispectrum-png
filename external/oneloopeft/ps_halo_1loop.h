@@ -2,20 +2,17 @@
 #define LINE_PS_PT_H
 #include "cuba.h"
 
-double PS_hh_G(
-               //struct Cosmology *Cx,
+int PS_hh_G(
                struct precision * ppr,
                struct background * pba,
                struct perturbations * ppt,
                struct primordial * ppm,
                struct fourier * pfo,
-               int index_k,
+               double k,
                double z,
-               double M,
                short has_loop,
                short has_ir,
-               long SPLIT,
-               long mode_mf, 
+               long SPLIT, 
                double * pk_nl);
 
 int PS_mm_G(

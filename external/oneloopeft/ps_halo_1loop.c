@@ -20,6 +20,7 @@
  */
 
 #include "header.h"
+#include <time.h>
 //struct globals gb;
 
 /**
@@ -36,25 +37,19 @@
  * @return G loop contributions of P_h
  */
 
-double PS_hh_G(
-               //struct Cosmology *Cx,
+int PS_hh_G(
                struct precision * ppr,
                struct background * pba,
                struct perturbations * ppt,
                struct primordial * ppm,
                struct fourier * pfo,
-               int index_k,
+               double k,
                double z,
-               double M,
                short has_loop,
                short has_ir,
-               long SPLIT,
-               long mode_mf, 
+               long SPLIT, 
                double * pk_nl)
 {
-
-      double k = pfo->k[index_k];
-
       int cleanup = 0;
 
       double pm_lin = 0., pm_lin_IR = 0., pm_1loop_IR = 0., pm_22 = 0., pm_13 = 0., pm_1loop =0., pm_ct = 0., ph_tot = 0.;
@@ -72,8 +67,13 @@ double PS_hh_G(
       double b2  = -1.0;
       double bG2 = 0.1;
       double btd = -0.1;
+      double R2  =  5.0;
+      double cs2 = 0.2;
 
       //printf("Bias Vals: %12.6e %12.6e %12.6e %12.6e %12.6e  %12.6e \n",k,M,b1,b2,bG2,btd);
+
+      clock_t start, matter, halo;
+      start = clock();
 
       if (has_loop == _TRUE_) {
 
@@ -82,8 +82,12 @@ double PS_hh_G(
           ps_mloops = make_1Darray(2);
 
           if (has_ir == _TRUE_) {
-            Compute_G_loops(pba, ppm, pfo, k, z, WIR, HALO, SPLIT, ps_hloops);
-            Compute_G_loops(pba, ppm, pfo, k, z, WIR, MATTER, SPLIT, ps_mloops);
+            Compute_G_loops(pba, ppm, pfo, k, z, _TRUE_, MATTER, SPLIT, ps_mloops);
+            matter = clock();
+            // fprintf(stderr,"Matter Loops done! %f sec. needed.\n", (double)(matter-start) / CLOCKS_PER_SEC);
+            Compute_G_loops(pba, ppm, pfo, k, z, _TRUE_, HALO, SPLIT, ps_hloops);
+            halo = clock();
+            // fprintf(stderr,"Matter Loops done! %f sec. needed.\n", (double)(halo-matter) / CLOCKS_PER_SEC);
           }
           else {
             Compute_G_loops(pba, ppm, pfo, k, z, NOIR, HALO, SPLIT, ps_hloops);
@@ -98,7 +102,6 @@ double PS_hh_G(
           double pb1b3nl  = 2. * b1 * (bG2 + 2./5. * btd) * ps_hloops[5];
           double ph_loops =  pb1b2 + pb1bg2 + pb22+ pbg22 + pb2bg2 + pb1b3nl;
 
-          double cs2      = 0.2;
           double khat     = 1. * pba->h;
 
           if (has_ir == _FALSE_) {
@@ -106,7 +109,7 @@ double PS_hh_G(
             pm_22    = ps_mloops[0];
             pm_13    = ps_mloops[1];
             pm_1loop = pm_lin + pm_22 + pm_13;
-            pm_ct    = - 2. * cs2 * pow(k, 2.) * pm_lin;
+            pm_ct    = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) * pm_lin;
             ph_tot   = (pow(b1, 2.) * (pm_1loop + pm_ct) + ph_loops);
           }
           else {
@@ -115,13 +118,22 @@ double PS_hh_G(
             pm_13       = ps_mloops[1];
             pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
             pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
-            pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
+            pm_ct       = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
             ph_tot      = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
           }
 
+          // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
+
+          // FILE *fpa;
+          // char file_name[50];
+          // sprintf(file_name, "BiasedTracers.txt");
+          // fpa = fopen(file_name, "a");
+          // fprintf(fpa, "%e %e %e %e %e %e %e %e %e %e %e\n", k, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, pow(b1, 2.) * pm_1loop_IR, pm_ct, ph_tot);
+          // // fprintf(stderr, "%e %e %e %e %e %e %e %e %e\n", k, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, pow(b1, 2.) * (pm_1loop_IR + pm_ct));
+          // fclose(fpa);
+
           free(ps_hloops);
           free(ps_mloops);
-
       }
       else {
           ph_tot  = pow(b1, 2.) * Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
@@ -195,9 +207,9 @@ int PS_mm_G(
     else {
       pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
       pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
-      pm_ct       = - 2. * cs2 * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
+      pm_ct       = - 2. * cs2 * pow(k, 2.) *  pm_lin_IR; // pow(k, 2.)/(1.+pow(k/khat,2.))
       ph_tot      = pm_1loop_IR + pm_ct;
-      fprintf(stderr,"%e %e %e %e %e %e %e\n",k, pm_lin, pm_13, pm_22, pm_lin_IR, pm_ct, ph_tot);
+      fprintf(stderr,"%e %e %e %e %e\n",k, pm_lin_IR, pm_ct, ph_tot, pm_1loop_IR);
     }
 
     free(ps_mloops);
@@ -344,7 +356,7 @@ static int G_loop_integrands(
       double q     = exp(logq);
       double kmq   = pow(fabs(pow(q, 2.) + pow(k, 2.) - 2. * q * k * cos), 1./2.);
       double kpq   = pow(fabs(pow(q, 2.) + pow(k, 2.) + 2. * q * k * cos), 1./2.);
-
+      // fprintf(stderr, "%ld", hm_switch);
       static int cleanup = 0;
 
       /// Model used in 1907.06666, the integrals are given in the appendix, Eq. A1, note that my S2_s = sigma^2(q,k-1) and F2_s = F2(q,k-q) in their notation.
