@@ -73,8 +73,15 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     double ph_tot = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22_IR + P13_IR_tot) + pm_ct; 
     
+    // FILE *fpa;
+    // char file_name[50];
+    // sprintf(file_name, "NOIRvsWIR.txt");
+    // fpa = fopen(file_name, "a");
+    // fprintf(fpa, "%e %e %e %e %e\n",k, p_nowiggle, p_wiggle, plin, pm_lin_IR);
+    // fclose(fpa);
+    
     //fprintf(stderr,"sigmav2 = %e, Plin = %e, P13_IR = %e, P13_UV = %e, P22__IR = %e, Plin_IR = %e, P_tot = %e\n",sigmav2, plin, P13_IR, P13_uv, P22_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), ph_tot);
-    // fprintf(stderr,"%e %e %e %e %e %e %e %e %e %e\n",sigmav2, k, plin, P13_IR, P13_uv, P13_IR_tot, P22_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), ph_tot, pm_ct);
+    //fprintf(stderr,"%e %e %e %e %e %e %e %e %e %e %e\n",sigmav2, k, plin, P13_IR, P13_uv, P13_IR_tot, P22_IR, pm_lin_IR, ph_tot, pm_ct, (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2)));
 
     *pk_nl = ph_tot;
     return _SUCCESS_;
@@ -123,6 +130,7 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
       double bG2 =  0.1;
       double btd = -0.1;
       double cs2 =  0.2;
+      double R2  =  5.0;
 
     double pm_1loop_IR;
     pm_IR_FFTLog(pba, ppm, pfo, k, z, SPLIT, &pm_1loop_IR);
@@ -147,7 +155,7 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     /* 
      * Compute the EFT counter-term contribution
      */
-    double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
+    double pm_ct   = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) * pm_lin_IR;
 
     /* 
      * Compute the EFT counter-term contribution
