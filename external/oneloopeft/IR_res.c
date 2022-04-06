@@ -43,11 +43,25 @@ double pm_IR_LO(struct background * pba,
           sig2_LO = IR_Sigma2(pba, ppm, pfo, z, kf0, SPLIT);
     }
     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, kf0, 0, SPLIT);
-    double p_wiggle   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER) - p_nowiggle;
+    double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+    double p_wiggle   = plin - p_nowiggle;
     double sup        = exp(-k * k * sig2_LO);
-    double f          = p_nowiggle + sup * p_wiggle;
-    return f;
+    double f;
+    if (k < kf0){
+      f = p_nowiggle + sup * p_wiggle;
+    }
+    else{
+      f = p_nowiggle + p_wiggle;
+    }
 
+    // FILE *fpa;
+    // char file_name[50];
+    // sprintf(file_name, "NOIRvsWIR.txt");
+    // fpa = fopen(file_name, "a");
+    // fprintf(fpa, "%e %e %e %e %e\n", k, p_nowiggle, p_wiggle, plin, f);
+    // fclose(fpa);
+
+    return f;
 }
 
 /**
@@ -88,7 +102,7 @@ double pm_IR_NLO(struct background * pba,
 
     double pm_LO = p_nowiggle + sup * p_wiggle; 
     double f     = p_nowiggle + sup * p_wiggle * (1. + k * k * sig2_NLO) + p22_IR + p13_IR ;
-
+    //fprintf(stderr, "%e %e ",p22_IR, p13_IR);
     return f;
 }
 
