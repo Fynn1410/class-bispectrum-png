@@ -12,6 +12,8 @@
  */
 
 #include "fourier.h"
+#include <time.h>
+// #include "/home/dennis/Software/class/external/oneloopeft/IR_res.h"
 
 /**
  * Return the P(k,z) for a given redshift z and pk type (_m, _cb)
@@ -1648,7 +1650,46 @@ int fourier_init(
 
     // TODO: code only efficient and tested at z=0. Check other values of z / tau.
 
-    int fft = 1;
+    int fft = 1; // 1-> FFT, 0-> DI 
+    struct timeval start, end;
+    double elapsetime;
+    gettimeofday(&start, NULL);
+
+    int NUM_DOCS = 2;
+    char file_name[NUM_DOCS][50];
+    sprintf(file_name[0], "pm_FFTLog.txt");
+    sprintf(file_name[1], "NOIRvsWIR.txt");
+    for (int i=0; i<NUM_DOCS; i++){
+      if(remove(file_name[i]) == 0){
+        fprintf(stderr, "%s succesfully deleted!\n", file_name[i]);
+      }
+      else{
+        fprintf(stderr, "%s could not be deleted!\n", file_name[i]);
+      }
+    }
+
+    // FILE *fpa;
+    // char file_n[50];
+    // sprintf(file_n, "LinearPm.txt");
+    // fpa = fopen(file_n, "w");
+
+    // double k;
+    // double pk_cb;
+    
+    // int    N = 1e4;
+    // double kmin = 1e-12;
+    // double kmax = 1e4;
+    // double delta_k = log(kmax/kmin)/(N-1);
+    // double f;
+    // for (int i = 0; i < N; i++){
+    //   k  = kmin * exp(delta_k * i);
+    //   f = pm_IR_LO(pba, ppm, pfo, k, z, 142L);
+
+    //   fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k, z, pfo -> index_pk_cb, &pk_cb, NULL);
+    //   fprintf(fpa, "%e %e\n", k, pk_cb);
+    // }
+    // fclose(fpa);
+
     for (index_tau = pfo->ln_tau_size-1; index_tau>=0; index_tau--) {
 
       fprintf(stderr,"index_tau = %d / %d\n",index_tau,pfo->ln_tau_size);
@@ -1661,7 +1702,7 @@ int fourier_init(
         }
         else{
           if (fft == 1){
-            //fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
             class_call(pm_IR_FFTLog(pba, 
                                     ppm, 
                                     pfo, 
@@ -1672,8 +1713,8 @@ int fourier_init(
                       pfo->error_message,
                       pfo->error_message);
         }
-          else{
-            //fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+          else if(fft == 0){
+            fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
             class_call(PS_mm_G(ppr,
                               pba,
                               ppt,
@@ -1682,7 +1723,7 @@ int fourier_init(
                               pfo->k[index_k],
                               z,
                               _TRUE_,
-                              _FALSE_,
+                              _TRUE_,
                               142L,
                               &pk_oneloop),
                       pfo->error_message,
@@ -1695,6 +1736,11 @@ int fourier_init(
         }
       }
     }
+
+    gettimeofday(&end, NULL);
+    elapsetime = (end.tv_sec - start.tv_sec);
+    elapsetime += (end.tv_usec - start.tv_usec) / 1000000.0;
+    fprintf(stderr, "%2.3f seconds needed!\n", elapsetime);
   }
 
   /** - if the nl_method could not be identified */
