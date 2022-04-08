@@ -37,6 +37,8 @@ double pm_IR_LO(struct background * pba,
                 long SPLIT)
 {
     double kf0 = 1.e-4;
+    double kmin = 2.e-4;
+    double kmax = 15;
     static double sig2_LO = - 1.;
 
     if(sig2_LO == - 1.){
@@ -47,19 +49,20 @@ double pm_IR_LO(struct background * pba,
     double p_wiggle   = plin - p_nowiggle;
     double sup        = exp(-k * k * sig2_LO);
     double f;
-    if (k < kf0){
+
+    if (k < kmax && k > kmin){
       f = p_nowiggle + sup * p_wiggle;
     }
     else{
       f = p_nowiggle + p_wiggle;
     }
 
-    // FILE *fpa;
-    // char file_name[50];
-    // sprintf(file_name, "NOIRvsWIR.txt");
-    // fpa = fopen(file_name, "a");
-    // fprintf(fpa, "%e %e %e %e %e\n", k, p_nowiggle, p_wiggle, plin, f);
-    // fclose(fpa);
+    FILE *fpa;
+    char file_name[50];
+    sprintf(file_name, "NOIRvsWIR.txt");
+    fpa = fopen(file_name, "a");
+    fprintf(fpa, "%e %e %e %e %e\n", k, p_nowiggle, p_wiggle, plin, f);
+    fclose(fpa);
 
     return f;
 }
