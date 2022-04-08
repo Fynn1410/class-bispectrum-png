@@ -149,13 +149,22 @@ struct fourier {
 
   double * sigma8;   /**< sigma8[index_pk] */
 
+  /* extra stuff */
+
+  int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
+
+  double ** ln_pk_l_extra;   /**< Extrapolated total matter power spectrum summed over initial conditions (linear).
+                          Only depends on indices index_pk,index_k, index_tau as:
+                          ln_pk[index_pk][index_tau * pfo->k_size + index_k]
+                       */
+
+  double ** ddln_pk_l_extra; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
   //@}
 
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
 
   //@{
-
-  int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
 
   int tau_size;    /**< tau_size = number of values */
   double * tau;    /**< tau[index_tau] = list of time values, covering

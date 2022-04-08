@@ -91,10 +91,10 @@ int fourier_pk_at_z(
   /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
 
-    for (index_k=0; index_k<pfo->k_size; index_k++) {
+    for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
 
       if (pk_output == pk_linear) {
-        out_pk[index_k] = pfo->ln_pk_l[index_pk][(pfo->ln_tau_size-1)*pfo->k_size+index_k];
+        out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
 
         if (do_ic == _TRUE_) {
           for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
@@ -104,7 +104,7 @@ int fourier_pk_at_z(
         }
       }
       else {
-        out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1)*pfo->k_size+index_k];
+        out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
       }
     }
   }
@@ -138,9 +138,9 @@ int fourier_pk_at_z(
       /** --> if ln(tau) too small but within tolerance, round it and get right values without interpolating */
       ln_tau = pfo->ln_tau[0];
 
-      for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
+      for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
         if (pk_output == pk_linear) {
-          out_pk[index_k] = pfo->ln_pk_l[index_pk][index_k];
+          out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][index_k];
           if (do_ic == _TRUE_) {
             for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
               out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2] = pfo->ln_pk_ic_l[index_pk][index_k * pfo->ic_ic_size + index_ic1_ic2];
@@ -163,17 +163,17 @@ int fourier_pk_at_z(
       /** --> if ln(tau) too large but within tolerance, round it and get right values without interpolating */
       ln_tau = pfo->ln_tau[pfo->ln_tau_size-1];
 
-      for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
+      for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
         if (pk_output == pk_linear) {
-          out_pk[index_k] = pfo->ln_pk_l[index_pk][(pfo->ln_tau_size-1) * pfo->k_size + index_k];
+          out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1) * pfo->k_size_extra + index_k];
           if (do_ic == _TRUE_) {
             for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
-              out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2] = pfo->ln_pk_ic_l[index_pk][((pfo->ln_tau_size-1) * pfo->k_size + index_k) * pfo->ic_ic_size + index_ic1_ic2];
+              out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2] = pfo->ln_pk_ic_l[index_pk][((pfo->ln_tau_size-1) * pfo->k_size_extra + index_k) * pfo->ic_ic_size + index_ic1_ic2];
             }
           }
         }
         else {
-          out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1) * pfo->k_size + index_k];
+          out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1) * pfo->k_size_extra + index_k];
         }
       }
     }
@@ -186,13 +186,13 @@ int fourier_pk_at_z(
         /** --> interpolate P_l(k) at tau from pre-computed array */
         class_call(array_interpolate_spline(pfo->ln_tau,
                                             pfo->ln_tau_size,
-                                            pfo->ln_pk_l[index_pk],
-                                            pfo->ddln_pk_l[index_pk],
-                                            pfo->k_size,
+                                            pfo->ln_pk_l_extra[index_pk],
+                                            pfo->ddln_pk_l_extra[index_pk],
+                                            pfo->k_size_extra,
                                             ln_tau,
                                             &last_index,
                                             out_pk,
-                                            pfo->k_size,
+                                            pfo->k_size_extra,
                                             pfo->error_message),
                    pfo->error_message,
                    pfo->error_message);
@@ -220,11 +220,11 @@ int fourier_pk_at_z(
                                             pfo->ln_tau_size,
                                             pfo->ln_pk_nl[index_pk],
                                             pfo->ddln_pk_nl[index_pk],
-                                            pfo->k_size,
+                                            pfo->k_size_extra,
                                             ln_tau,
                                             &last_index,
                                             out_pk,
-                                            pfo->k_size,
+                                            pfo->k_size_extra,
                                             pfo->error_message),
                    pfo->error_message,
                    pfo->error_message);
@@ -237,7 +237,7 @@ int fourier_pk_at_z(
   if (mode == linear) {
 
     /** --> loop over k */
-    for (index_k=0; index_k<pfo->k_size; index_k++) {
+    for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
 
       /** --> convert total spectrum */
       out_pk[index_k] = exp(out_pk[index_k]);
@@ -412,9 +412,9 @@ int fourier_pk_at_k_and_z(
   /** - first step: check that k is in valid range [0:kmax]
       (the test for z will be done when calling fourier_pk_linear_at_z()) */
 
-  class_test((k < 0.) || (k > exp(pfo->ln_k[pfo->k_size-1])),
+  class_test((k < 0.) || (k > exp(pfo->ln_k[pfo->k_size_extra-1])),
              pfo->error_message,
-             "k=%e out of bounds [%e:%e]",k,0.,exp(pfo->ln_k[pfo->k_size-1]));
+             "k=%e out of bounds [%e:%e]",k,0.,exp(pfo->ln_k[pfo->k_size_extra-1]));
 
   /** - deal with case k = 0 for which P(k) is set to zero
       (this non-physical result can be useful for interpolations) */
@@ -434,12 +434,12 @@ int fourier_pk_at_k_and_z(
   else {
 
     class_alloc(out_pk_at_z,
-                pfo->k_size*sizeof(double),
+                pfo->k_size_extra*sizeof(double),
                 pfo->error_message);
 
     if (do_ic == _TRUE_) {
       class_alloc(out_pk_ic_at_z,
-                  pfo->k_size*pfo->ic_ic_size*sizeof(double),
+                  pfo->k_size_extra*pfo->ic_ic_size*sizeof(double),
                   pfo->error_message);
     }
 
@@ -464,11 +464,11 @@ int fourier_pk_at_k_and_z(
       /** --> interpolate total spectrum */
 
       class_alloc(ddout_pk_at_z,
-                  pfo->k_size*sizeof(double),
+                  pfo->k_size_extra*sizeof(double),
                   pfo->error_message);
 
       class_call(array_spline_table_lines(pfo->ln_k,
-                                          pfo->k_size,
+                                          pfo->k_size_extra,
                                           out_pk_at_z,
                                           1,
                                           ddout_pk_at_z,
@@ -478,7 +478,7 @@ int fourier_pk_at_k_and_z(
                  pfo->error_message);
 
       class_call(array_interpolate_spline(pfo->ln_k,
-                                          pfo->k_size,
+                                          pfo->k_size_extra,
                                           out_pk_at_z,
                                           ddout_pk_at_z,
                                           1,
@@ -496,7 +496,7 @@ int fourier_pk_at_k_and_z(
 
       /*
       class_call(array_interpolate_linear(pfo->ln_k,
-                                            pfo->k_size,
+                                            pfo->k_size_extra,
                                             out_pk_at_z,
                                             1,
                                             log(k),
@@ -1308,8 +1308,22 @@ int fourier_init(
                                    index_pk,
                                    index_tau_sources,
                                    pfo->k_size,
-                                   &(pfo->ln_pk_l[index_pk][index_tau * pfo->k_size]),
+                                   &(pfo->ln_pk_l_extra[index_pk][index_tau * pfo->k_size]),
                                    &(pfo->ln_pk_ic_l[index_pk][index_tau * pfo->k_size * pfo->ic_ic_size])
+                                   ),
+                 pfo->error_message,
+                 pfo->error_message);
+
+      class_call(fourier_pk_linear(
+                                   pba,
+                                   ppt,
+                                   ppm,
+                                   pfo,
+                                   index_pk,
+                                   index_tau_sources,
+                                   pfo->k_size_extra,
+                                   &(pfo->ln_pk_l_extra[index_pk][index_tau * pfo->k_size]),
+                                   NULL
                                    ),
                  pfo->error_message,
                  pfo->error_message);
@@ -1336,6 +1350,16 @@ int fourier_init(
                                             pfo->ln_pk_ic_l[index_pk],
                                             pfo->k_size*pfo->ic_ic_size,
                                             pfo->ddln_pk_ic_l[index_pk],
+                                            _SPLINE_EST_DERIV_,
+                                            pfo->error_message),
+                   pfo->error_message,
+                   pfo->error_message);
+
+        class_call(array_spline_table_lines(pfo->ln_tau,
+                                            pfo->ln_tau_size,
+                                            pfo->ln_pk_l[index_pk],
+                                            pfo->k_size_extra,
+                                            pfo->ddln_pk_l_extra[index_pk],
                                             _SPLINE_EST_DERIV_,
                                             pfo->error_message),
                    pfo->error_message,
@@ -1650,7 +1674,7 @@ int fourier_init(
 
     // TODO: code only efficient and tested at z=0. Check other values of z / tau.
 
-    int fft = 1; // 1-> FFT, 0-> DI 
+    int fft = 1; // 1-> FFT, 0-> DI
     struct timeval start, end;
     double elapsetime;
     gettimeofday(&start, NULL);
@@ -1675,7 +1699,7 @@ int fourier_init(
 
     // double k;
     // double pk_cb;
-    
+
     // int    N = 1e4;
     // double kmin = 1e-12;
     // double kmax = 1e4;
@@ -1703,12 +1727,12 @@ int fourier_init(
         else{
           if (fft == 1){
             fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-            class_call(pm_IR_FFTLog(pba, 
-                                    ppm, 
-                                    pfo, 
-                                    pfo->k[index_k], 
-                                    z, 
-                                    142L, 
+            class_call(pm_IR_FFTLog(pba,
+                                    ppm,
+                                    pfo,
+                                    pfo->k[index_k],
+                                    z,
+                                    142L,
                                     &pk_oneloop),
                       pfo->error_message,
                       pfo->error_message);
@@ -1773,13 +1797,16 @@ int fourier_free(
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
       free(pfo->ln_pk_ic_l[index_pk]);
       free(pfo->ln_pk_l[index_pk]);
+      free(pfo->ln_pk_l_extra[index_pk]);
       if (pfo->ln_tau_size>1) {
         free(pfo->ddln_pk_ic_l[index_pk]);
         free(pfo->ddln_pk_l[index_pk]);
+        free(pfo->ddln_pk_l_extra[index_pk]);
       }
     }
     free(pfo->ln_pk_ic_l);
     free(pfo->ln_pk_l);
+    free(pfo->ln_pk_l_extra);
 
     free (pfo->sigma8);
 
@@ -1895,10 +1922,12 @@ int fourier_indices(
 
   class_alloc(pfo->ln_pk_ic_l,pfo->pk_size*sizeof(double*),pfo->error_message);
   class_alloc(pfo->ln_pk_l   ,pfo->pk_size*sizeof(double*),pfo->error_message);
+  class_alloc(pfo->ln_pk_l_extra   ,pfo->pk_size*sizeof(double*),pfo->error_message);
 
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
     class_alloc(pfo->ln_pk_ic_l[index_pk],pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
     class_alloc(pfo->ln_pk_l[index_pk]   ,pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ln_pk_l_extra[index_pk]   ,pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
   }
 
   /** - if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
@@ -1912,6 +1941,7 @@ int fourier_indices(
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
       class_alloc(pfo->ddln_pk_ic_l[index_pk],pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
       class_alloc(pfo->ddln_pk_l[index_pk]   ,pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ddln_pk_l_extra[index_pk]   ,pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
     }
   }
 
