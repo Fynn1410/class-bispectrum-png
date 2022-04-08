@@ -1308,7 +1308,7 @@ int fourier_init(
                                    index_pk,
                                    index_tau_sources,
                                    pfo->k_size,
-                                   &(pfo->ln_pk_l_extra[index_pk][index_tau * pfo->k_size]),
+                                   &(pfo->ln_pk_l[index_pk][index_tau * pfo->k_size]),
                                    &(pfo->ln_pk_ic_l[index_pk][index_tau * pfo->k_size * pfo->ic_ic_size])
                                    ),
                  pfo->error_message,
@@ -1357,7 +1357,7 @@ int fourier_init(
 
         class_call(array_spline_table_lines(pfo->ln_tau,
                                             pfo->ln_tau_size,
-                                            pfo->ln_pk_l[index_pk],
+                                            pfo->ln_pk_l_extra[index_pk],
                                             pfo->k_size_extra,
                                             pfo->ddln_pk_l_extra[index_pk],
                                             _SPLINE_EST_DERIV_,
