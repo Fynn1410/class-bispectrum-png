@@ -35,7 +35,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
 
 	fft_input -> nfft 	    = 200;
-	fft_input -> kmin_fft   = 5.e-6;
+	fft_input -> kmin_fft   = 1.e-8;
 	fft_input -> fft_bias_g = - 1.6;  //for halos
 	fft_input -> fft_bias_m = - 0.3; //for matter
 
@@ -49,7 +49,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     double cs2 =  0.2;
 
-    double k0         = 3.e-4;
+    double k0         = 1.e-5;
     double k_max      = 1.e3;
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
@@ -81,7 +81,13 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     // fclose(fpa);
     
     //fprintf(stderr,"sigmav2 = %e, Plin = %e, P13_IR = %e, P13_UV = %e, P22__IR = %e, Plin_IR = %e, P_tot = %e\n",sigmav2, plin, P13_IR, P13_uv, P22_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), ph_tot);
-    //fprintf(stderr,"%e %e %e %e %e %e %e %e %e %e %e\n",sigmav2, k, plin, P13_IR, P13_uv, P13_IR_tot, P22_IR, pm_lin_IR, ph_tot, pm_ct, (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2)));
+    
+    FILE *fpa;
+    char file_name[50];
+    sprintf(file_name, "pm_FFTLog.txt");
+    fpa = fopen(file_name, "a");
+    fprintf(fpa,"%e %e %e %e %e %e %e %e %e\n", k, pm_lin_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), P22_IR, P13_IR, P13_uv, P13_IR_tot, pm_ct, ph_tot);
+    fclose(fpa);
 
     *pk_nl = ph_tot;
     return _SUCCESS_;
@@ -112,7 +118,7 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
 
 	fft_input -> nfft 	    = 200;
-	fft_input -> kmin_fft   = 5.e-6;
+	fft_input -> kmin_fft   = 5.e-4;
 	fft_input -> fft_bias_g = - 1.6;  //for halos
 	fft_input -> fft_bias_m = - 0.3; //for matter
 
@@ -160,10 +166,16 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     /* 
      * Compute the EFT counter-term contribution
      */
-    double ph_tot  = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
+    double ph_tot  = pow(b1, 2.) * pm_1loop_IR + pm_ct + ph_loops;
 
-    fprintf(stderr, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e \n",\
-        k, pm_lin, pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl,ph_tot);
+
+    FILE *fpa;
+    char file_name[50];
+    sprintf(file_name, "pg_FFTLog.txt");
+    fpa = fopen(file_name, "a");
+    fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+                k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+    fclose(fpa);
 
     *pk_nl = ph_tot;
     return _SUCCESS_;
