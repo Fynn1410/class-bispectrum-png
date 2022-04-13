@@ -662,7 +662,7 @@ int output_pk(
   /** - allocate arrays to store the P(k) */
 
   class_alloc(ln_pk,
-              pfo->k_size*sizeof(double),
+              pfo->k_size_extra*sizeof(double),
               pop->error_message);
 
   if (do_ic == _TRUE_) {
@@ -841,7 +841,7 @@ int output_pk(
 
       /** - fourth, write in files */
 
-      for (index_k=0; index_k<pfo->k_size; index_k++) {
+      for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
 
         class_call(output_one_line_of_pk(out_pk,
                                          exp(pfo->ln_k[index_k])/pba->h,

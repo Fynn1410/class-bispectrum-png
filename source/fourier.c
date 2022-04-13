@@ -13,7 +13,7 @@
 
 #include "fourier.h"
 #include <time.h>
-// #include "/home/dennis/Software/class/external/oneloopeft/IR_res.h"
+#include "/home/dennis/Software/class/external/oneloopeft/IR_res.h"
 
 /**
  * Return the P(k,z) for a given redshift z and pk type (_m, _cb)
@@ -1045,8 +1045,8 @@ int fourier_sigmas_at_z(
 
   /** - allocate temporary array for P(k,z) as a function of k */
 
-  class_alloc(out_pk, pfo->k_size*sizeof(double), pfo->error_message);
-  class_alloc(ddout_pk, pfo->k_size*sizeof(double), pfo->error_message);
+  class_alloc(out_pk, pfo->k_size_extra*sizeof(double), pfo->error_message);
+  class_alloc(ddout_pk, pfo->k_size_extra*sizeof(double), pfo->error_message);
 
   /** - get P(k,z) as a function of k, for the right z */
 
@@ -1674,15 +1674,19 @@ int fourier_init(
 
     // TODO: code only efficient and tested at z=0. Check other values of z / tau.
 
-    int fft = 1; // 1-> FFT, 0-> DI
+    int fft = 1; // 0 -> DI, 1 -> FFT 
+    int biased_tracers = 1; // 0 -> P_mm, 1 -> P_hh
     struct timeval start, end;
     double elapsetime;
     gettimeofday(&start, NULL);
 
-    int NUM_DOCS = 2;
+    int NUM_DOCS = 5;
     char file_name[NUM_DOCS][50];
-    sprintf(file_name[0], "pm_FFTLog.txt");
-    sprintf(file_name[1], "NOIRvsWIR.txt");
+    // sprintf(file_name[0], "pm_FFTLog.txt");
+    // sprintf(file_name[1], "pm_DI.txt");
+    sprintf(file_name[2], "pg_FFTLog.txt");
+    // sprintf(file_name[3], "pg_DI.txt");
+    // sprintf(file_name[4], "NOIRvsWIR.txt");
     for (int i=0; i<NUM_DOCS; i++){
       if(remove(file_name[i]) == 0){
         fprintf(stderr, "%s succesfully deleted!\n", file_name[i]);
@@ -1702,7 +1706,7 @@ int fourier_init(
 
     // int    N = 1e4;
     // double kmin = 1e-12;
-    // double kmax = 1e4;
+    // double kmax = 1e6;
     // double delta_k = log(kmax/kmin)/(N-1);
     // double f;
     // for (int i = 0; i < N; i++){
@@ -1710,7 +1714,7 @@ int fourier_init(
     //   f = pm_IR_LO(pba, ppm, pfo, k, z, 142L);
 
     //   fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k, z, pfo -> index_pk_cb, &pk_cb, NULL);
-    //   fprintf(fpa, "%e %e\n", k, pk_cb);
+    //   fprintf(fpa, "%e %e %e\n", k, pk_cb, f);
     // }
     // fclose(fpa);
 
@@ -1726,33 +1730,65 @@ int fourier_init(
         }
         else{
           if (fft == 1){
-            fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-            class_call(pm_IR_FFTLog(pba,
-                                    ppm,
-                                    pfo,
-                                    pfo->k[index_k],
-                                    z,
-                                    142L,
-                                    &pk_oneloop),
-                      pfo->error_message,
-                      pfo->error_message);
+            if (biased_tracers == 0){
+              fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+              class_call(pm_IR_FFTLog(pba,
+                                      ppm,
+                                      pfo,
+                                      pfo->k[index_k],
+                                      z,
+                                      142L,
+                                      &pk_oneloop),
+                        pfo->error_message,
+                        pfo->error_message);
+            }
+            else {
+              fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+              class_call(pg_IR_FFTLog(pba,
+                                      ppm,
+                                      pfo,
+                                      pfo->k[index_k],
+                                      z,
+                                      142L,
+                                      &pk_oneloop),
+                        pfo->error_message,
+                        pfo->error_message);
+            }
         }
           else if(fft == 0){
-            fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
-            class_call(PS_mm_G(ppr,
-                              pba,
-                              ppt,
-                              ppm,
-                              pfo,
-                              pfo->k[index_k],
-                              z,
-                              _TRUE_,
-                              _TRUE_,
-                              142L,
-                              &pk_oneloop),
-                      pfo->error_message,
-                      pfo->error_message);
+            if (biased_tracers == 0){
+              fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+              class_call(PS_mm_G(ppr,
+                                pba,
+                                ppt,
+                                ppm,
+                                pfo,
+                                pfo->k[index_k],
+                                z,
+                                _TRUE_,
+                                _TRUE_,
+                                142L,
+                                &pk_oneloop),
+                        pfo->error_message,
+                        pfo->error_message);
+              }
+            else{
+              fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+              class_call(PS_hh_G(ppr,
+                                pba,
+                                ppt,
+                                ppm,
+                                pfo,
+                                pfo->k[index_k],
+                                z,
+                                _TRUE_,
+                                _TRUE_,
+                                142L,
+                                &pk_oneloop),
+                        pfo->error_message,
+                        pfo->error_message);
             }
+          }
           pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
             = sqrt(pk_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
