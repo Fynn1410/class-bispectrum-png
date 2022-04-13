@@ -110,7 +110,7 @@ int PS_hh_G(
             pm_13    = ps_mloops[1];
             pm_1loop = pm_lin + pm_22 + pm_13;
             pm_ct    = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) * pm_lin;
-            ph_tot   = (pow(b1, 2.) * (pm_1loop + pm_ct) + ph_loops);
+            ph_tot   = pow(b1, 2.) * pm_1loop + pm_ct + ph_loops;
           }
           else {
             pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
@@ -118,19 +118,19 @@ int PS_hh_G(
             pm_13       = ps_mloops[1];
             pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
             pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
-            pm_ct       = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) * pow(k, 2.)/(1.+pow(k/khat,2.))* pm_lin_IR;
-            ph_tot      = (pow(b1, 2.) * (pm_1loop_IR + pm_ct) + ph_loops);
+            pm_ct       = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) *  pm_lin_IR; //pow(k, 2.)/(1.+pow(k/khat,2.))*
+            ph_tot      = pow(b1, 2.) * pm_1loop_IR + pm_ct + ph_loops;
           }
 
           // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
 
-          // FILE *fpa;
-          // char file_name[50];
-          // sprintf(file_name, "BiasedTracers.txt");
-          // fpa = fopen(file_name, "a");
-          // fprintf(fpa, "%e %e %e %e %e %e %e %e %e %e %e\n", k, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, pow(b1, 2.) * pm_1loop_IR, pm_ct, ph_tot);
-          // // fprintf(stderr, "%e %e %e %e %e %e %e %e %e\n", k, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, pow(b1, 2.) * (pm_1loop_IR + pm_ct));
-          // fclose(fpa);
+          FILE *fpa;
+          char file_name[50];
+          sprintf(file_name, "pg_DI.txt");
+          fpa = fopen(file_name, "a");
+          fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+              k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+          fclose(fpa);
 
           free(ps_hloops);
           free(ps_mloops);
@@ -205,11 +205,22 @@ int PS_mm_G(
       fprintf(stderr,"%e %e %e %e %e %e\n",k, pm_lin, pm_13, pm_22, pm_ct, ph_tot);
     }
     else {
+      double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 0., 0, SPLIT);
+      double p_wiggle   = pm_lin - p_nowiggle;
+      double sigma2     = IR_Sigma2(pba, ppm, pfo, z, 0., SPLIT);
+      double sup        = exp(-k * k * sigma2);
+
       pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-      pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
+      pm_1loop_IR = p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_22 + pm_13; 
       pm_ct       = - 2. * cs2 * pow(k, 2.) *  pm_lin_IR; // pow(k, 2.)/(1.+pow(k/khat,2.))
       ph_tot      = pm_1loop_IR + pm_ct;
-      fprintf(stderr,"%e %e %e %e %e\n",k, pm_lin_IR, pm_ct, ph_tot, pm_1loop_IR);
+
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "pm_DI.txt");
+      fpa = fopen(file_name, "a");
+      fprintf(fpa,"%e %e %e %e %e %e %e\n",k, pm_lin_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), pm_22, pm_13, pm_ct, ph_tot);
+      fclose(fpa);
     }
 
     free(ps_mloops);
