@@ -349,10 +349,8 @@ double complex M_cIdelta2cG2(double complex nu1, double complex nu2)
 
 double complex M_cFcG2(double complex nu1)
 {
-      // double complex numerator    = 15. * ctan(nu1 * M_PI);
-      // double complex denominator  = 28. * M_PI * (nu1 + 1.) * nu1 * (nu1 - 1.) * (nu1 - 2.) * (nu1 - 3.);
-      double complex numerator    = 30. *  pow(M_PI,2.) * ctan(nu1 * M_PI);
-      double complex denominator  = 7. * (nu1 + 1.) * nu1 * (nu1 - 1.) * (nu1 - 2.) * (nu1 - 3.);
+      double complex numerator    = 15. * ctan(nu1 * M_PI);
+      double complex denominator  = 28. * M_PI * (nu1 + 1.) * nu1 * (nu1 - 1.) * (nu1 - 2.) * (nu1 - 3.);
       double complex out          = - numerator/denominator;
 
       return out;
