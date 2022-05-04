@@ -230,7 +230,7 @@ void prop_rsd_1_FFTLog(struct fft_struct  *fft_input, double k, double z, int cl
 
 
 /**
- * Analytic expression of M_cIF2G2 matrix. (Eq. 2.44 of Simonovic 2017)
+ * Analytic expression of M_cIF2G2 matrix
  *
  * @param nu1         Input: FFTLog coeffcients
  * @param nu2         Input: FFTLog frequency exponents
@@ -241,15 +241,15 @@ double complex M_cIF2G2(double complex nu1, double complex nu2)
 {
       double complex numerator1  = (-3. + 2. * (nu1 + nu2));
       double complex numerator2  = (-1. + 2. * (nu1 + nu2));
-      double complex numerator3  = (46. + 98. * pow(nu1, 3) * nu2 + (13. - 63.*nu2)*nu2 + 7.*pow(n1, 2)*(-9. + 2. * nu2*(-5. + 14.*n2)) + nu1*(13 + 2*nu2*(-69. + 7*nu2*(-5. + 7*n2)))
-      double complex denominator = 196. * nu1 * (1. + nu1) * (-1. +2.*nu1) * nu2 * (1. + nu2) * (-1. + 2*nu2);
+      double complex numerator3  = (46. + 98. * pow(nu1, 3) * nu2 + (13. - 63.*nu2)*nu2 + 7.*pow(n1, 2)*(-9. + 2. * nu2*(-5. + 14.*n2)) + nu1*(13 + 2*nu2*(-69. + 7.*nu2*(-5. + 7.*n2)))
+      double complex denominator = 196. * nu1 * (1. + nu1) * (-1. +2.*nu1) * nu2 * (1. + nu2) * (-1. + 2.*nu2);
       double complex out         = numerator1 * numerator2 * numerator3 /denominator * Ifunc(nu1, nu2);
 
       return out;
 }
 
 /**
- * Analytic expression of M_cIG2 matrix (Eq. 2.47 of Simonovic 2017)
+ * Analytic expression of M_cIG2 matrix
  *
  * @param nu1         Input: FFTLog coeffcients
  * @param nu2         Input: FFTLog frequency exponents
@@ -258,15 +258,15 @@ double complex M_cIF2G2(double complex nu1, double complex nu2)
 
 double complex M_cIG2(double complex nu1, double complex nu2)
 {
-      double complex numerator   = (-3. + 2.* (nu1 + nu2)) * (-8. + 7* (nu1 + nu2));
-      double complex denominator = 28 * nu1 * nu2;
+      double complex numerator   = (-3. + 2.* (nu1 + nu2)) * (-8. + 7.* (nu1 + nu2));
+      double complex denominator = 28. * nu1 * nu2;
       double complex out         = numerator/denominator * Ifunc(nu1, nu2);
 
       return out;
 }
 
 /**
- * Analytic expression of M_cIS2G2  (Eq. 2.48 of Simonovic 2017)
+ * Analytic expression of M_cIS2G2
  *
  * @param nu1         Input: FFTLog coeffcients
  * @param nu2         Input: FFTLog frequency exponents
@@ -275,7 +275,7 @@ double complex M_cIG2(double complex nu1, double complex nu2)
 
 double complex M_cIS2G2(double complex nu1, double complex nu2)
 {
-      double complex numerator   = (-3. + 2. * (nu1 + nu2)) *  (1. - 2. * (nu1 + nu2)) * (-2. + 7* (nu1 + nu2));
+      double complex numerator   = (-3. + 2. * (nu1 + nu2)) *  (1. - 2. * (nu1 + nu2)) * (-2. + 7.* (nu1 + nu2));
       double complex denominator = 28. * nu1 * (1. + nu1) * nu2 * (1. + nu2);
       double complex out         = numerator/denominator * Ifunc(nu1, nu2);
 
@@ -283,27 +283,25 @@ double complex M_cIS2G2(double complex nu1, double complex nu2)
 }
 
 /**
- * Analytic expression of M_cIF3G3 matrix (Eq. 2.45 of Simonovic 2017))
+ * Analytic expression of M_cIF3G3 matrix
  *
  * @param nu1         Input: FFTLog coeffcients
- * @param nu2         Input: FFTLog frequency exponents
  * @return value of M_cIF3G3
  */
 
 double complex M_cIF3G3(double complex nu1)
 {
       double complex numerator   = (-7. + 9.* nu1) * ctan(nu1 * M_PI);
-      double complex denominator = 112. * nu1 * (-6. + 5*nu1 + 5*pow(nu1, 2) - 5*pow(nu1, 3) + pow(nu1, 4));
+      double complex denominator = 112. * nu1 * (-6. + 5.*nu1 + 5.*pow(nu1, 2) - 5.*pow(nu1, 3) + pow(nu1, 4));
       double complex out         = numerator/denominator;
 
       return out;
 }
 
 /**
- * Analytic expression of M_cIG2m matrix (Eq. 2.45 of Simonovic 2017))
+ * Analytic expression of M_cIG2m matrix
  *
  * @param nu1         Input: FFTLog coeffcients
- * @param nu2         Input: FFTLog frequency exponents
  * @return value of M_cIG2m
  */
 
@@ -320,5 +318,121 @@ double complex M_cIG2m(double complex nu1)
       _________________ 2-nd Moment _______________________
  */
 
+/**
+ * Analytic expression of M_cIF2m
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @param nu2         Input: FFTLog frequency exponents
+ * @return value of M_ccIF2m
+ */
 
+double complex M_cIF2m(double complex nu1, double complex nu2)
+{
+      double complex numerator   = (-2. + nu1 + nu2) *  (-3. + 2. * (nu1 + nu2)) * (-1. + 2. * (nu1 + nu2)) * (3. + 7. * (nu1 + nu2));
+      double complex denominator = 42. * nu1 * nu2 * (1. + nu2) * (-1. + 2.*nu2);
+      double complex out         = numerator/denominator * Ifunc(nu1, nu2);
+
+      return out;
+}
  
+ /**
+ * Analytic expression of M_cIG2m2 matrix
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @return value of M_cIG2m
+ */
+
+double complex M_cIG2m2(double complex nu1)
+{
+      double complex numerator   = ctan(nu1 * M_PI);
+      double complex denominator = 28. * nu1 * (2. - 3.*nu1 + pow(nu1, 2) * M_PI;
+      double complex out         = - numerator/denominator;
+
+      return out;
+}
+
+/**
+ * Analytic expression of M_cPPm
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @param nu2         Input: FFTLog frequency exponents
+ * @return value of M_cPPm
+ */
+
+double complex M_cIPPm(double complex nu1, double complex nu2)
+{
+      double complex numerator   = (-2. + nu1 + nu2) *  (-3. + 2. * (nu1 + nu2)) ;
+      double complex denominator = 3. * nu2 * (-1. + 2.*nu2);
+      double complex out         = numerator/denominator * Ifunc(nu1, nu2);
+
+      return out;
+}
+
+/**
+ * Analytic expression of M_cSm
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @param nu2         Input: FFTLog frequency exponents
+ * @return value of M_cSm
+ */
+
+double complex M_cISm(double complex nu1, double complex nu2)
+{
+      double complex numerator   = (-2. + nu1 + nu2) *  (-3. + 2. * (nu1 + nu2)) * (-1. + 2. *(nu1 + nu2)) ;
+      double complex denominator = 3. * nu1 * nu2 * (1. + nu2) * (-1. + 2.*nu2);
+      double complex out         = - numerator/denominator * Ifunc(nu1, nu2);
+
+      return out;
+}
+ 
+ /**
+ * Analytic expression of M_cIG2G2 matrix
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @param nu2         Input: FFTLog frequency exponents
+ * @return value of M_cIG2G2
+ */
+
+double complex M_cIG2G2(double complex nu1, double complex nu2)
+{
+      double complex numerator1  = (-3. + 2. * (nu1 + nu2));
+      double complex numerator2  = (-1. + 2. * (nu1 + nu2));
+      double complex numerator3  = (50. + 98. * pow(nu1, 3) * nu2 - (9. + 35.*nu2) * nu2 + 7.*pow(n1, 2)*(-5. + 2. * nu2*(-9. + 14.*n2)) + nu1*(-9. + 2.*nu2*(-33. + 7.*nu2*(-9. + 7.*n2)))
+      double complex denominator = 196. * nu1 * (1. + nu1) * (-1. + 2.*nu1) * nu2 * (1. + nu2) * (-1. + 2.*nu2);
+      double complex out         = numerator1 * numerator2 * numerator3 /denominator * Ifunc(nu1, nu2);
+
+      return out;
+}
+
+ /**
+ * Analytic expression of M_cIG2m3 matrix
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @return value of M_cIG2m3
+ */
+
+double complex M_cIG2m3(double complex nu1)
+{
+      double complex numerator   = -3. * ctan(nu1 * M_PI);
+      double complex denominator = 112. * nu1 * (2. - 3.*nu1 + pow(nu1, 2) * M_PI;
+      double complex out         = numerator/denominator;
+
+      return out;
+}
+
+/**
+ * Analytic expression of M_cIPPm2
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @param nu2         Input: FFTLog frequency exponents
+ * @return value of M_cPPm2
+ */
+
+double complex M_cIPPm2(double complex nu1, double complex nu2)
+{
+      double complex numerator   = (nu1 - nu2) *  (-2. + nu1 + nu2) * (-3. + 2. *(nu1 + nu2)) * (-1. + 2. * (nu1 + nu2));
+      double complex denominator = 3. * nu1 * nu2 * (-1. + 2.*nu1) * (-1. + 2.*nu2);
+      double complex out         = - numerator/denominator * Ifunc(nu1, nu2);
+
+      return out;
+}
