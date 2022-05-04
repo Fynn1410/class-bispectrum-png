@@ -436,3 +436,41 @@ double complex M_cIPPm2(double complex nu1, double complex nu2)
 
       return out;
 }
+
+/*
+      _________________ 3-rd Moment _______________________
+ */
+
+ /**
+ * Analytic expression of M_cIG2m4
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @param nu2         Input: FFTLog frequency exponents
+ * @return value of M_cG2m4
+ */
+
+double complex M_cIG2m4(double complex nu1, double complex nu2)
+{
+      double complex numerator   = (-2. + nu1 + nu2) *  (-3. + 2. * (nu1 + nu2)) * (-1. + 2. *(nu1 + nu2)) * (-1. + 7. *(nu1 + nu2));
+      double complex denominator = 42. * nu1 * nu2 * (1. + nu2) * (-1. + 2.*nu2);
+      double complex out         = - numerator/denominator * Ifunc(nu1, nu2);
+
+      return out;
+}
+
+ /**
+ * Analytic expression of M_cIPPm3
+ *
+ * @param nu1         Input: FFTLog coeffcients
+ * @param nu2         Input: FFTLog frequency exponents
+ * @return value of M_cPPm3
+ */
+
+double complex M_cIPPm3(double complex nu1, double complex nu2)
+{
+      double complex numerator   = 2. * (-2. + nu1 + nu2) *  (-3. + 2. * (nu1 + nu2)) * (-1. nu1 + nu2) * (-1. + 2. *(nu1 + nu2));
+      double complex denominator = 3. * nu1 * nu2 * (-1. + 2.*nu2) * (-1. + 2.*nu2);
+      double complex out         = numerator/denominator * Ifunc(nu1, nu2);
+
+      return out;
+}
