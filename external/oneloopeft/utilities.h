@@ -17,5 +17,7 @@
     long count_cols_in_file(char *fname);
 
 	double *log10init_1Darray(long n, double inc, double xmin);
+
+	void c_nonprop(double complex* arr1, double complex** matrix, double complex* arr2, int rows, double complex *result);
 	void c_matmul(double complex** matrix, double complex* arr, int rows, int cols, double complex* result);
 	void c_dot(double complex* arr1, double complex* arr2, int rows, double complex * result);

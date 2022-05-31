@@ -286,6 +286,14 @@ double *init_1Darray(long n,double xmin,double xmax)
 // 	return A;
 // }
 
+void c_nonprop(double complex* arr1, double complex** matrix, double complex* arr2, int rows, double complex *result)
+{
+	double complex* arr3;
+	arr3 = make_1D_c_array(rows);
+	c_matmul(matrix, arr2, rows, rows, arr3);
+	c_dot(arr1, arr3, rows, result);
+}
+
 void c_matmul(double complex** matrix, double complex* arr, int rows, int cols, double complex* result)
 {
 	int i,j;
