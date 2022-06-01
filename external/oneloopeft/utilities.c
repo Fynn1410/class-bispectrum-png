@@ -367,10 +367,49 @@ long count_cols_in_file(char *fname)
 	return ncols;
 }
 
+void np_mat_fill(double complex (mat_func)(double complex, double complex), struct fft_struct *fft_input, double k, double complex **matrix)
+{
+	int Nmax = fft_input -> nfft;
+
+	int i,j;
+	double complex nu1, nu2;
+	for (i=0; i<Nmax+1; i++){
+		for (j=i; j<Nmax+1; j++){                        
+				nu1 = -0.5 * fft_input->etam_m[i];
+				nu2 = -0.5 * fft_input->etam_m[j];
+				
+				matrix[i][j] = mat_func(nu1,nu2);
+				matrix[j][i] = mat_func(nu1,nu2);
+		}
+	}
+}
+
+void p_mat_fill(double complex (mat_func)(double complex), struct fft_struct *fft_input, double k, double complex *matrix)
+{
+	int Nmax = fft_input -> nfft;
+
+	int i;
+	double complex nu1;
+	for (i=0; i<Nmax+1; i++){
+		nu1 = -0.5 * fft_input->etam_m[i];
+		matrix[i] = mat_func(nu1);
+	}
+}
+
+void vec_fill(struct fft_struct *fft_input, double k, double complex *vec)
+{
+	int Nmax = fft_input -> nfft;
+
+	int i,j;
+	for (i=0; i<Nmax+1; i++){
+		vec[i] = fft_input->cmsym_m[i] * cpow(k,fft_input->etam_m[i]);
+	}
+}
+
 void c_matmul(double complex** matrix, double complex* arr, int rows, int cols, double complex* result)
 {
-	int i,j;
 
+	int i,j;
 	for (i=0; i<rows; i++){
 		for (j=0; j<cols; j++){
 			result[i] += matrix[i][j] * arr[j];
