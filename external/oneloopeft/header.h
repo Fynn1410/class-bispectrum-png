@@ -123,7 +123,6 @@
  * List of limHaloPT header files
  */
 #include "cosmology.h"
-#include "utilities.h"
 #include "wnw_split.h"
 #include "IR_res.h"
 #include "ps_halo_1loop.h"
@@ -204,6 +203,7 @@ typedef struct fft_struct
        
 }fft_struct;
 
+#include "utilities.h"
 #include "FFTLog_ingredients.h"
 #include "FFTLog_matter_real.h"
 #include "FFTLog_galaxy_real.h"
