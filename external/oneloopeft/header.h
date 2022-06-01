@@ -129,6 +129,7 @@
 #include "ps_halo_1loop.h"
 
 
+
 /**
  * Function declarations of main.c module
  */
@@ -207,5 +208,6 @@ typedef struct fft_struct
 #include "FFTLog_matter_real.h"
 #include "FFTLog_galaxy_real.h"
 #include "pspec_FFTLog_real.h"
+#include "FFTLog_galaxy_rsd.h"
 
 #endif
