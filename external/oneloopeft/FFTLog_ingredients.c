@@ -31,14 +31,14 @@
 
 /**
  * Analytic expression of the integrals of the form
- * I(nu1,nu2) = k^(-3 + 2 nu12) * int_q 1/(q^(2 nu1) kmq^(2 nu2) = 
+ * J(nu1,nu2) = k^(-3 + 2 nu12) * int_q 1/(q^(2 nu1) kmq^(2 nu2) = 
  *
  * @param nu1         Input: power of q 
  * @param nu2         Input: power of kmq
  * @return value of I(nu1,nu2)
  */
 
-double complex Ifunc(double complex nu1, double complex nu2)
+double complex J(double complex nu1, double complex nu2)
 {
       double complex nu12 = nu1 + nu2;
       double complex numerator    = Gamma(3./2.-nu1) * Gamma(3./2.-nu2) * Gamma(nu12-3./2.);
@@ -47,8 +47,6 @@ double complex Ifunc(double complex nu1, double complex nu2)
 
       return out;
 }
-
-
 
 /**
  * Gamma function
@@ -68,6 +66,115 @@ double complex Gamma(double complex z)
 
       return out;
 }
+
+/**
+ * Analytic expression of the integrals of the form
+ * M1(nu1,nu2) = k^(-3 + 2 nu12) * int_q q|| /(q^(2 nu1) kmq^(2 nu2)
+ *
+ * @param nu1         Input: power of q 
+ * @param nu2         Input: power of kmq
+ * @return value of I(nu1,nu2)
+ */
+
+double complex M1(double complex nu1, double complex nu2)
+{
+      double complex out = (J(-1 + nu1,nu2) - J(nu1,-1 + nu2) + J(nu1,nu2))/2.; 
+
+      return out;
+}
+
+/**
+ * Analytic expression of the integrals of the form
+ * M2 = k^(-3 + 2 nu12) * int_q q|| q|| /(q^(2 nu1) kmq^(2 nu2) 
+ *
+ * @param nu1         Input: power of q 
+ * @param nu2         Input: power of kmq
+ * @return value of I(nu1,nu2)
+ */
+
+double complex M2(double complex nu1, double complex nu2, double mu)
+{
+      double complex A2 = (J(-1 + nu1,nu2) - J(nu1,-1 + nu2) + J(nu1,nu2))/2.;
+      double complex B2 = (3*J(-2 + nu1,nu2) - 6*J(-1 + nu1,-1 + nu2) + 
+     2*J(-1 + nu1,nu2) + 3*J(nu1,-2 + nu2) - 
+     6*J(nu1,-1 + nu2) + 3*J(nu1,nu2))/8.;
+      
+      double complex out = A2 + pow(mu, 2.) * B2; 
+
+      return out;
+}
+
+/**
+ * Analytic expression of the integrals of the form
+ * M3 = k^(-3 + 2 nu12) * int_q q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2) 
+ *
+ * @param nu1         Input: power of q 
+ * @param nu2         Input: power of kmq
+ * @return value of I(nu1,nu2)
+ */
+
+double complex M3(double complex nu1, double complex nu2, double mu)
+{
+      double complex A3 = (-3*(J(-3 + nu1,nu2) - 3*J(-2 + nu1,-1 + nu2) - 
+       J(-2 + nu1,nu2) + 3*J(-1 + nu1,-2 + nu2) - 
+       2*J(-1 + nu1,-1 + nu2) - J(-1 + nu1,nu2) - 
+       J(nu1,-3 + nu2) + 3*J(nu1,-2 + nu2) - 
+       3*J(nu1,-1 + nu2) + J(nu1,nu2)))/16.;
+      double complex B3 = (5*J(-3 + nu1,nu2) - 15*J(-2 + nu1,-1 + nu2) + 
+     3*J(-2 + nu1,nu2) + 15*J(-1 + nu1,-2 + nu2) - 
+     18*J(-1 + nu1,-1 + nu2) + 3*J(-1 + nu1,nu2) - 
+     5*J(nu1,-3 + nu2) + 15*J(nu1,-2 + nu2) - 
+     15*J(nu1,-1 + nu2) + 5*J(nu1,nu2))/16.;
+      
+      double complex out = A3 + pow(mu, 2.) * B3; 
+
+      return out;
+}
+
+/**
+ * Analytic expression of the integrals of the form
+ * M4 = k^(-3 + 2 nu12) * int_q q|| q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2) 
+ *
+ * @param nu1         Input: power of q 
+ * @param nu2         Input: power of kmq
+ * @return value of I(nu1,nu2)
+ */
+
+double complex M4(double complex nu1, double complex nu2, double mu)
+{
+
+      double complex A4 = (-3*(J(-3 + nu1,nu2) - 2*J(-2 + nu1,-1 + nu2) - 
+       2*J(-2 + nu1,nu2) + J(-1 + nu1,-2 + nu2) - 
+       2*J(-1 + nu1,-1 + nu2) + J(-1 + nu1,nu2)))/40.;
+      double complex B4 = (-3*(5*J(-4 + nu1,nu2) - 20*J(-3 + nu1,-1 + nu2) - 
+       4*J(-3 + nu1,nu2) + 30*J(-2 + nu1,-2 + nu2) - 
+       12*J(-2 + nu1,-1 + nu2) - 2*J(-2 + nu1,nu2) - 
+       20*J(-1 + nu1,-3 + nu2) + 36*J(-1 + nu1,-2 + nu2) - 
+       12*J(-1 + nu1,-1 + nu2) - 4*J(-1 + nu1,nu2) + 
+       5*J(nu1,-4 + nu2) - 20*J(nu1,-3 + nu2) + 
+       30*J(nu1,-2 + nu2) - 20*J(nu1,-1 + nu2) + 5*J(nu1,nu2)))/
+   80.;
+      double complex C4 = (10*J(-4 + nu1,nu2) - 40*J(-3 + nu1,-1 + nu2) + 
+     7*J(-3 + nu1,nu2) + 60*J(-2 + nu1,-2 + nu2) - 
+     54*J(-2 + nu1,-1 + nu2) + 6*J(-2 + nu1,nu2) - 
+     40*J(-1 + nu1,-3 + nu2) + 87*J(-1 + nu1,-2 + nu2) - 
+     54*J(-1 + nu1,-1 + nu2) + 7*J(-1 + nu1,nu2) + 
+     10*J(nu1,-4 + nu2) - 40*J(nu1,-3 + nu2) + 
+     60*J(nu1,-2 + nu2) - 40*J(nu1,-1 + nu2) + 10*J(nu1,nu2))/
+     (40. * (10*J(-4 + nu1,nu2) - 40*J(-3 + nu1,-1 + nu2)) + 
+     7*J(-3 + nu1,nu2) + 60*J(-2 + nu1,-2 + nu2) - 
+     54*J(-2 + nu1,-1 + nu2) + 6*J(-2 + nu1,nu2) - 
+     40*J(-1 + nu1,-3 + nu2) + 87*J(-1 + nu1,-2 + nu2) - 
+     54*J(-1 + nu1,-1 + nu2) + 7*J(-1 + nu1,nu2) + 
+     10*J(nu1,-4 + nu2) - 40*J(nu1,-3 + nu2) + 
+     60*J(nu1,-2 + nu2) - 40*J(nu1,-1 + nu2) + 10*J(nu1,nu2))/
+   40. ;
+      
+      double complex out = A4 + pow(mu, 2.) * B4 + pow(mu, 4.) * C4; 
+
+      return out;
+}
+
 
 /**
  * Compute the FFT coefficients and frequencies of the matter power spectrum 
