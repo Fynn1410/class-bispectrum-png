@@ -265,7 +265,7 @@ double complex M_cIdelta2(double complex nu1, double complex nu2)
       double complex numerator   = (3. - 2. * (nu1 + nu2)) * (4. - 7. * (nu1 + nu2));
       //double complex denominator = 17. * nu1 * nu2;
       double complex denominator = 14. * nu1 * nu2;
-      double complex out         = numerator/denominator * Ifunc(nu1, nu2);
+      double complex out         = numerator/denominator * J(nu1, nu2);
 
       return out;
 }
@@ -284,7 +284,7 @@ double complex M_cIcG2(double complex nu1, double complex nu2)
 {
       double complex numerator   = (3. - 2. * (nu1 + nu2)) *  (1. - 2. * (nu1 + nu2)) *  (6. + 7. * (nu1 + nu2));
       double complex denominator = 28. * nu1 * (1. + nu1) * nu2 * (1. + nu2);
-      double complex out         = - numerator/denominator * Ifunc(nu1, nu2);
+      double complex out         = - numerator/denominator * J(nu1, nu2);
 
       return out;
 }
@@ -300,7 +300,7 @@ double complex M_cIcG2(double complex nu1, double complex nu2)
 
 double complex M_cIdelta2delta2(double complex nu1, double complex nu2)
 {
-      double complex out  = 2. * Ifunc(nu1, nu2);
+      double complex out  = 2. * J(nu1, nu2);
 
       return out;
 }
@@ -317,7 +317,7 @@ double complex M_cIcG2cG2(double complex nu1, double complex nu2)
 {
       double complex numerator   = (3. - 2. * (nu1 + nu2)) *  (1. - 2. * (nu1 + nu2));
       double complex denominator = nu1 * (1. + nu1) * nu2 * (1. +nu2);
-      double complex out         = numerator/denominator * Ifunc(nu1, nu2);
+      double complex out         = numerator/denominator * J(nu1, nu2);
 
       return out;
 }
@@ -335,7 +335,7 @@ double complex M_cIdelta2cG2(double complex nu1, double complex nu2)
 {
       double complex numerator   = (3. - 2. * (nu1 + nu2));
       double complex denominator = nu1 * nu2 ;
-      double complex out         = numerator/denominator * Ifunc(nu1, nu2);
+      double complex out         = numerator/denominator * J(nu1, nu2);
 
       return out;
 }

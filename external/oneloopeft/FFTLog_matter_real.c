@@ -174,7 +174,7 @@ double complex M22(double complex nu1, double complex nu2)
                                  + (3. - 91. * nu2) * nu2 + 7. * cpow(nu1, 2.) * (- 13. - 2. * nu2 + 28. * cpow(nu2, 2.))
                                  + nu1 * (3. + 2. * nu2 * (- 73. + 7. * nu2 * (- 1. + 7. * nu2)))));
       double complex denominator = (196. * nu1 * (1. + nu1) * (-1. + 2. * nu1) * nu2 * (1. + nu2) * (- 1. + 2. * nu2));
-      double complex out         = numerator/denominator * Ifunc(nu1, nu2);
+      double complex out         = numerator/denominator * J(nu1, nu2);
 
       return out;
 }
@@ -195,6 +195,5 @@ double complex M13(double complex nu1)
       double complex out          = numerator/denominator;
 
       return out;
-
 }
 
