@@ -35,6 +35,45 @@
 #include "header.h"
 
 
+void rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
+                 double k,  double z, long SPLIT, double * pk_nl)
+{
+      // setting fft_parameters
+      struct fft_struct *fft_input;
+	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
+
+	fft_input -> nfft 	    = 200;
+	fft_input -> kmin_fft   = 1.e-8;
+	fft_input -> fft_bias_g = - 1.6;  //for halos
+	fft_input -> fft_bias_m = - 0.3; //for matter
+
+      fft_input -> fft_first   = 1;
+	fft_input -> etam_m  	 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+      fft_input -> cmsym_m     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+      fft_input -> etam_g      = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+      fft_input -> cmsym_g     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+
+      FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, HALO);
+
+      double *bias_vec0 = make_1Darray(7);
+      double *bias_vec1 = make_1Darray(9);
+      double *bias_vec2 = make_1Darray(12);
+      double *bias_vec3 = make_1Darray(4);
+      double *bias_vec4 = make_1Darray(3);
+
+      double rsd_0 = make_1Darray(7);
+      double rsd_1 = make_1Darray(9);
+      double rsd_2 = make_1Darray(12);
+      double rsd_3 = make_1Darray(4);
+      double rsd_4 = make_1Darray(3);
+
+      rsd_0_FFTLog(fft_struct, k, rsd_0);
+      rsd_1_FFTLog(fft_struct, k, rsd_1);
+      rsd_2_FFTLog(fft_struct, k, mu, rsd_2);
+      rsd_3_FFTLog(fft_struct, k, mu, rsd_3);
+      rsd_4_FFTLog(fft_struct, k, mu, rsd_4);
+
+}
 /*
       _________________ 0-th Moment _______________________
  */
@@ -50,7 +89,7 @@
  * @return void           
  */
 
-void rsd_0_FFTLog(struct fft_struct *fft_input, double k, double *loops)
+void rsd_0_FFTLog(struct fft_struct *fft_input, double k, double complex *loops)
 {
       int Nmax     = fft_input -> nfft;
 
@@ -75,8 +114,230 @@ void rsd_0_FFTLog(struct fft_struct *fft_input, double k, double *loops)
       // FFTLog matrices (propagator)
       double complex *M13_mat = make_1D_c_array(Nmax+1);
       p_mat_fill(M13, fft_input, k, M13_mat);
-      // ISPsi is misccsing
+      // ISPsi is missing
       
+      // non-propagator calculations
+      c_nonprop(vec, M22_mat,   vec, Nmax+1, &loops[0]);
+      c_nonprop(vec, IF2_mat,   vec, Nmax+1, &loops[1]);
+      c_nonprop(vec, IF2S2_mat, vec, Nmax+1, &loops[2]);
+      c_nonprop(vec, IPP_mat,   vec, Nmax+1, &loops[3]);
+      c_nonprop(vec, IS2_mat,   vec, Nmax+1, &loops[4]);
+      c_nonprop(vec, IS2S2_mat, vec, Nmax+1, &loops[5]);
+
+      // propagator calculations
+      c_dot(vec, M13_mat, Nmax+1, &loops[6]);
+}
+
+/*
+      _________________ 1-st Moment _______________________
+ */
+
+/**
+ * Compute the non-propagator type loop contribution to non-linear galaxy cpow spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
+ * 
+ * @param fft_input    Input: structure containing fft coefficents and params
+ * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param z             Input: redshift
+ * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_PIpeline
+ * @param pg_loops      Output: an array containing the values of galaxy loop corrections
+ * @return void           
+ */
+
+void rsd_1_FFTLog(struct fft_struct *fft_input, double k, double complex *loops)
+{
+      int Nmax     = fft_input -> nfft;
+
+      // Linear cpow Spectrum vector
+      double complex *vec = make_1D_c_array(Nmax+1);
+      vec_fill(fft_input, k, vec);
+
+      // FFTLog matrices (non-propagator)
+      double complex **IF2G2_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IF2G2, fft_input, k, IF2G2_mat);
+      double complex **IG2_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IG2, fft_input, k, IG2_mat);
+      double complex **IS2G2_mat = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IS2G2, fft_input, k, IS2G2_mat);
+      double complex **IF2p_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IF2p, fft_input, k, IF2p_mat);
+      double complex **IPPp_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IPPp, fft_input, k, IPPp_mat);
+      double complex **IS2p_mat = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IS2p, fft_input, k, IS2p_mat);
+
+      // FFTLog matrices (propagator)
+      double complex *IF3G3_mat = make_1D_c_array(Nmax+1);
+      p_mat_fill(IF3G3, fft_input, k, IF3G3_mat);
+      double complex *IF2p2_mat = make_1D_c_array(Nmax+1);
+      p_mat_fill(IF2p2, fft_input, k, IF2p2_mat);
+      double complex *IG2p_mat = make_1D_c_array(Nmax+1);
+      p_mat_fill(IG2p, fft_input, k, IG2p_mat);
+      
+      // non-propagator calculations
+      c_nonprop(vec, IF2G2_mat, vec, Nmax+1, &loops[0]);
+      c_nonprop(vec, IG2_mat,   vec, Nmax+1, &loops[1]);
+      c_nonprop(vec, IS2G2_mat, vec, Nmax+1, &loops[2]);
+      c_nonprop(vec, IF2p_mat,  vec, Nmax+1, &loops[3]);
+      c_nonprop(vec, IPPp_mat,  vec, Nmax+1, &loops[4]);
+      c_nonprop(vec, IS2p_mat,  vec, Nmax+1, &loops[5]);
+
+      // propagator calculations
+      c_dot(vec, IF3G3_mat, Nmax+1, &loops[6]);
+      c_dot(vec, IF2p2_mat, Nmax+1, &loops[7]);
+      c_dot(vec, IG2p_mat,  Nmax+1, &loops[8]);
+}
+
+/*
+      _________________ 2-nd Moment _______________________
+ */
+
+/**
+ * Compute the non-propagator type loop contribution to non-linear galaxy cpow spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
+ * 
+ * @param fft_input    Input: structure containing fft coefficents and params
+ * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param z             Input: redshift
+ * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_PIpeline
+ * @param pg_loops      Output: an array containing the values of galaxy loop corrections
+ * @return void           
+ */
+
+void rsd_2_FFTLog(struct fft_struct *fft_input, double k, double mu, double complex *loops)
+{
+      int Nmax     = fft_input -> nfft;
+
+      // Linear cpow Spectrum vector
+      double complex *vec = make_1D_c_array(Nmax+1);
+      vec_fill(fft_input, k, vec);
+
+      // FFTLog matrices (non-propagator)
+      double complex **IG2G2_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IG2G2, fft_input, k, IG2G2_mat);
+      double complex **IG2pm_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IG2pm, fft_input, k, IG2pm_mat);
+      double complex **IPPmm2_mat = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mat_fill(IPPmm2, fft_input, k, IPPmm2_mat);
+
+      // FFTLog matrices (non-propagator) mu dependent
+      double complex **IF2pm3_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IF2pm3, fft_input, k, mu, IF2pm3_mat);
+      double complex **IG2pm2_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IG2pm2, fft_input, k, mu, IG2pm2_mat);
+      double complex **IPPpm_mat = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IPPpm, fft_input, k, mu, IPPpm_mat);
+      double complex **IS2pm_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IS2pm, fft_input, k, mu, IS2pm_mat);
+      double complex **IPPmm1_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IPPmm1, fft_input, k, mu, IPPmm1_mat);
+      double complex **IPPmm3_mat = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IPPmm3, fft_input, k, mu, IPPmm3_mat);
+
+      // FFTLog matrices (propagator)
+      double complex *IG3_mat = make_1D_c_array(Nmax+1);
+      p_mat_fill(IG3, fft_input, k, IG3_mat);
+      double complex *IF2pm_mat = make_1D_c_array(Nmax+1);
+      p_mat_fill(IF2pm, fft_input, k, IF2pm_mat);
+
+      // FFTLog matrices (propagator) mu dependent
+      double complex *IG2pmm_mat = make_1D_c_array(Nmax+1);
+      p_mu_mat_fill(IG2pmm, fft_input, k, mu, IG2pmm_mat);
+
+      // non-propagator calculations
+      c_nonprop(vec, IG2G2_mat,  vec, Nmax+1, &loops[0]);
+      c_nonprop(vec, IG2pm_mat,  vec, Nmax+1, &loops[1]);
+      c_nonprop(vec, IPPmm2_mat, vec, Nmax+1, &loops[2]);
+      c_nonprop(vec, IF2pm3_mat, vec, Nmax+1, &loops[3]);
+      c_nonprop(vec, IG2pm2_mat, vec, Nmax+1, &loops[4]);
+      c_nonprop(vec, IPPpm_mat,  vec, Nmax+1, &loops[5]);
+      c_nonprop(vec, IS2pm_mat,  vec, Nmax+1, &loops[6]);
+      c_nonprop(vec, IPPmm1_mat, vec, Nmax+1, &loops[7]);
+      c_nonprop(vec, IPPmm3_mat, vec, Nmax+1, &loops[8]);
+
+      // propagator calculations
+      c_dot(vec, IG3_mat,    Nmax+1, &loops[9]);
+      c_dot(vec, IF2pm_mat,  Nmax+1, &loops[10]);
+      c_dot(vec, IG2pmm_mat, Nmax+1, &loops[11]);
+}
+
+/*
+      _________________ 3-rd Moment _______________________
+ */
+
+/**
+ * Compute the non-propagator type loop contribution to non-linear galaxy cpow spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
+ * 
+ * @param fft_input    Input: structure containing fft coefficents and params
+ * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param z             Input: redshift
+ * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_PIpeline
+ * @param pg_loops      Output: an array containing the values of galaxy loop corrections
+ * @return void           
+ */
+
+void rsd_3_FFTLog(struct fft_struct *fft_input, double k, double mu, double complex *loops)
+{
+      int Nmax     = fft_input -> nfft;
+
+      // Linear cpow Spectrum vector
+      double complex *vec = make_1D_c_array(Nmax+1);
+      vec_fill(fft_input, k, vec);
+
+      // FFTLog matrices (non-propagator) mu dependent
+      double complex **IG2pm3_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IG2pm3, fft_input, k, mu, IG2pm3_mat);
+      double complex **IPPpm31_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IPPpm31, fft_input, k, mu, IPPpm31_mat);
+      double complex **IPPpm32_mat = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IPPpm32, fft_input, k, mu, IPPpm32_mat);
+
+      // FFTLog matrices (propagator) mu dependent
+      double complex *IG2pmm3_mat = make_1D_c_array(Nmax+1);
+      p_mu_mat_fill(IG2pmm3, fft_input, k, mu, IG2pmm3_mat);
+
+      // non-propagator calculations
+      c_nonprop(vec, IG2pm3_mat,  vec, Nmax+1, &loops[0]);
+      c_nonprop(vec, IPPpm31_mat,  vec, Nmax+1, &loops[1]);
+      c_nonprop(vec, IPPpm32_mat, vec, Nmax+1, &loops[2]);
+
+      // propagator calculations
+      c_dot(vec, IG2pmm3_mat, Nmax+1, &loops[3]);
+}
+
+/*
+      _________________ 4-th Moment _______________________
+ */
+
+/**
+ * Compute the non-propagator type loop contribution to non-linear galaxy cpow spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
+ * 
+ * @param fft_input    Input: structure containing fft coefficents and params
+ * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param z             Input: redshift
+ * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_PIpeline
+ * @param pg_loops      Output: an array containing the values of galaxy loop corrections
+ * @return void           
+ */
+
+void rsd_4_FFTLog(struct fft_struct *fft_input, double k, double mu, double complex *loops)
+{
+      int Nmax     = fft_input -> nfft;
+
+      // Linear cpow Spectrum vector
+      double complex *vec = make_1D_c_array(Nmax+1);
+      vec_fill(fft_input, k, vec);
+
+      // FFTLog matrices (non-propagator) mu dependent
+      double complex **IPPm41_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IPPm41, fft_input, k, mu, IPPm41_mat);
+      double complex **IPPm42_mat   = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IPPm42, fft_input, k, mu, IPPm42_mat);
+      double complex **IPPm43_mat = make_2D_c_array(Nmax+1, Nmax+1);
+      np_mu_mat_fill(IPPm43, fft_input, k, mu, IPPm43_mat);
+
+      // non-propagator calculations
+      c_nonprop(vec, IPPm41_mat, vec, Nmax+1, &loops[0]);
+      c_nonprop(vec, IPPm42_mat, vec, Nmax+1, &loops[1]);
+      c_nonprop(vec, IPPm43_mat, vec, Nmax+1, &loops[2]);
 }
 
 double P22_new(struct fft_struct *fft_input, double k, double z, int cleanup)
