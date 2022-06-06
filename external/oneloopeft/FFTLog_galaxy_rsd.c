@@ -202,14 +202,14 @@ void rsd_0_FFTLog(struct fft_struct *fft_input, double k, double complex *loops)
       
       // non-propagator calculations
       c_nonprop(vec, M22_mat,   vec, Nmax+1, &loops[0]);
-      c_nonprop(vec, IF2_mat,   vec, Nmax+1, &loops[1]);
-      c_nonprop(vec, IF2S2_mat, vec, Nmax+1, &loops[2]);
-      c_nonprop(vec, IPP_mat,   vec, Nmax+1, &loops[3]);
-      c_nonprop(vec, IS2_mat,   vec, Nmax+1, &loops[4]);
-      c_nonprop(vec, IS2S2_mat, vec, Nmax+1, &loops[5]);
+      c_nonprop(vec, IF2_mat,   vec, Nmax+1, &loops[2]);
+      c_nonprop(vec, IF2S2_mat, vec, Nmax+1, &loops[3]);
+      c_nonprop(vec, IPP_mat,   vec, Nmax+1, &loops[4]);
+      c_nonprop(vec, IS2_mat,   vec, Nmax+1, &loops[5]);
+      c_nonprop(vec, IS2S2_mat, vec, Nmax+1, &loops[6]);
 
       // propagator calculations
-      c_dot(vec, M13_mat, Nmax+1, &loops[6]);
+      c_dot(vec, M13_mat, Nmax+1, &loops[1]);
       loops[7] = 0.;
 }
 
@@ -260,16 +260,17 @@ void rsd_1_FFTLog(struct fft_struct *fft_input, double k, double complex *loops)
       
       // non-propagator calculations
       c_nonprop(vec, IF2G2_mat, vec, Nmax+1, &loops[0]);
-      c_nonprop(vec, IG2_mat,   vec, Nmax+1, &loops[1]);
-      c_nonprop(vec, IS2G2_mat, vec, Nmax+1, &loops[2]);
-      c_nonprop(vec, IF2p_mat,  vec, Nmax+1, &loops[3]);
-      c_nonprop(vec, IPPp_mat,  vec, Nmax+1, &loops[4]);
-      c_nonprop(vec, IS2p_mat,  vec, Nmax+1, &loops[5]);
+      c_nonprop(vec, IG2_mat,   vec, Nmax+1, &loops[2]);
+      c_nonprop(vec, IS2G2_mat, vec, Nmax+1, &loops[3]);
+      c_nonprop(vec, IF2p_mat,  vec, Nmax+1, &loops[5]);
+      c_nonprop(vec, IPPp_mat,  vec, Nmax+1, &loops[8]);
+      c_nonprop(vec, IS2p_mat,  vec, Nmax+1, &loops[9]);
 
       // propagator calculations
-      c_dot(vec, IF3G3_mat, Nmax+1, &loops[6]);
-      c_dot(vec, IF2p2_mat, Nmax+1, &loops[7]);
-      c_dot(vec, IG2p_mat,  Nmax+1, &loops[8]);
+      c_dot(vec, IF3G3_mat, Nmax+1, &loops[1]);
+      c_dot(vec, IF2p2_mat, Nmax+1, &loops[6]);
+      c_dot(vec, IG2p_mat,  Nmax+1, &loops[7]);
+      loops[4] = 0. // psi
 }
 
 /*
@@ -328,20 +329,20 @@ void rsd_2_FFTLog(struct fft_struct *fft_input, double k, double mu, double comp
       p_mu_mat_fill(IG2pmm, fft_input, k, mu, IG2pmm_mat);
 
       // non-propagator calculations
-      c_nonprop(vec, IG2G2_mat,  vec, Nmax+1, &loops[0]);
-      c_nonprop(vec, IG2pm_mat,  vec, Nmax+1, &loops[1]);
-      c_nonprop(vec, IPPmm2_mat, vec, Nmax+1, &loops[2]);
-      c_nonprop(vec, IF2pm3_mat, vec, Nmax+1, &loops[3]);
-      c_nonprop(vec, IG2pm2_mat, vec, Nmax+1, &loops[4]);
-      c_nonprop(vec, IPPpm_mat,  vec, Nmax+1, &loops[5]);
-      c_nonprop(vec, IS2pm_mat,  vec, Nmax+1, &loops[6]);
-      c_nonprop(vec, IPPmm1_mat, vec, Nmax+1, &loops[7]);
-      c_nonprop(vec, IPPmm3_mat, vec, Nmax+1, &loops[8]);
+      c_nonprop(vec, IG2G2_mat,  vec, Nmax+1, &loops[4]);
+      c_nonprop(vec, IG2pm_mat,  vec, Nmax+1, &loops[6]);
+      c_nonprop(vec, IPPmm2_mat, vec, Nmax+1, &loops[10]);
+      c_nonprop(vec, IF2pm3_mat, vec, Nmax+1, &loops[0]);
+      c_nonprop(vec, IG2pm2_mat, vec, Nmax+1, &loops[1]);
+      c_nonprop(vec, IPPpm_mat,  vec, Nmax+1, &loops[2]);
+      c_nonprop(vec, IS2pm_mat,  vec, Nmax+1, &loops[3]);
+      c_nonprop(vec, IPPmm1_mat, vec, Nmax+1, &loops[9]);
+      c_nonprop(vec, IPPmm3_mat, vec, Nmax+1, &loops[11]);
 
       // propagator calculations
-      c_dot(vec, IG3_mat,    Nmax+1, &loops[9]);
-      c_dot(vec, IF2pm_mat,  Nmax+1, &loops[10]);
-      c_dot(vec, IG2pmm_mat, Nmax+1, &loops[11]);
+      c_dot(vec, IG3_mat,    Nmax+1, &loops[5]);
+      c_dot(vec, IF2pm_mat,  Nmax+1, &loops[8]);
+      c_dot(vec, IG2pmm_mat, Nmax+1, &loops[7]);
 }
 
 /*
@@ -381,11 +382,11 @@ void rsd_3_FFTLog(struct fft_struct *fft_input, double k, double mu, double comp
 
       // non-propagator calculations
       c_nonprop(vec, IG2pm3_mat,  vec, Nmax+1, &loops[0]);
-      c_nonprop(vec, IPPpm31_mat,  vec, Nmax+1, &loops[1]);
-      c_nonprop(vec, IPPpm32_mat, vec, Nmax+1, &loops[2]);
+      c_nonprop(vec, IPPpm31_mat,  vec, Nmax+1, &loops[2]);
+      c_nonprop(vec, IPPpm32_mat, vec, Nmax+1, &loops[3]);
 
       // propagator calculations
-      c_dot(vec, IG2pmm3_mat, Nmax+1, &loops[3]);
+      c_dot(vec, IG2pmm3_mat, Nmax+1, &loops[1]);
 }
 
 /*
