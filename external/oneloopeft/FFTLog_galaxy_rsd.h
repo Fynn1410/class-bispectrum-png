@@ -1,4 +1,5 @@
-
+void rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
+                 double k,  double z, double mu, double f, long SPLIT, double * pk_nl);
 
 void   rsd_0_FFTLog(struct fft_struct *fft_input, double k, double complex *loops);
 void   rsd_1_FFTLog(struct fft_struct *fft_input, double k, double complex *loops);
