@@ -455,6 +455,15 @@ void c_dot(double complex* arr1, double complex* arr2, int rows, double complex 
 	}
 }
 
+void dot(double* arr1, double* arr2, int rows, double *result)
+{
+	int i;
+	
+	for (i=0; i<rows; i++){
+		*result += arr1[i] * arr2[i];
+	}
+}
+
 void c_nonprop(double complex* arr1, double complex** matrix, double complex* arr2, int rows, double complex *result)
 {
 	double complex* arr3;

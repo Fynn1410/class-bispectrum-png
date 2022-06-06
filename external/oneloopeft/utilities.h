@@ -27,3 +27,4 @@
 	void c_nonprop(double complex* arr1, double complex** matrix, double complex* arr2, int rows, double complex *result);
 	void c_matmul(double complex** matrix, double complex* arr, int rows, int cols, double complex* result);
 	void c_dot(double complex* arr1, double complex* arr2, int rows, double complex * result);
+	void dot(double* arr1, double* arr2, int rows, double *result);
