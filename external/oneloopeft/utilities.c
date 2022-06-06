@@ -446,13 +446,16 @@ void c_matmul(double complex** matrix, double complex* arr, int rows, int cols, 
 	}
 }
 
-void c_dot(double complex* arr1, double complex* arr2, int rows, double complex *result)
+void c_dot(double complex* arr1, double complex* arr2, int rows, double *result)
 {
 	int i;
+	double complex res = 0.;
 	
 	for (i=0; i<rows; i++){
-		*result += arr1[i] * arr2[i];
+		res += arr1[i] * arr2[i];
 	}
+
+	*result = creal(res);
 }
 
 void dot(double* arr1, double* arr2, int rows, double *result)
@@ -464,7 +467,7 @@ void dot(double* arr1, double* arr2, int rows, double *result)
 	}
 }
 
-void c_nonprop(double complex* arr1, double complex** matrix, double complex* arr2, int rows, double complex *result)
+void c_nonprop(double complex* arr1, double complex** matrix, double complex* arr2, int rows, double *result)
 {
 	double complex* arr3;
 	arr3 = make_1D_c_array(rows);

@@ -1,11 +1,10 @@
-void rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 double k,  double z, double mu, double f, long SPLIT, double * pk_nl);
+#include <complex.h>
 
-void   rsd_0_FFTLog(struct fft_struct *fft_input, double k, double complex *loops);
-void   rsd_1_FFTLog(struct fft_struct *fft_input, double k, double complex *loops);
-void   rsd_2_FFTLog(struct fft_struct *fft_input, double k, double mu, double complex *loops);
-void   rsd_3_FFTLog(struct fft_struct *fft_input, double k, double mu, double complex *loops);
-void   rsd_4_FFTLog(struct fft_struct *fft_input, double k, double mu, double complex *loops);
+void   rsd_0_FFTLog(struct fft_struct *fft_input, double k, double *loops);
+void   rsd_1_FFTLog(struct fft_struct *fft_input, double k, double *loops);
+void   rsd_2_FFTLog(struct fft_struct *fft_input, double k, double mu, double *loops);
+void   rsd_3_FFTLog(struct fft_struct *fft_input, double k, double mu, double *loops);
+void   rsd_4_FFTLog(struct fft_struct *fft_input, double k, double mu, double *loops);
 
 double P22_new(struct fft_struct *fft_input, double k, double z, int cleanup);
 double P13_new(struct fft_struct *fft_input, double k, double z, int cleanup);
