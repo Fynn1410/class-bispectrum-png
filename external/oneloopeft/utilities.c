@@ -375,8 +375,8 @@ void np_mat_fill(double complex (mat_func)(double complex, double complex), stru
 	double complex nu1, nu2;
 	for (i=0; i<Nmax+1; i++){
 		for (j=i; j<Nmax+1; j++){                        
-				nu1 = -0.5 * fft_input->etam_m[i];
-				nu2 = -0.5 * fft_input->etam_m[j];
+				nu1 = -0.5 * fft_input->etam_g[i];
+				nu2 = -0.5 * fft_input->etam_g[j];
 				
 				matrix[i][j] = mat_func(nu1,nu2);
 				matrix[j][i] = mat_func(nu1,nu2);
@@ -392,8 +392,8 @@ void np_mu_mat_fill(double complex (mat_func)(double complex, double complex, do
 	double complex nu1, nu2;
 	for (i=0; i<Nmax+1; i++){
 		for (j=i; j<Nmax+1; j++){                        
-				nu1 = -0.5 * fft_input->etam_m[i];
-				nu2 = -0.5 * fft_input->etam_m[j];
+				nu1 = -0.5 * fft_input->etam_g[i];
+				nu2 = -0.5 * fft_input->etam_g[j];
 				
 				matrix[i][j] = mat_func(nu1,nu2,mu);
 				matrix[j][i] = mat_func(nu1,nu2,mu);
@@ -408,7 +408,7 @@ void p_mat_fill(double complex (mat_func)(double complex), struct fft_struct *ff
 	int i;
 	double complex nu1;
 	for (i=0; i<Nmax+1; i++){
-		nu1 = -0.5 * fft_input->etam_m[i];
+		nu1 = -0.5 * fft_input->etam_g[i];
 		matrix[i] = mat_func(nu1);
 	}
 }
@@ -420,7 +420,7 @@ void p_mu_mat_fill(double complex (mat_func)(double complex, double), struct fft
 	int i;
 	double complex nu1;
 	for (i=0; i<Nmax+1; i++){
-		nu1 = -0.5 * fft_input->etam_m[i];
+		nu1 = -0.5 * fft_input->etam_g[i];
 		matrix[i] = mat_func(nu1, mu);
 	}
 }
@@ -431,7 +431,7 @@ void vec_fill(struct fft_struct *fft_input, double k, double complex *vec)
 
 	int i,j;
 	for (i=0; i<Nmax+1; i++){
-		vec[i] = fft_input->cmsym_m[i] * cpow(k,fft_input->etam_m[i]);
+		vec[i] = fft_input->cmsym_g[i] * cpow(k,fft_input->etam_g[i]);
 	}
 }
 
