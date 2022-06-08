@@ -214,7 +214,6 @@ void FFT_compute_coeff(struct background * pba,
       double kmin_fft    = fft_input->kmin_fft;
       double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
       double Delta    = log(kmax_fft/kmin_fft)/(Nmaxd-1); 
-
       double *k      = make_1Darray(Nmax);
       double *pkz    = make_1Darray(Nmax);
       double *pk_bin = make_1Darray(Nmax);
@@ -267,7 +266,6 @@ void FFT_compute_coeff(struct background * pba,
 
       fftw_plan my_plan = fftw_plan_dft_1d(Nmax, input, output, FFTW_FORWARD, FFTW_ESTIMATE);
       fftw_execute(my_plan);
-
       /*
        * construct the rescaled fourier coeeficents
        */
@@ -370,6 +368,7 @@ double FFT_kmax_Brent(double kmax, void *params)
       double kmin_fft        = pij.p5;
       double bias_fft        = pij.p6;
 
+      // fprintf(stderr, "k = %e, bias = %e, P(k) = %e, k_min**bias * P(k_min) = %e, k**bias * P(k) = %e\n", kmax, bias_fft, Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER), Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER)*pow(kmin_fft, -bias_fft), Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER)*pow(kmax, -bias_fft));
       double f = pow(kmax, -bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, -bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
       
       return f;   
@@ -388,7 +387,7 @@ double FFT_kmax_Brent_solver(struct background * pba,
       const gsl_root_fsolver_type *T;
       gsl_root_fsolver *s;
       double r = 0;
-      double k_lo = 0.01, k_hi = 4000.;
+      double k_lo = 0.01, k_hi = 20000.;
       gsl_function F;
 
       struct integrand_parameters2 par; 
@@ -399,7 +398,7 @@ double FFT_kmax_Brent_solver(struct background * pba,
       par.p4  = z;
       par.p5  = kmin_fft;
       par.p6  = fft_bias; 
-      //fprintf(stderr, "z = %e, k_min = %e, bias = %e, P(k_min) = %e, k_min**bias * P(k_min) = %e\n", z, kmin_fft, fft_bias, Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER), Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER)*pow(kmin_fft, -fft_bias));
+      // fprintf(stderr, "z = %e, k_min = %e, bias = %e, P(k_min) = %e, k_min**bias * P(k_min) = %e\n", z, kmin_fft, fft_bias, Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER), Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER)*pow(kmin_fft, -fft_bias));
 
       F.function = &FFT_kmax_Brent;
       F.params   = &par;
@@ -420,7 +419,6 @@ double FFT_kmax_Brent_solver(struct background * pba,
       while (status == GSL_CONTINUE && iter < max_iter);
 
       gsl_root_fsolver_free (s);
-      
       return r;
 
       }
