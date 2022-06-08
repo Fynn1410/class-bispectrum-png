@@ -57,6 +57,9 @@ void rsd_0_FFTLog(struct fft_struct *fft_input, double k, double *loops)
       double complex *vec = make_1D_c_array(Nmax+1);
       vec_fill(fft_input, k, vec);
 
+      double complex *vec_min = make_1D_c_array(Nmax+1);
+      vec_fill(fft_input, fft_input->kmin_fft, vec);
+
       // FFTLog matrices (non-propagator)
       double complex **M22_mat   = make_2D_c_array(Nmax+1, Nmax+1);
       np_mat_fill(M22, fft_input, k, M22_mat);
@@ -74,8 +77,9 @@ void rsd_0_FFTLog(struct fft_struct *fft_input, double k, double *loops)
       // FFTLog matrices (propagator)
       double complex *M13_mat = make_1D_c_array(Nmax+1);
       p_mat_fill(M13, fft_input, k, M13_mat);
-      // ISPsi is missing
-      
+      double complex *I_SPsi_mat = make_1D_c_array(Nmax+1);
+      p_mat_fill(I_SPsi, fft_input, k, M13_mat);
+
       // non-propagator calculations
       c_nonprop(vec, M22_mat,   vec, Nmax+1, &loops[0]);
       c_nonprop(vec, IF2_mat,   vec, Nmax+1, &loops[2]);
@@ -84,9 +88,12 @@ void rsd_0_FFTLog(struct fft_struct *fft_input, double k, double *loops)
       c_nonprop(vec, IS2_mat,   vec, Nmax+1, &loops[5]);
       c_nonprop(vec, IS2S2_mat, vec, Nmax+1, &loops[6]);
 
+      // d
+      // loops[4] -= 
+
       // propagator calculations
       c_dot(vec, M13_mat, Nmax+1, &loops[1]);
-      loops[7] = 0.;
+      c_dot(vec, I_SPsi_mat, Nmax+1, &loops[7]);
 }
 
 /*
@@ -351,7 +358,7 @@ double complex IF2(double complex n1, double complex n2)
 double complex IF2S2(double complex n1, double complex n2)
 {
       double complex numerator   = ((3 - 2*n1 - 2*n2)*(-1 + 2*n1 + 2*n2)*(6 + 7*n1 + 7*n2));
-      double complex denominator = (14.*n1*(1 + n1)*n2*(1 + n2));
+      double complex denominator = (28.*n1*(1 + n1)*n2*(1 + n2));
       double complex out         = numerator/denominator * J(n1, n2);
 
       return out;
@@ -359,7 +366,7 @@ double complex IF2S2(double complex n1, double complex n2)
 
 double complex IPP(double complex n1, double complex n2)
 {
-      double complex out         = 0.5 * J(n1, n2);
+      double complex out         = 2. * J(n1, n2);
       return out;
 }
 
@@ -379,6 +386,16 @@ double complex IS2S2(double complex n1, double complex n2)
       double complex out         = numerator/denominator * J(n1, n2);
 
       return out;
+}
+
+double complex I_SPsi(double complex nu1)
+{
+      double complex numerator    = 15. * ctan(nu1 * M_PI);
+      double complex denominator  = 28. * M_PI * (nu1 + 1.) * nu1 * (nu1 - 1.) * (nu1 - 2.) * (nu1 - 3.);
+      double complex out          = - numerator/denominator;
+
+      return out;
+
 }
 
 /*

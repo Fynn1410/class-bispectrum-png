@@ -15,6 +15,7 @@ double complex IF2S2(double complex n1, double complex n2);
 double complex IPP(double complex n1, double complex n2);
 double complex IS2(double complex n1, double complex n2);
 double complex IS2S2(double complex n1, double complex n2);
+double complex I_SPsi(double complex nu1);
 
 double complex IF2G2(double complex n1, double complex n2);
 double complex IF3G3(double complex n1);
