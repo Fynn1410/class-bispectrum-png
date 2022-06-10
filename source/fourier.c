@@ -1674,19 +1674,22 @@ int fourier_init(
 
     // TODO: code only efficient and tested at z=0. Check other values of z / tau.
 
+    int rsd = 1; // 0 -> real space, 1 -> rsd FFTLog biased
     int fft = 1; // 0 -> DI, 1 -> FFT 
     int biased_tracers = 1; // 0 -> P_mm, 1 -> P_hh
     struct timeval start, end;
     double elapsetime;
     gettimeofday(&start, NULL);
 
-    int NUM_DOCS = 5;
+    int NUM_DOCS = 6;
     char file_name[NUM_DOCS][50];
     // sprintf(file_name[0], "pm_FFTLog.txt");
     // sprintf(file_name[1], "pm_DI.txt");
-    sprintf(file_name[2], "pg_FFTLog.txt");
+    // sprintf(file_name[2], "pg_FFTLog.txt");
     // sprintf(file_name[3], "pg_DI.txt");
     // sprintf(file_name[4], "NOIRvsWIR.txt");
+    // sprintf(file_name[5], "FFTLog_new.txt");
+    sprintf(file_name[5], "FFTLog_rsd.txt");
     for (int i=0; i<NUM_DOCS; i++){
       if(remove(file_name[i]) == 0){
         fprintf(stderr, "%s succesfully deleted!\n", file_name[i]);
@@ -1698,7 +1701,7 @@ int fourier_init(
 
     // FILE *fpa;
     // char file_n[50];
-    // sprintf(file_n, "LinearPm.txt");
+    // sprintf(file_n, "LinearPm_200.txt");
     // fpa = fopen(file_n, "w");
 
     // double k;
@@ -1718,75 +1721,136 @@ int fourier_init(
     // }
     // fclose(fpa);
 
+    /* number of threads (always one if no openmp) */
+    int number_of_threads=1;
+    /* index of the thread (always 0 if no openmp) */
+    int thread=0;
+
+
+    /* This code can be optionally compiled with the openmp option for parallel computation.
+      Inside parallel regions, the use of the command "return" is forbidden.
+      For error management, instead of "return _FAILURE_", we will set the variable below
+      to "abort = _TRUE_". This will lead to a "return _FAILURE_" just after leaving the
+      parallel region. */
+    int abort;
+
     for (index_tau = pfo->ln_tau_size-1; index_tau>=0; index_tau--) {
 
       fprintf(stderr,"index_tau = %d / %d\n",index_tau,pfo->ln_tau_size);
 
+#ifdef _OPENMP
+        /* instrumentation times */
+        double tstart, tstop, tspent;
+#endif
+
+#ifdef _OPENMP
+
+#pragma omp parallel
+        {
+          number_of_threads = omp_get_num_threads();
+        }
+#endif
+
+        abort = _FALSE_;
+
+#pragma omp parallel \
+      shared(pfo, pba, ppm, z, rsd, biased_tracers, fft, index_tau, abort) \
+      private(index_k,thread,tspent,tstart,tstop, pk_oneloop) \
+      num_threads(number_of_threads)
+
+        {
+
+#ifdef _OPENMP
+          thread = omp_get_thread_num();
+          tspent=0.;
+#endif
+
+      #pragma omp for schedule (dynamic)
       for (index_k=0; index_k<pfo->k_size; index_k++) {
+#ifdef _OPENMP
+        tstart = omp_get_wtime();
+#endif
+
         if (pfo->k[index_k] <= 0.001) {
           fprintf(stderr,"copy linear value for k/h=%e\n",pfo->k[index_k] / pba->h);
           fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_m, &pk_oneloop, NULL);
           pfo->ln_pk_nl[pfo->index_pk_m][(pfo->ln_tau_size-1)*pfo->k_size+index_k] = log(pk_oneloop);
         }
         else{
-          if (fft == 1){
-            if (biased_tracers == 0){
-              fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-              class_call(pm_IR_FFTLog(pba,
-                                      ppm,
-                                      pfo,
-                                      pfo->k[index_k],
-                                      z,
-                                      142L,
-                                      &pk_oneloop),
-                        pfo->error_message,
-                        pfo->error_message);
-            }
-            else {
-              fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-              class_call(pg_IR_FFTLog(pba,
-                                      ppm,
-                                      pfo,
-                                      pfo->k[index_k],
-                                      z,
-                                      142L,
-                                      &pk_oneloop),
-                        pfo->error_message,
-                        pfo->error_message);
-            }
-        }
-          else if(fft == 0){
-            if (biased_tracers == 0){
-              fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
-              class_call(PS_mm_G(ppr,
-                                pba,
-                                ppt,
-                                ppm,
-                                pfo,
-                                pfo->k[index_k],
-                                z,
-                                _TRUE_,
-                                _TRUE_,
-                                142L,
-                                &pk_oneloop),
-                        pfo->error_message,
-                        pfo->error_message);
+          if (rsd == 1){
+            fprintf(stderr,"call rsd_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+                class_call_parallel(rsd_oneloop_FFTLog(pba,
+                                        ppm,
+                                        pfo,
+                                        pfo->k[index_k],
+                                        z,
+                                        1.0,
+                                        1.0,
+                                        142L,
+                                        &pk_oneloop),
+                          pfo->error_message,
+                          pfo->error_message);
+           }
+          else{
+            if (fft == 1){
+              if (biased_tracers == 0){
+                fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+                class_call_parallel(pm_IR_FFTLog(pba,
+                                        ppm,
+                                        pfo,
+                                        pfo->k[index_k],
+                                        z,
+                                        142L,
+                                        &pk_oneloop),
+                          pfo->error_message,
+                          pfo->error_message);
               }
-            else{
-              fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
-              class_call(PS_hh_G(ppr,
-                                pba,
-                                ppt,
-                                ppm,
-                                pfo,
-                                pfo->k[index_k],
-                                z,
-                                _TRUE_,
-                                _TRUE_,
-                                142L,
-                                &pk_oneloop),
-                        pfo->error_message,
-                        pfo->error_message);
+              else {
+                fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+                class_call_parallel(pg_IR_FFTLog(pba,
+                                        ppm,
+                                        pfo,
+                                        pfo->k[index_k],
+                                        z,
+                                        142L,
+                                        &pk_oneloop),
+                          pfo->error_message,
+                          pfo->error_message);
+              }
+          }
+            else if(fft == 0){
+              if (biased_tracers == 0){
+                fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+                class_call_parallel(PS_mm_G(ppr,
+                                  pba,
+                                  ppt,
+                                  ppm,
+                                  pfo,
+                                  pfo->k[index_k],
+                                  z,
+                                  _TRUE_,
+                                  _TRUE_,
+                                  142L,
+                                  &pk_oneloop),
+                          pfo->error_message,
+                          pfo->error_message);
+                }
+              else{
+                fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+                class_call_parallel(PS_hh_G(ppr,
+                                  pba,
+                                  ppt,
+                                  ppm,
+                                  pfo,
+                                  pfo->k[index_k],
+                                  z,
+                                  _TRUE_,
+                                  _TRUE_,
+                                  142L,
+                                  &pk_oneloop),
+                          pfo->error_message,
+                          pfo->error_message);
+              }
             }
           }
           pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
@@ -1794,13 +1858,27 @@ int fourier_init(
 
           pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_oneloop);
         }
+
+#ifdef _OPENMP
+      tstop = omp_get_wtime();
+
+      tspent += tstop-tstart;
+#endif
       }
-    }
+#ifdef _OPENMP
+      printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
+             __func__,tspent,thread);
+#endif
+
+  } /* end of parallel zone */
+
+    if (abort == _TRUE_) return _FAILURE_;
 
     gettimeofday(&end, NULL);
     elapsetime = (end.tv_sec - start.tv_sec);
     elapsetime += (end.tv_usec - start.tv_usec) / 1000000.0;
     fprintf(stderr, "%2.3f seconds needed!\n", elapsetime);
+  }
   }
 
   /** - if the nl_method could not be identified */
@@ -1811,7 +1889,6 @@ int fourier_init(
 
   return _SUCCESS_;
 }
-
 /**
  * Free all memory space allocated by fourier_init().
  *
