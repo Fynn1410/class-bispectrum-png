@@ -130,8 +130,8 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     struct fft_struct *fft_input;
 	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
 
-	fft_input -> nfft 	    = 200;
-	fft_input -> kmin_fft   = 5.e-4;
+	fft_input -> nfft 	    = 128;
+	fft_input -> kmin_fft   = 1.e-5;
 	fft_input -> fft_bias_g = - 1.6;  //for halos
 	fft_input -> fft_bias_m = - 0.3; //for matter
 
@@ -182,13 +182,13 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double ph_tot  = pow(b1, 2.) * pm_1loop_IR + pm_ct + ph_loops;
 
 
-    FILE *fpa;
-    char file_name[50];
-    sprintf(file_name, "pg_FFTLog.txt");
-    fpa = fopen(file_name, "a");
-    fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-                k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
-    fclose(fpa);
+    // FILE *fpa;
+    // char file_name[50];
+    // sprintf(file_name, "pg_FFTLog.txt");
+    // fpa = fopen(file_name, "a");
+    // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+    //             k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+    // fclose(fpa);
 
     *pk_nl = ph_tot;
     return _SUCCESS_;
@@ -209,8 +209,8 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     struct fft_struct *fft_input;
 	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
 
-	fft_input -> nfft 	    = 200;
-	fft_input -> kmin_fft   = 1.e-8;
+	fft_input -> nfft 	    = 128;
+	fft_input -> kmin_fft   = 1.e-4;
 	fft_input -> fft_bias_g = - 1.6;  //for halos
 	fft_input -> fft_bias_m = - 0.3; //for matter
 
@@ -231,114 +231,159 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     double cs2 =  0.2;
     double R2  =  5.0;
 
-    // EPT to LPT correspondance Chen page 14
-    double c1 = 1 + b1;
-    double c2 = b2 + (8./21) * b1;
-    double c3 = btd + (1./3.) * b1; // should be b3, not sure of the prefactor
-    double cs = bG2 - (2./7.) *b1; // should be bs, but no clue which one this should be
+    // Distributing vectors for the biases and moment expansion factors, which will be applied on the loops
+    
+    // 0-th moment
+    double *np_bias_vec0 = make_1Darray(6);
+    double *p_bias_vec0  = make_1Darray(2);
+    np_bias_vec0[0] = 2.* pow(b1, 2.);
+    np_bias_vec0[1] = 2.* b1 * b2;
+    np_bias_vec0[2] = 4.* b1 * bG2;
+    np_bias_vec0[3] =  0.5 * pow(b2, 2.);
+    np_bias_vec0[4] = 2.* pow(bG2, 2.);
+    np_bias_vec0[5] = 2.* b2 * bG2;
+    p_bias_vec0[0] = 6.* pow(b1, 2.);
+    p_bias_vec0[1] = 8. * b1 * (bG2 + 2./5. * btd);
 
-    // Distributing vector for the biases and LoS factors on the loops
-    double *bias_vec0 = make_1Darray(9);
-    bias_vec0[8] = pow(c1, 2.) * pm_lin_IR;
-    bias_vec0[0] = pow(c1, 2.);
-    bias_vec0[1] = pow(c1, 2.);
-    bias_vec0[2] = c1 * c2;
-    bias_vec0[3] = c1 * cs;
-    bias_vec0[4] = pow(c2, 2.);
-    bias_vec0[5] = c2 * cs;
-    bias_vec0[6] = pow(c2, 2.);
-    bias_vec0[7] = c1 * c3 * pm_lin_IR; // psi
+    // 1-st moment
+    double *np_bias_vec1 = make_1Darray(7);
+    double *p_bias_vec1  = make_1Darray(3);
+    np_bias_vec1[0] = 2. * b1;
+    np_bias_vec1[1] = b2;
+    np_bias_vec1[2] = 2. * bG2;
+    np_bias_vec1[3] = 4. * (bG2 + 2./5. * btd);
+    np_bias_vec1[4] = pow(b1, 2.);
+    np_bias_vec1[5] = 0.5 * b1 * b2;
+    np_bias_vec1[6] = b1 * bG2;
+    p_bias_vec1[0] = 3. * b1;
+    p_bias_vec1[1] = pow(b1, 2.);
+    p_bias_vec1[2] = pow(b1, 2.);
+        
+    double *np_expans_vec1 = make_1Darray(7);
+    double *p_expans_vec1  = make_1Darray(3);
+    np_expans_vec1[0] = f * pow(mu, 2.);
+    np_expans_vec1[1] = f * pow(mu, 2.);
+    np_expans_vec1[2] = f * pow(mu, 2.);
+    np_expans_vec1[3] = f * pow(mu, 2.);
+    np_expans_vec1[4] = 2. * f * mu * k;
+    np_expans_vec1[5] = 2. * f * mu * k;
+    np_expans_vec1[6] = 2. * f * mu * k;
+    p_expans_vec1[0] = f * pow(mu, 2.);
+    p_expans_vec1[1] = 2. * f * mu * k;
+    p_expans_vec1[2] = 2. * f * mu * k;
 
-    double *bias_vec1 = make_1Darray(10);
-    bias_vec1[9] = c1 * pm_lin_IR * (2. * pow(mu, 2.) *f);
-    bias_vec1[0] = c1 * (2. * pow(mu, 2.) *f);
-    bias_vec1[1] = c1 * pm_lin_IR * (2. * pow(mu, 2.) *f);
-    bias_vec1[2] = c2 * (2. * pow(mu, 2.) *f);
-    bias_vec1[3] = cs * (2. * pow(mu, 2.) *f);
-    bias_vec1[4] = c3 * pm_lin_IR * (2. * pow(mu, 2.) *f); // psi
+    // 2-nd moment
+    double *np_bias_vec2 = make_1Darray(6);
+    double *p_bias_vec2  = make_1Darray(4);
+    np_bias_vec2[0] = 2. * b1;
+    np_bias_vec2[1] = b2;
+    np_bias_vec2[2] = 2. * bG2;
+    np_bias_vec2[3] = 2. ;
+    np_bias_vec2[4] = b1;
+    np_bias_vec2[5] = pow(b1, 2.);
+    p_bias_vec2[0] = 4. * b1;
+    p_bias_vec2[1] = 6.;
+    p_bias_vec2[2] = b1;
+    p_bias_vec2[3] = b1;
 
-    bias_vec1[5] = pow(c1, 2.) * (2. * 2. * f * mu * k) * (mu * k);
-    bias_vec1[6] = pow(c1, 2.) * pm_lin_IR * (2. * 2. * f * mu * k) * (mu * k);
-    bias_vec1[7] = c1 * c2 * (2. * 2. * f * mu * k) * (mu * k);
-    bias_vec1[8] = c1 * cs * (2. * 2. * f * mu * k) * (mu * k);
+    double *np_expans_vec2 = make_1Darray(6);
+    double *p_expans_vec2  = make_1Darray(4);
+    np_expans_vec2[0] = 0.5 * pow(f * k * mu, 2.);
+    np_expans_vec2[1] = 0.5 * pow(f * k * mu, 2.);
+    np_expans_vec2[2] = 0.5 * pow(f * k * mu, 2.);
+    np_expans_vec2[3] = - pow(f, 2.) * pow(mu, 4.);
+    np_expans_vec2[4] = -4. * pow(f, 2.) * pow(mu, 3.) * k;
+    np_expans_vec2[5] = - pow(f, 2.) * pow(k * mu, 4.);
+    p_expans_vec2[0] = 0.5 * pow(f * k * mu, 2.);
+    p_expans_vec2[1] = - pow(f, 2.) * pow(mu, 4.);
+    p_expans_vec2[2] = -4. * pow(f, 2.) * pow(mu, 3.) * k;
+    p_expans_vec2[3] = -4. * pow(f, 2.) * pow(mu, 3.) * k;
 
-    double *bias_vec2 = make_1Darray(14);
-    bias_vec2[0]  = c1 * (-1. * pow(f*mu*k, 2.)) * pow(k, 2.);
-    bias_vec2[1]  = c1 * pm_lin_IR * (-1. * pow(f*mu*k, 2.)) * pow(k, 2.);
-    bias_vec2[2]  = c2 * (-1. * pow(f*mu*k, 2.)) * pow(k, 2.);
-    bias_vec2[3]  = cs * (-1. * pow(f*mu*k, 2.)) * pow(k, 2.);
-    bias_vec2[12] = pow(c1, 2.) * pm_lin_IR * sigmav2 * (-1. * pow(f*mu*k, 2.));
+    // 3-rd moment
+    double *np_bias_vec3 = make_1Darray(2);
+    double *p_bias_vec3  = make_1Darray(1);
+    np_bias_vec3[0] = 1.;
+    np_bias_vec3[1] = b1;
+    p_bias_vec3[0] = 2.;
 
-    bias_vec2[13] = pm_lin_IR * (-1. * pow(f, 2.) * pow(mu, 4.));
-    bias_vec2[4]  = (-1. * pow(f, 2.) * pow(mu, 4.));
-    bias_vec2[5]  = pm_lin_IR * (-1. * pow(f, 2.) * pow(mu, 4.));
-    bias_vec2[6]  = 4. * c1 * (-1. * k * pow(f, 2.) * pow(mu, 3.)) * (mu * k);
-    bias_vec2[7]  = 4. * c1 * pm_lin_IR * (-1. * k * pow(f, 2.) * pow(mu, 3.)) * (mu * k);
-    bias_vec2[8]  = 4. * c1 * pm_lin_IR * (-1. * k * pow(f, 2.) * pow(mu, 3.)) * (mu * k);
-    bias_vec2[9]  = pow(c1, 2.) * (-1. * pow(f*mu*k, 2.)) * pow(k, 2.);
-    bias_vec2[10] = pow(c1, 2.) * (-1. * pow(f*mu*k, 2.)) * pow(mu*k, 2.);
-    bias_vec2[11] = pow(c1, 2.) * (-1. * pow(f*mu*k, 2.)) * pow(k, 2.);
+    double *np_expans_vec3 = make_1Darray(2);
+    double *p_expans_vec3  = make_1Darray(1);
+    np_expans_vec3[0] = - pow(f, 3.) * pow(mu, 4.) * pow(k, 2.) / 3.;
+    np_expans_vec3[1] = - pow(f * k * mu, 3.) / 3.;
+    p_expans_vec3[0] = - pow(f, 3.) * pow(mu, 4.) * pow(k, 2.) / 3.;
 
-    double *bias_vec3 = make_1Darray(6);
-    bias_vec3[4]  = c1 * pm_lin_IR * sigmav2 * (pow(f, 3.) * pow(mu, 4.) * pow(k, 2.));
-    bias_vec3[0]  = pow(mu, 4.) * pow(k, 2.) * pow(f, 3.) * pow(k, 2.);
-    bias_vec3[1]  = pm_lin_IR * pow(mu, 4.) * pow(k, 2.) * pow(f, 3.) * pow(k, 2.);
-    bias_vec3[2]  = c1 * pow(mu, 3.) * pow(k, 3.) * pow(f, 3.) * (pow(k, 3.) * mu);
-    bias_vec3[3]  = c1 * pow(mu, 3.) * pow(k, 3.) * pow(f, 3.) * (pow(k, 3.) * mu);
-    bias_vec3[5]  = c1 * pm_lin_IR * sigmav2 * (pow(f, 3.) * pow(mu, 4.) * pow(k, 2.));
+    // 4-th moment
+    double *np_bias_vec4 = make_1Darray(1);
+    np_bias_vec4[0] = 1.;
 
-    double *bias_vec4 = make_1Darray(6);
-    bias_vec4[3]  = 3. * pow(c1*sigmav2, 2.) * pm_lin_IR * pow(f*mu*k, 4) / 12.;
-    bias_vec4[4]  = -1. *sigmav2 * pm_lin_IR * pow(f, 4) * pow(mu, 6) * pow(k, 2);
-    bias_vec4[0]  = 3. * pow(f*mu*k, 4) / 12. * (pow(k, 4.) * pow(mu, 2.));
-    bias_vec4[1]  = 3. * pow(f*mu*k, 4) / 12. * pow(k, 4.);
-    bias_vec4[2]  = 3. * pow(f*mu*k, 4) / 12. * (pow(k, 4.) * pow(mu, 2.));
-    bias_vec4[5]  = 3. * pow(c1*sigmav2, 2.) * pm_lin_IR * pow(f*mu*k, 4) / 12.;
+    double *np_expans_vec4 = make_1Darray(1);
+    np_expans_vec4[0] = pow(f * k * mu, 4.) / 12.;
 
-    double *rsd_0 = make_1Darray(9);
-    rsd_0_FFTLog(fft_input, k, rsd_0);
-    rsd_0[8] = 1.0; // Adding the linear PS through the bias vector
 
-    double *rsd_1 = make_1Darray(10);
-    rsd_1_FFTLog(fft_input, k, rsd_1);
-    rsd_1[9] = 1.0; // Adding the linear PS through the bias vector
+    // Integrals calculation
+    double *np_rsd_0 = make_1Darray(6);
+    double *p_rsd_0  = make_1Darray(2);
+    rsd_0_FFTLog(fft_input, k, np_rsd_0, p_rsd_0);
 
-    double *rsd_2 = make_1Darray(14);
-    rsd_2_FFTLog(fft_input, k, mu, rsd_2);
-    rsd_2[12] = 1.0; // Adding the linear PS through the bias vector
-    rsd_2[13] = 1.0; // Adding the linear PS through the bias vector
+    double *np_rsd_1 = make_1Darray(7);
+    double *p_rsd_1  = make_1Darray(3);
+    rsd_1_FFTLog(fft_input, k, mu, np_rsd_1, p_rsd_1);
 
-    double *rsd_3 = make_1Darray(6);
-    rsd_3_FFTLog(fft_input, k, mu, rsd_3);
-    rsd_3[4] = 1.0; // Adding the linear PS through the bias vector
-    rsd_3[5] = 1.0; // Adding the linear PS through the bias vector
+    double *np_rsd_2 = make_1Darray(6);
+    double *p_rsd_2  = make_1Darray(4);
+    rsd_2_FFTLog(fft_input, k, mu, np_rsd_2, p_rsd_2);
 
-    double *rsd_4 = make_1Darray(6);
-    rsd_4_FFTLog(fft_input, k, mu, rsd_4);
-    rsd_4[3] = 1.0; // Adding the linear PS through the bias vector
-    rsd_4[4] = 1.0; // Adding the linear PS through the bias vector
-    rsd_4[5] = 1.0; // Adding the linear PS through the bias vector
+    double *np_rsd_3 = make_1Darray(2);
+    double *p_rsd_3  = make_1Darray(1);
+    rsd_3_FFTLog(fft_input, k, mu, np_rsd_3, p_rsd_3);
 
-    double mom_0 = 0.;
-    dot(rsd_0, bias_vec0, 9, &mom_0);
-    mom_0 = mom_0 * pow(k, 3.);
+    double *np_rsd_4 = make_1Darray(1);
+    rsd_4_FFTLog(fft_input, k, mu, np_rsd_4);
 
-    double mom_1 = 0.;
-    dot(rsd_1, bias_vec0, 10, &mom_1);
-    mom_1 = mom_1 * pow(k, 3.);
+    // Bringing everything together
+    double np_0  = 0.;
+    double p_0   = 0.;
+    dot(np_rsd_0, np_bias_vec0, 6, &np_0);
+    dot(p_rsd_0,  p_bias_vec0,  2, &p_0);
+    double mom_0 = np_0 + pm_lin_IR * p_0;
 
-    double mom_2 = 0.;
-    dot(rsd_2, bias_vec0, 14, &mom_2);
-    mom_2 = mom_2 * pow(k, 3.);
+    double *np_prefactors_1 = make_1Darray(7);
+    double *p_prefactors_1  = make_1Darray(3);
+    vecmult(np_bias_vec1, np_expans_vec1, 7, np_prefactors_1);
+    vecmult(p_bias_vec1,  p_expans_vec1,  3, p_prefactors_1);
+    double np_1  = 0.;
+    double p_1   = 0.;
+    dot(np_rsd_1, np_prefactors_1, 7, &np_1);
+    dot(p_rsd_1,  p_prefactors_1,  3, &p_1);
+    double mom_1 = np_1 + pm_lin_IR * p_1;
 
-    double mom_3 = 0.;
-    dot(rsd_3, bias_vec0, 6, &mom_3);
-    mom_3 = mom_3 * pow(k, 3.);
+    double *np_prefactors_2 = make_1Darray(6);
+    double *p_prefactors_2  = make_1Darray(4);
+    vecmult(np_bias_vec2, np_expans_vec2, 6, np_prefactors_2);
+    vecmult(p_bias_vec2,  p_expans_vec2,  4, p_prefactors_2);
+    double np_2  = 0.;
+    double p_2   = 0.;
+    dot(np_rsd_2, np_prefactors_2, 6, &np_2);
+    dot(p_rsd_2,  p_prefactors_2,  4, &p_2);
+    double mom_2 = np_2 + pm_lin_IR * p_2;
 
-    double mom_4 = 0.;
-    dot(rsd_4, bias_vec0, 6, &mom_4);
-    mom_4 = mom_4 * pow(k, 3.);
+    double *np_prefactors_3 = make_1Darray(2);
+    double *p_prefactors_3  = make_1Darray(1);
+    vecmult(np_bias_vec3, np_expans_vec3, 2, np_prefactors_3);
+    vecmult(p_bias_vec3,  p_expans_vec3,  1, p_prefactors_3);
+    double np_3  = 0.;
+    double p_3   = 0.;
+    dot(np_rsd_3, np_prefactors_3, 2, &np_3);
+    dot(p_rsd_3,  p_prefactors_3,  1, &p_3);
+    double mom_3 = np_3 + pm_lin_IR * p_3;
 
+    double *np_prefactors_4 = make_1Darray(1);
+    vecmult(np_bias_vec4, np_expans_vec4, 1, np_prefactors_4);
+    double np_4  = 0.;
+    dot(np_rsd_4, np_prefactors_4, 1, &np_4);
+    double mom_4 = np_4 ;
+
+    // Summing over all moments
     double p_tot = mom_0 + mom_1 + mom_2 + mom_3 + mom_4;
 
     FILE *fpa;
