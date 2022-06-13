@@ -128,14 +128,14 @@ void pgloops_nonpropag(struct fft_struct  *fft_input, double k, double z, int cl
 
       for (i=0; i<Nmax+1; i++){ 
          nu1 = -0.5 * fft_input->etam_g[i];                       
-         GSL_SET_COMPLEX(&cmkmin_gsl, creal(fft_input->cmsym_g[i] * cpow(fft_input->kmin_fft,-2.*nu1)), cimag(fft_input->cmsym_g[i] * cpow(fft_input->kmin_fft,-2.*nu1)));
+         GSL_SET_COMPLEX(&cmkmin_gsl, creal(fft_input->cmsym_g[i] * cpow(fft_input->kmin_fft_g,-2.*nu1)), cimag(fft_input->cmsym_g[i] * cpow(fft_input->kmin_fft_g,-2.*nu1)));
          gsl_vector_complex_set(cmkmin_vec, i, cmkmin_gsl);
       }
 
       gsl_blas_zgemv(CblasNoTrans, GSL_COMPLEX_ONE, M_cIdelta2delta2_mat, cmkmin_vec, GSL_COMPLEX_ZERO, matvec_cIdelta2delta20);
       gsl_blas_zdotu(cmkmin_vec, matvec_cIdelta2delta20, &out_cIdelta2delta20_complex);
       
-      P_b2b2_ls = pow(fft_input->kmin_fft,3.) * GSL_REAL(out_cIdelta2delta20_complex);
+      P_b2b2_ls = pow(fft_input->kmin_fft_g,3.) * GSL_REAL(out_cIdelta2delta20_complex);
       // printf("Pb2b2 %12.6e \n", P_b2b2_ls);
 
       gsl_vector_complex_free(cmkmin_vec);

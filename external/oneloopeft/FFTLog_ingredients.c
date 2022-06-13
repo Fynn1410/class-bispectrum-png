@@ -204,14 +204,16 @@ void FFT_compute_coeff(struct background * pba,
 
       // choosing a given bias for Matter or Galaxy/Halo calculations
       double fft_bias = 0.0;
+      double kmin_fft = 0.0;
       if(hm_switch == MATTER){
             fft_bias = fft_input->fft_bias_m;
+            kmin_fft    = fft_input->kmin_fft_m;
       }
       else{
             fft_bias = fft_input->fft_bias_g;
+            kmin_fft  = fft_input->kmin_fft_g;
       }
 
-      double kmin_fft    = fft_input->kmin_fft;
       double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
       double Delta    = log(kmax_fft/kmin_fft)/(Nmaxd-1); 
       double *k      = make_1Darray(Nmax);
