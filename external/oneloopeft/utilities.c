@@ -368,42 +368,58 @@ long count_cols_in_file(char *fname)
 }
 
 
-void np_mat_fill(double complex (mat_func)(double complex, double complex, double), struct fft_struct *fft_input, double k, double mu, double complex **matrix)
+void np_mat_fill(double complex (mat_func)(double complex, double complex, double), struct fft_struct *fft_input, double k, double mu, long hm_switch, double complex **matrix)
 {
 	int Nmax = fft_input -> nfft;
 
 	int i,j;
 	double complex nu1, nu2;
 	for (i=0; i<Nmax+1; i++){
-		for (j=i; j<Nmax+1; j++){                        
-				nu1 = -0.5 * fft_input->etam_g[i];
-				nu2 = -0.5 * fft_input->etam_g[j];
-				
+		for (j=i; j<Nmax+1; j++){   
+				if (hm_switch == MATTER){                     
+					nu1 = -0.5 * fft_input->etam_m[i];
+					nu2 = -0.5 * fft_input->etam_m[j];
+				}
+				else {
+					nu1 = -0.5 * fft_input->etam_g[i];
+					nu2 = -0.5 * fft_input->etam_g[j];
+				}
 				matrix[i][j] = mat_func(nu1,nu2,mu);
 				matrix[j][i] = mat_func(nu1,nu2,mu);
 		}
 	}
 }
 
-void p_mat_fill(double complex (mat_func)(double complex, double), struct fft_struct *fft_input, double k, double mu, double complex *matrix)
+void p_mat_fill(double complex (mat_func)(double complex, double), struct fft_struct *fft_input, double k, double mu, long hm_switch, double complex *matrix)
 {
 	int Nmax = fft_input -> nfft;
 
 	int i;
 	double complex nu1;
 	for (i=0; i<Nmax+1; i++){
-		nu1 = -0.5 * fft_input->etam_g[i];
+		if (hm_switch == MATTER){                     
+			nu1 = -0.5 * fft_input->etam_m[i];
+		}
+		else {
+			nu1 = -0.5 * fft_input->etam_g[i];
+		}
+
 		matrix[i] = mat_func(nu1, mu);
 	}
 }
 
-void vec_fill(struct fft_struct *fft_input, double k, double complex *vec)
+void vec_fill(struct fft_struct *fft_input, double k, long hm_switch, double complex *vec)
 {
 	int Nmax = fft_input -> nfft;
 
 	int i,j;
 	for (i=0; i<Nmax+1; i++){
-		vec[i] = fft_input->cmsym_g[i] * cpow(k,fft_input->etam_g[i]);
+		if (hm_switch == MATTER){                     
+			vec[i] = fft_input->cmsym_m[i] * cpow(k,fft_input->etam_m[i]);
+		}
+		else {
+			vec[i] = fft_input->cmsym_g[i] * cpow(k,fft_input->etam_g[i]);
+		}
 	}
 }
 

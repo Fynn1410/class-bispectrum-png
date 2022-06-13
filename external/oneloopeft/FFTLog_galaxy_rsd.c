@@ -55,54 +55,58 @@ void rsd_0_FFTLog(struct fft_struct *fft_input, double k, double *np_loops, doub
 
       double *np = make_1Darray(6);
       double *p  = make_1Darray(2);
+      
+      // Linear cpow Spectrum vector for halos
+      double complex *vec_h = make_1D_c_array(Nmax+1);
+      vec_fill(fft_input, k, HALO, vec_h);
 
-      // Linear cpow Spectrum vector
-      double complex *vec = make_1D_c_array(Nmax+1);
-      vec_fill(fft_input, k, vec);
+      double complex *vec_h_min = make_1D_c_array(Nmax+1);
+      vec_fill(fft_input, fft_input->kmin_fft_g, HALO, vec_h_min);
 
-      double complex *vec_min = make_1D_c_array(Nmax+1);
-      vec_fill(fft_input, fft_input->kmin_fft, vec_min);
-
+      // Linear cpow Spectrum vector for matter
+      double complex *vec_m = make_1D_c_array(Nmax+1);
+      vec_fill(fft_input, k, MATTER, vec_m);
+      
       // FFTLog matrices non-propagator
       double complex **I2200_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(I2200, fft_input, k, 0., I2200_mat);
+      np_mat_fill(I2200, fft_input, k, 0., MATTER, I2200_mat);
       double complex **Idelta200_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(Idelta200, fft_input, k, 0., Idelta200_mat);
+      np_mat_fill(Idelta200, fft_input, k, 0., HALO, Idelta200_mat);
       double complex **IG200_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(IG200, fft_input, k, 0., IG200_mat);
+      np_mat_fill(IG200, fft_input, k, 0., HALO, IG200_mat);
       double complex **Idelta2delta200_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(Idelta2delta200, fft_input, k, 0., Idelta2delta200_mat);
+      np_mat_fill(Idelta2delta200, fft_input, k, 0., HALO, Idelta2delta200_mat);
       double complex **IG2G200_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(IG2G200, fft_input, k, 0., IG2G200_mat);
+      np_mat_fill(IG2G200, fft_input, k, 0., HALO, IG2G200_mat);
       double complex **Idelta2G200_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(Idelta2G200, fft_input, k, 0., Idelta2G200_mat);
-
+      np_mat_fill(Idelta2G200, fft_input, k, 0., HALO, Idelta2G200_mat);
+      
       // FFTLog matrices propagator
       double complex *I1300_mat   = make_1D_c_array(Nmax+1);
-      p_mat_fill(I1300, fft_input, k, 0., I1300_mat);
+      p_mat_fill(I1300, fft_input, k, 0., MATTER, I1300_mat);
       double complex *FG200_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(FG200, fft_input, k, 0., FG200_mat);
-
+      p_mat_fill(FG200, fft_input, k, 0., HALO, FG200_mat);
+      
       // non-propagator calculations
-      c_nonprop(vec, I2200_mat,           vec, Nmax+1, &np[0]);
-      c_nonprop(vec, Idelta200_mat,       vec, Nmax+1, &np[1]);
-      c_nonprop(vec, IG200_mat,           vec, Nmax+1, &np[2]);
-      c_nonprop(vec, Idelta2delta200_mat, vec, Nmax+1, &np[3]);
-      c_nonprop(vec, IG2G200_mat,         vec, Nmax+1, &np[4]);
-      c_nonprop(vec, Idelta2G200_mat,     vec, Nmax+1, &np[5]);
-
+      c_nonprop(vec_m, I2200_mat,           vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_h, Idelta200_mat,       vec_h, Nmax+1, &np[1]);
+      c_nonprop(vec_h, IG200_mat,           vec_h, Nmax+1, &np[2]);
+      c_nonprop(vec_h, Idelta2delta200_mat, vec_h, Nmax+1, &np[3]);
+      c_nonprop(vec_h, IG2G200_mat,         vec_h, Nmax+1, &np[4]);
+      c_nonprop(vec_h, Idelta2G200_mat,     vec_h, Nmax+1, &np[5]);
+      
       double Idelta2delta200_const;
-      c_nonprop(vec_min, Idelta2delta200_mat, vec_min, Nmax+1, &Idelta2delta200_const);
+      c_nonprop(vec_h_min, Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
 
       // propagator calculations
-      c_dot(vec, I1300_mat, Nmax+1, &p[0]);
-      c_dot(vec, FG200_mat, Nmax+1, &p[1]);
-
+      c_dot(vec_m, I1300_mat, Nmax+1, &p[0]);
+      c_dot(vec_h, FG200_mat, Nmax+1, &p[1]);
+           
       // adding factored out k and mu dependencies
       np_loops[0] = pow(k, 3.) * np[0];
       np_loops[1] = pow(k, 3.) * np[1];
       np_loops[2] = pow(k, 3.) * np[2];
-      np_loops[3] = pow(k, 3.) * np[3] - pow(fft_input->kmin_fft, 3.) * Idelta2delta200_const ;
+      np_loops[3] = pow(k, 3.) * np[3] - pow(fft_input->kmin_fft_g, 3.) * Idelta2delta200_const ;
       np_loops[4] = pow(k, 3.) * np[4];
       np_loops[5] = pow(k, 3.) * np[5];
 
@@ -134,31 +138,31 @@ void rsd_1_FFTLog(struct fft_struct *fft_input, double k, double mu, double *np_
 
       // Linear cpow Spectrum vector
       double complex *vec = make_1D_c_array(Nmax+1);
-      vec_fill(fft_input, k, vec);
+      vec_fill(fft_input, k, HALO, vec);
 
       // FFTLog matrices (non-propagator)
       double complex **I2201_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(I2201, fft_input, k, mu, I2201_mat);
+      np_mat_fill(I2201, fft_input, k, mu, HALO, I2201_mat);
       double complex **Idelta201_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(Idelta201, fft_input, k, mu, Idelta201_mat);
+      np_mat_fill(Idelta201, fft_input, k, mu, HALO, Idelta201_mat);
       double complex **IG201_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(IG201, fft_input, k, mu, IG201_mat);
+      np_mat_fill(IG201, fft_input, k, mu, HALO, IG201_mat);
       double complex **FG201_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(FG201, fft_input, k, mu, FG201_mat);
+      np_mat_fill(FG201, fft_input, k, mu, HALO, FG201_mat);
       double complex **J21101_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(J21101, fft_input, k, mu, J21101_mat);
+      np_mat_fill(J21101, fft_input, k, mu, HALO, J21101_mat);
       double complex **Jdelta201_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(Jdelta201, fft_input, k, mu, Jdelta201_mat);
+      np_mat_fill(Jdelta201, fft_input, k, mu, HALO, Jdelta201_mat);
       double complex **JG201_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(JG201, fft_input, k, mu, JG201_mat);
+      np_mat_fill(JG201, fft_input, k, mu, HALO, JG201_mat);
 
       // FFTLog matrices (propagator)
       double complex *I1301_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(I1301, fft_input, k, mu, I1301_mat);
+      p_mat_fill(I1301, fft_input, k, mu, HALO, I1301_mat);
       double complex *J12101_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(J12101, fft_input, k, mu, J12101_mat);
+      p_mat_fill(J12101, fft_input, k, mu, HALO, J12101_mat);
       double complex *J11201_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(J11201, fft_input, k, mu, J11201_mat);
+      p_mat_fill(J11201, fft_input, k, mu, HALO, J11201_mat);
       
       // non-propagator calculations
       c_nonprop(vec, I2201_mat,     vec, Nmax+1, &np[0]);
@@ -212,35 +216,35 @@ void rsd_2_FFTLog(struct fft_struct *fft_input, double k, double mu, double *np_
 
       // Linear cpow Spectrum vector
       double complex *vec = make_1D_c_array(Nmax+1);
-      vec_fill(fft_input, k, vec);
+      vec_fill(fft_input, k, HALO, vec);
 
       // FFTLog matrices (non-propagator)
       double complex **J21102_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(J21102, fft_input, k, mu, J21102_mat);
+      np_mat_fill(J21102, fft_input, k, mu, HALO, J21102_mat);
       double complex **Jdelta202_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(Jdelta202, fft_input, k, mu, Jdelta202_mat);
+      np_mat_fill(Jdelta202, fft_input, k, mu, HALO, Jdelta202_mat);
       double complex **JG202_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(JG202, fft_input, k, mu, JG202_mat);
+      np_mat_fill(JG202, fft_input, k, mu, HALO, JG202_mat);
       double complex **I2211_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(I2211, fft_input, k, mu, I2211_mat);
+      np_mat_fill(I2211, fft_input, k, mu, HALO, I2211_mat);
       double complex **J21111_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(J21111, fft_input, k, mu, J21111_mat);
+      np_mat_fill(J21111, fft_input, k, mu, HALO, J21111_mat);
       double complex **N11a_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(N11a, fft_input, k, mu, N11a_mat);
+      np_mat_fill(N11a, fft_input, k, mu, HALO, N11a_mat);
       double complex **N11b_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(N11b, fft_input, k, mu, N11b_mat);
+      np_mat_fill(N11b, fft_input, k, mu, HALO, N11b_mat);
       double complex **N11c_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(N11c, fft_input, k, mu, N11c_mat);
+      np_mat_fill(N11c, fft_input, k, mu, HALO, N11c_mat);
 
       // FFTLog matrices (propagator)
       double complex *J12102_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(J12102, fft_input, k, mu, J12102_mat);
+      p_mat_fill(J12102, fft_input, k, mu, HALO, J12102_mat);
       double complex *I1311_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(I1311, fft_input, k, mu, I1311_mat);
+      p_mat_fill(I1311, fft_input, k, mu, HALO, I1311_mat);
       double complex *J12111_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(J12111, fft_input, k, mu, J12111_mat);
+      p_mat_fill(J12111, fft_input, k, mu, HALO, J12111_mat);
       double complex *J11211_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(J11211, fft_input, k, mu, J11211_mat);
+      p_mat_fill(J11211, fft_input, k, mu, HALO, J11211_mat);
 
       // non-propagator calculations
       c_nonprop(vec, J21102_mat,    vec, Nmax+1, &np[0]);
@@ -296,19 +300,19 @@ void rsd_3_FFTLog(struct fft_struct *fft_input, double k, double mu, double *np_
 
       // Linear cpow Spectrum vector
       double complex *vec = make_1D_c_array(Nmax+1);
-      vec_fill(fft_input, k, vec);
+      vec_fill(fft_input, k, HALO, vec);
 
       // FFTLog matrices (non-propagator)
       double complex **J21112_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(J21112, fft_input, k, mu, J21112_mat);
+      np_mat_fill(J21112, fft_input, k, mu, HALO, J21112_mat);
       double complex **N12a_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(N12a, fft_input, k, mu, N12a_mat);
+      np_mat_fill(N12a, fft_input, k, mu, HALO, N12a_mat);
       double complex **N12b_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(N12b, fft_input, k, mu, N12b_mat);
+      np_mat_fill(N12b, fft_input, k, mu, HALO, N12b_mat);
 
       // FFTLog matrices (propagator)
       double complex *J12112_mat = make_1D_c_array(Nmax+1);
-      p_mat_fill(J12112, fft_input, k, mu, J12112_mat);
+      p_mat_fill(J12112, fft_input, k, mu, HALO, J12112_mat);
 
       // non-propagator calculations
       c_nonprop(vec, J21112_mat, vec, Nmax+1, &np[0]);
@@ -348,15 +352,15 @@ void rsd_4_FFTLog(struct fft_struct *fft_input, double k, double mu, double *np_
 
       // Linear cpow Spectrum vector
       double complex *vec = make_1D_c_array(Nmax+1);
-      vec_fill(fft_input, k, vec);
+      vec_fill(fft_input, k, HALO, vec);
 
       // FFTLog matrices (non-propagator)
       double complex **N22a_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(N22a, fft_input, k, mu, N22a_mat);
+      np_mat_fill(N22a, fft_input, k, mu, HALO, N22a_mat);
       double complex **N22b_mat   = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(N22b, fft_input, k, mu, N22b_mat);
+      np_mat_fill(N22b, fft_input, k, mu, HALO, N22b_mat);
       double complex **N22c_mat = make_2D_c_array(Nmax+1, Nmax+1);
-      np_mat_fill(N22c, fft_input, k, mu, N22c_mat);
+      np_mat_fill(N22c, fft_input, k, mu, HALO, N22c_mat);
 
       // non-propagator calculations
       c_nonprop(vec, N22a_mat, vec, Nmax+1, &np[0]);
@@ -375,8 +379,8 @@ double P22_new(struct fft_struct *fft_input, double k, double z, int cleanup)
       double complex **M22_mat = make_2D_c_array(Nmax+1, Nmax+1);
       double complex *vec1 = make_1D_c_array(Nmax+1);
 
-      vec_fill(fft_input, k, vec1);
-      np_mat_fill(I2200, fft_input, k, 0., M22_mat);
+      vec_fill(fft_input, k, MATTER, vec1);
+      np_mat_fill(I2200, fft_input, k, 0., MATTER, M22_mat);
 
       c_nonprop(vec1, M22_mat, vec1, Nmax+1, &result);
 
@@ -391,8 +395,8 @@ double P13_new(struct fft_struct *fft_input, double k, double z, int cleanup)
       double complex *M13_mat = make_1D_c_array(Nmax+1);
       double complex *vec1 = make_1D_c_array(Nmax+1);
 
-      vec_fill(fft_input, k, vec1);
-      p_mat_fill(I1300, fft_input, k, 0., M13_mat);
+      vec_fill(fft_input, k, MATTER, vec1);
+      p_mat_fill(I1300, fft_input, k, 0., MATTER, M13_mat);
 
       c_dot(M13_mat, vec1, Nmax+1, &result);
 
