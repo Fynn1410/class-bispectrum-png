@@ -193,7 +193,8 @@ typedef struct fft_struct
 {
 	int nfft;
 	int fft_first;
-	double kmin_fft;
+	double kmin_fft_g;
+	double kmin_fft_m;
 	double fft_bias_m;
 	double fft_bias_g;
 	fftw_complex *etam_m;  
