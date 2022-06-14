@@ -1674,14 +1674,26 @@ int fourier_init(
 
     // TODO: code only efficient and tested at z=0. Check other values of z / tau.
 
+    // switches of computing different power spectra using different techniques
     int rsd = 1; // 0 -> real space, 1 -> rsd FFTLog biased
     int fft = 1; // 0 -> DI, 1 -> FFT 
     int biased_tracers = 1; // 0 -> P_mm, 1 -> P_hh
+
+    // variables for the computation
+    double mu = 1.0;
+    double f  = 1.0;
+    double z  = 0.0;
+
+    int    N_FFTLog   = 128; // for a more precise calculation, gor for 256
+    double kmin_fft_m = 1.e-8;
+    double kmin_fft_g = 1.e-4;
+
+    // timing variables for the run
     struct timeval start, end;
     double elapsetime;
     gettimeofday(&start, NULL);
 
-    int NUM_DOCS = 6;
+    int NUM_DOCS = 8;
     char file_name[NUM_DOCS][50];
     // sprintf(file_name[0], "pm_FFTLog.txt");
     // sprintf(file_name[1], "pm_DI.txt");
@@ -1689,7 +1701,9 @@ int fourier_init(
     // sprintf(file_name[3], "pg_DI.txt");
     // sprintf(file_name[4], "NOIRvsWIR.txt");
     // sprintf(file_name[5], "FFTLog_new.txt");
-    sprintf(file_name[5], "FFTLog_rsd.txt");
+    // sprintf(file_name[5], "FFTLog_rsd.txt");
+    // sprintf(file_name[6], "rsd_0_elements.txt");
+    sprintf(file_name[7], "rsd_m_elements.txt");
     for (int i=0; i<NUM_DOCS; i++){
       if(remove(file_name[i]) == 0){
         fprintf(stderr, "%s succesfully deleted!\n", file_name[i]);
@@ -1721,6 +1735,71 @@ int fourier_init(
     // }
     // fclose(fpa);
 
+    /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
+    struct oneloop_fftlog_workspace fft_ws;
+
+    fft_ws -> plin_k          = make_1Darray(pfo->k_size);
+    fft_ws -> plin_nowiggle_k = make_1Darray(pfo->k_size);
+    for (index_k=0; index_k<pfo->k_size; index_k++) {
+      fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_cb, fft_ws -> plin_k[index_k], NULL);
+      if (pfo->k[index_k] < 15. && pfo->k[index_k] > 2.e-4){
+        fft_ws -> plin_nowiggle_k[index_k] = pk_Gfilter_nw(pba, ppm, pfo, pfo->k[index_k], 1.e-4, z);
+      }
+      else {
+        fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_cb, fft_ws -> plin_nowiggle_k[index_k], NULL);
+      }
+    }
+
+    if (fft == 1){
+      /* Setting the FFTLog parameters and calculating the etam and cmsym */
+      fft_ws -> fft_input -> nfft 	    = N_FFTLog;
+      fft_ws -> fft_input -> kmin_fft_m = kmin_fft_m; //for matter
+      fft_ws -> fft_input -> fft_bias_m = - 0.3;      
+      fft_ws -> fft_input -> kmin_fft_g = kmin_fft_g; //for halos
+      fft_ws -> fft_input -> fft_bias_g = - 1.6; 
+
+      fft_ws -> fft_input -> etam_m  = make_1D_c_array(N_FFTLog + 1);
+      fft_ws -> fft_input -> cmsym_m = make_1D_c_array(N_FFTLog + 1);
+      fft_ws -> fft_input -> etam_g  = make_1D_c_array(N_FFTLog + 1);
+      fft_ws -> fft_input -> cmsym_g = make_1D_c_array(N_FFTLog + 1);
+    
+      double kmax_fft_m = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft_m, fft_ws -> fft_input -> fft_bias_m);
+      double kmax_fft_g = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft_g, fft_ws -> fft_input -> fft_bias_g);
+    
+      double Delta_m = log(kmax_fft_m/(kmin_fft_m))/(N_FFTLog - 1); 
+      double *k_fft_m                 = make_1Darray(N_FFTLog);
+      fft_ws -> plin_k_fft_m          = make_1Darray(N_FFTLog);
+      fft_ws -> plin_nowiggle_k_fft_m = make_1Darray(N_FFTLog);
+
+      double Delta_g = log(kmax_fft_g/(kmin_fft_g))/(N_FFTLog - 1); 
+      double *k_fft_g                 = make_1Darray(N_FFTLog);
+      fft_ws -> plin_k_fft_g          = make_1Darray(N_FFTLog);
+      fft_ws -> plin_nowiggle_k_fft_g = make_1Darray(N_FFTLog);
+
+      for(int n=0; n<Nmax; n++){
+            k_fft_m[n] = kmin_fft_m * exp(Delta_m * n);
+            k_fft_g[n] = kmin_fft_g * exp(Delta_g * n);
+
+            fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_fft_m[n], z, pfo -> index_pk_cb, fft_ws -> plin_k_fft_m[n], NULL);
+            fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_fft_g[n], z, pfo -> index_pk_cb, fft_ws -> plin_k_fft_g[n], NULL);
+
+            if (k_fft_m[n] < 15. && k_fft_m[n] > 2.e-4){
+              fft_ws -> plin_nowiggle_k_fft_m[n] = pk_Gfilter_nw(pba, ppm, pfo, k_fft_m[n], 1.e-4, z);
+            }
+            else {
+              fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_fft_m[n], z, pfo -> index_pk_cb, fft_ws -> plin_nowiggle_k_fft_m[n], NULL);
+            }
+
+            if (k_fft_g[n] < 15. && k_fft_g[n] > 2.e-4){
+              fft_ws -> plin_nowiggle_k_fft_g[n] = pk_Gfilter_nw(pba, ppm, pfo, k_fft_g[n], 1.e-4, z);
+            }
+            else {
+              fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_fft_g[n], z, pfo -> index_pk_cb, fft_ws -> plin_nowiggle_k_fft_g[n], NULL);
+            }
+       }
+    }
+
+
     /* number of threads (always one if no openmp) */
     int number_of_threads=1;
     /* index of the thread (always 0 if no openmp) */
@@ -1747,7 +1826,7 @@ int fourier_init(
 
 #pragma omp parallel
         {
-          number_of_threads = omp_get_num_threads();
+          // number_of_threads = omp_get_num_threads();
         }
 #endif
 
