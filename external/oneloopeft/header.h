@@ -189,21 +189,6 @@ struct integrand_parameters2
 	size_t p22;
 };
 
-typedef struct fft_struct
-{
-	int nfft;
-	int fft_first;
-	double kmin_fft_g;
-	double kmin_fft_m;
-	double fft_bias_m;
-	double fft_bias_g;
-	fftw_complex *etam_m;  
-      fftw_complex *cmsym_m; 
-      fftw_complex *etam_g;  
-      fftw_complex *cmsym_g;
-       
-}fft_struct;
-
 #include "utilities.h"
 #include "FFTLog_ingredients.h"
 #include "FFTLog_matter_real.h"

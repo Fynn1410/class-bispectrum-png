@@ -5,6 +5,8 @@
 #include "ps_halo_1loop.h"
 #include "pspec_FFTLog_real.h"
 
+#include <complex.h>
+
 #ifndef __FOURIER__
 #define __FOURIER__
 
@@ -232,6 +234,104 @@ struct fourier_workspace {
   double dark_energy_correction; /** this is the ratio [g_wcdm(z_infinity)/g_lcdm(z_infinity)]^1.5
                                   * (power comes from Dolag et al. (2004) correction)
                                   * it is 1, if has_fld == _FALSE_ */
+
+  //@}
+
+};
+
+typedef struct fft_struct
+{
+	int nfft;
+	int fft_first;
+	double kmin_fft_g;
+	double kmin_fft_m;
+	double fft_bias_m;
+	double fft_bias_g;
+	fftw_complex *etam_m;  
+  fftw_complex *cmsym_m; 
+  fftw_complex *etam_g;  
+  fftw_complex *cmsym_g;
+       
+}fft_struct;
+
+typedef struct fft_matrices
+{
+  // Matter loops
+  double complex ** I2200_mat; 
+  double complex *  I1300_mat;
+
+  // Realspace (0-th moment in RSD) Biased loops
+  double complex ** Idelta200_mat; 
+  double complex ** IG200_mat; 
+  double complex ** Idelta2delta200_mat; 
+  double complex ** IG2G200_mat; 
+  double complex ** Idelta2G200_mat; 
+  double complex *  FG200_mat; 
+
+  // 1-st moment in RSD Biased loops
+  double complex ** I2201_mat; 
+  double complex ** Idelta201_mat; 
+  double complex ** IG201_mat; 
+  double complex ** FG201_mat; 
+  double complex ** J21101_mat; 
+  double complex ** Jdelta201_mat; 
+  double complex ** JG201_mat; 
+  double complex *  I1301_mat; 
+  double complex *  J12101_mat; 
+  double complex *  J11201_mat; 
+  
+  // 2-nd moment in RSD Biased loops
+  double complex ** J21102_mat;
+  double complex ** Jdelta202_mat;
+  double complex ** JG202_mat;
+  double complex ** I2211_mat;
+  double complex ** J21111_mat;
+  double complex ** N11_mat;
+  double complex *  J12102_mat;
+  double complex *  I1311_mat;
+  double complex *  J12111_mat;
+  double complex *  J11211_mat;
+
+  // 3-rd moment in RSD Biased loops
+  double complex ** J21112_mat;
+  double complex ** N12_mat;
+  double complex *  J12112_mat;
+
+  // 4-th moment in RSD Biased loops
+  double complex ** N22_mat;
+
+}fft_matrices;
+
+/**
+ * Structure containing variables, calculated in fourier and used only in nl_oneloopPT by various functions.
+ *
+ */
+
+struct oneloop_fftlog_workspace {
+
+  /** @name - quantitites used by nl_oneloopPT */
+
+  //@{
+
+  double * plin_k;          /** List of the linear power spectrum evaluated at the pfo->k[index_k] **/
+  double * plin_nowiggle_k; /** List of the non-wiggle part of the linear power spectrum evaluated at the pfo->k[index_k] **/
+
+  double * k_fft_m;               /** List of logarithmic k spacing used for FFTLog for matter **/
+  double * plin_k_fft_m;          /** List of the linear power spectrum evaluated at the logarithmic sampling of the FFTLog of k for matter **/
+  double * plin_nowiggle_k_fft_m; /** List of the non-wiggle part of the linear power spectrum evaluated at the logarithmic sampling of the FFTLog of k for matter **/
+
+  double * plin_k_fft_g;          /** List of the linear power spectrum evaluated at the logarithmic sampling of the FFTLog of k for galaxies **/
+  double * plin_nowiggle_k_fft_g; /** List of the non-wiggle part of the linear power spectrum evaluated at the logarithmic sampling of the FFTLog of k for galaxies **/
+
+
+  double sigma_v2; /** Value of the integrated linear power spectrum (for the UV- / IR-divergences of the integrals) **/
+
+  double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
+
+  struct fft_struct fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
+
+  // FFTLog matrices for the Loop-Integrals
+  struct fft_matrices fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
 
   //@}
 
