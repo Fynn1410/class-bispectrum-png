@@ -351,7 +351,7 @@ double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struc
     double *log_pknw = make_1Darray(nlines);
 
     for(i=0;i<nlines;i++){
-        pk_nw[i]    = pk_Gfilter_nw(pba, ppm, pfo, k_in[i], k_in[0]);
+        pk_nw[i]    = pk_Gfilter_nw(pba, ppm, pfo, k_in[i], k_in[0], z);
         log_k[i]    = log(k_in[i]);
         log_pknw[i] = log(pk_nw[i]);
         // printf("nw %d %12.6e %12.6e \n",i, k_in[i],pk_nw[i]);

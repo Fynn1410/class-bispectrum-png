@@ -24,7 +24,7 @@
  * @param k0            Input: smallest value of k, i.e. the largest scale
  * @return broadband component in unit of (Mpc)^3
  */
-double pk_Gfilter_nw(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k, double k0)    
+double pk_Gfilter_nw(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k, double k0, double z)    
 { 
     struct integrand_parameters2 par; 
     par.ppm = ppm;
@@ -46,7 +46,7 @@ double pk_Gfilter_nw(struct background *pba, struct primordial *ppm, struct four
     gsl_integration_qags(&F,logqmin, logqmax,0.0,1.0e-3,1000000,w,&result,&error);
     gsl_integration_workspace_free (w);
    
-    double pk0     = Pk_dlnPk(pba, ppm, pfo, k0, 0., LPOWER);
+    double pk0     = Pk_dlnPk(pba, ppm, pfo, k0, z, LPOWER);
     double ratio   = 1./(sqrt(2.*M_PI)* a) * result; 
     double out     =  EH_PS_nw(pba, ppm, pfo, k, k0, pk0) * ratio;
 
