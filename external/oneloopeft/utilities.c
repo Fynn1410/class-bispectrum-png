@@ -425,11 +425,28 @@ void vec_fill(struct fft_struct *fft_input, double k, long hm_switch, double com
 
 void c_matmul(double complex** matrix, double complex* arr, int rows, int cols, double complex* result)
 {
-
 	int i,j;
 	for (i=0; i<rows; i++){
 		for (j=0; j<cols; j++){
 			result[i] += matrix[i][j] * arr[j];
+		}
+	}
+}
+
+void c_matadd(double complex** matrix1, double complex** matrix2, int rows, int cols, double complex** result){
+	int i,j;
+	for (i=0; i<rows; i++){
+		for (j=0; j<cols; j++){
+			result[i][j] = matrix1[i][j] + matrix2[i][j];
+		}
+	}
+}
+
+void c_matadd3(double complex** matrix1, double complex** matrix2, double complex** matrix3, int rows, int cols, double complex** result){
+	int i,j;
+	for (i=0; i<rows; i++){
+		for (j=0; j<cols; j++){
+			result[i][j] = matrix1[i][j] + matrix2[i][j] + matrix3[i][j];
 		}
 	}
 }

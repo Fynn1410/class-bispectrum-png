@@ -24,6 +24,8 @@
 
 	void c_nonprop(double complex* arr1, double complex** matrix, double complex* arr2, int rows, double *result);
 	void c_matmul(double complex** matrix, double complex* arr, int rows, int cols, double complex* result);
+	void c_matadd(double complex** matrix1, double complex** matrix2, int rows, int cols, double complex** result);
+	void c_matadd3(double complex** matrix1, double complex** matrix2, double complex** matrix3, int rows, int cols, double complex** result);
 	void vecmult(double* arr1, double* arr2, int rows, double *result);
 	void c_dot(double complex* arr1, double complex* arr2, int rows, double * result);
 	void dot(double* arr1, double* arr2, int rows, double *result);
