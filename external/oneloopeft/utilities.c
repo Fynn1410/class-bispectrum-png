@@ -374,20 +374,41 @@ void np_mat_fill(double complex (mat_func)(double complex, double complex, doubl
 
 	int i,j;
 	double complex nu1, nu2;
-	for (i=0; i<Nmax+1; i++){
-		for (j=i; j<Nmax+1; j++){   
-				if (hm_switch == MATTER){                     
-					nu1 = -0.5 * fft_input->etam_m[i];
-					nu2 = -0.5 * fft_input->etam_m[j];
+
+    /* number of threads (always one if no openmp) */
+    int number_of_threads=1;
+    /* index of the thread (always 0 if no openmp) */
+    int thread=0;
+
+	#ifdef _OPENMP
+
+	#pragma omp parallel
+			{
+			number_of_threads = omp_get_num_threads();
+			}
+	#endif
+
+	#pragma omp parallel \
+		shared(Nmax, hm_switch, fft_input, matrix, mu)\
+		private(i, j, nu1, nu2) \
+		num_threads(number_of_threads)
+
+		{
+		#pragma omp for schedule (dynamic)
+		for (i=0; i<Nmax+1; i++){
+			for (j=0; j<Nmax+1; j++){   
+					if (hm_switch == MATTER){                     
+						nu1 = -0.5 * fft_input->etam_m[i];
+						nu2 = -0.5 * fft_input->etam_m[j];
+					}
+					else {
+						nu1 = -0.5 * fft_input->etam_g[i];
+						nu2 = -0.5 * fft_input->etam_g[j];
+					}
+					matrix[i][j] = mat_func(nu1,nu2,mu);
 				}
-				else {
-					nu1 = -0.5 * fft_input->etam_g[i];
-					nu2 = -0.5 * fft_input->etam_g[j];
-				}
-				matrix[i][j] = mat_func(nu1,nu2,mu);
-				matrix[j][i] = mat_func(nu1,nu2,mu);
+			}
 		}
-	}
 }
 
 void p_mat_fill(double complex (mat_func)(double complex, double), struct fft_struct *fft_input, double mu, long hm_switch, double complex *matrix)
@@ -396,15 +417,36 @@ void p_mat_fill(double complex (mat_func)(double complex, double), struct fft_st
 
 	int i;
 	double complex nu1;
-	for (i=0; i<Nmax+1; i++){
-		if (hm_switch == MATTER){                     
-			nu1 = -0.5 * fft_input->etam_m[i];
-		}
-		else {
-			nu1 = -0.5 * fft_input->etam_g[i];
-		}
+	    /* number of threads (always one if no openmp) */
+    int number_of_threads=1;
+    /* index of the thread (always 0 if no openmp) */
+    int thread=0;
 
-		matrix[i] = mat_func(nu1, mu);
+	#ifdef _OPENMP
+
+	#pragma omp parallel
+			{
+			number_of_threads = omp_get_num_threads();
+			}
+	#endif
+
+	#pragma omp parallel \
+		shared(Nmax, hm_switch, fft_input, matrix, mu)\
+		private(i, nu1) \
+		num_threads(number_of_threads)
+
+		{
+		#pragma omp for schedule (dynamic)
+		for (i=0; i<Nmax+1; i++){
+			if (hm_switch == MATTER){                     
+				nu1 = -0.5 * fft_input->etam_m[i];
+			}
+			else {
+				nu1 = -0.5 * fft_input->etam_g[i];
+			}
+
+			matrix[i] = mat_func(nu1, mu);
+		}
 	}
 }
 
