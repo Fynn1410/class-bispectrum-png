@@ -57,12 +57,12 @@ double pm_IR_LO(struct background * pba,
       f = p_nowiggle + p_wiggle;
     }
 
-    FILE *fpa;
-    char file_name[50];
-    sprintf(file_name, "NOIRvsWIR.txt");
-    fpa = fopen(file_name, "a");
-    fprintf(fpa, "%e %e %e %e %e\n", k, p_nowiggle, p_wiggle, plin, f);
-    fclose(fpa);
+    // FILE *fpa;
+    // char file_name[50];
+    // sprintf(file_name, "NOIRvsWIR.txt");
+    // fpa = fopen(file_name, "a");
+    // fprintf(fpa, "%e %e %e %e %e\n", k, p_nowiggle, p_wiggle, plin, f);
+    // fclose(fpa);
 
     return f;
 }
@@ -498,4 +498,61 @@ double pm_nowiggle_dst(struct background * pba,
   }
     
   return pknw_z;    
+}
+
+      /**
+ * Compute various moments of the matter power spectrum. For all moments, we need an integrand function and an integrator function
+ */
+
+double sigman2_integrand(double x, void *p)
+{
+	double f=0;
+	double result = 0;
+	double q = exp(x);
+
+	struct integrand_parameters2 pij;
+	pij = *((struct integrand_parameters2 *)p);
+
+      struct background *pba = pij.pba;
+      struct primordial *ppm = pij.ppm;
+      struct fourier *pfo    = pij.pfo;
+      double z 		           = pij.p4;
+      long 	 n 		           = pij.p14;
+      long   SPLIT           = pij.p15;
+      double window  = 1;
+      
+      double pm = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
+
+      f = 1/(6 * pow(M_PI, 2)) * pow(q, 2. * (n + 1) + 1) * pow(window, 2.) * pm;
+
+	return f;
+
+}
+
+
+double sigman(struct background * pba, struct primordial * ppm, struct fourier * pfo, double z, double k_min, double k_max, long n, long SPLIT)
+{
+      double result, error;
+      gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000000);
+
+
+      struct integrand_parameters2 par;
+      double logqmin = log(k_min);
+      double logqmax = log(k_max);
+
+      gsl_function F;
+      F.function = &sigman2_integrand;
+      F.params = &par;
+
+      par.ppm = ppm;
+      par.pba = pba;
+      par.pfo = pfo;
+	par.p4  = z;
+	par.p14 = n;
+      par.p15 = SPLIT;
+
+	gsl_integration_qags(&F,logqmin,logqmax,0.0,1.e-4,1000000,w,&result,&error);
+	gsl_integration_workspace_free (w);
+
+	return result;
 }

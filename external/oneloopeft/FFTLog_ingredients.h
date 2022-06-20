@@ -13,7 +13,3 @@ double FFT_kmax_Brent_solver(struct background * pba, struct primordial * ppm, s
 double FFT_kmax_Brent(double kmax, void *params);
 
 double FFT_window(double k, double kmin, double kmax, double kleft, double kright);
-
-double sigman2_integrand(double x, void *p);
-double sigman(struct background * pba, struct primordial * ppm, struct fourier * pfo, double z, double k_min, double k_max, long n, long SPLIT);
-
