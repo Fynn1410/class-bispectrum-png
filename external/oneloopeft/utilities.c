@@ -368,7 +368,7 @@ long count_cols_in_file(char *fname)
 }
 
 
-void np_mat_fill(double complex (mat_func)(double complex, double complex, double), struct fft_struct *fft_input, double k, double mu, long hm_switch, double complex **matrix)
+void np_mat_fill(double complex (mat_func)(double complex, double complex, double), struct fft_struct *fft_input, double mu, long hm_switch, double complex **matrix)
 {
 	int Nmax = fft_input -> nfft;
 
@@ -390,7 +390,7 @@ void np_mat_fill(double complex (mat_func)(double complex, double complex, doubl
 	}
 }
 
-void p_mat_fill(double complex (mat_func)(double complex, double), struct fft_struct *fft_input, double k, double mu, long hm_switch, double complex *matrix)
+void p_mat_fill(double complex (mat_func)(double complex, double), struct fft_struct *fft_input, double mu, long hm_switch, double complex *matrix)
 {
 	int Nmax = fft_input -> nfft;
 
