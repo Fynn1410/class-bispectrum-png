@@ -189,11 +189,140 @@ struct integrand_parameters2
 	size_t p22;
 };
 
+typedef struct fft_struct
+{
+	int nfft;
+	int fft_first;
+	double kmin_fft_g;
+	double kmin_fft_m;
+	double fft_bias_m;
+	double fft_bias_g;
+	double complex * etam_m;  
+    double complex * cmsym_m; 
+    double complex * etam_g;  
+    double complex * cmsym_g;
+       
+}fft_struct;
+
+typedef struct fft_matrices
+{
+  // Matter loops
+  double complex ** I2200_mat; 
+  double complex *  I1300_mat;
+
+  // Realspace (0-th moment in RSD) Biased loops
+  double complex ** Idelta200_mat; 
+  double complex ** IG200_mat; 
+  double complex ** Idelta2delta200_mat; 
+  double complex ** IG2G200_mat; 
+  double complex ** Idelta2G200_mat; 
+  double complex *  FG200_mat; 
+
+  // 1-st moment in RSD Biased loops
+  double complex ** I2201_mat; 
+  double complex ** Idelta201_mat; 
+  double complex ** IG201_mat; 
+  double complex ** FG201_mat; 
+  double complex ** J21101_mat; 
+  double complex ** Jdelta201_mat; 
+  double complex ** JG201_mat; 
+  double complex *  I1301_mat; 
+  double complex *  J12101_mat; 
+  double complex *  J11201_mat; 
+  
+  // 2-nd moment in RSD Biased loops
+  double complex ** J21102_mat;
+  double complex ** Jdelta202_mat;
+  double complex ** JG202_mat;
+  double complex ** I2211_mat;
+  double complex ** J21111_mat;
+  double complex ** N11a_mat;
+  double complex ** N11b_mat;
+  double complex ** N11c_mat;
+  double complex *  J12102_mat;
+  double complex *  I1311_mat;
+  double complex *  J12111_mat;
+  double complex *  J11211_mat;
+
+  // 3-rd moment in RSD Biased loops
+  double complex ** J21112_mat;
+  double complex ** N12a_mat;
+  double complex ** N12b_mat;
+  double complex *  J12112_mat;
+
+  // 4-th moment in RSD Biased loops
+  double complex ** N22a_mat;
+  double complex ** N22b_mat;
+  double complex ** N22c_mat;
+
+}fft_matrices;
+
+typedef struct rsd_bias
+{
+  double *np_bias_vec0;
+  double *p_bias_vec0;
+
+  double *np_bias_vec1;
+  double *p_bias_vec1;
+
+  double *np_bias_vec2;
+  double *p_bias_vec2;
+
+  double *np_bias_vec3;
+  double *p_bias_vec3;
+
+  double *np_bias_vec4;
+  double *p_bias_vec4;
+
+}rsd_bias;
+
+/**
+ * Structure containing variables, calculated in fourier and used only in nl_oneloopPT by various functions.
+ *
+ */
+
+struct oneloop_fftlog_workspace {
+
+  /** @name - quantitites used by nl_oneloopPT */
+
+  //@{
+
+  double z; /** Analyzed red-shift **/
+
+  double mu; /** Scalar-product between LoS-direction and direction of the analyzed wavenumber (normalized) **/
+
+  double f;  /** Velocity divergence growth rate **/
+
+  double sigma_v2; /** Value of the integrated linear power spectrum (for the UV- / IR-divergences of the integrals) **/
+
+  double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
+
+  struct fft_struct *fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
+
+  // FFTLog matrices for the Loop-Integrals
+  struct fft_matrices *fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
+
+  // Eulerian Biases
+  double b1;
+  double b2;
+  double bG2;
+  double btd;
+  double cs2;
+  double R2;
+
+  // RSD Bias vectors
+  struct rsd_bias *bias; /** Bias vector for distributing in the end on the loops **/
+
+  //@}
+
+};
+
 #include "utilities.h"
 #include "FFTLog_ingredients.h"
 #include "FFTLog_matter_real.h"
 #include "FFTLog_galaxy_real.h"
-#include "pspec_FFTLog_real.h"
 #include "FFTLog_galaxy_rsd.h"
+#include "pspec_FFTLog_real.h"
+#include "pspec_FFTLog_rsd.h"
 
 #endif

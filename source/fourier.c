@@ -13,7 +13,6 @@
 
 #include "fourier.h"
 #include <time.h>
-#include "/home/dennis/Software/class/external/oneloopeft/IR_res.h"
 
 /**
  * Return the P(k,z) for a given redshift z and pk type (_m, _cb)
@@ -1677,16 +1676,12 @@ int fourier_init(
     // switches of computing different power spectra using different techniques
     int rsd = 1; // 0 -> real space, 1 -> rsd FFTLog biased
     int fft = 1; // 0 -> DI, 1 -> FFT 
-    int biased_tracers = 1; // 0 -> P_mm, 1 -> P_hh
+    int biased_tracers = 0; // 0 -> P_mm, 1 -> P_hh
 
     // variables for the computation
     double mu = 1.0;
     double f  = 1.0;
     double z  = 0.0;
-
-    int    N_FFTLog   = 128; // for a more precise calculation, gor for 256
-    double kmin_fft_m = 1.e-8;
-    double kmin_fft_g = 1.e-4;
 
     // timing variables for the run
     struct timeval start, end;
@@ -1702,8 +1697,8 @@ int fourier_init(
     // sprintf(file_name[4], "NOIRvsWIR.txt");
     // sprintf(file_name[5], "FFTLog_new.txt");
     // sprintf(file_name[5], "FFTLog_rsd.txt");
-    // sprintf(file_name[6], "rsd_0_elements.txt");
-    sprintf(file_name[7], "rsd_m_elements.txt");
+    sprintf(file_name[6], "rsd_0_elements.txt");
+    // sprintf(file_name[7], "rsd_m_elements.txt");
     for (int i=0; i<NUM_DOCS; i++){
       if(remove(file_name[i]) == 0){
         fprintf(stderr, "%s succesfully deleted!\n", file_name[i]);
@@ -1736,67 +1731,29 @@ int fourier_init(
     // fclose(fpa);
 
     /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
-    struct oneloop_fftlog_workspace fft_ws;
+    struct oneloop_fftlog_workspace *fft_ws;
+    fft_ws = (struct oneloop_fftlog_workspace *)malloc(sizeof(struct oneloop_fftlog_workspace));
 
-    fft_ws -> plin_k          = make_1Darray(pfo->k_size);
-    fft_ws -> plin_nowiggle_k = make_1Darray(pfo->k_size);
-    for (index_k=0; index_k<pfo->k_size; index_k++) {
-      fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_cb, fft_ws -> plin_k[index_k], NULL);
-      if (pfo->k[index_k] < 15. && pfo->k[index_k] > 2.e-4){
-        fft_ws -> plin_nowiggle_k[index_k] = pk_Gfilter_nw(pba, ppm, pfo, pfo->k[index_k], 1.e-4, z);
-      }
-      else {
-        fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_cb, fft_ws -> plin_nowiggle_k[index_k], NULL);
-      }
-    }
+    fft_ws -> bias  = (struct rsd_bias *)malloc(sizeof(struct rsd_bias));
+
+    fft_ws -> z  = z;
+    fft_ws -> mu = mu;
+    fft_ws -> f  = f;
+
+    // CLASS-PT values page 30
+    fft_ws -> b1  =  2.0;
+    fft_ws -> b2  = -1.0;
+    fft_ws -> bG2 =  0.1;
+    fft_ws -> btd = -0.1;
+    fft_ws -> cs2 =  0.2;
+    fft_ws -> R2  =  5.0;
+
+    fft_ws -> sigma_v2 = sigman(pba, ppm, pfo, z, 1.e-5,  1.e3, -1, 142L); // Linear displacement field variance
+
+    fft_ws -> sigma_2_IR = IR_Sigma2(pba, ppm, pfo, z, 1e-4, 142L); // IR-Ressumation supression exponent
 
     if (fft == 1){
-      /* Setting the FFTLog parameters and calculating the etam and cmsym */
-      fft_ws -> fft_input -> nfft 	    = N_FFTLog;
-      fft_ws -> fft_input -> kmin_fft_m = kmin_fft_m; //for matter
-      fft_ws -> fft_input -> fft_bias_m = - 0.3;      
-      fft_ws -> fft_input -> kmin_fft_g = kmin_fft_g; //for halos
-      fft_ws -> fft_input -> fft_bias_g = - 1.6; 
-
-      fft_ws -> fft_input -> etam_m  = make_1D_c_array(N_FFTLog + 1);
-      fft_ws -> fft_input -> cmsym_m = make_1D_c_array(N_FFTLog + 1);
-      fft_ws -> fft_input -> etam_g  = make_1D_c_array(N_FFTLog + 1);
-      fft_ws -> fft_input -> cmsym_g = make_1D_c_array(N_FFTLog + 1);
-    
-      double kmax_fft_m = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft_m, fft_ws -> fft_input -> fft_bias_m);
-      double kmax_fft_g = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft_g, fft_ws -> fft_input -> fft_bias_g);
-    
-      double Delta_m = log(kmax_fft_m/(kmin_fft_m))/(N_FFTLog - 1); 
-      double *k_fft_m                 = make_1Darray(N_FFTLog);
-      fft_ws -> plin_k_fft_m          = make_1Darray(N_FFTLog);
-      fft_ws -> plin_nowiggle_k_fft_m = make_1Darray(N_FFTLog);
-
-      double Delta_g = log(kmax_fft_g/(kmin_fft_g))/(N_FFTLog - 1); 
-      double *k_fft_g                 = make_1Darray(N_FFTLog);
-      fft_ws -> plin_k_fft_g          = make_1Darray(N_FFTLog);
-      fft_ws -> plin_nowiggle_k_fft_g = make_1Darray(N_FFTLog);
-
-      for(int n=0; n<Nmax; n++){
-            k_fft_m[n] = kmin_fft_m * exp(Delta_m * n);
-            k_fft_g[n] = kmin_fft_g * exp(Delta_g * n);
-
-            fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_fft_m[n], z, pfo -> index_pk_cb, fft_ws -> plin_k_fft_m[n], NULL);
-            fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_fft_g[n], z, pfo -> index_pk_cb, fft_ws -> plin_k_fft_g[n], NULL);
-
-            if (k_fft_m[n] < 15. && k_fft_m[n] > 2.e-4){
-              fft_ws -> plin_nowiggle_k_fft_m[n] = pk_Gfilter_nw(pba, ppm, pfo, k_fft_m[n], 1.e-4, z);
-            }
-            else {
-              fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_fft_m[n], z, pfo -> index_pk_cb, fft_ws -> plin_nowiggle_k_fft_m[n], NULL);
-            }
-
-            if (k_fft_g[n] < 15. && k_fft_g[n] > 2.e-4){
-              fft_ws -> plin_nowiggle_k_fft_g[n] = pk_Gfilter_nw(pba, ppm, pfo, k_fft_g[n], 1.e-4, z);
-            }
-            else {
-              fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_fft_g[n], z, pfo -> index_pk_cb, fft_ws -> plin_nowiggle_k_fft_g[n], NULL);
-            }
-       }
+      FFTLog_rsd_init(pba, ppm, pfo, fft_ws);
     }
 
 
@@ -1833,7 +1790,7 @@ int fourier_init(
         abort = _FALSE_;
 
 #pragma omp parallel \
-      shared(pfo, pba, ppm, z, rsd, biased_tracers, fft, index_tau, abort) \
+      shared(pfo, pba, ppm, z, rsd, biased_tracers, fft, index_tau, fft_ws, abort) \
       private(index_k,thread,tspent,tstart,tstop, pk_oneloop) \
       num_threads(number_of_threads)
 
@@ -1858,13 +1815,11 @@ int fourier_init(
         else{
           if (rsd == 1){
             fprintf(stderr,"call rsd_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-                class_call_parallel(rsd_oneloop_FFTLog(pba,
+            class_call_parallel(rsd_oneloop_FFTLog(pba,
                                         ppm,
                                         pfo,
                                         pfo->k[index_k],
-                                        z,
-                                        1.0,
-                                        1.0,
+                                        fft_ws,
                                         142L,
                                         &pk_oneloop),
                           pfo->error_message,
