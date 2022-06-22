@@ -67,18 +67,18 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double P13_uv     = - 61./105. * pm_lin_IR * pow(k, 2.) * sigmav2;
     double P13_IR_tot = P13_IR + P13_uv;
     
-    double P22_dif = P22(fft_input, k, z, cleanup_mloops) - 2. * P22_new(fft_input, k, z, cleanup_mloops);
-    double P13_dif = P13(fft_input, k, z, cleanup_mloops) - 6. * P13_new(fft_input, k, z, cleanup_mloops);
+    // double P22_dif = P22(fft_input, k, z, cleanup_mloops) - 2. * P22_new(fft_input, k, z, cleanup_mloops);
+    // double P13_dif = P13(fft_input, k, z, cleanup_mloops) - 6. * P13_new(fft_input, k, z, cleanup_mloops);
     
-    FILE *fpa;
-    char file_name[50];
-    sprintf(file_name, "FFTLog_new.txt");
-    fpa = fopen(file_name, "a");
-    fprintf(fpa, "%e %e %e %e %e\n", k, P22(fft_input, k, z, cleanup_mloops), 2. * P22_new(fft_input, k, z, cleanup_mloops),P13(fft_input, k, z, cleanup_mloops),  6. * P13_new(fft_input, k, z, cleanup_mloops));
-    fclose(fpa);
+    // FILE *fpa;
+    // char file_name[50];
+    // sprintf(file_name, "FFTLog_new.txt");
+    // fpa = fopen(file_name, "a");
+    // fprintf(fpa, "%e %e %e %e %e\n", k, P22(fft_input, k, z, cleanup_mloops), 2. * P22_new(fft_input, k, z, cleanup_mloops),P13(fft_input, k, z, cleanup_mloops),  6. * P13_new(fft_input, k, z, cleanup_mloops));
+    // fclose(fpa);
 
-    fprintf(stderr, "P22 Diff: %e\n", P22_dif);
-    fprintf(stderr, "P13 Diff: %e\n", P13_dif);
+    // fprintf(stderr, "P22 Diff: %e\n", P22_dif);
+    // fprintf(stderr, "P13 Diff: %e\n", P13_dif);
 
     /* 
      * Compute the EFT counter-term contribution

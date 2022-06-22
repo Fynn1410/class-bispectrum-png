@@ -18,8 +18,8 @@
 
 	double *log10init_1Darray(long n, double inc, double xmin);
 
-  	void np_mat_fill(double complex (mat_func)(double complex, double complex, double), struct fft_struct *fft_input, double mu, long hm_switch, double complex **matrix);
-    void p_mat_fill(double complex (mat_func)(double complex, double), struct fft_struct *fft_input, double mu, long hm_switch, double complex *matrix);
+  	void np_mat_fill(double complex (mat_func)(double complex, double complex), struct fft_struct *fft_input, double mu, long hm_switch, double complex **matrix);
+    void p_mat_fill(double complex (mat_func)(double complex), struct fft_struct *fft_input, double mu, long hm_switch, double complex *matrix);
 	void vec_fill(struct fft_struct *fft_input, double k, long hm_switch, double complex *vec);
 
 	void c_nonprop(double complex* arr1, double complex** matrix, double complex* arr2, int rows, double *result);
