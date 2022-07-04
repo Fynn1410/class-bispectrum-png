@@ -672,8 +672,8 @@ double complex J21112y(double complex n1, double complex n2)
 
 double complex J12112x(double complex n1)
 {
-      double complex numerator   = (9*ctan(n1*M_PI));
-      double complex denominator = (224.*(-3 + n1)*(-2 + n1)*(-1 + n1)*n1*(1 + n1)*M_PI);
+      double complex numerator   = (-9*ctan(n1*M_PI));
+      double complex denominator = (224.*n1*(-6 + 5*n1 + 5*cpow(n1,2) - 5*cpow(n1,3) + cpow(n1,4))*M_PI);
       double complex out = numerator/denominator;
 
       return out;
@@ -681,8 +681,8 @@ double complex J12112x(double complex n1)
 
 double complex J12112y(double complex n1)
 {
-      double complex numerator   = (3*(2 - n1)*(-3 + 4*n1)*ctan(n1*M_PI));
-      double complex denominator = (224.*(-3 + n1)*(-2 + n1)*(-1 + n1)*n1*(1 + n1)*M_PI);
+      double complex numerator   = (9*ctan(n1*M_PI));
+      double complex denominator = (224.*(-6 + 5*n1 + 5*cpow(n1,2) - 5*cpow(n1,3) + cpow(n1,4))*M_PI);
       double complex out = numerator/denominator;
 
       return out;

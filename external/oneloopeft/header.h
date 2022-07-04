@@ -193,14 +193,14 @@ typedef struct fft_struct
 {
 	int nfft;
 	int fft_first;
-	double kmin_fft_g;
 	double kmin_fft_m;
+	double kmin_fft_g;
 	double fft_bias_m;
 	double fft_bias_g;
 	double complex * etam_m;  
-    double complex * cmsym_m; 
-    double complex * etam_g;  
-    double complex * cmsym_g;
+  double complex * cmsym_m; 
+  double complex * etam_g;  
+  double complex * cmsym_g;
        
 }fft_struct;
 
