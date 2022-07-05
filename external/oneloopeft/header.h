@@ -228,7 +228,6 @@ typedef struct fft_matrices
   double complex ** JG201_mat; 
   double complex *  I1301_mat; 
   double complex *  J12101_mat; 
-  double complex *  J11201_mat; 
   
   // 2-nd moment in RSD Biased loops
   double complex ** J21102x_mat;

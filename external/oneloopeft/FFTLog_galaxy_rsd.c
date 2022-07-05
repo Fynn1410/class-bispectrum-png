@@ -114,7 +114,7 @@ void rsd_1_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
       int Nmax     = fft_ws -> fft_input -> nfft;
 
       double *np = make_1Darray(7);
-      double *p  = make_1Darray(3);
+      double *p  = make_1Darray(2);
 
       // Linear cpow Spectrum vector
       double complex *vec = make_1D_c_array(Nmax+1);
@@ -132,7 +132,6 @@ void rsd_1_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
       // propagator calculations
       c_dot(vec, fft_ws -> fft_matrix -> I1301_mat,  Nmax+1, &p[0]);
       c_dot(vec, fft_ws -> fft_matrix -> J12101_mat, Nmax+1, &p[1]);
-      c_dot(vec, fft_ws -> fft_matrix -> J11201_mat, Nmax+1, &p[2]);
 
       // adding factored out k and mu dependencies
       np_loops[0] = cpow(k, 3.) * np[0];
@@ -145,7 +144,6 @@ void rsd_1_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
 
       p_loops[0] = cpow(k, 3.) * p[0];
       p_loops[1] = cpow(k, 3.) * p[1] * k * mu;
-      p_loops[2] = cpow(k, 3.) * p[2] * k * mu;
 }
 
 /*
@@ -168,7 +166,7 @@ void rsd_2_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
       int Nmax     = fft_ws -> fft_input -> nfft;
 
       double *np = make_1Darray(10);
-      double *p  = make_1Darray(5);
+      double *p  = make_1Darray(4);
 
       // Linear cpow Spectrum vector
       double complex *vec = make_1D_c_array(Nmax+1);
@@ -191,7 +189,6 @@ void rsd_2_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
       c_dot(vec, fft_ws -> fft_matrix -> J12102y_mat, Nmax+1, &p[1]);
       c_dot(vec, fft_ws -> fft_matrix -> I1311_mat,   Nmax+1, &p[2]);
       c_dot(vec, fft_ws -> fft_matrix -> J12111_mat,  Nmax+1, &p[3]);
-      c_dot(vec, fft_ws -> fft_matrix -> J11211_mat,  Nmax+1, &p[4]);
 
       // adding factored out k and mu dependencies
       np_loops[0] = cpow(k, 3.) * (np[0] + np[1] * cpow(mu,2.)) * cpow(k, 2.);
@@ -204,7 +201,6 @@ void rsd_2_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
       p_loops[0] = cpow(k, 3.) * (p[0] + p[1] * cpow(mu,2.)) * cpow(k, 2.);
       p_loops[1] = cpow(k, 3.) * p[2];
       p_loops[2] = cpow(k, 3.) * p[3] * k * mu;
-      p_loops[3] = cpow(k, 3.) * p[4] * k * mu;
 }
 
 /*
@@ -451,11 +447,6 @@ double complex J12101(double complex n1)
       return out;
 } 
 
-double complex J11201(double complex n1)
-{
-      return 0;
-} 
-
 double complex J21101(double complex n1, double complex n2)
 {
       double complex numerator   = ((-3 + n1 + n2)*(-3 + 2*n1 + 2*n2)*(-1 + 2*n1 + 2*n2)*(-5 + n1*(-4 + 7*n1 + 7*n2)));
@@ -588,11 +579,6 @@ double complex J12111(double complex n1)
       double complex out = numerator/denominator;
 
       return out;
-} 
-
-double complex J11211(double complex n1)
-{
-      return 0.;
 } 
 
 double complex J21111(double complex n1, double complex n2)

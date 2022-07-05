@@ -33,7 +33,6 @@ double complex JG201(double complex n1, double complex n2);
 
 double complex I1301(double complex n1);
 double complex J12101(double complex n1);
-double complex J11201(double complex n1);
 
 //2-nd moment
 double complex J21102x(double complex n1, double complex n2);
@@ -51,7 +50,6 @@ double complex J12102x(double complex n1);
 double complex J12102y(double complex n1);
 double complex I1311(double complex n1);
 double complex J12111(double complex n1);
-double complex J11211(double complex n1);
 
 //3-rd moment
 double complex J21112x(double complex n1, double complex n2);
