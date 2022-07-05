@@ -245,7 +245,7 @@ void rsd_3_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
 
       // adding factored out k and mu dependencies
       np_loops[0] = cpow(k, 3.) * (np[0] + np[1] * cpow(mu,2.)) * cpow(k, 2.);
-      np_loops[1] = cpow(k, 3.) * (np[0] * mu + np[1] * cpow(mu,3.)) * cpow(k, 3.) * mu;
+      np_loops[1] = cpow(k, 3.) * (np[2] * mu + np[3] * cpow(mu,3.)) * cpow(k, 3.);
 
       p_loops[0] = cpow(k, 3.) * (p[0] + p[1] * cpow(mu,2.)) * cpow(k, 2.);
 }
@@ -663,7 +663,7 @@ double complex J21112y(double complex n1, double complex n2)
 {
       double complex numerator   = ((-3 + 2*n1 + 2*n2)*(-1 + 2*n1 + 2*n2)*(26 + 56*cpow(n1,3)*n2 + (9 - 38*n2)*n2 + 
        2*cpow(n1,2)*(-19 + 2*n2*(-9 + 28*n2)) + n1*(9 + 4*n2*(-21 + n2*(-9 + 14*n2))))*Gamma(-2*n1)*Gamma(-2*n2)*
-       Gamma(2*(-2 + n1 + n2))*csin(n1*M_PI)*cpow(csin(n2*M_PI),2)*cpow(csin((n1 + n2)*M_PI),2));
+       Gamma(2*(-2 + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
       double complex denominator = (28.*(1 + n1)*(1 + n2)*cpow(M_PI,3));
       double complex out = numerator/denominator;
 
