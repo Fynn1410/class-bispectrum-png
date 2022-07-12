@@ -96,12 +96,12 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     
     //fprintf(stderr,"sigmav2 = %e, Plin = %e, P13_IR = %e, P13_UV = %e, P22__IR = %e, Plin_IR = %e, P_tot = %e\n",sigmav2, plin, P13_IR, P13_uv, P22_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), ph_tot);
     
-    // FILE *fpa;
-    // char file_name[50];
-    // sprintf(file_name, "pm_FFTLog.txt");
-    // fpa = fopen(file_name, "a");
-    // fprintf(fpa,"%e %e %e %e %e %e %e %e %e\n", k, pm_lin_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), P22_IR, P13_IR, P13_uv, P13_IR_tot, pm_ct, ph_tot);
-    // fclose(fpa);
+    FILE *fpa;
+    char file_name[50];
+    sprintf(file_name, "data/pm_FFTLog.txt");
+    fpa = fopen(file_name, "a");
+    fprintf(fpa,"%e %e %e %e %e %e %e %e\n", k, pm_lin_IR, P22_IR, P13_IR, P13_uv, P13_IR_tot, pm_ct, ph_tot);
+    fclose(fpa);
 
     *pk_nl = ph_tot;
     return _SUCCESS_;
@@ -122,7 +122,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
  */
 
 int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    double k,  double z, long SPLIT, double * pk_nl)
+                    double k,  double z, double b1, long SPLIT, double * pk_nl)
 
 { 
     static int cleanup_gloops = 0;
@@ -146,7 +146,7 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, HALO);
 
     //DL CLASS-PT values page 30
-    double b1  =  2.0;
+    // double b1  =  2.0;
     double b2  = -1.0;
     double bG2 =  0.1;
     double btd = -0.1;
@@ -186,10 +186,10 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     FILE *fpa;
     char file_name[50];
-    sprintf(file_name, "pg_FFTLog.txt");
+    sprintf(file_name, "data/pg_FFTLog.txt");
     fpa = fopen(file_name, "a");
-    fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-                k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+    fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+                k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
     fclose(fpa);
 
     *pk_nl = ph_tot;

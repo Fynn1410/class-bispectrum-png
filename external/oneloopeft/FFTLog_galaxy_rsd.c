@@ -289,7 +289,7 @@ double P22_new(struct fft_struct *fft_input, double k, double z, int cleanup)
       double complex *vec1 = make_1D_c_array(Nmax+1);
 
       vec_fill(fft_input, k, MATTER, vec1);
-      np_mat_fill(I2200, fft_input, 0., MATTER, M22_mat);
+      np_mat_fill(I2200, fft_input, MATTER, M22_mat);
 
       c_nonprop(vec1, M22_mat, vec1, Nmax+1, &result);
 
@@ -305,7 +305,7 @@ double P13_new(struct fft_struct *fft_input, double k, double z, int cleanup)
       double complex *vec1 = make_1D_c_array(Nmax+1);
 
       vec_fill(fft_input, k, MATTER, vec1);
-      p_mat_fill(I1300, fft_input, 0., MATTER, M13_mat);
+      p_mat_fill(I1300, fft_input, MATTER, M13_mat);
 
       c_dot(M13_mat, vec1, Nmax+1, &result);
 

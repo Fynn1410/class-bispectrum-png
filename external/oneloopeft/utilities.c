@@ -368,7 +368,7 @@ long count_cols_in_file(char *fname)
 }
 
 
-void np_mat_fill(double complex (mat_func)(double complex, double complex), struct fft_struct *fft_input, double mu, long hm_switch, double complex **matrix)
+void np_mat_fill(double complex (mat_func)(double complex, double complex), struct fft_struct *fft_input, long hm_switch, double complex **matrix)
 {
 	int Nmax = fft_input -> nfft;
 
@@ -389,7 +389,7 @@ void np_mat_fill(double complex (mat_func)(double complex, double complex), stru
 	#endif
 
 	#pragma omp parallel \
-		shared(Nmax, hm_switch, fft_input, matrix, mu)\
+		shared(Nmax, hm_switch, fft_input, matrix)\
 		private(i, j, nu1, nu2) \
 		num_threads(number_of_threads)
 
@@ -411,7 +411,7 @@ void np_mat_fill(double complex (mat_func)(double complex, double complex), stru
 		}
 }
 
-void p_mat_fill(double complex (mat_func)(double complex), struct fft_struct *fft_input, double mu, long hm_switch, double complex *matrix)
+void p_mat_fill(double complex (mat_func)(double complex), struct fft_struct *fft_input, long hm_switch, double complex *matrix)
 {
 	int Nmax = fft_input -> nfft;
 
@@ -431,7 +431,7 @@ void p_mat_fill(double complex (mat_func)(double complex), struct fft_struct *ff
 	#endif
 
 	#pragma omp parallel \
-		shared(Nmax, hm_switch, fft_input, matrix, mu)\
+		shared(Nmax, hm_switch, fft_input, matrix)\
 		private(i, nu1) \
 		num_threads(number_of_threads)
 

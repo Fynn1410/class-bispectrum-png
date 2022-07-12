@@ -1676,7 +1676,7 @@ int fourier_init(
     // switches of computing different power spectra using different techniques
     int rsd = 1; // 0 -> real space, 1 -> rsd FFTLog biased
     int fft = 1; // 0 -> DI, 1 -> FFT 
-    int biased_tracers = 0; // 0 -> P_mm, 1 -> P_hh
+    int biased_tracers = 1; // 0 -> P_mm, 1 -> P_hh
 
     // variables for the computation
     double mu = 1.0;
@@ -1688,74 +1688,84 @@ int fourier_init(
     double elapsetime;
     gettimeofday(&start, NULL);
 
-    int NUM_DOCS = 8;
-    char file_name[NUM_DOCS][50];
-    // sprintf(file_name[0], "pm_FFTLog.txt");
-    // sprintf(file_name[1], "pm_DI.txt");
-    // sprintf(file_name[2], "pg_FFTLog.txt");
-    // sprintf(file_name[3], "pg_DI.txt");
-    // sprintf(file_name[4], "NOIRvsWIR.txt");
-    // sprintf(file_name[5], "FFTLog_new.txt");
-    // sprintf(file_name[5], "FFTLog_rsd.txt");
-    sprintf(file_name[6], "rsd_0_elements.txt");
-    // sprintf(file_name[7], "rsd_m_elements.txt");
-    for (int i=0; i<NUM_DOCS; i++){
-      if(remove(file_name[i]) == 0){
-        fprintf(stderr, "%s succesfully deleted!\n", file_name[i]);
-      }
-      else{
-        fprintf(stderr, "%s could not be deleted!\n", file_name[i]);
-      }
-    }
+    // int NUM_DOCS = 1;
+    // char file_name[NUM_DOCS][50];
+    // char file_header[NUM_DOCS][90];
+    // sprintf(file_name[0], "data/pm_FFTLog.txt");
+    // sprintf(file_header[0], "k Plin P22 P13_IR P13_UV P13, Pm_ct P_mm\n");
+    // sprintf(file_name[1], "data/pm_DI.txt");
+    // sprintf(file_name[0], "data/pg_FFTLog.txt");
+    // sprintf(file_header[0], "k Plin Pm Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Ph_loop RSD0\n");
+    // sprintf(file_name[3], "data/pg_DI.txt");
+    // sprintf(file_name[4], "data/NOIRvsWIR.txt");
+    // sprintf(file_name[5], "data/FFTLog_new.txt");
+    // sprintf(file_name[0], "data/FFTLog_rsd.txt");
+    // sprintf(file_header[0], "k RSD_0 RSD_1 RSD_2 RSD_3 RSD_4 RSD mu\n");
+    // sprintf(file_name[6], "data/rsd_0_elements.txt");
+    // sprintf(file_name[7], "data/rsd_m_elements.txt");
+
+    // sprintf(file_name[0], "data/rsd_0.txt");
+    // sprintf(file_header[0], "k Plin Pm I2200 Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Pm_loop RSD0\n");
+    // sprintf(file_name[1], "data/rsd_1.txt");
+    // sprintf(file_header[1], "k Plin I2201 Idelta201 IG201 FG201 J21101 Jdelta201 JG201 I1301 J12101 RSD1\n");
+    // sprintf(file_name[2], "data/rsd_2.txt");
+    // sprintf(file_header[2], "k Plin J21102 Jdelta202 JG202 I2211 J21111 N11 J12102 I1311 J12111 RSD2\n");
+    // sprintf(file_name[3], "data/rsd_3.txt");
+    // sprintf(file_header[3], "k Plin J21112 N12 J12112 RSD3\n");
+    // sprintf(file_name[4], "data/rsd_4.txt");
+    // sprintf(file_header[4], "k Plin N22 RSD4\n");
+
+    // Velociraptor structure
+    // sprintf(file_name[1], "data/rsd_1_v.txt");
+    // sprintf(file_header[1], "k Plin b1 b1**2 b2 b1*b2 bs b1*bs b3 RSD1\n");
+    // sprintf(file_name[2], "data/rsd_2_v.txt");
+    // sprintf(file_header[2], "k Plin 0_1 b1_1 b1**2_1 b2_1 bs_1 0_2 b1_2 b1**2_2 b2_2 bs_2 RSD2\n");
+    // sprintf(file_name[3], "data/rsd_3_v.txt");
+    // sprintf(file_header[3], "k Plin 0_1 b1_1 0_2 b1_2 RSD3\n");
+
+    // FILE *fpa;
+    // for (int i=0; i<NUM_DOCS; i++){
+    //   fpa = fopen(file_name[i], "w");
+    //   fprintf(fpa, file_header[i]);
+    //   fclose(fpa);
+    // }
 
     // FILE *fpa;
     // char file_n[50];
-    // sprintf(file_n, "LinearPm_200.txt");
+    // sprintf(file_n, "data/LinearPm.txt");
     // fpa = fopen(file_n, "w");
 
     // double k;
     // double pk_cb;
 
-    // int    N = 1e4;
-    // double kmin = 1e-12;
-    // double kmax = 1e6;
+    // int    N = 1e3;
+    // double kmin = 1e-3;
+    // double kmax = 1;
     // double delta_k = log(kmax/kmin)/(N-1);
-    // double f;
-    // for (int i = 0; i < N; i++){
-    //   k  = kmin * exp(delta_k * i);
-    //   f = pm_IR_LO(pba, ppm, pfo, k, z, 142L);
+    // double ir;
+    // double nw;
+    // // for (int i = 0; i < N; i++){
+    // for (index_k=0; index_k<pfo->k_size; index_k++) {
+    //   // k  = kmin * exp(delta_k * i);
+    //   k = pfo->k[index_k];
+    //   if (pfo->k[index_k] > 0.001) {
+    //     ir = pm_IR_LO(pba, ppm, pfo, k, z, 142L);
+    //     nw = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, z, 142L);
 
-    //   fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k, z, pfo -> index_pk_cb, &pk_cb, NULL);
-    //   fprintf(fpa, "%e %e %e\n", k, pk_cb, f);
+    //     fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k, z, pfo -> index_pk_cb, &pk_cb, NULL);
+    //     fprintf(fpa, "%e %e\n", k, pk_cb);
+    //   }
     // }
     // fclose(fpa);
 
     /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
-    struct oneloop_fftlog_workspace *fft_ws;
-    fft_ws = (struct oneloop_fftlog_workspace *)malloc(sizeof(struct oneloop_fftlog_workspace));
+   
 
-    fft_ws -> bias  = (struct rsd_bias *)malloc(sizeof(struct rsd_bias));
-
-    fft_ws -> z  = z;
-    fft_ws -> mu = mu;
-    fft_ws -> f  = f;
-
-    // CLASS-PT values page 30
-    fft_ws -> b1  =  2.0;
-    fft_ws -> b2  = -1.0;
-    fft_ws -> bG2 =  0.1;
-    fft_ws -> btd = -0.1;
-    fft_ws -> cs2 =  0.2;
-    fft_ws -> R2  =  5.0;
-
-    fft_ws -> sigma_v2 = sigman(pba, ppm, pfo, z, 1.e-5,  1.e3, -1, 142L); // Linear displacement field variance
-
-    fft_ws -> sigma_2_IR = IR_Sigma2(pba, ppm, pfo, z, 1e-4, 142L); // IR-Ressumation supression exponent
+    double b1 = 2.0;
 
     if (fft == 1){
-      FFTLog_rsd_init(pba, ppm, pfo, fft_ws);
+      FFTLog_rsd_init(pba, ppm, pfo, z);
     }
-
 
     /* number of threads (always one if no openmp) */
     int number_of_threads=1;
@@ -1790,7 +1800,7 @@ int fourier_init(
         abort = _FALSE_;
 
 #pragma omp parallel \
-      shared(pfo, pba, ppm, z, rsd, biased_tracers, fft, index_tau, fft_ws, abort) \
+      shared(pfo, pba, ppm, z, rsd, biased_tracers, fft, index_tau, abort) \
       private(index_k,thread,tspent,tstart,tstop, pk_oneloop) \
       num_threads(number_of_threads)
 
@@ -1819,7 +1829,9 @@ int fourier_init(
                                         ppm,
                                         pfo,
                                         pfo->k[index_k],
-                                        fft_ws,
+                                        z,
+                                        f,
+                                        mu,
                                         142L,
                                         &pk_oneloop),
                           pfo->error_message,
@@ -1845,6 +1857,7 @@ int fourier_init(
                                         ppm,
                                         pfo,
                                         pfo->k[index_k],
+                                        b1,
                                         z,
                                         142L,
                                         &pk_oneloop),
