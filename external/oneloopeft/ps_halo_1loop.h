@@ -1,6 +1,6 @@
 #ifndef LINE_PS_PT_H
 #define LINE_PS_PT_H
-#include "cuba.h"
+#include "/home/dennis/Software/class/external/oneloopeft/library/Cuba-4.2.1/cuba.h"
 
 int PS_hh_G(
                struct precision * ppr,
