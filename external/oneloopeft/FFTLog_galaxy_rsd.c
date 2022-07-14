@@ -293,7 +293,7 @@ double P22_new(struct fft_struct *fft_input, double k, double z, int cleanup)
 
       c_nonprop(vec1, M22_mat, vec1, Nmax+1, &result);
 
-      return result * cpow(k,3.);
+      return result * 2. * cpow(k,3.);
 }
 
 double P13_new(struct fft_struct *fft_input, double k, double z, int cleanup)
@@ -309,7 +309,7 @@ double P13_new(struct fft_struct *fft_input, double k, double z, int cleanup)
 
       c_dot(M13_mat, vec1, Nmax+1, &result);
 
-      return result * cpow(k,3.);
+      return result * 6 * cpow(k,3.);
 }
 
 
@@ -349,7 +349,7 @@ double complex IG200(double complex n1, double complex n2)
 {
       double complex numerator   = ((-3 + 2*n1 + 2*n2)*(-1 + 2*n1 + 2*n2)*(6 + 7*n1 + 7*n2));
       double complex denominator = (56*n1*(1 + n1)*n2*(1 + n2));
-      double complex out         = numerator/denominator * J(n1, n2);
+      double complex out         = - numerator/denominator * J(n1, n2);
 
       return out;
 }
