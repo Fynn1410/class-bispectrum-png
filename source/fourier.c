@@ -1690,22 +1690,23 @@ int fourier_init(
 
     // int NUM_DOCS = 1;
     // char file_name[NUM_DOCS][50];
-    // char file_header[NUM_DOCS][90];
+    // char file_header[NUM_DOCS][100];
     // sprintf(file_name[0], "data/pm_FFTLog.txt");
-    // sprintf(file_header[0], "k Plin P22 P13_IR P13_UV P13, Pm_ct P_mm\n");
+    // sprintf(file_header[0], "k Plin P22 P13_IR P13_UV P13 P_ct P_mm\n");
     // sprintf(file_name[1], "data/pm_DI.txt");
     // sprintf(file_name[0], "data/pg_FFTLog.txt");
-    // sprintf(file_header[0], "k Plin Pm Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Ph_loop RSD0\n");
+    // sprintf(file_header[0], "k Plin P_mm P_ct Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Ph_loop RSD0\n");
     // sprintf(file_name[3], "data/pg_DI.txt");
     // sprintf(file_name[4], "data/NOIRvsWIR.txt");
     // sprintf(file_name[5], "data/FFTLog_new.txt");
     // sprintf(file_name[0], "data/FFTLog_rsd.txt");
     // sprintf(file_header[0], "k RSD_0 RSD_1 RSD_2 RSD_3 RSD_4 RSD mu\n");
-    // sprintf(file_name[6], "data/rsd_0_elements.txt");
-    // sprintf(file_name[7], "data/rsd_m_elements.txt");
+
+    // sprintf(file_name[0], "data/rsd_m_elements.txt");
+    // sprintf(file_header[0], "k Plin P22 P13_IR P13_UV P13 P_ct P_mm\n");
 
     // sprintf(file_name[0], "data/rsd_0.txt");
-    // sprintf(file_header[0], "k Plin Pm I2200 Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Pm_loop RSD0\n");
+    // sprintf(file_header[0], "k Plin P_mm P_ct P13_UV I2200 Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 I1300 FG200 Pm_loop RSD0\n");
     // sprintf(file_name[1], "data/rsd_1.txt");
     // sprintf(file_header[1], "k Plin I2201 Idelta201 IG201 FG201 J21101 Jdelta201 JG201 I1301 J12101 RSD1\n");
     // sprintf(file_name[2], "data/rsd_2.txt");
@@ -1857,8 +1858,8 @@ int fourier_init(
                                         ppm,
                                         pfo,
                                         pfo->k[index_k],
-                                        b1,
                                         z,
+                                        b1,
                                         142L,
                                         &pk_oneloop),
                           pfo->error_message,
