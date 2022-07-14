@@ -30,24 +30,6 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 {
     static int cleanup_mloops  = 0;
 
-    // setting fft_parameters
-    struct fft_struct *fft_input;
-	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
-
-	fft_input -> nfft 	    = 256;
-    fft_input -> kmin_fft_g = 1.e-4;
-	fft_input -> fft_bias_g = - 1.6;  //for halos
-	fft_input -> kmin_fft_m = 1.e-8;
-	fft_input -> fft_bias_m = - 0.3; //for matter
-
-    fft_input -> fft_first   = 1;
-	fft_input -> etam_m  	 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
-    fft_input -> cmsym_m     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
-    fft_input -> etam_g      = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
-    fft_input -> cmsym_g     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
-
-    FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, MATTER);
-
     double cs2 =  0.2;
 
     double k0         = 1.e-5;
@@ -62,8 +44,8 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double sup        = exp(-k * k * sigma2);
 
     double sigmav2    = sigman(pba, ppm, pfo, z, k0, k_max, -1, SPLIT);
-    double P22_IR     = P22(fft_input, k, z, cleanup_mloops);
-    double P13_IR     = pm_lin_IR * P13(fft_input, k, z, cleanup_mloops);
+    double P22_IR     = P22_new(pfo -> fft_ws -> fft_input, k, z, cleanup_mloops);
+    double P13_IR     = pm_lin_IR * P13_new(pfo -> fft_ws -> fft_input, k, z, cleanup_mloops);
     double P13_uv     = - 61./105. * pm_lin_IR * pow(k, 2.) * sigmav2;
     double P13_IR_tot = P13_IR + P13_uv;
     
@@ -96,12 +78,12 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     
     //fprintf(stderr,"sigmav2 = %e, Plin = %e, P13_IR = %e, P13_UV = %e, P22__IR = %e, Plin_IR = %e, P_tot = %e\n",sigmav2, plin, P13_IR, P13_uv, P22_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), ph_tot);
     
-    FILE *fpa;
-    char file_name[50];
-    sprintf(file_name, "data/pm_FFTLog.txt");
-    fpa = fopen(file_name, "a");
-    fprintf(fpa,"%e %e %e %e %e %e %e %e\n", k, pm_lin_IR, P22_IR, P13_IR, P13_uv, P13_IR_tot, pm_ct, ph_tot);
-    fclose(fpa);
+    // FILE *fpa;
+    // char file_name[50];
+    // sprintf(file_name, "data/pm_FFTLog.txt");
+    // fpa = fopen(file_name, "a");
+    // fprintf(fpa,"%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n", k, (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2)), P22_IR, P13_IR, P13_uv, P13_IR_tot, pm_ct, ph_tot);
+    // fclose(fpa);
 
     *pk_nl = ph_tot;
     return _SUCCESS_;
@@ -128,22 +110,22 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     static int cleanup_gloops = 0;
 
     // setting fft_parameters
-    struct fft_struct *fft_input;
-	fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
+    // struct fft_struct *fft_input;
+	// fft_input = (struct fft_struct *)malloc(sizeof(struct fft_struct));
 
-	fft_input -> nfft 	    = 256;
-	fft_input -> kmin_fft_g = 1.e-4;
-	fft_input -> fft_bias_g = - 1.6;  //for halos
-    fft_input -> kmin_fft_m = 1.e-8;
-	fft_input -> fft_bias_m = - 0.3; //for matter
+	// fft_input -> nfft 	    = 256;
+	// fft_input -> kmin_fft_g = 1.e-4;
+	// fft_input -> fft_bias_g = - 1.6;  //for halos
+    // fft_input -> kmin_fft_m = 1.e-8;
+	// fft_input -> fft_bias_m = - 0.3; //for matter
 
-    fft_input -> fft_first   = 1;
-	fft_input -> etam_m  	 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
-    fft_input -> cmsym_m     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
-    fft_input -> etam_g      = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
-    fft_input -> cmsym_g     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    // fft_input -> fft_first   = 1;
+	// fft_input -> etam_m  	 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    // fft_input -> cmsym_m     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    // fft_input -> etam_g      = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
+    // fft_input -> cmsym_g     = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(fft_input->nfft+1));
 
-    FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, HALO);
+    // FFT_compute_coeff(pba, ppm, pfo, z, fft_input, SPLIT, HALO);
 
     //DL CLASS-PT values page 30
     // double b1  =  2.0;
@@ -161,9 +143,10 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     /* 
      * Compute the 1loop IR-resummed loops of galaxy power spectrum
      */
-    double prop_term = pgloops_propag(fft_input, k, z, cleanup_gloops);
+    double prop_term = pgloops_propag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops);
     double *ps_hloops = make_1Darray(5);
-    pgloops_nonpropag(fft_input, k, z, cleanup_gloops, ps_hloops);
+    pgloops_nonpropag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops, ps_hloops);
+    // printf("%12.6e %12.6e %12.6e %12.6e %12.6e\n", ps_hloops[0], ps_hloops[1], ps_hloops[2], ps_hloops[3], ps_hloops[4]);
 
     double pb1b2      = b1 * b2  * ps_hloops[0];
     double pb1bg2     = 2. * b1 * bG2 * ps_hloops[1];
@@ -172,12 +155,13 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double pb2bg2     = b2 * bG2 * ps_hloops[4];
     double pb1b3nl    = 2. * b1 * (bG2 + 2./5. * btd) * pm_lin_IR * prop_term;
     double ph_loops   = pb1b2 + pb1bg2 + pb22+ pbg22 + pb2bg2 + pb1b3nl;
-
+    // printf("%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n", pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl);
     /* 
      * Compute the EFT counter-term contribution
      */
-    double pm_ct   = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) * pm_lin_IR;
+    double pm_ct   = - 2. * b1 * R2 * pow(k, 2.) * pm_lin_IR;
 
+    printf("%e\n", pm_1loop_IR);
     /* 
      * Compute the EFT counter-term contribution
      */
@@ -188,8 +172,8 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     char file_name[50];
     sprintf(file_name, "data/pg_FFTLog.txt");
     fpa = fopen(file_name, "a");
-    fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-                k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+    fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+                k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
     fclose(fpa);
 
     *pk_nl = ph_tot;
