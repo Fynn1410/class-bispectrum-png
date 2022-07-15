@@ -119,6 +119,9 @@ void rsd_1_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
       // Linear cpow Spectrum vector
       double complex *vec = make_1D_c_array(Nmax+1);
       vec_fill(fft_ws -> fft_input, k, HALO, vec);
+
+      double complex *vec_m = make_1D_c_array(Nmax+1);
+      vec_fill(fft_ws -> fft_input, k, MATTER, vec_m);
       
       // non-propagator calculations
       c_nonprop(vec, fft_ws -> fft_matrix -> I2201_mat,     vec, Nmax+1, &np[0]);
@@ -130,7 +133,7 @@ void rsd_1_FFTLog(struct oneloop_fftlog_workspace *fft_ws, double k, double mu, 
       c_nonprop(vec, fft_ws -> fft_matrix -> JG201_mat,     vec, Nmax+1, &np[6]);
 
       // propagator calculations
-      c_dot(vec, fft_ws -> fft_matrix -> I1301_mat,  Nmax+1, &p[0]);
+      c_dot(vec_m, fft_ws -> fft_matrix -> I1301_mat,  Nmax+1, &p[0]);
       c_dot(vec, fft_ws -> fft_matrix -> J12101_mat, Nmax+1, &p[1]);
 
       // adding factored out k and mu dependencies
@@ -431,8 +434,8 @@ double complex IG201(double complex n1, double complex n2)
 
 double complex FG201(double complex n1, double complex n2)
 {
-      double complex numerator   =  ((-6 + 5*n1 + 14*cpow(n1,2))*ctan(n1*M_PI));
-      double complex denominator = (448.*n1*(2 - n1 - 2*cpow(n1,2) + cpow(n1,3))*M_PI);
+      double complex numerator   =  -15. * ctan(n1*M_PI);
+      double complex denominator = 112.*n1*(-6. + 5*n1 + 5*cpow(n1,2) - 5* cpow(n1,3) + cpow(n1,4))*M_PI;
       double complex out         = numerator/denominator;
 
       return out;

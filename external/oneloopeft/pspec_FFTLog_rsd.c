@@ -110,33 +110,33 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     // fclose(fpa);
 
 
-    FILE *fpa0;
-    char file_name0[50];
-    sprintf(file_name0, "data/rsd_0.txt");
-    fpa0 = fopen(file_name0, "a");
-    double *np0 = make_1Darray(6);
-    double *p0 = make_1Darray(2);
-    vecmult(np_rsd_0, pfo -> fft_ws -> bias -> np_bias_vec0, 6, np0);
-    vecmult(p_rsd_0,  pfo -> fft_ws -> bias -> p_bias_vec0,  2, p0);
+    // FILE *fpa0;
+    // char file_name0[50];
+    // sprintf(file_name0, "data/rsd_0.txt");
+    // fpa0 = fopen(file_name0, "a");
+    // double *np0 = make_1Darray(6);
+    // double *p0 = make_1Darray(2);
+    // vecmult(np_rsd_0, pfo -> fft_ws -> bias -> np_bias_vec0, 6, np0);
+    // vecmult(p_rsd_0,  pfo -> fft_ws -> bias -> p_bias_vec0,  2, p0);
     
-    fprintf(fpa0, "%12.6e ", k);
-    fprintf(fpa0, "%12.6e ", pm_lin);
-    // fprintf(fpa0, "%12.6e ", pow(pfo -> fft_ws -> b1, 2.) *(pm_lin_IR + 2. * np_rsd_0[0] + 6. * pm_lin_IR * p_rsd_0[0] + P13_uv - 2. * pfo -> fft_ws -> cs2 * pow(k, 2.) * pm_lin_IR));
-    fprintf(fpa0, "%12.6e ", pow(pfo -> fft_ws -> b1, 2.) *(p_nowiggle + sup * p_wiggle * (1. + k * k * pfo -> fft_ws -> sigma_2_IR)) + np0[0] + p0[0] *  pm_lin_IR + pow(pfo -> fft_ws -> b1, 2.) * P13_uv + ct_0);
-    fprintf(fpa0, "%12.6e ", ct_0);
-    fprintf(fpa0, "%12.6e ", pow(pfo -> fft_ws -> b1, 2.) * P13_uv);
-    fprintf(fpa0, "%12.6e ", np0[0]);
-    fprintf(fpa0, "%12.6e ", np0[1]);
-    fprintf(fpa0, "%12.6e ", np0[2]);
-    fprintf(fpa0, "%12.6e ", np0[3]);
-    fprintf(fpa0, "%12.6e ", np0[4]);
-    fprintf(fpa0, "%12.6e ", np0[5]);
-    fprintf(fpa0, "%12.6e ", p0[0] * pm_lin_IR);
-    fprintf(fpa0, "%12.6e ", p0[1] * pm_lin_IR);
-    fprintf(fpa0, "%12.6e ", np_0 + pm_lin_IR * p_0);
-    fprintf(fpa0, "%12.6e", mom_0);  
-    fprintf(fpa0, "\n");
-    fclose(fpa0);
+    // fprintf(fpa0, "%12.6e ", k);
+    // fprintf(fpa0, "%12.6e ", pm_lin);
+    // // fprintf(fpa0, "%12.6e ", pow(pfo -> fft_ws -> b1, 2.) *(pm_lin_IR + 2. * np_rsd_0[0] + 6. * pm_lin_IR * p_rsd_0[0] + P13_uv - 2. * pfo -> fft_ws -> cs2 * pow(k, 2.) * pm_lin_IR));
+    // fprintf(fpa0, "%12.6e ", pow(pfo -> fft_ws -> b1, 2.) *(p_nowiggle + sup * p_wiggle * (1. + k * k * pfo -> fft_ws -> sigma_2_IR)) + np0[0] + p0[0] *  pm_lin_IR + pow(pfo -> fft_ws -> b1, 2.) * P13_uv + ct_0);
+    // fprintf(fpa0, "%12.6e ", ct_0);
+    // fprintf(fpa0, "%12.6e ", pow(pfo -> fft_ws -> b1, 2.) * P13_uv);
+    // fprintf(fpa0, "%12.6e ", np0[0]);
+    // fprintf(fpa0, "%12.6e ", np0[1]);
+    // fprintf(fpa0, "%12.6e ", np0[2]);
+    // fprintf(fpa0, "%12.6e ", np0[3]);
+    // fprintf(fpa0, "%12.6e ", np0[4]);
+    // fprintf(fpa0, "%12.6e ", np0[5]);
+    // fprintf(fpa0, "%12.6e ", p0[0] * pm_lin_IR);
+    // fprintf(fpa0, "%12.6e ", p0[1] * pm_lin_IR);
+    // fprintf(fpa0, "%12.6e ", np_0 + pm_lin_IR * p_0);
+    // fprintf(fpa0, "%12.6e", mom_0);  
+    // fprintf(fpa0, "\n");
+    // fclose(fpa0);
 
     double *np_prefactors_1 = make_1Darray(7);
     double *p_prefactors_1  = make_1Darray(2);
@@ -146,32 +146,33 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     double p_1   = 0.;
     dot(np_rsd_1, np_prefactors_1, 7, &np_1);
     dot(p_rsd_1,  p_prefactors_1,  2, &p_1);
-    double mom_1 = np_1 + pm_lin_IR * p_1 + pfo -> fft_ws -> b1 * pm_lin_IR * f * pow(mu,2.) - 2. * 2. * f * mu * k * pow(pfo -> fft_ws -> b1, 2.) * pm_lin_IR * (2. * k * sigmav2);
+    double I1301_UV = -25./189 * pow(k, 2.) * sigmav2 * pm_lin_IR; 
+    double mom_1 = np_1 + pm_lin_IR * p_1 + pfo -> fft_ws -> b1 * pm_lin_IR * f * pow(mu,2.) - 2. * 2. * f * mu * k * pow(pfo -> fft_ws -> b1, 2.) * pm_lin_IR * (2. * k * sigmav2) + I1301_UV;
 
-    // FILE *fpa1;
-    // char file_name1[50];
-    // sprintf(file_name1, "data/rsd_1.txt");
-    // fpa1 = fopen(file_name1, "a");
+    FILE *fpa1;
+    char file_name1[50];
+    sprintf(file_name1, "data/rsd_1.txt");
+    fpa1 = fopen(file_name1, "a");
 
-    // double *np1 = make_1Darray(7);
-    // double *p1 = make_1Darray(2);
-    // vecmult(np_rsd_1, np_prefactors_1, 7, np1);
-    // vecmult(p_rsd_1,  p_prefactors_1,  2, p1);
+    double *np1 = make_1Darray(7);
+    double *p1 = make_1Darray(2);
+    vecmult(np_rsd_1, np_prefactors_1, 7, np1);
+    vecmult(p_rsd_1,  p_prefactors_1,  2, p1);
 
-    // fprintf(fpa1, "%12.6e ", k);
-    // fprintf(fpa1, "%12.6e ", pm_lin);
-    // fprintf(fpa1, "%12.6e ", np1[0]);
-    // fprintf(fpa1, "%12.6e ", np1[1]);
-    // fprintf(fpa1, "%12.6e ", np1[2]);
-    // fprintf(fpa1, "%12.6e ", np1[3]);
-    // fprintf(fpa1, "%12.6e ", np1[4]);
-    // fprintf(fpa1, "%12.6e ", np1[5]);
-    // fprintf(fpa1, "%12.6e ", np1[6]);
-    // fprintf(fpa1, "%12.6e ", p1[0] * pm_lin_IR);
-    // fprintf(fpa1, "%12.6e ", p1[1] * pm_lin_IR);
-    // fprintf(fpa1, "%12.6e", mom_1);  
-    // fprintf(fpa1, "\n");
-    // fclose(fpa1);
+    fprintf(fpa1, "%12.6e ", k);
+    fprintf(fpa1, "%12.6e ", pm_lin);
+    fprintf(fpa1, "%12.6e ", np1[0]);
+    fprintf(fpa1, "%12.6e ", np1[1]);
+    fprintf(fpa1, "%12.6e ", np1[2]);
+    fprintf(fpa1, "%12.6e ", np1[3]);
+    fprintf(fpa1, "%12.6e ", np1[4]);
+    fprintf(fpa1, "%12.6e ", np1[5]);
+    fprintf(fpa1, "%12.6e ", np1[6]);
+    fprintf(fpa1, "%12.6e ", p1[0] * pm_lin_IR);
+    fprintf(fpa1, "%12.6e ", p1[1] * pm_lin_IR);
+    fprintf(fpa1, "%12.6e", mom_1);  
+    fprintf(fpa1, "\n");
+    fclose(fpa1);
 
     // // Velociraptor
     // fprintf(fpa1, "%12.6e ", k);
