@@ -532,24 +532,24 @@ double sigman2_integrand(double x, void *p)
 
 double sigman(struct background * pba, struct primordial * ppm, struct fourier * pfo, double z, double k_min, double k_max, long n, long SPLIT)
 {
-      double result, error;
-      gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000000);
+  double result, error;
+  gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000000);
 
 
-      struct integrand_parameters2 par;
-      double logqmin = log(k_min);
-      double logqmax = log(k_max);
+  struct integrand_parameters2 par;
+  double logqmin = log(k_min);
+  double logqmax = log(k_max);
 
-      gsl_function F;
-      F.function = &sigman2_integrand;
-      F.params = &par;
+  gsl_function F;
+  F.function = &sigman2_integrand;
+  F.params = &par;
 
-      par.ppm = ppm;
-      par.pba = pba;
-      par.pfo = pfo;
-	par.p4  = z;
-	par.p14 = n;
-      par.p15 = SPLIT;
+  par.ppm = ppm;
+  par.pba = pba;
+  par.pfo = pfo;
+  par.p4  = z;
+  par.p14 = n;
+  par.p15 = SPLIT;
 
 	gsl_integration_qags(&F,logqmin,logqmax,0.0,1.e-4,1000000,w,&result,&error);
 	gsl_integration_workspace_free (w);

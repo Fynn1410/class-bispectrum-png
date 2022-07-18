@@ -143,7 +143,9 @@ struct oneloop_fftlog_workspace {
 
   //@{
 
-  double sigma_v2; /** Value of the integrated linear power spectrum (for the UV- / IR-divergences of the integrals) **/
+  double sigma_v0; /** Value of the integrated linear power spectrum (for the UV- / IR-divergences of the integrals) **/
+
+  double sigma_v2; /** Value of the integrated linear power spectrum divided by q^2 (for the UV- / IR-divergences of the integrals) **/
 
   double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
 
