@@ -202,7 +202,6 @@ struct oneloop_fftlog_halo_rsd {
   double * J21111;
   double * N11x;
   double * N11y;
-
   double * J12102x;
   double * J12102y;
   double * I1311;
@@ -213,7 +212,6 @@ struct oneloop_fftlog_halo_rsd {
   double * J21112y;
   double * N12x;
   double * N12y;
-
   double * J12112x;
   double * J12112y;
   
