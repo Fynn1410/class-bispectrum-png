@@ -1,5 +1,3 @@
-
-
 double complex Gamma(double complex z);
 double complex J(double complex nu1, double complex nu2);
 double complex M1(double complex nu1, double complex nu2);
@@ -13,3 +11,5 @@ double FFT_kmax_Brent_solver(struct background * pba, struct primordial * ppm, s
 double FFT_kmax_Brent(double kmax, void *params);
 
 double FFT_window(double k, double kmin, double kmax, double kleft, double kright);
+
+int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fourier *pfo, double z);
