@@ -36,8 +36,6 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double k_max      = 1.e3;
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-    // grwoth factor, needs to be found within CLASS -> workaround: working with the time evolution of pm_nonwiggle
-    // double growth2    = pow(gsl_spline_eval(cosmo->DZ, z, NULL)/gsl_spline_eval(cosmo->DZ, 0., NULL), 2.);
     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, k0, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
     double sigma2     = IR_Sigma2(pba, ppm, pfo, z, k0, SPLIT);
@@ -75,7 +73,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
  */
 
 int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    double k,  double z, double b1, long SPLIT)
+                    double k,  double z, long SPLIT)
 
 { 
     static int cleanup_gloops = 0;
@@ -91,37 +89,16 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double prop_term = pgloops_propag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops);
     double *ps_hloops = make_1Darray(5);
     pgloops_nonpropag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops, ps_hloops);
-    // printf("%12.6e %12.6e %12.6e %12.6e %12.6e\n", ps_hloops[0], ps_hloops[1], ps_hloops[2], ps_hloops[3], ps_hloops[4]);
 
-    double pb1b2      = b1 * b2  * ps_hloops[0];
-    double pb1bg2     = 2. * b1 * bG2 * ps_hloops[1];
-    double pb22       = 0.25 * pow(b2, 2.) * ps_hloops[2];
-    double pbg22      = pow(bG2, 2.)  * ps_hloops[3];
-    double pb2bg2     = b2 * bG2 * ps_hloops[4];
-    double pb1b3nl    = 2. * b1 * (bG2 + 2./5. * btd) * pm_lin_IR * prop_term;
-    double ph_loops   = pb1b2 + pb1bg2 + pb22+ pbg22 + pb2bg2 + pb1b3nl;
-    // printf("%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n", pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl);
-    /* 
-     * Compute the EFT counter-term contribution
-     */
-    double pm_ct   = - 2. * b1 * R2 * pow(k, 2.) * pm_lin_IR;
+    pfo -> oneloop_fftloh_halo_real -> pmm     = pm_1loop_IR;
+    pfo -> oneloop_fftloh_halo_real -> pb1b2   = ps_hloops[0];
+    pfo -> oneloop_fftloh_halo_real -> pb1bg2  = ps_hloops[1];
+    pfo -> oneloop_fftloh_halo_real -> pb22    = ps_hloops[2];
+    pfo -> oneloop_fftloh_halo_real -> pbg22   = ps_hloops[3];
+    pfo -> oneloop_fftloh_halo_real -> pb2bg2  = ps_hloops[4];
+    pfo -> oneloop_fftloh_halo_real -> pb1b3nl = pm_lin_IR * prop_term;
+    pfo -> oneloop_fftloh_halo_real -> pm_ct   = pow(k, 2.) * pm_lin_IR;
 
-    // printf("%e\n", pm_1loop_IR);
-    /* 
-     * Compute the EFT counter-term contribution
-     */
-    double ph_tot  = pow(b1, 2.) * pm_1loop_IR + pm_ct + ph_loops;
-
-
-    // FILE *fpa;
-    // char file_name[50];
-    // sprintf(file_name, "data/pg_FFTLog.txt");
-    // fpa = fopen(file_name, "a");
-    // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-    //             k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
-    // fclose(fpa);
-
-    *pk_nl = ph_tot;
     return _SUCCESS_;
 }
 
