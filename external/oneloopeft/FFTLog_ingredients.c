@@ -461,7 +461,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
     double kmin_fft_g = 1.e-4;
 
     /* Setting the FFTLog parameters and calculating the etam and cmsym */
-    pfo -> fft_ws -> fft_input -> nfft 	     = N_FFTLog;
+    pfo -> fft_ws -> fft_input -> nfft 	   = N_FFTLog;
     pfo -> fft_ws -> fft_input -> fft_bias_m = - 0.3;  
     pfo -> fft_ws -> fft_input -> kmin_fft_m = kmin_fft_m;    
     pfo -> fft_ws -> fft_input -> fft_bias_g = - 1.6; 
@@ -474,17 +474,6 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
     FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input, 142L, HALO);
     FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input, 142L, MATTER);
-
-    /* Setting the bias vectors */
-    // CLASS-PT values page 30
-    double b1  =  2.0;
-    double b2  = -1.0;
-    double bG2 =  0.1;
-    double btd = -0.1;
-    double cs2 =  0.2;
-    double R2  =  5.0;
-
-    FFTLog_fill_bias_vector(pfo, b1, b2, bG2, btd, cs2, R2);
 
     /* Setting the matrices */
 
