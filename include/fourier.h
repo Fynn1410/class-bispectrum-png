@@ -169,6 +169,38 @@ struct oneloop_fftlog_workspace {
 
 };
 
+struct oneloop_fftlog_workspace {
+
+  /** @name - quantitites used by nl_oneloopPT */
+
+  //@{
+
+  double sigma_v0; /** Value of the integrated linear power spectrum (for the UV- / IR-divergences of the integrals) **/
+
+  double sigma_v2; /** Value of the integrated linear power spectrum divided by q^2 (for the UV- / IR-divergences of the integrals) **/
+
+  double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
+
+  struct fft_struct *fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
+
+  // FFTLog matrices for the Loop-Integrals
+  struct fft_matrices *fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
+
+  // Eulerian Biases
+  double b1;
+  double b2;
+  double bG2;
+  double btd;
+  double cs2;
+  double R2;
+
+  // RSD Bias vectors
+  struct rsd_bias *bias; /** Bias vector for distributing in the end on the loops **/
+
+  //@}
+
+};
+
 struct fourier {
 
   /** @name - input parameters initialized by user in input module
@@ -283,6 +315,16 @@ struct fourier {
                        */
 
   double ** ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
+  double * pk_halo_nl; /**< Total halo power spectrum (nonlinear) in real space.
+                          Only depends on indices index_k:
+                          ln_pk[index_k]
+                       */
+
+  double * pk_halo_rsd_nl; /**< Total halo power spectrum (nonlinear) in redshift space.
+                          Only depends on indices index_k:
+                          ln_pk[index_k]
+                       */
 
   double * sigma8;   /**< sigma8[index_pk] */
 

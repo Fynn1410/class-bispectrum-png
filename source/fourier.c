@@ -1219,8 +1219,6 @@ int fourier_init(
   struct fourier_workspace nw;
   struct fourier_workspace * pnw;
 
-  double pk_oneloop;
-
   /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
         from the perturbations structure to the fourier structure */
   pfo->has_pk_matter = ppt->has_pk_matter;
@@ -1673,101 +1671,17 @@ int fourier_init(
 
     // TODO: code only efficient and tested at z=0. Check other values of z / tau.
 
-    // switches of computing different power spectra using different techniques
-    int rsd = 1; // 0 -> real space, 1 -> rsd FFTLog biased
-    int fft = 1; // 0 -> DI, 1 -> FFT 
-    int biased_tracers = 1; // 0 -> P_mm, 1 -> P_hh
+    // Variables for the results
+      double pk_mm_oneloop;
+      double pk_hh_oneloop;
+      double pk_hh_rsd_oneloop;
 
     // variables for the computation
-    double mu = 1.0;
-    double f  = 1.0;
     double z  = 0.0;
 
-    // timing variables for the run
-    struct timeval start, end;
-    double elapsetime;
-    gettimeofday(&start, NULL);
-
-    // int NUM_DOCS = 1;
-    // char file_name[NUM_DOCS][50];
-    // char file_header[NUM_DOCS][100];
-    // sprintf(file_name[0], "data/pm_FFTLog.txt");
-    // sprintf(file_header[0], "k Plin P22 P13_IR P13_UV P13 P_ct P_mm\n");
-    // sprintf(file_name[1], "data/pm_DI.txt");
-    // sprintf(file_name[0], "data/pg_FFTLog.txt");
-    // sprintf(file_header[0], "k Plin P_mm P_ct Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Ph_loop RSD0\n");
-    // sprintf(file_name[3], "data/pg_DI.txt");
-    // sprintf(file_name[4], "data/NOIRvsWIR.txt");
-    // sprintf(file_name[5], "data/FFTLog_new.txt");
-    // sprintf(file_name[0], "data/FFTLog_rsd.txt");
-    // sprintf(file_header[0], "k RSD_0 RSD_1 RSD_2 RSD_3 RSD_4 RSD mu\n");
-
-    // sprintf(file_name[0], "data/rsd_m_elements.txt");
-    // sprintf(file_header[0], "k Plin P22 P13_IR P13_UV P13 P_ct P_mm\n");
-
-    // sprintf(file_name[0], "data/rsd_0.txt");
-    // sprintf(file_header[0], "k Plin P_mm P_ct P13_UV I2200 Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 I1300 FG200 Pm_loop RSD0\n");
-    // sprintf(file_name[1], "data/rsd_1.txt");
-    // sprintf(file_header[1], "k Plin I2201 Idelta201 IG201 FG201 J21101 Jdelta201 JG201 I1301 J12101 RSD1\n");
-    // sprintf(file_name[2], "data/rsd_2.txt");
-    // sprintf(file_header[2], "k Plin J21102 Jdelta202 JG202 I2211 J21111 N11 J12102 I1311 J12111 RSD2\n");
-    // sprintf(file_name[3], "data/rsd_3.txt");
-    // sprintf(file_header[3], "k Plin J21112 N12 J12112 RSD3\n");
-    // sprintf(file_name[4], "data/rsd_4.txt");
-    // sprintf(file_header[4], "k Plin N22 RSD4\n");
-
-    // Velociraptor structure
-    // sprintf(file_name[1], "data/rsd_1_v.txt");
-    // sprintf(file_header[1], "k Plin b1 b1**2 b2 b1*b2 bs b1*bs b3 RSD1\n");
-    // sprintf(file_name[2], "data/rsd_2_v.txt");
-    // sprintf(file_header[2], "k Plin 0_1 b1_1 b1**2_1 b2_1 bs_1 0_2 b1_2 b1**2_2 b2_2 bs_2 RSD2\n");
-    // sprintf(file_name[3], "data/rsd_3_v.txt");
-    // sprintf(file_header[3], "k Plin 0_1 b1_1 0_2 b1_2 RSD3\n");
-
-    // FILE *fpa;
-    // for (int i=0; i<NUM_DOCS; i++){
-    //   fpa = fopen(file_name[i], "w");
-    //   fprintf(fpa, file_header[i]);
-    //   fclose(fpa);
-    // }
-
-    // FILE *fpa;
-    // char file_n[50];
-    // sprintf(file_n, "data/LinearPm.txt");
-    // fpa = fopen(file_n, "w");
-
-    // double k;
-    // double pk_cb;
-
-    // int    N = 1e3;
-    // double kmin = 1e-3;
-    // double kmax = 1;
-    // double delta_k = log(kmax/kmin)/(N-1);
-    // double ir;
-    // double nw;
-    // // for (int i = 0; i < N; i++){
-    // for (index_k=0; index_k<pfo->k_size; index_k++) {
-    //   // k  = kmin * exp(delta_k * i);
-    //   k = pfo->k[index_k];
-    //   if (pfo->k[index_k] > 0.001) {
-    //     ir = pm_IR_LO(pba, ppm, pfo, k, z, 142L);
-    //     nw = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, z, 142L);
-
-    //     fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k, z, pfo -> index_pk_cb, &pk_cb, NULL);
-    //     fprintf(fpa, "%e %e\n", k, pk_cb);
-    //   }
-    // }
-    // fclose(fpa);
-
     /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
-   
-
-    double b1 = 2.0;
-
-    if (fft == 1){
-      FFTLog_rsd_init(pba, ppm, pfo, z);
-    }
-
+    FFTLog_rsd_init(pba, ppm, pfo, z);
+  
     /* number of threads (always one if no openmp) */
     int number_of_threads=1;
     /* index of the thread (always 0 if no openmp) */
@@ -1794,14 +1708,14 @@ int fourier_init(
 
 #pragma omp parallel
         {
-          // number_of_threads = omp_get_num_threads();
+          number_of_threads= omp_get_num_threads();
         }
 #endif
 
         abort = _FALSE_;
 
 #pragma omp parallel \
-      shared(pfo, pba, ppm, z, rsd, biased_tracers, fft, index_tau, abort) \
+      shared(pfo, pba, ppm, z, index_tau, abort) \
       private(index_k,thread,tspent,tstart,tstop, pk_oneloop) \
       num_threads(number_of_threads)
 
@@ -1818,94 +1732,46 @@ int fourier_init(
         tstart = omp_get_wtime();
 #endif
 
-        if (pfo->k[index_k] <= 0.001) {
-          fprintf(stderr,"copy linear value for k/h=%e\n",pfo->k[index_k] / pba->h);
-          fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, pfo->k[index_k], z, pfo -> index_pk_m, &pk_oneloop, NULL);
-          pfo->ln_pk_nl[pfo->index_pk_m][(pfo->ln_tau_size-1)*pfo->k_size+index_k] = log(pk_oneloop);
-        }
-        else{
-          if (rsd == 1){
-            fprintf(stderr,"call rsd_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-            class_call_parallel(rsd_oneloop_FFTLog(pba,
-                                        ppm,
-                                        pfo,
-                                        pfo->k[index_k],
-                                        z,
-                                        f,
-                                        mu,
-                                        142L,
-                                        &pk_oneloop),
-                          pfo->error_message,
-                          pfo->error_message);
-           }
-          else{
-            if (fft == 1){
-              if (biased_tracers == 0){
-                fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-                class_call_parallel(pm_IR_FFTLog(pba,
-                                        ppm,
-                                        pfo,
-                                        pfo->k[index_k],
-                                        z,
-                                        142L,
-                                        &pk_oneloop),
-                          pfo->error_message,
-                          pfo->error_message);
-              }
-              else {
-                fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-                class_call_parallel(pg_IR_FFTLog(pba,
-                                        ppm,
-                                        pfo,
-                                        pfo->k[index_k],
-                                        z,
-                                        b1,
-                                        142L,
-                                        &pk_oneloop),
-                          pfo->error_message,
-                          pfo->error_message);
-              }
-          }
-            else if(fft == 0){
-              if (biased_tracers == 0){
-                fprintf(stderr,"call PS_mm_G for k/h=%e\n",pfo->k[index_k] / pba->h);
-                class_call_parallel(PS_mm_G(ppr,
-                                  pba,
-                                  ppt,
+          // fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+          class_call_parallel(pm_IR_FFTLog(pba,
                                   ppm,
                                   pfo,
                                   pfo->k[index_k],
                                   z,
-                                  _TRUE_,
-                                  _TRUE_,
                                   142L,
-                                  &pk_oneloop),
-                          pfo->error_message,
-                          pfo->error_message);
-                }
-              else{
-                fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
-                class_call_parallel(PS_hh_G(ppr,
-                                  pba,
-                                  ppt,
-                                  ppm,
-                                  pfo,
-                                  pfo->k[index_k],
-                                  z,
-                                  _TRUE_,
-                                  _TRUE_,
-                                  142L,
-                                  &pk_oneloop),
-                          pfo->error_message,
-                          pfo->error_message);
-              }
-            }
-          }
-          pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
-            = sqrt(pk_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
+                                  &pk_mm_oneloop),
+                    pfo->error_message,
+                    pfo->error_message);
 
-          pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_oneloop);
-        }
+          // fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+          class_call_parallel(pg_IR_FFTLog(pba,
+                                  ppm,
+                                  pfo,
+                                  pfo->k[index_k],
+                                  z,
+                                  142L,
+                                  &pk_hh_oneloop),
+                    pfo->error_message,
+                    pfo->error_message);
+
+          // fprintf(stderr,"call rsd_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+          class_call_parallel(rsd_oneloop_FFTLog(pba,
+                                  ppm,
+                                  pfo,
+                                  pfo->k[index_k],
+                                  z,
+                                  142L,
+                                  &pk_hh_rsd_oneloop),
+                    pfo->error_message,
+                    pfo->error_message);
+          
+          pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
+            = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
+
+          pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);
+          pfo->pk_halo_nl[index_k]     = pk_hh_oneloop;
+          pfo->pk_halo_rsd_nl[index_k] = pk_hh_rsd_oneloop;     
+      }
 
 #ifdef _OPENMP
       tstop = omp_get_wtime();
@@ -2134,6 +2000,11 @@ int fourier_indices(
       class_alloc(pfo->ln_pk_nl[index_pk],pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
       if (pfo->ln_tau_size > 1)
         class_alloc(pfo->ddln_pk_nl[index_pk],pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
+    }
+
+    if (pfo->method == nl_oneloopPT) {
+      class_alloc(pfo->pk_halo_nl,pfo->k_size*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->pk_halo_rsd_nl,pfo->k_size*sizeof(double*),pfo->error_message);
     }
   }
 
