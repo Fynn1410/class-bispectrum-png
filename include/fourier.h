@@ -113,25 +113,6 @@ typedef struct fft_matrices
 
 }fft_matrices;
 
-typedef struct rsd_bias
-{
-  double *np_bias_vec0;
-  double *p_bias_vec0;
-
-  double *np_bias_vec1;
-  double *p_bias_vec1;
-
-  double *np_bias_vec2;
-  double *p_bias_vec2;
-
-  double *np_bias_vec3;
-  double *p_bias_vec3;
-
-  double *np_bias_vec4;
-  double *p_bias_vec4;
-
-}rsd_bias;
-
 /**
  * Structure containing variables, calculated in fourier and used only in nl_oneloopPT by various functions.
  *
@@ -162,40 +143,84 @@ struct oneloop_fftlog_workspace {
   double cs2;
   double R2;
 
-  // RSD Bias vectors
-  struct rsd_bias *bias; /** Bias vector for distributing in the end on the loops **/
-
   //@}
 
 };
 
-struct oneloop_fftlog_workspace {
+struct oneloop_fftlog_halo_real {
 
-  /** @name - quantitites used by nl_oneloopPT */
+  /** @name - terms in the real space bias expansion at one-loop */
+
+  //@{
+  double * pmm;
+  double * pb1b2;
+  double * pb1bg2;
+  double * pb22;
+  double * pbg22;
+  double * pb2bg2;
+  double * pb1b3nl;
+  double * pct;
+  //@}
+
+};
+
+struct oneloop_fftlog_halo_rsd {
+
+  /** @name - terms in the redshift space bias expansion at one-loop */
 
   //@{
 
-  double sigma_v0; /** Value of the integrated linear power spectrum (for the UV- / IR-divergences of the integrals) **/
+  //0-th moment
+  double * I2200;
+  double * Idelta200;
+  double * IG200;
+  double * Idelta2delta200;
+  double * IG2G200;
+  double * Idelta2G200;
+  double * I1300;
+  double * FG200;
 
-  double sigma_v2; /** Value of the integrated linear power spectrum divided by q^2 (for the UV- / IR-divergences of the integrals) **/
+  //1-st moment
+  double * I2201;
+  double * Idelta201;
+  double * IG201;
+  double * FG201;
+  double * J21101;
+  double * Jdelta201;
+  double * JG201;
+  double * I1301;
+  double * J12101;
 
-  double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
+  //2-nd moment
+  double * J21102x;
+  double * J21102y;
+  double * Jdelta202x;
+  double * Jdelta202y;
+  double * JG202x;
+  double * JG202y;
+  double * I2211;
+  double * J21111;
+  double * N11x;
+  double * N11y;
 
-  struct fft_struct *fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
+  double * J12102x;
+  double * J12102y;
+  double * I1311;
+  double * J12111;
 
-  // FFTLog matrices for the Loop-Integrals
-  struct fft_matrices *fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
+  //3-rd moment
+  double * J21112x;
+  double * J21112y;
+  double * N12x;
+  double * N12y;
 
-  // Eulerian Biases
-  double b1;
-  double b2;
-  double bG2;
-  double btd;
-  double cs2;
-  double R2;
-
-  // RSD Bias vectors
-  struct rsd_bias *bias; /** Bias vector for distributing in the end on the loops **/
+  double * J12112x;
+  double * J12112y;
+  
+  //4-th moment
+  double * N22x;
+  double * N22y;
+  double * N22z;
 
   //@}
 
@@ -315,16 +340,7 @@ struct fourier {
                        */
 
   double ** ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
-
-  double * pk_halo_nl; /**< Total halo power spectrum (nonlinear) in real space.
-                          Only depends on indices index_k:
-                          ln_pk[index_k]
-                       */
-
-  double * pk_halo_rsd_nl; /**< Total halo power spectrum (nonlinear) in redshift space.
-                          Only depends on indices index_k:
-                          ln_pk[index_k]
-                       */
+              
 
   double * sigma8;   /**< sigma8[index_pk] */
 
@@ -375,9 +391,21 @@ struct fourier {
  
   /** @name - parameters for the oneloop FFTLog method */
 
+  struct oneloop_fftlog_halo_real * pk_halo_nl; /**< Total halo power spectrum (nonlinear) in real space.
+                          Only depends on indices index_k:
+                          ln_pk[index_k]
+                       */
+
+  struct oneloop_fftlog_halo_rsd * pk_halo_rsd_nl; /**< Total halo power spectrum (nonlinear) in redshift space.
+                          Only depends on indices index_k:
+                          ln_pk[index_k]
+                          */
+
   //@{
   struct oneloop_fftlog_workspace * fft_ws;
   //@}
+
+
 
   /** @name - technical parameters */
 

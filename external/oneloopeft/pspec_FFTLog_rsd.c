@@ -12,7 +12,7 @@
 #include "header.h"
 
 int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 double k, double z, double f, double mu, long SPLIT, double * pk_nl)
+                 double k, double z, long SPLIT)
 {
 
     // getting the linear power spectrum

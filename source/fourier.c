@@ -1749,8 +1749,7 @@ int fourier_init(
                                   pfo,
                                   pfo->k[index_k],
                                   z,
-                                  142L,
-                                  &pk_hh_oneloop),
+                                  142L),
                     pfo->error_message,
                     pfo->error_message);
 
@@ -1760,17 +1759,14 @@ int fourier_init(
                                   pfo,
                                   pfo->k[index_k],
                                   z,
-                                  142L,
-                                  &pk_hh_rsd_oneloop),
+                                  142L),
                     pfo->error_message,
                     pfo->error_message);
           
           pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
             = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
-          pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);
-          pfo->pk_halo_nl[index_k]     = pk_hh_oneloop;
-          pfo->pk_halo_rsd_nl[index_k] = pk_hh_rsd_oneloop;     
+          pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
       }
 
 #ifdef _OPENMP
@@ -2002,10 +1998,6 @@ int fourier_indices(
         class_alloc(pfo->ddln_pk_nl[index_pk],pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
     }
 
-    if (pfo->method == nl_oneloopPT) {
-      class_alloc(pfo->pk_halo_nl,pfo->k_size*sizeof(double*),pfo->error_message);
-      class_alloc(pfo->pk_halo_rsd_nl,pfo->k_size*sizeof(double*),pfo->error_message);
-    }
   }
 
   return _SUCCESS_;
