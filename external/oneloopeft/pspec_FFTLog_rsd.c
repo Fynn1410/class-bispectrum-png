@@ -12,7 +12,7 @@
 #include "header.h"
 
 int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 int index_k, double z, long SPLIT)
+                 int index_k, double z, double f, double mu, long SPLIT)
 {
 
     double k = pfo->k[index_k];
@@ -24,24 +24,11 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     double sigmav2   = pfo -> fft_ws -> sigma_v2;
 
     // Integrals calculation
-    double *np_rsd_0 = make_1Darray(6);
-    double *p_rsd_0  = make_1Darray(2);
-    rsd_0_FFTLog(pfo -> fft_ws, k, np_rsd_0, p_rsd_0);
-
-    double *np_rsd_1 = make_1Darray(7);
-    double *p_rsd_1  = make_1Darray(2);
-    rsd_1_FFTLog(pfo -> fft_ws, k, mu, np_rsd_1, p_rsd_1);
-
-    double *np_rsd_2 = make_1Darray(6);
-    double *p_rsd_2  = make_1Darray(3);
-    rsd_2_FFTLog(pfo -> fft_ws, k, mu, np_rsd_2, p_rsd_2);
-
-    double *np_rsd_3 = make_1Darray(2);
-    double *p_rsd_3  = make_1Darray(1);
-    rsd_3_FFTLog(pfo -> fft_ws, k, mu, np_rsd_3, p_rsd_3);
-
-    double *np_rsd_4 = make_1Darray(1);
-    rsd_4_FFTLog(pfo -> fft_ws, k, mu, np_rsd_4);
+    rsd_0_FFTLog(pfo, index_k);
+    rsd_1_FFTLog(pfo, index_k,  mu);
+    rsd_2_FFTLog(pfo, index_k,  mu);
+    rsd_3_FFTLog(pfo, index_k,  mu);
+    rsd_4_FFTLog(pfo, index_k,  mu);
 
     // Bringing everything together
     double np_0  = 0.;
