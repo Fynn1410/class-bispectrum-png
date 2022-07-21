@@ -445,60 +445,60 @@ double FFT_kmax_Brent_solver(struct background * pba,
 int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fourier *pfo, double z){
     
       /* Allocate all the storing arrays */
-      pfo -> oneloop_fftloh_halo_real -> pmm = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_real -> pb1b2 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_real -> pb1bg2 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_real -> pb22 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_real -> pbg22 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_real -> pb2bg2 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_real -> pb1b3nl = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_real -> pct = make_1Darray(pfo->k_size);     
+      pfo -> oneloop_fftlog_halo_real -> pmm = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_real -> pb1b2 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_real -> pb1bg2 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_real -> pb22 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_real -> pbg22 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_real -> pb2bg2 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_real -> pb1b3nl = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_real -> pct = make_1Darray(pfo->k_size);     
     
 
-      pfo -> oneloop_fftloh_halo_rsd -> I2200 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> Idelta200 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> IG200 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> Idelta2delta200 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> IG2G200 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> Idelta2G200 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> I1300 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> FG200 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> I2200 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> Idelta200 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> IG200 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> Idelta2delta200 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> IG2G200 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> Idelta2G200 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> I1300 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> FG200 = make_1Darray(pfo->k_size);
 
-      pfo -> oneloop_fftloh_halo_rsd -> I2201 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> Idelta201 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> IG201 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> FG201 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J21101 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> Jdelta201 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> JG201 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> I1301 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J12101 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> I2201 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> Idelta201 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> IG201 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> FG201 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J21101 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> Jdelta201 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> JG201 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> I1301 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J12101 = make_1Darray(pfo->k_size);
 
-      pfo -> oneloop_fftloh_halo_rsd -> J21102x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J21102y = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> Jdelta202x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> Jdelta202y = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> JG202x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> JG202y = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> I2211 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J21111 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> N11x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> N11y = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J12102x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J12102y = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> I1311 = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J12111 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J21102x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J21102y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> Jdelta202x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> Jdelta202y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> JG202x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> JG202y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> I2211 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J21111 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> N11x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> N11y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J12102x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J12102y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> I1311 = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J12111 = make_1Darray(pfo->k_size);
 
-      pfo -> oneloop_fftloh_halo_rsd -> J21112x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J21112y = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> N12x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> N12y = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J12112x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> J12112y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J21112x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J21112y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> N12x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> N12y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J12112x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> J12112y = make_1Darray(pfo->k_size);
       
-      pfo -> oneloop_fftloh_halo_rsd -> N22x = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> N22y = make_1Darray(pfo->k_size);
-      pfo -> oneloop_fftloh_halo_rsd -> N22z = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> N22x = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> N22y = make_1Darray(pfo->k_size);
+      pfo -> oneloop_fftlog_halo_rsd -> N22z = make_1Darray(pfo->k_size);
 
 
       pfo -> fft_ws = (struct oneloop_fftlog_workspace *)malloc(sizeof(struct oneloop_fftlog_workspace));

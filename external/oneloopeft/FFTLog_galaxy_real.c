@@ -49,7 +49,7 @@
 void pgloops_nonpropag(struct fft_struct  *fft_input, double k, double z, int cleanup, double *pg_loops)
 {
       int Nmax     = fft_input -> nfft;
-
+      // fprintf(stderr,"%d %e %e\n", Nmax, fft_input -> kmin_fft_g, fft_input -> fft_bias_g);
       static double P_b2b2_ls = 0.;
       static gsl_matrix_complex *M_cIdelta2_mat;
       static gsl_matrix_complex *M_cIcG2_mat;
@@ -165,6 +165,8 @@ void pgloops_nonpropag(struct fft_struct  *fft_input, double k, double z, int cl
       pg_loops[2] = pow(k,3.) * GSL_REAL(out_cIdelta2delta2_complex) - P_b2b2_ls;
       pg_loops[3] = pow(k,3.) * GSL_REAL(out_cIcG2cG2_complex);
       pg_loops[4] = pow(k,3.) * GSL_REAL(out_cIdelta2cG2_complex);
+
+      // printf("%12.6e %12.6e %12.6e %12.6e %12.6e\n", pg_loops[0], pg_loops[1], pg_loops[2], pg_loops[3], pg_loops[4]);
 
       gsl_vector_complex_free(cmk_vec);
 
