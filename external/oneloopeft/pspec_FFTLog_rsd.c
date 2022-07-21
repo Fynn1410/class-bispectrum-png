@@ -12,54 +12,16 @@
 #include "header.h"
 
 int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 double k, double z, long SPLIT)
+                 int index_k, double z, long SPLIT)
 {
+
+    double k = pfo->k[index_k];
 
     // getting the linear power spectrum
     double pm_lin_IR = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
     double pm_lin    = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     double sigmav0   = pfo -> fft_ws -> sigma_v0;
     double sigmav2   = pfo -> fft_ws -> sigma_v2;
-
-    // Distributing vectors for the biases and moment expansion factors, which will be applied on the loops
-
-    // 1-st moment      
-    double *np_expans_vec1 = make_1Darray(7);
-    double *p_expans_vec1  = make_1Darray(2);
-    np_expans_vec1[0] = 2.* f * pow(mu, 2.);
-    np_expans_vec1[1] = 2.* f * pow(mu, 2.);
-    np_expans_vec1[2] = 2.* f * pow(mu, 2.);
-    np_expans_vec1[3] = 2.* f * pow(mu, 2.);
-    np_expans_vec1[4] = 2.* 2. * f * mu * k;
-    np_expans_vec1[5] = 2.* 2. * f * mu * k;
-    np_expans_vec1[6] = 2.* 2. * f * mu * k;
-    p_expans_vec1[0] = 2.* f * pow(mu, 2.);
-    p_expans_vec1[1] = 2.* 2. * f * mu * k;
-
-    // 2-nd moment
-    double *np_expans_vec2 = make_1Darray(6);
-    double *p_expans_vec2  = make_1Darray(3);
-    np_expans_vec2[0] = pow(f * k * mu, 2.);
-    np_expans_vec2[1] = pow(f * k * mu, 2.);
-    np_expans_vec2[2] = pow(f * k * mu, 2.);
-    np_expans_vec2[3] = pow(f, 2.) * pow(mu, 4.);
-    np_expans_vec2[4] = 4. * pow(f, 2.) * pow(mu, 3.) * k;
-    np_expans_vec2[5] = pow(f, 2.) * pow(k * mu, 2.);
-    p_expans_vec2[0] = pow(f * k * mu, 2.);
-    p_expans_vec2[1] = pow(f, 2.) * pow(mu, 4.);
-    p_expans_vec2[2] = 4. * pow(f, 2.) * pow(mu, 3.) * k;
-
-    // 3-rd moment
-    double *np_expans_vec3 = make_1Darray(2);
-    double *p_expans_vec3  = make_1Darray(1);
-    np_expans_vec3[0] = 2. * pow(f, 3.) * pow(mu, 4.) * pow(k, 2.);
-    np_expans_vec3[1] = 2. * pow(f * k * mu, 3.);
-    p_expans_vec3[0] = 4. * pow(f, 3.) * pow(mu, 4.) * pow(k, 2.);
-
-    // 4-th moment
-    double *np_expans_vec4 = make_1Darray(1);
-    np_expans_vec4[0] = pow(f * k * mu, 4.) / 2.;
-
 
     // Integrals calculation
     double *np_rsd_0 = make_1Darray(6);

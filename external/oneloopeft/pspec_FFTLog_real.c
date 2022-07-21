@@ -26,9 +26,11 @@
  */
 
 int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 double k,  double z, long SPLIT, double * pk_nl)
+                 int index_k,  double z, long SPLIT, double * pk_nl)
 {
     static int cleanup_mloops  = 0;
+
+    double k = pfo->k[index_k];
 
     double cs2 =  0.2;
 
@@ -73,10 +75,12 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
  */
 
 int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    double k,  double z, long SPLIT)
+                    int index_k, double z, long SPLIT)
 
 { 
     static int cleanup_gloops = 0;
+
+    double k = pfo->k[index_k];
 
     double pm_1loop_IR;
     pm_IR_FFTLog(pba, ppm, pfo, k, z, SPLIT, &pm_1loop_IR);
@@ -90,14 +94,14 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double *ps_hloops = make_1Darray(5);
     pgloops_nonpropag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops, ps_hloops);
 
-    pfo -> oneloop_fftloh_halo_real -> pmm     = pm_1loop_IR;
-    pfo -> oneloop_fftloh_halo_real -> pb1b2   = ps_hloops[0];
-    pfo -> oneloop_fftloh_halo_real -> pb1bg2  = ps_hloops[1];
-    pfo -> oneloop_fftloh_halo_real -> pb22    = ps_hloops[2];
-    pfo -> oneloop_fftloh_halo_real -> pbg22   = ps_hloops[3];
-    pfo -> oneloop_fftloh_halo_real -> pb2bg2  = ps_hloops[4];
-    pfo -> oneloop_fftloh_halo_real -> pb1b3nl = pm_lin_IR * prop_term;
-    pfo -> oneloop_fftloh_halo_real -> pm_ct   = pow(k, 2.) * pm_lin_IR;
+    pfo -> oneloop_fftlog_halo_real -> pmm     = pm_1loop_IR;
+    pfo -> oneloop_fftlog_halo_real -> pb1b2   = ps_hloops[0];
+    pfo -> oneloop_fftlog_halo_real -> pb1bg2  = ps_hloops[1];
+    pfo -> oneloop_fftlog_halo_real -> pb22    = ps_hloops[2];
+    pfo -> oneloop_fftlog_halo_real -> pbg22   = ps_hloops[3];
+    pfo -> oneloop_fftlog_halo_real -> pb2bg2  = ps_hloops[4];
+    pfo -> oneloop_fftlog_halo_real -> pb1b3nl = pm_lin_IR * prop_term;
+    pfo -> oneloop_fftlog_halo_real -> pm_ct   = pow(k, 2.) * pm_lin_IR;
 
     return _SUCCESS_;
 }
