@@ -1673,8 +1673,6 @@ int fourier_init(
 
     // Variables for the results
       double pk_mm_oneloop;
-      double pk_hh_oneloop;
-      double pk_hh_rsd_oneloop;
 
     // variables for the computation
     double z  = 0.0;
@@ -1716,7 +1714,7 @@ int fourier_init(
 
 #pragma omp parallel \
       shared(pfo, pba, ppm, z, index_tau, abort) \
-      private(index_k,thread,tspent,tstart,tstop, pk_oneloop) \
+      private(index_k,thread,tspent,tstart,tstop, pk_mm_oneloop) \
       num_threads(number_of_threads)
 
         {
@@ -1784,12 +1782,8 @@ int fourier_init(
 
     if (abort == _TRUE_) return _FAILURE_;
 
-    gettimeofday(&end, NULL);
-    elapsetime = (end.tv_sec - start.tv_sec);
-    elapsetime += (end.tv_usec - start.tv_usec) / 1000000.0;
-    fprintf(stderr, "%2.3f seconds needed!\n", elapsetime);
   }
-  }
+  
 
   /** - if the nl_method could not be identified */
   else {
