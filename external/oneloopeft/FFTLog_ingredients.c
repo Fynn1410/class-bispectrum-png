@@ -443,8 +443,10 @@ double FFT_kmax_Brent_solver(struct background * pba,
       }
 
 int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fourier *pfo, double z){
-    
-      /* Allocate all the storing arrays */
+
+      pfo -> pk_halo_nl     = (struct oneloop_fftlog_halo_real *)malloc(sizeof(struct oneloop_fftlog_halo_real));
+      pfo -> pk_halo_rsd_nl = (struct oneloop_fftlog_halo_rsd *)malloc(sizeof(struct oneloop_fftlog_halo_rsd));
+
       pfo -> pk_halo_nl -> pmm = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pb1b2 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pb1bg2 = make_1Darray(pfo->k_size);
@@ -453,7 +455,6 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_nl -> pb2bg2 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pb1b3nl = make_1Darray(pfo->k_size);    
     
-
       pfo -> pk_halo_rsd_nl -> P_mm = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> I2200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> Idelta200 = make_1Darray(pfo->k_size);
@@ -505,6 +506,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> fft_ws -> fft_input  = (struct fft_struct *)malloc(sizeof(struct fft_struct));
       pfo -> fft_ws -> fft_matrix = (struct fft_matrices *)malloc(sizeof(struct fft_matrices));
 
+
       /* Important values for the calculation */
       pfo -> fft_ws -> sigma_v0 = 3. * sigman(pba, ppm, pfo, z, 1.e-5,  1.e3,  0, 142L); // density variance
       pfo -> fft_ws -> sigma_v2 = sigman(pba, ppm, pfo, z, 1.e-5,  1.e3, -1, 142L); // Linear displacement field (velocity) variance
@@ -531,7 +533,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
       FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input, 142L, HALO);
       FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input, 142L, MATTER);
-
+      
       /* Setting the matrices */
 
       /* 0-th moment */
