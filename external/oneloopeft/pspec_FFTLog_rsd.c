@@ -16,6 +16,9 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
 {
     double k = pfo->k[index_k];
 
+    // Storing IR-resummed Plin in pfo
+    pfo -> pk_halo_rsd_nl-> Plin_IR[index_k] = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+
     // Storing P_mm in pfo
     double pm_1loop_IR;
     pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop_IR);

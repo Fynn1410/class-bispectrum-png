@@ -152,6 +152,7 @@ struct oneloop_fftlog_halo_real {
   /** @name - terms in the real space bias expansion at one-loop */
 
   //@{
+  double * Plin_IR;
   double * pmm;
   double * pb1b2;
   double * pb1bg2;
@@ -170,6 +171,7 @@ struct oneloop_fftlog_halo_rsd {
   //@{
 
   //0-th moment
+  double * Plin_IR;
   double * P_mm;
   double * I2200;
   double * Idelta200;
