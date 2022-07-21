@@ -159,7 +159,6 @@ struct oneloop_fftlog_halo_real {
   double * pbg22;
   double * pb2bg2;
   double * pb1b3nl;
-  double * pct;
   //@}
 
 };
@@ -171,6 +170,7 @@ struct oneloop_fftlog_halo_rsd {
   //@{
 
   //0-th moment
+  double * P_mm;
   double * I2200;
   double * Idelta200;
   double * IG200;
