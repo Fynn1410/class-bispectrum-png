@@ -83,7 +83,7 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double k = pfo->k[index_k];
 
     double pm_1loop_IR;
-    pm_IR_FFTLog(pba, ppm, pfo, k, z, SPLIT, &pm_1loop_IR);
+    pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop_IR);
     double pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
     double pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
 

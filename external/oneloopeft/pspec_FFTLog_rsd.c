@@ -18,8 +18,8 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
 
     // Storing P_mm in pfo
     double pm_1loop_IR;
-    pm_IR_FFTLog(pba, ppm, pfo, k, z, SPLIT, &pm_1loop_IR);
-    pfo -> pk_halo_rsd_nl-> N22x[index_k] = pm_1loop_IR;
+    pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop_IR);
+    pfo -> pk_halo_rsd_nl-> P_mm[index_k] = pm_1loop_IR;
 
     // Calculation of the Loop-Integrals
     rsd_0_FFTLog(pfo, index_k);
