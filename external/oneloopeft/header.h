@@ -46,7 +46,7 @@
 #include <fftw3.h>	// for DST
 //#include <ctype.h>
 //#include "../Class/include/class.h"
-#include "library/Cuba-4.2.1/cuba.h"
+// #include "library/Cuba-4.2.1/cuba.h"
 
 
 #define PSC  		101L
