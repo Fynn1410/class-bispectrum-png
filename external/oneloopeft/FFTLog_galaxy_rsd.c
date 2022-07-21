@@ -49,7 +49,7 @@
  * @return void           
  */
 
-void rsd_0_FFTLog(struct fourier *pfo, int index_k)
+void rsd_0_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
 {
       int Nmax = pfo -> fft_ws -> fft_input -> nfft;
       double k = pfo->k[index_k];
@@ -91,8 +91,8 @@ void rsd_0_FFTLog(struct fourier *pfo, int index_k)
       pfo -> pk_halo_rsd_nl -> IG2G200[index_k]         = cpow(k, 3.) * np[4];
       pfo -> pk_halo_rsd_nl -> Idelta2G200[index_k]     = cpow(k, 3.) * np[5];
 
-      pfo -> pk_halo_rsd_nl -> I1300[index_k] = cpow(k, 3.) * p[0];
-      pfo -> pk_halo_rsd_nl -> FG200[index_k] = cpow(k, 3.) * p[1];
+      pfo -> pk_halo_rsd_nl -> I1300[index_k] = cpow(k, 3.) * Plin_IR * p[0];
+      pfo -> pk_halo_rsd_nl -> FG200[index_k] = cpow(k, 3.) * Plin_IR * p[1];
 }
 
 /*
@@ -110,7 +110,7 @@ void rsd_0_FFTLog(struct fourier *pfo, int index_k)
  * @return void           
  */
 
-void rsd_1_FFTLog(struct fourier *pfo, int index_k)
+void rsd_1_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
 {
       int Nmax = pfo -> fft_ws -> fft_input -> nfft;
       double k = pfo->k[index_k];
@@ -147,8 +147,8 @@ void rsd_1_FFTLog(struct fourier *pfo, int index_k)
       pfo -> pk_halo_rsd_nl -> Jdelta201[index_k] = cpow(k, 3.) * np[5] * k;
       pfo -> pk_halo_rsd_nl -> JG201[index_k]     = cpow(k, 3.) * np[6] * k;
 
-      pfo -> pk_halo_rsd_nl -> I1301[index_k]  = cpow(k, 3.) * p[0];
-      pfo -> pk_halo_rsd_nl -> J12101[index_k] = cpow(k, 3.) * p[1] * k;
+      pfo -> pk_halo_rsd_nl -> I1301[index_k]  = cpow(k, 3.) * Plin_IR * p[0];
+      pfo -> pk_halo_rsd_nl -> J12101[index_k] = cpow(k, 3.) * Plin_IR * p[1] * k;
 }
 
 /*
@@ -166,7 +166,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int index_k)
  * @return void           
  */
 
-void rsd_2_FFTLog(struct fourier *pfo, int index_k)
+void rsd_2_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
 {
       int Nmax = pfo -> fft_ws -> fft_input -> nfft;
       double k = pfo->k[index_k];
@@ -211,10 +211,10 @@ void rsd_2_FFTLog(struct fourier *pfo, int index_k)
       pfo -> pk_halo_rsd_nl -> N11x[index_k]       = cpow(k, 3.) * np[8] * cpow(k, 2.);
       pfo -> pk_halo_rsd_nl -> N11y[index_k]       = cpow(k, 3.) * np[9] * cpow(k, 2.);
 
-      pfo -> pk_halo_rsd_nl -> J12102x[index_k] = cpow(k, 3.) * p[0] * cpow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> J12102y[index_k] = cpow(k, 3.) * p[1] * cpow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> I1311[index_k]   = cpow(k, 3.) * p[2];
-      pfo -> pk_halo_rsd_nl -> J12111[index_k]  = cpow(k, 3.) * p[3] * k;
+      pfo -> pk_halo_rsd_nl -> J12102x[index_k] = cpow(k, 3.) * Plin_IR * p[0] * cpow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> J12102y[index_k] = cpow(k, 3.) * Plin_IR * p[1] * cpow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> I1311[index_k]   = cpow(k, 3.) * Plin_IR * p[2];
+      pfo -> pk_halo_rsd_nl -> J12111[index_k]  = cpow(k, 3.) * Plin_IR * p[3] * k;
 }
 
 /*
@@ -232,7 +232,7 @@ void rsd_2_FFTLog(struct fourier *pfo, int index_k)
  * @return void           
  */
 
-void rsd_3_FFTLog(struct fourier *pfo, int index_k)
+void rsd_3_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
 {
       int Nmax = pfo -> fft_ws -> fft_input -> nfft;
       double k = pfo->k[index_k];
@@ -263,8 +263,8 @@ void rsd_3_FFTLog(struct fourier *pfo, int index_k)
       pfo -> pk_halo_rsd_nl -> N12x[index_k]    = cpow(k, 3.) * np[2] * cpow(k, 3.);
       pfo -> pk_halo_rsd_nl -> N12y[index_k]    = cpow(k, 3.) * np[3] * cpow(k, 3.);
 
-      pfo -> pk_halo_rsd_nl -> J12112x[index_k] = cpow(k, 3.) * p[0] * cpow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> J12112y[index_k] = cpow(k, 3.) * p[1] * cpow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> J12112x[index_k] = cpow(k, 3.) * Plin_IR * p[0] * cpow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> J12112y[index_k] = cpow(k, 3.) * Plin_IR * p[1] * cpow(k, 2.);
 }
 
 /*

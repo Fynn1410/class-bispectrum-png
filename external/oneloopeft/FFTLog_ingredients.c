@@ -447,6 +447,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_nl     = (struct oneloop_fftlog_halo_real *)malloc(sizeof(struct oneloop_fftlog_halo_real));
       pfo -> pk_halo_rsd_nl = (struct oneloop_fftlog_halo_rsd *)malloc(sizeof(struct oneloop_fftlog_halo_rsd));
 
+      pfo -> pk_halo_nl -> Plin_IR = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pmm = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pb1b2 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pb1bg2 = make_1Darray(pfo->k_size);
@@ -455,6 +456,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_nl -> pb2bg2 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pb1b3nl = make_1Darray(pfo->k_size);    
     
+      pfo -> pk_halo_rsd_nl -> Plin_IR = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> P_mm = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> I2200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> Idelta200 = make_1Darray(pfo->k_size);

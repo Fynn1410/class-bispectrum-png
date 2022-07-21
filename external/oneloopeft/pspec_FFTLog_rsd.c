@@ -17,7 +17,8 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     double k = pfo->k[index_k];
 
     // Storing IR-resummed Plin in pfo
-    pfo -> pk_halo_rsd_nl-> Plin_IR[index_k] = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+    double pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+    pfo -> pk_halo_rsd_nl-> Plin_IR[index_k] = pm_lin_IR;
 
     // Storing P_mm in pfo
     double pm_1loop_IR;
@@ -25,10 +26,10 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     pfo -> pk_halo_rsd_nl-> P_mm[index_k] = pm_1loop_IR;
 
     // Calculation of the Loop-Integrals
-    rsd_0_FFTLog(pfo, index_k);
-    rsd_1_FFTLog(pfo, index_k);
-    rsd_2_FFTLog(pfo, index_k);
-    rsd_3_FFTLog(pfo, index_k);
+    rsd_0_FFTLog(pfo, index_k, pm_lin_IR);
+    rsd_1_FFTLog(pfo, index_k, pm_lin_IR);
+    rsd_2_FFTLog(pfo, index_k, pm_lin_IR);
+    rsd_3_FFTLog(pfo, index_k, pm_lin_IR);
     rsd_4_FFTLog(pfo, index_k);
 
     return _SUCCESS_;
