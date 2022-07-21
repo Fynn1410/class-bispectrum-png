@@ -42,6 +42,7 @@ cdef extern from "class.h":
         nl_none
         nl_halofit
         nl_HMcode
+        nl_oneloopPT
 
     cdef enum pk_outputs:
         pk_linear
@@ -289,6 +290,62 @@ cdef extern from "class.h":
         int l_unlensed_max
         ErrorMsg error_message
 
+    cdef struct oneloop_fftlog_halo_real:
+        double * pmm;
+        double * pb1b2;
+        double * pb1bg2;
+        double * pb22;
+        double * pbg22;
+        double * pb2bg2;
+        double * pb1b3nl;
+
+    cdef struct oneloop_fftlog_halo_rsd:
+        double * P_mm;
+        double * I2200;
+        double * Idelta200;
+        double * IG200;
+        double * Idelta2delta200;
+        double * IG2G200;
+        double * Idelta2G200;
+        double * I1300;
+        double * FG200;
+
+        double * I2201;
+        double * Idelta201;
+        double * IG201;
+        double * FG201;
+        double * J21101;
+        double * Jdelta201;
+        double * JG201;
+        double * I1301;
+        double * J12101;
+
+        double * J21102x;
+        double * J21102y;
+        double * Jdelta202x;
+        double * Jdelta202y;
+        double * JG202x;
+        double * JG202y;
+        double * I2211;
+        double * J21111;
+        double * N11x;
+        double * N11y;
+        double * J12102x;
+        double * J12102y;
+        double * I1311;
+        double * J12111;
+
+        double * J21112x;
+        double * J21112y;
+        double * N12x;
+        double * N12y;
+        double * J12112x;
+        double * J12112y;
+        
+        double * N22x;
+        double * N22y;
+        double * N22z;
+
     cdef struct fourier:
         short has_pk_matter
         int method
@@ -303,6 +360,8 @@ cdef extern from "class.h":
         double * tau
         double ** ln_pk_l
         double ** ln_pk_nl
+        oneloop_fftlog_halo_real * pk_halo_nl
+        oneloop_fftlog_halo_rsd * pk_halo_rsd_nl
         double * sigma8
         int has_pk_m
         int has_pk_cb
@@ -452,6 +511,14 @@ cdef extern from "class.h":
     int fourier_hmcode_sigmadisp100_at_z(void* pba, void* pfo, double z, double* sigma_disp_100, double* sigma_disp_100_cb)
     int fourier_hmcode_sigmaprime_at_z(void* pba, void* pfo, double z, double* sigma_prime, double* sigma_prime_cb)
     int fourier_hmcode_window_nfw(void* pfo, double k, double rv, double c, double* window_nfw)
+
+
+    int pm_IR_FFTLog(void* pba, void* ppm, void* pfo, double k,  double z, long SPLIT, double * pk_nl)
+    int pg_IR_FFTLog(void* pba, void* ppm, void* pfo, double k,  double z, double b1, long SPLIT, double * pk_nl)
+
+    int rsd_oneloop_FFTLog(void* pba, void* ppm, void* pfo, double k, double z, double f, double mu, long SPLIT, double * pk_nl)
+    int FFTLog_rsd_init(void* pba, void* ppm, void* pfo, double z)
+    int FFTLog_fill_bias_vector(void* pfo, double b1, double b2, double bG2, double btd, double cs2, double R2)
 
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 

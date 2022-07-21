@@ -19,6 +19,8 @@ from libc.stdio cimport *
 from libc.string cimport *
 import cython
 cimport cython
+from scipy.interpolate import CubicSpline
+from scipy.interpolate import UnivariateSpline
 
 # Nils : Added for python 3.x and python 2.x compatibility
 import sys
@@ -768,6 +770,8 @@ cdef class Class:
 
         """
         cdef double pk
+        cdef np.ndarray[DTYPE_t,ndim=1] pk_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
 
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
@@ -775,6 +779,11 @@ cdef class Class:
         if (self.fo.method == nl_none):
             if fourier_pk_at_k_and_z(&self.ba,&self.pm,&self.fo,pk_linear,k,z,self.fo.index_pk_m,&pk,NULL)==_FAILURE_:
                 raise CosmoSevereError(self.fo.error_message)
+        elif (self.fo.method == nl_oneloopPT):
+            for index_k in xrange(self.fo.k_size):
+                pk_arr[index_k] = self.fo.pk_halo_nl.pmm[index_k]
+                k_arr[index_k] = self.fo.k[index_k]
+            pk = UnivariateSpline(k_arr, pk_arr,s=0)(k)
         else:
             if fourier_pk_at_k_and_z(&self.ba,&self.pm,&self.fo,pk_nonlinear,k,z,self.fo.index_pk_m,&pk,NULL)==_FAILURE_:
                 raise CosmoSevereError(self.fo.error_message)
@@ -807,6 +816,72 @@ cdef class Class:
                 raise CosmoSevereError(self.fo.error_message)
 
         return pk_cb
+
+    # Gives the halo pk for a given (k,z,b1) in real-space
+    def pk_halo_real(self,double k,double z,double b1):
+        """
+        Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        cdef double pk
+        cdef np.ndarray[DTYPE_t,ndim=1] pk_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+        if (self.fo.method == nl_oneloopPT):
+            for index_k in xrange(self.fo.k_size):
+                pk_arr[index_k] = self.fo.pk_halo_nl.pmm[index_k]
+                k_arr[index_k] = self.fo.k[index_k]
+            pk = UnivariateSpline(k_arr, pk_arr,s=0)(k)
+        else:
+            raise CosmoSevereError("Only available for oneloopPT.")
+
+        return pk
+
+    # Gives the halo pk for a given (k,z,f,mu,b1) in redshift-space
+    def pk_halo_rsd(self,double k, double z, double f,  double mu, double b1):
+        """
+        Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        """
+        Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        cdef double pk
+        cdef np.ndarray[DTYPE_t,ndim=1] pk_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+        if (self.fo.method == nl_oneloopPT):
+            for index_k in xrange(self.fo.k_size):
+                pk_arr[index_k] = self.fo.pk_halo_nl.pmm[index_k]
+                k_arr[index_k] = self.fo.k[index_k]
+            pk = UnivariateSpline(k_arr, pk_arr,s=0)(k)
+        else:
+            raise CosmoSevereError("Only available for oneloopPT.")
+
+        return pk
+
 
     # Gives the total matter pk for a given (k,z)
     def pk_lin(self,double k,double z):
