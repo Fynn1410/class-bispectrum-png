@@ -94,14 +94,13 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double *ps_hloops = make_1Darray(5);
     pgloops_nonpropag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops, ps_hloops);
 
-    pfo -> oneloop_fftlog_halo_real -> pmm     = pm_1loop_IR;
-    pfo -> oneloop_fftlog_halo_real -> pb1b2   = ps_hloops[0];
-    pfo -> oneloop_fftlog_halo_real -> pb1bg2  = ps_hloops[1];
-    pfo -> oneloop_fftlog_halo_real -> pb22    = ps_hloops[2];
-    pfo -> oneloop_fftlog_halo_real -> pbg22   = ps_hloops[3];
-    pfo -> oneloop_fftlog_halo_real -> pb2bg2  = ps_hloops[4];
-    pfo -> oneloop_fftlog_halo_real -> pb1b3nl = pm_lin_IR * prop_term;
-    pfo -> oneloop_fftlog_halo_real -> pm_ct   = pow(k, 2.) * pm_lin_IR;
+    pfo -> pk_halo_nl -> pmm[index_k]     = pm_1loop_IR;
+    pfo -> pk_halo_nl -> pb1b2[index_k]   = ps_hloops[0];
+    pfo -> pk_halo_nl -> pb1bg2[index_k]  = ps_hloops[1];
+    pfo -> pk_halo_nl -> pb22[index_k]    = ps_hloops[2];
+    pfo -> pk_halo_nl -> pbg22[index_k]   = ps_hloops[3];
+    pfo -> pk_halo_nl -> pb2bg2[index_k]  = ps_hloops[4];
+    pfo -> pk_halo_nl -> pb1b3nl[index_k] = pm_lin_IR * prop_term;
 
     return _SUCCESS_;
 }
