@@ -94,8 +94,8 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double *ps_hloops = make_1Darray(5);
     pgloops_nonpropag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops, ps_hloops);
 
-    pfo -> pk_halo_nl -> Plin_IR[index_k]     = pm_lin_IR;
-    pfo -> pk_halo_nl -> pmm[index_k] = pm_1loop_IR;
+    pfo -> pk_halo_nl -> plin_ir[index_k] = pm_lin_IR;
+    pfo -> pk_halo_nl -> pmm[index_k]     = pm_1loop_IR;
     pfo -> pk_halo_nl -> pb1b2[index_k]   = ps_hloops[0];
     pfo -> pk_halo_nl -> pb1bg2[index_k]  = ps_hloops[1];
     pfo -> pk_halo_nl -> pb22[index_k]    = ps_hloops[2];

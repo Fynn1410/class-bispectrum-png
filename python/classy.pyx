@@ -818,7 +818,7 @@ cdef class Class:
         return pk_cb
 
     # Gives the halo pk for a given (k,z,b1) in real-space
-    def pk_halo_real(self,double k,double z,double b1):
+    def pk_halo_real(self,double k,double z,double b1,double b2,double bG2, double btd, double R2):
         """
         Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -829,17 +829,47 @@ cdef class Class:
 
         """
         cdef double pk
-        cdef np.ndarray[DTYPE_t,ndim=1] pk_arr = np.zeros((self.fo.k_size),'float64')
+
         cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] plin_ir_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pmm_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pb1b2_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pb1bg2_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pb22_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pbg22_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pb2bg2_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pb1b3nl_arr = np.zeros((self.fo.k_size),'float64')
+
+        cdef double pb1R2
 
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
-                pk_arr[index_k] = self.fo.pk_halo_nl.pmm[index_k]
                 k_arr[index_k] = self.fo.k[index_k]
-            pk = UnivariateSpline(k_arr, pk_arr,s=0)(k)
+                plin_ir_arr[index_k] = self.fo.pk_halo_nl.plin_ir[index_k]
+                pmm_arr[index_k] = self.fo.pk_halo_nl.pmm[index_k]
+                pb1b2_arr[index_k] = self.fo.pk_halo_nl.pb1b2[index_k]
+                pb1bg2_arr[index_k] = self.fo.pk_halo_nl.pb1bg2[index_k]
+                pb22_arr[index_k] = self.fo.pk_halo_nl.pb22[index_k]
+                pbg22_arr[index_k] = self.fo.pk_halo_nl.pbg22[index_k]
+                pb2bg2_arr[index_k] = self.fo.pk_halo_nl.pb2bg2[index_k]
+                pb1b3nl_arr[index_k] = self.fo.pk_halo_nl.pb1b3nl[index_k]
+            
+            plin_ir = UnivariateSpline(k_arr, plin_ir_arr,s=0)(k)
+            pmm = UnivariateSpline(k_arr, pmm_arr,s=0)(k)
+            pb1b2 = UnivariateSpline(k_arr, pb1b2_arr,s=0)(k)
+            pb1bg2 = UnivariateSpline(k_arr, pb1bg2_arr,s=0)(k)
+            pb22 = UnivariateSpline(k_arr, pb22_arr,s=0)(k)
+            pbg22 = UnivariateSpline(k_arr, pbg22_arr,s=0)(k)
+            pb2bg2 = UnivariateSpline(k_arr, pb2bg2_arr,s=0)(k)
+            pb1b3nl = UnivariateSpline(k_arr, pb1b3nl_arr,s=0)(k)
+
+            pb1R2 = - 2. * b1 * R2 * pow(k, 2.) * plin_ir
+
+            pk = b1**2 *pmm + b1*b2*pb1b2 + 2.*b1*bG2*pb1bg2 + 0.25*b2**2 *pb22 + bG2**2 *pbg22 + b2*bG2*pb2bg2 + 2.*b1*(bG2+2/5 *btd)*pb1b3nl + pb1R2
+
         else:
             raise CosmoSevereError("Only available for oneloopPT.")
 

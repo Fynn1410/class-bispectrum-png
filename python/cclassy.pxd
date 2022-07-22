@@ -291,6 +291,7 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct oneloop_fftlog_halo_real:
+        double * plin_ir;
         double * pmm;
         double * pb1b2;
         double * pb1bg2;
@@ -300,6 +301,7 @@ cdef extern from "class.h":
         double * pb1b3nl;
 
     cdef struct oneloop_fftlog_halo_rsd:
+        double * Plin_IR;
         double * P_mm;
         double * I2200;
         double * Idelta200;
@@ -511,14 +513,6 @@ cdef extern from "class.h":
     int fourier_hmcode_sigmadisp100_at_z(void* pba, void* pfo, double z, double* sigma_disp_100, double* sigma_disp_100_cb)
     int fourier_hmcode_sigmaprime_at_z(void* pba, void* pfo, double z, double* sigma_prime, double* sigma_prime_cb)
     int fourier_hmcode_window_nfw(void* pfo, double k, double rv, double c, double* window_nfw)
-
-
-    int pm_IR_FFTLog(void* pba, void* ppm, void* pfo, double k,  double z, long SPLIT, double * pk_nl)
-    int pg_IR_FFTLog(void* pba, void* ppm, void* pfo, double k,  double z, double b1, long SPLIT, double * pk_nl)
-
-    int rsd_oneloop_FFTLog(void* pba, void* ppm, void* pfo, double k, double z, double f, double mu, long SPLIT, double * pk_nl)
-    int FFTLog_rsd_init(void* pba, void* ppm, void* pfo, double z)
-    int FFTLog_fill_bias_vector(void* pfo, double b1, double b2, double bG2, double btd, double cs2, double R2)
 
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 
