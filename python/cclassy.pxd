@@ -290,6 +290,9 @@ cdef extern from "class.h":
         int l_unlensed_max
         ErrorMsg error_message
 
+    cdef struct oneloop_fftlog_workspace:
+        double sigma_v2;
+
     cdef struct oneloop_fftlog_halo_real:
         double * plin_ir;
         double * pmm;
@@ -311,6 +314,7 @@ cdef extern from "class.h":
         double * Idelta2G200;
         double * I1300;
         double * FG200;
+        double * IR2;
 
         double * I2201;
         double * Idelta201;
@@ -321,6 +325,7 @@ cdef extern from "class.h":
         double * JG201;
         double * I1301;
         double * J12101;
+        double * J11201;
 
         double * J21102x;
         double * J21102y;
@@ -336,6 +341,7 @@ cdef extern from "class.h":
         double * J12102y;
         double * I1311;
         double * J12111;
+        double * J11211;
 
         double * J21112x;
         double * J21112y;
@@ -362,6 +368,7 @@ cdef extern from "class.h":
         double * tau
         double ** ln_pk_l
         double ** ln_pk_nl
+        oneloop_fftlog_workspace * fft_ws;
         oneloop_fftlog_halo_real * pk_halo_nl
         oneloop_fftlog_halo_rsd * pk_halo_rsd_nl
         double * sigma8

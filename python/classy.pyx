@@ -876,7 +876,7 @@ cdef class Class:
         return pk
 
     # Gives the halo pk for a given (k,z,f,mu,b1) in redshift-space
-    def pk_halo_rsd(self,double k, double z, double f,  double mu, double b1):
+    def pk_halo_rsd(self,double k,double z,double mu,double b1,double b2,double bG2, double btd, double R2):
         """
         Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -895,22 +895,209 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        cdef double f = 1.0
+
+        cdef double sigma_v2 = self.fo.fft_ws.sigma_v2
+
         cdef double pk
-        cdef np.ndarray[DTYPE_t,ndim=1] pk_arr = np.zeros((self.fo.k_size),'float64')
+
         cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] Plin_IR_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] P_mm_arr = np.zeros((self.fo.k_size),'float64')
+
+        cdef np.ndarray[DTYPE_t,ndim=1] I2200_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] Idelta200_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] IG200_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] Idelta2delta200_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] IG2G200_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] Idelta2G200_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] I1300_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] FG200_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] IR2_arr = np.zeros((self.fo.k_size),'float64')
+
+        cdef np.ndarray[DTYPE_t,ndim=1] I2201_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] Idelta201_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] IG201_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] FG201_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J21101_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] Jdelta201_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] JG201_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] I1301_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J12101_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J11201_arr = np.zeros((self.fo.k_size),'float64')
+
+        cdef np.ndarray[DTYPE_t,ndim=1] J21102x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J21102y_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] Jdelta202x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] Jdelta202y_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] JG202x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] JG202y_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] I2211_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J21111_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] N11x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] N11y_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J12102x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J12102y_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] I1311_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J12111_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J11211_arr = np.zeros((self.fo.k_size),'float64')
+    
+        cdef np.ndarray[DTYPE_t,ndim=1] J21112x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J21112y_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] N12x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] N12y_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J12112x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] J12112y_arr = np.zeros((self.fo.k_size),'float64')
+
+        cdef np.ndarray[DTYPE_t,ndim=1] N22x_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] N22y_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] N22z_arr = np.zeros((self.fo.k_size),'float64')
 
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
-                pk_arr[index_k] = self.fo.pk_halo_nl.pmm[index_k]
                 k_arr[index_k] = self.fo.k[index_k]
-            pk = UnivariateSpline(k_arr, pk_arr,s=0)(k)
+                Plin_IR_arr[index_k] = self.fo.pk_halo_rsd_nl.Plin_IR[index_k]
+                P_mm_arr[index_k] = self.fo.pk_halo_rsd_nl.P_mm[index_k]
+               
+                I2200_arr[index_k] = self.fo.pk_halo_rsd_nl.I2200[index_k]
+                Idelta200_arr[index_k] = self.fo.pk_halo_rsd_nl.Idelta200[index_k]
+                IG200_arr[index_k] = self.fo.pk_halo_rsd_nl.IG200[index_k]
+                Idelta2delta200_arr[index_k] = self.fo.pk_halo_rsd_nl.Idelta2delta200[index_k]
+                IG2G200_arr[index_k] = self.fo.pk_halo_rsd_nl.IG2G200[index_k]
+                Idelta2G200_arr[index_k] = self.fo.pk_halo_rsd_nl.Idelta2G200[index_k]
+                I1300_arr[index_k] = self.fo.pk_halo_rsd_nl.I1300[index_k]
+                FG200_arr[index_k] = self.fo.pk_halo_rsd_nl.FG200[index_k]
+                IR2_arr[index_k] = self.fo.pk_halo_rsd_nl.IR2[index_k]
+
+                I2201_arr[index_k] = self.fo.pk_halo_rsd_nl.I2201[index_k]
+                Idelta201_arr[index_k] = self.fo.pk_halo_rsd_nl.Idelta201[index_k]
+                IG201_arr[index_k] = self.fo.pk_halo_rsd_nl.IG201[index_k]
+                FG201_arr[index_k] = self.fo.pk_halo_rsd_nl.FG201[index_k]
+                J21101_arr[index_k] = self.fo.pk_halo_rsd_nl.J21101[index_k]
+                Jdelta201_arr[index_k] = self.fo.pk_halo_rsd_nl.Jdelta201[index_k]
+                JG201_arr[index_k] = self.fo.pk_halo_rsd_nl.JG201[index_k]
+                I1301_arr[index_k] = self.fo.pk_halo_rsd_nl.I1301[index_k]
+                J12101_arr[index_k] = self.fo.pk_halo_rsd_nl.J12101[index_k]
+                J11201_arr[index_k] = self.fo.pk_halo_rsd_nl.J11201[index_k]
+
+                J21102x_arr[index_k] = self.fo.pk_halo_rsd_nl.J21102x[index_k]
+                J21102y_arr[index_k] = self.fo.pk_halo_rsd_nl.J21102y[index_k]
+                Jdelta202x_arr[index_k] = self.fo.pk_halo_rsd_nl.Jdelta202x[index_k]
+                Jdelta202y_arr[index_k] = self.fo.pk_halo_rsd_nl.Jdelta202y[index_k]
+                JG202x_arr[index_k] = self.fo.pk_halo_rsd_nl.JG202x[index_k]
+                JG202y_arr[index_k] = self.fo.pk_halo_rsd_nl.JG202y[index_k]
+                I2211_arr[index_k] = self.fo.pk_halo_rsd_nl.I2211[index_k]
+                J21111_arr[index_k] = self.fo.pk_halo_rsd_nl.J21111[index_k]
+                N11x_arr[index_k] = self.fo.pk_halo_rsd_nl.N11x[index_k]
+                N11y_arr[index_k] = self.fo.pk_halo_rsd_nl.N11y[index_k]
+                J12102x_arr[index_k] = self.fo.pk_halo_rsd_nl.J12102x[index_k]
+                J12102y_arr[index_k] = self.fo.pk_halo_rsd_nl.J12102y[index_k]
+                I1311_arr[index_k] = self.fo.pk_halo_rsd_nl.I1311[index_k]
+                J12111_arr[index_k] = self.fo.pk_halo_rsd_nl.J12111[index_k]
+                J11211_arr[index_k] = self.fo.pk_halo_rsd_nl.J11211[index_k]
+                
+                J21112x_arr[index_k] = self.fo.pk_halo_rsd_nl.J21112x[index_k]
+                J21112y_arr[index_k] = self.fo.pk_halo_rsd_nl.J21112y[index_k]
+                N12x_arr[index_k] = self.fo.pk_halo_rsd_nl.N12x[index_k]
+                N12y_arr[index_k] = self.fo.pk_halo_rsd_nl.N12y[index_k]
+                J12112x_arr[index_k] = self.fo.pk_halo_rsd_nl.J12112x[index_k]
+                J12112y_arr[index_k] = self.fo.pk_halo_rsd_nl.J12112y[index_k]
+
+                N22x_arr[index_k] = self.fo.pk_halo_rsd_nl.N22x[index_k]
+                N22y_arr[index_k] = self.fo.pk_halo_rsd_nl.N22y[index_k]
+                N22z_arr[index_k] = self.fo.pk_halo_rsd_nl.N22z[index_k]
+
         else:
             raise CosmoSevereError("Only available for oneloopPT.")
+            
 
-        return pk
+        cdef double Plin_IR = UnivariateSpline(k_arr, Plin_IR_arr,s=0)(k)
+        cdef double P_mm = UnivariateSpline(k_arr, P_mm_arr,s=0)(k)
+
+        cdef double I2200 = UnivariateSpline(k_arr, I2200_arr,s=0)(k)
+        cdef double Idelta200 = UnivariateSpline(k_arr, Idelta200_arr,s=0)(k)
+        cdef double IG200 = UnivariateSpline(k_arr, IG200_arr,s=0)(k)
+        cdef double Idelta2delta200 = UnivariateSpline(k_arr, Idelta2delta200_arr,s=0)(k)
+        cdef double IG2G200 = UnivariateSpline(k_arr, IG2G200_arr,s=0)(k)
+        cdef double Idelta2G200 = UnivariateSpline(k_arr, Idelta2G200_arr,s=0)(k)
+        cdef double I1300 = UnivariateSpline(k_arr, I1300_arr,s=0)(k)
+        cdef double FG200 = UnivariateSpline(k_arr, FG200_arr,s=0)(k)
+        cdef double IR2 = UnivariateSpline(k_arr, IR2_arr,s=0)(k)
+
+        cdef double I2201 = UnivariateSpline(k_arr, I2201_arr,s=0)(k)*2*f*mu**2
+        cdef double Idelta201 = UnivariateSpline(k_arr, Idelta201_arr,s=0)(k)*2*f*mu**2
+        cdef double IG201 = UnivariateSpline(k_arr, IG201_arr,s=0)(k)*2*f*mu**2
+        cdef double FG201 = UnivariateSpline(k_arr, FG201_arr,s=0)(k)*2*f*mu**2
+        cdef double J21101 = UnivariateSpline(k_arr, J21101_arr,s=0)(k)*mu *2*2*f*mu*k
+        cdef double Jdelta201 = UnivariateSpline(k_arr, Jdelta201_arr,s=0)(k)*mu *2*2*f*mu*k
+        cdef double JG201 = UnivariateSpline(k_arr, JG201_arr,s=0)(k)*mu *2*2*f*mu*k
+        cdef double I1301 = UnivariateSpline(k_arr, I1301_arr,s=0)(k)*2*f*mu**2
+        cdef double J12101 = UnivariateSpline(k_arr, J12101_arr,s=0)(k)*mu *2*2*f*mu*k
+        cdef double J11201 = UnivariateSpline(k_arr, J11201_arr,s=0)(k)*mu *2*2*f*mu*k
+
+        cdef double J21102x = UnivariateSpline(k_arr, J21102x_arr,s=0)(k)
+        cdef double J21102y = UnivariateSpline(k_arr, J21102y_arr,s=0)(k)
+        cdef double J21102 = (J21102x + J21102y*mu**2)*(f*mu*k)**2
+        cdef double Jdelta202x = UnivariateSpline(k_arr, Jdelta202x_arr,s=0)(k)
+        cdef double Jdelta202y = UnivariateSpline(k_arr, Jdelta202y_arr,s=0)(k)
+        cdef double Jdelta202 = (Jdelta202x + Jdelta202y*mu**2)*(f*mu*k)**2
+        cdef double JG202x = UnivariateSpline(k_arr, JG202x_arr,s=0)(k)
+        cdef double JG202y = UnivariateSpline(k_arr, JG202y_arr,s=0)(k)
+        cdef double JG202 = (JG202x + JG202y*mu**2)*(f*mu*k)**2
+        cdef double I2211 = UnivariateSpline(k_arr, I2211_arr,s=0)(k)*f**2*mu**4
+        cdef double J21111 = UnivariateSpline(k_arr, J21111_arr,s=0)(k)*mu *4*f**2*mu**3*k
+        cdef double N11x = UnivariateSpline(k_arr, N11x_arr,s=0)(k)
+        cdef double N11y = UnivariateSpline(k_arr, N11y_arr,s=0)(k)
+        cdef double N11 = (N11x + N11y*mu**2)*(f*mu*k)**2
+        cdef double J12102x = UnivariateSpline(k_arr, J12102x_arr,s=0)(k)
+        cdef double J12102y = UnivariateSpline(k_arr, J12102y_arr,s=0)(k)
+        cdef double J12102 = (J12102x + J12102y*mu**2)*(f*mu*k)**2
+        cdef double I1311 = UnivariateSpline(k_arr, I1311_arr,s=0)(k)*f**2*mu**4
+        cdef double J12111 = UnivariateSpline(k_arr, J12111_arr,s=0)(k)*mu *4*f**2*mu**3*k
+        cdef double J11211 = UnivariateSpline(k_arr, J11211_arr,s=0)(k)*mu *4*f**2*mu**3*k
+    
+        cdef double J21112x = UnivariateSpline(k_arr, J21112x_arr,s=0)(k)
+        cdef double J21112y = UnivariateSpline(k_arr, J21112y_arr,s=0)(k)
+        cdef double J21112 = (J21112x + J21112y*mu**2)*2*f**3*mu**4*k**2
+        cdef double N12x = UnivariateSpline(k_arr, N12x_arr,s=0)(k)
+        cdef double N12y = UnivariateSpline(k_arr, N12y_arr,s=0)(k)
+        cdef double N12 = (N12x*mu + N12y*mu**3)*2*(f*mu*k)**k
+        cdef double J12112x = UnivariateSpline(k_arr, J12112x_arr,s=0)(k)
+        cdef double J12112y = UnivariateSpline(k_arr, J12112y_arr,s=0)(k)
+        cdef double J12112 = (J12112x + J12112y*mu**2)*2*f**3*mu**4*k**2
+
+        cdef double N22x = UnivariateSpline(k_arr, N22x_arr,s=0)(k)
+        cdef double N22y = UnivariateSpline(k_arr, N22y_arr,s=0)(k)
+        cdef double N22z = UnivariateSpline(k_arr, N22z_arr,s=0)(k)
+        cdef double N22 = (N22x + N22y*mu**2 + N22z*mu**4)*0.5*(f*mu*k)**4
+
+
+        # Construction of the 0-th moment
+        #cdef dict mom_0 = {"k", "Plin": Plin_IR, "P_mm":b1**2 *P_mm, "Idelta200": 2*b1*b2*Idelta200, "IG200": 4*b1*bG2*IG200, "Idelta2delta200": 0.5*b2**2 *Idelta2delta200, "IG2G200" 2*bG2**2 *IG2G200, "Idelta2G200": 2*b2*bG2*Idelta2G200, "FG200": 8.*b1*(bG2+2/5 *btd)*FG200, "P_ct" b1*R2*IR2}
+        cdef double mom_0 = b1**2 *P_mm + 2*b1*b2*Idelta200 + 4*b1*bG2*IG200 + 0.5*b2**2 *Idelta2delta200 + 2*bG2**2 *IG2G200 + 2*b2*bG2*Idelta2G200 + 8.*b1*(bG2+2/5 *btd)*FG200 + b1*R2*IR2
+
+        # Construction of the 1-th moment
+        #cdef dict mom_1 = 2*b1*I2201 + 3*b1*I1300 + b2*Idelta201 + 2*bG2*IG201 + 4*(bG2+0.4*btd)*FG201 + b1**2 *(J12101+J11201+J21101) + 0.5*b1*b2*Jdelta201 + b1*bG2*JG201 
+        cdef double mom_1 = b1*f*mu**2 *Plin_IR + 2*b1*I2201 + 3*b1*I1300 + b2*Idelta201 + 2*bG2*IG201 + 4*(bG2+0.4*btd)*FG201 + b1**2 *(J12101+J11201+J21101) + 0.5*b1*b2*Jdelta201 + b1*bG2*JG201 
+
+        # Construction of the 2-th moment
+        #cdef dict mom_2 = 4*b1*J12102 + 2*b1*J21102 + b2*Jdelta202 + 2*bG2*JG202 + (f*k*mu)**2 *(b1**2*Plin_IR*sigma_v2) + 2*I2211 + 6*I1311 + b1*(J12111+J11211+J21111) + b1**2*N11  
+        cdef double mom_2 = Plin_IR*f**2 *mu**4 + 4*b1*J12102 + 2*b1*J21102 + b2*Jdelta202 + 2*bG2*JG202 + (f*k*mu)**2 *(b1**2*Plin_IR*sigma_v2) + 2*I2211 + 6*I1311 + b1*(J12111+J11211+J21111) + b1**2*N11  
+
+        # Construction of the 3-th moment
+        #cdef dict mom_3 = J21112 + 2*J12112 + b1*N12 - 2*f**3 * mu**4 * k**2 *b1*Plin_IR*sigma_v2
+        cdef double mom_3 = J21112 + 2*J12112 + b1*N12 - 2*f**3 * mu**4 * k**2 *b1*Plin_IR*sigma_v2
+        
+        # Construction of the 4-th moment
+        #cdef dict mom_4 = N22 - f**4 *mu**6 *k**2 *Plin_IR*sigma_v2
+        cdef double mom_4 = N22 - f**4 *mu**6 *k**2 *Plin_IR*sigma_v2
+
+        pk = mom_0 + mom_1 + mom_2 + mom_3 + mom_4 
+
+        return mom_0, mom_1, mom_2, mom_3, mom_4, pk
 
 
     # Gives the total matter pk for a given (k,z)
