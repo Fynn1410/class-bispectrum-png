@@ -447,7 +447,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_nl     = (struct oneloop_fftlog_halo_real *)malloc(sizeof(struct oneloop_fftlog_halo_real));
       pfo -> pk_halo_rsd_nl = (struct oneloop_fftlog_halo_rsd *)malloc(sizeof(struct oneloop_fftlog_halo_rsd));
 
-      pfo -> pk_halo_nl -> Plin_IR = make_1Darray(pfo->k_size);
+      pfo -> pk_halo_nl -> plin_ir = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pmm = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pb1b2 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_nl -> pb1bg2 = make_1Darray(pfo->k_size);
@@ -466,6 +466,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_rsd_nl -> Idelta2G200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> I1300 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> FG200 = make_1Darray(pfo->k_size);
+      pfo -> pk_halo_rsd_nl -> IR2 = make_1Darray(pfo->k_size);
 
       pfo -> pk_halo_rsd_nl -> I2201 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> Idelta201 = make_1Darray(pfo->k_size);
@@ -476,6 +477,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_rsd_nl -> JG201 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> I1301 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> J12101 = make_1Darray(pfo->k_size);
+      pfo -> pk_halo_rsd_nl -> J11201 = make_1Darray(pfo->k_size);
 
       pfo -> pk_halo_rsd_nl -> J21102x = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> J21102y = make_1Darray(pfo->k_size);
@@ -491,6 +493,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_rsd_nl -> J12102y = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> I1311 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> J12111 = make_1Darray(pfo->k_size);
+      pfo -> pk_halo_rsd_nl -> J11211 = make_1Darray(pfo->k_size);
 
       pfo -> pk_halo_rsd_nl -> J21112x = make_1Darray(pfo->k_size);
       pfo -> pk_halo_rsd_nl -> J21112y = make_1Darray(pfo->k_size);
