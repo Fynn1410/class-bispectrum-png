@@ -361,7 +361,7 @@ static int G_loop_integrands(
       long SPLIT             = pij.p15;
       double plin_IR_k       = pij.p8;
 
-      // fprintf(stderr,"%e, %e, %e,%e \n",k,z,logqmin,logqmax);
+      //fprintf(stderr,"%e, %e, %e,%e \n",k,z,logqmin,logqmax);
       double logq  = (x[0] * (logqmax - logqmin) + logqmin);
       double cos   = (2. * x[1] - 1.);
       double q     = exp(logq);
@@ -423,7 +423,6 @@ static int G_loop_integrands(
 
             if(hm_switch == HALO)
             {
-                fprintf(stderr, "HALO\n");
                 ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos);
                 ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
                 ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * (plin_kmq - plin_q);
