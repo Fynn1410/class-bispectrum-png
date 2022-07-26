@@ -126,10 +126,10 @@ int PS_hh_G(
 
           FILE *fpa;
           char file_name[50];
-          sprintf(file_name, "pg_DI.txt");
+          sprintf(file_name, "data/pg_DI.txt");
           fpa = fopen(file_name, "a");
           fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-              k, pm_lin, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+              k, pm_lin_IR, pow(b1, 2.) * (pm_1loop_IR - 2. * cs2 * pow(k, 2.) * pm_lin_IR), pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
           fclose(fpa);
 
           free(ps_hloops);
@@ -361,7 +361,7 @@ static int G_loop_integrands(
       long SPLIT             = pij.p15;
       double plin_IR_k       = pij.p8;
 
-      //fprintf(stderr,"%e, %e, %e,%e \n",k,z,logqmin,logqmax);
+      // fprintf(stderr,"%e, %e, %e,%e \n",k,z,logqmin,logqmax);
       double logq  = (x[0] * (logqmax - logqmin) + logqmin);
       double cos   = (2. * x[1] - 1.);
       double q     = exp(logq);
@@ -423,6 +423,7 @@ static int G_loop_integrands(
 
             if(hm_switch == HALO)
             {
+                fprintf(stderr, "HALO\n");
                 ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos);
                 ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
                 ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * (plin_kmq - plin_q);
@@ -451,7 +452,7 @@ static int G_loop_integrands(
               ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos);
               ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
               // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
-              ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq);
+              ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
               ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(S2_s(q, k, cos), 2.);
               ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * S2_s(q, k, cos);
               ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * S2_s(q, k, cos) * F2(q, k, -cos);
