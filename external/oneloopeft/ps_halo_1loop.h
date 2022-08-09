@@ -28,6 +28,13 @@ int PS_mm_G(
             long SPLIT,
             double * pk_nl);
 
+int PS_hh_1(   struct background * pba,
+               struct primordial * ppm,
+               struct fourier * pfo,
+               double k,
+               double z,
+               long SPLIT);
+
 int Compute_G_loops(
                     //struct Cosmology *Cx,
                     struct background * pba,
@@ -40,7 +47,6 @@ int Compute_G_loops(
                     long SPLIT,
                     double *result);
 
-
 static int G_loop_integrands(
                              const int *ndim,
                              const cubareal x[],
@@ -48,11 +54,78 @@ static int G_loop_integrands(
                              cubareal ff[],
                              void *p);
 
+int Compute_1_loops(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct fourier * pfo,
+                    double k,
+                    double z,
+                    long SPLIT,
+                    double *result);
+                    
+static int G1_loop_integrands(
+                             const int *ndim,
+                             const cubareal x[],
+                             const int *ncomp,
+                             cubareal ff[],
+                             void *p);
+
+int Compute_2_loops(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct fourier * pfo,
+                    double k,
+                    double z,
+                    long SPLIT,
+                    double *result);
+                    
+static int G2_loop_integrands(
+                             const int *ndim,
+                             const cubareal x[],
+                             const int *ncomp,
+                             cubareal ff[],
+                             void *p);
+
+int Compute_3_loops(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct fourier * pfo,
+                    double k,
+                    double z,
+                    long SPLIT,
+                    double *result);
+                    
+static int G3_loop_integrands(
+                             const int *ndim,
+                             const cubareal x[],
+                             const int *ncomp,
+                             cubareal ff[],
+                             void *p);
+
+int Compute_4_loops(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct fourier * pfo,
+                    double k,
+                    double z,
+                    long SPLIT,
+                    double *result);
+                    
+static int G4_loop_integrands(
+                             const int *ndim,
+                             const cubareal x[],
+                             const int *ncomp,
+                             cubareal ff[],
+                             void *p);
+
 double F2_s(double k1,double k2,double mu);
+double G2_s(double q,double k,double mu);
 double S2_s(double k1,double k2,double mu);
 double F3_s(double k,double q, double mu);
+double G3_s(double k,double q, double mu);
 double S2(double mu);
 double F2(double k1,double k2,double mu);
+double G2(double k1,double k2,double mu);
 
 
 #endif
