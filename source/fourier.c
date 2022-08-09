@@ -1678,7 +1678,9 @@ int fourier_init(
     double z  = 0.0;
 
     /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
+    // fprintf(stderr,"Start FFTLog_init\n");
     FFTLog_rsd_init(pba, ppm, pfo, z);
+    // fprintf(stderr,"Finish FFTLog_init\n");
   
     /* number of threads (always one if no openmp) */
     int number_of_threads=1;
@@ -1724,48 +1726,109 @@ int fourier_init(
           tspent=0.;
 #endif
 
+      // FILE *fpa1;
+      // char file_name1[50];
+      // sprintf(file_name1, "data/pg_DI.txt");
+      // fpa1 = fopen(file_name1, "w");
+      // fprintf(fpa1, "k Plin P_mm P_ct Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Ploops RSD0\n");
+      // fclose(fpa1);
+
+      // FILE *fpa2;
+      // char file_name2[50];
+      // sprintf(file_name2, "data/pg_FFT_const.txt");
+      // fpa2 = fopen(file_name2, "w");
+      // fprintf(fpa2, "k Plin P_mm P_ct Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Ploops RSD0\n");
+      // fclose(fpa2);
+
+      // FILE *fpa1;
+      // char file_name1[50];
+      // sprintf(file_name1, "data/1_moment_DI.txt");
+      // fpa1 = fopen(file_name1, "w");
+      // fprintf(fpa1, "k Plin I2201 I1301 Idelta201 IG201 FG201 J12101 J11201 J21101 Jdelta201 JG201 ph_loops plos_loops\n");
+      // fclose(fpa1);
+
+      // FILE *fpa2;
+      // char file_name2[50];
+      // sprintf(file_name2, "data/1_moment_FFT.txt");
+      // fpa2 = fopen(file_name2, "w");
+      // fprintf(fpa2, "k Plin I2201 I1301 Idelta201 IG201 FG201 J12101 J11201 J21101 Jdelta201 JG201 ph_loops plos_loops\n");
+      // fclose(fpa2);
+
+      FILE *fpa1;
+      char file_name1[50];
+      sprintf(file_name1, "data/2_moment_DI.txt");
+      fpa1 = fopen(file_name1, "w");
+      fprintf(fpa1, "k pm_lin_IR J12102 J21102 Jdelta202 JG202 I2211 I1311 J12111 J11211 J21111 N11 ph_loops plos_loops\n");
+      fclose(fpa1);
+
+      FILE *fpa2;
+      char file_name2[50];
+      sprintf(file_name2, "data/2_moment_FFT.txt");
+      fpa2 = fopen(file_name2, "w");
+      fprintf(fpa2, "k pm_lin_IR J12102 J21102 Jdelta202 JG202 I2211 I1311 J12111 J11211 J21111 N11 ph_loops plos_loops\n");
+      fclose(fpa2);
+
+      // double phh = 0.;
+
       #pragma omp for schedule (dynamic)
       for (index_k=0; index_k<pfo->k_size; index_k++) {
 #ifdef _OPENMP
         tstart = omp_get_wtime();
 #endif
+          if(pfo->k[index_k]>1e-3 && pfo->k[index_k]<1.86e-1){
+            // fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+            // class_call_parallel(PS_hh_G(ppr, pba, ppt, ppm, pfo, pfo->k[index_k],z,_TRUE_,_TRUE_, 142L,&phh),pfo->error_message,pfo->error_message);
 
-          // fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call_parallel(pm_IR_FFTLog(pba,
-                                  ppm,
-                                  pfo,
-                                  index_k,
-                                  z,
-                                  142L,
-                                  &pk_mm_oneloop),
-                    pfo->error_message,
-                    pfo->error_message);
+            // fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            // class_call_parallel(pm_IR_FFTLog(pba,
+            //                         ppm,
+            //                         pfo,
+            //                         index_k,
+            //                         z,
+            //                         142L,
+            //                         &pk_mm_oneloop),
+            //           pfo->error_message,
+            //           pfo->error_message);
+            // // fprintf(stderr, "%e\n", pk_mm_oneloop);
 
-          // fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call_parallel(pg_IR_FFTLog(pba,
-                                  ppm,
-                                  pfo,
-                                  index_k,
-                                  z,
-                                  142L),
-                    pfo->error_message,
-                    pfo->error_message);
+            // fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            // class_call_parallel(pg_IR_FFTLog(pba,
+            //                         ppm,
+            //                         pfo,
+            //                         index_k,
+            //                         z,
+            //                         142L),
+            //           pfo->error_message,
+            //           pfo->error_message);
+            // // fprintf(stderr, "%e\n", pfo->pk_halo_nl->pmm[index_k]);
 
-          // fprintf(stderr,"call rsd_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call_parallel(rsd_oneloop_FFTLog(pba,
-                                  ppm,
-                                  pfo,
-                                  index_k,
-                                  z,
-                                  142L),
-                    pfo->error_message,
-                    pfo->error_message);
-          
-          pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
-            = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
+            fprintf(stderr,"call PS_hh_2 for k/h=%e\n",pfo->k[index_k] / pba->h);
+            class_call_parallel(PS_hh_2(pba,
+                                    ppm,
+                                    pfo,
+                                    pfo->k[index_k],
+                                    z,
+                                    142L),
+                      pfo->error_message,
+                      pfo->error_message);
 
-          pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
-      }
+            fprintf(stderr,"call rsd_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            class_call_parallel(rsd_oneloop_FFTLog(pba,
+                                    ppm,
+                                    pfo,
+                                    index_k,
+                                    z,
+                                    142L),
+                      pfo->error_message,
+                      pfo->error_message);
+            // fprintf(stderr, "%e\n", pfo->pk_halo_rsd_nl->P_mm[index_k]);
+
+            pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
+              = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
+
+            pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
+          }
+      } 
 
 #ifdef _OPENMP
       tstop = omp_get_wtime();

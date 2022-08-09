@@ -128,7 +128,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
       vec_fill(pfo -> fft_ws -> fft_input, k, MATTER, vec_m);
       
       // non-propagator calculations
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> I2201_mat,     vec_h, Nmax+1, &np[0]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2201_mat,     vec_m, Nmax+1, &np[0]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta201_mat, vec_h, Nmax+1, &np[1]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> IG201_mat,     vec_h, Nmax+1, &np[2]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> FG201_mat,     vec_h, Nmax+1, &np[3]);
@@ -149,10 +149,32 @@ void rsd_1_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
       pfo -> pk_halo_rsd_nl -> Jdelta201[index_k] = pow(k, 3.) * np[5] * k;
       pfo -> pk_halo_rsd_nl -> JG201[index_k]     = pow(k, 3.) * np[6] * k;
 
-      pfo -> pk_halo_rsd_nl -> I1301[index_k]  = pow(k, 3.) * Plin_IR * p[0] - 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin_IR;
-      pfo -> pk_halo_rsd_nl -> J12101[index_k] = pow(k, 3.) * Plin_IR * p[1] * k + 0.5 * pfo->fft_ws->sigma_v0 * Plin_IR / (3. * k);
+      pfo -> pk_halo_rsd_nl -> I1301[index_k]  = pow(k, 3.) * Plin_IR * p[0]- 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin_IR;
+      pfo -> pk_halo_rsd_nl -> J12101[index_k] = pow(k, 3.) * Plin_IR * p[1] * k;// + 0.5 * pfo->fft_ws->sigma_v0 * Plin_IR / (3. * k);
 
       pfo -> pk_halo_rsd_nl -> J11201[index_k] = -0.5 * k * Plin_IR * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
+
+      double I2201     = pfo -> pk_halo_rsd_nl -> I2201[index_k];
+      double I1301     = pfo -> pk_halo_rsd_nl -> I1301[index_k];
+      double Idelta201 = pfo -> pk_halo_rsd_nl -> Idelta201[index_k];
+      double IG201     = pfo -> pk_halo_rsd_nl -> IG201[index_k];
+      double FG201     = pfo -> pk_halo_rsd_nl -> FG201[index_k];
+      double ph_loops  = I2201 + I1301 + Idelta201 + IG201 + FG201;
+
+      double J12101    = pfo -> pk_halo_rsd_nl -> J12101[index_k];
+      double J11201    = pfo -> pk_halo_rsd_nl -> J11201[index_k];
+      double J21101    = pfo -> pk_halo_rsd_nl -> J21101[index_k];
+      double Jdelta201 = pfo -> pk_halo_rsd_nl -> Jdelta201[index_k];
+      double JG201     = pfo -> pk_halo_rsd_nl -> JG201[index_k];
+      double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
+
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/1_moment_FFT.txt");
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+          k, Plin_IR, I2201, I1301, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
+      fclose(fpa);
 }
 
 /*
@@ -221,6 +243,31 @@ void rsd_2_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
       pfo -> pk_halo_rsd_nl -> J12111[index_k]  = pow(k, 3.) * Plin_IR * p[3] * k + 0.5 * pfo->fft_ws->sigma_v0 * Plin_IR / (3. * k);
 
       pfo -> pk_halo_rsd_nl -> J11211[index_k]  = -0.5 * k * Plin_IR * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
+
+      double J12102    = pfo -> pk_halo_rsd_nl -> J12102x[index_k]+pfo -> pk_halo_rsd_nl ->J12102y[index_k];
+      double J21102    = pfo -> pk_halo_rsd_nl -> J21102x[index_k]+pfo -> pk_halo_rsd_nl ->J21102y[index_k];
+      double Jdelta202 = pfo -> pk_halo_rsd_nl -> Jdelta202x[index_k]+pfo -> pk_halo_rsd_nl ->Jdelta202y[index_k];
+      double JG202     = pfo -> pk_halo_rsd_nl -> JG202x[index_k]+pfo -> pk_halo_rsd_nl ->JG202y[index_k];
+
+      double I2211  = pfo -> pk_halo_rsd_nl -> I2211[index_k];
+      double I1311  = pfo -> pk_halo_rsd_nl -> I1311[index_k];
+      double J12111 = pfo -> pk_halo_rsd_nl -> J12111[index_k];
+      double J11211 = pfo -> pk_halo_rsd_nl -> J11211[index_k];
+      double J21111 = pfo -> pk_halo_rsd_nl -> J21111[index_k];
+      double N11    = pfo -> pk_halo_rsd_nl -> N11x[index_k]+pfo -> pk_halo_rsd_nl ->N11y[index_k];
+
+      double ph_loops  = J12102 + J21102 + Jdelta202 + JG202;
+      double plos_loops  = I2211 + I1311 + J12111 + J11211 + J21111 + N11;
+
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/2_moment_FFT.txt");
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+          k, Plin_IR, J12102, J21102, Jdelta202, JG202, I2211, I1311, J12111, J11211, J21111, N11, ph_loops, plos_loops);
+      fclose(fpa);
+
+
 }
 
 /*
