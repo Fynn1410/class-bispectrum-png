@@ -513,8 +513,8 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
 
       /* Important values for the calculation */
-      pfo -> fft_ws -> sigma_v0 = 3. * sigman(pba, ppm, pfo, z, 1.e-5,  1.e3,  0, 142L); // density variance
-      pfo -> fft_ws -> sigma_v2 = sigman(pba, ppm, pfo, z, 1.e-5,  1.e3, -1, 142L); // Linear displacement field (velocity) variance
+      pfo -> fft_ws -> sigma_v0 = sigman(pba, ppm, pfo, z, 1.e-5,  1.e3,  0, 142L); // density variance
+      pfo -> fft_ws -> sigma_v2 = (1./3.) * sigman(pba, ppm, pfo, z, 1.e-5,  1.e3, -1, 142L); // Linear displacement field (velocity) variance
       pfo -> fft_ws -> sigma_2_IR = IR_Sigma2(pba, ppm, pfo, z, 1e-4, 142L); // IR-Ressumation supression exponent
 
       fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
