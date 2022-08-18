@@ -145,12 +145,12 @@ void rsd_1_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
       pfo -> pk_halo_rsd_nl -> Idelta201[index_k] = pow(k, 3.) * np[1];
       pfo -> pk_halo_rsd_nl -> IG201[index_k]     = pow(k, 3.) * np[2];
       pfo -> pk_halo_rsd_nl -> FG201[index_k]     = pow(k, 3.) * np[3];
-      pfo -> pk_halo_rsd_nl -> J21101[index_k]    = pow(k, 3.) * np[4] * k;
-      pfo -> pk_halo_rsd_nl -> Jdelta201[index_k] = pow(k, 3.) * np[5] * k;
-      pfo -> pk_halo_rsd_nl -> JG201[index_k]     = pow(k, 3.) * np[6] * k;
+      pfo -> pk_halo_rsd_nl -> J21101[index_k]    = pow(k, 3.) * np[4] / k;
+      pfo -> pk_halo_rsd_nl -> Jdelta201[index_k] = pow(k, 3.) * np[5] / k;
+      pfo -> pk_halo_rsd_nl -> JG201[index_k]     = pow(k, 3.) * np[6] / k;
 
-      pfo -> pk_halo_rsd_nl -> I1301[index_k]  = pow(k, 3.) * Plin_IR * p[0]- 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin_IR;
-      pfo -> pk_halo_rsd_nl -> J12101[index_k] = pow(k, 3.) * Plin_IR * p[1] * k;// + 0.5 * pfo->fft_ws->sigma_v0 * Plin_IR / (3. * k);
+      pfo -> pk_halo_rsd_nl -> I1301[index_k]  = pow(k, 3.) * Plin_IR * p[0] - 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin_IR;
+      pfo -> pk_halo_rsd_nl -> J12101[index_k] = pow(k, 3.) * Plin_IR * p[1] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin_IR / (3. * k);
 
       pfo -> pk_halo_rsd_nl -> J11201[index_k] = -0.5 * k * Plin_IR * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
 
@@ -172,7 +172,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
       char file_name[50];
       sprintf(file_name, "data/1_moment_FFT.txt");
       fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+      fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
           k, Plin_IR, I2201, I1301, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
       fclose(fpa);
 }
@@ -226,21 +226,21 @@ void rsd_2_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12111_mat,  Nmax+1, &p[3]);
 
       // adding factored out k and mu dependencies
-      pfo -> pk_halo_rsd_nl -> J21102x[index_k]    = pow(k, 3.) * np[0] * pow(k, 2.); 
-      pfo -> pk_halo_rsd_nl -> J21102y[index_k]    = pow(k, 3.) * np[1] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> Jdelta202x[index_k] = pow(k, 3.) * np[2] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> Jdelta202y[index_k] = pow(k, 3.) * np[3] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> JG202x[index_k]     = pow(k, 3.) * np[4] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> JG202y[index_k]     = pow(k, 3.) * np[5] * pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> J21102x[index_k]    = pow(k, 3.) * np[0] / pow(k, 2.); 
+      pfo -> pk_halo_rsd_nl -> J21102y[index_k]    = pow(k, 3.) * np[1] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> Jdelta202x[index_k] = pow(k, 3.) * np[2] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> Jdelta202y[index_k] = pow(k, 3.) * np[3] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> JG202x[index_k]     = pow(k, 3.) * np[4] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> JG202y[index_k]     = pow(k, 3.) * np[5] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl -> I2211[index_k]      = pow(k, 3.) * np[6];
-      pfo -> pk_halo_rsd_nl -> J21111[index_k]     = pow(k, 3.) * np[7] * k;
-      pfo -> pk_halo_rsd_nl -> N11x[index_k]       = pow(k, 3.) * np[8] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> N11y[index_k]       = pow(k, 3.) * np[9] * pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> J21111[index_k]     = pow(k, 3.) * np[7] / k;
+      pfo -> pk_halo_rsd_nl -> N11x[index_k]       = pow(k, 3.) * np[8] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> N11y[index_k]       = pow(k, 3.) * np[9] / pow(k, 2.);
 
-      pfo -> pk_halo_rsd_nl -> J12102x[index_k] = pow(k, 3.) * Plin_IR * p[0] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> J12102y[index_k] = pow(k, 3.) * Plin_IR * p[1] * pow(k, 2.);// - 0.5 * pfo->fft_ws->sigma_v2 * Plin_IR;
+      pfo -> pk_halo_rsd_nl -> J12102x[index_k] = pow(k, 3.) * Plin_IR * p[0] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> J12102y[index_k] = pow(k, 3.) * Plin_IR * p[1] / pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin_IR;
       pfo -> pk_halo_rsd_nl -> I1311[index_k]   = pow(k, 3.) * Plin_IR * p[2] - 0.3 * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin_IR;
-      pfo -> pk_halo_rsd_nl -> J12111[index_k]  = pow(k, 3.) * Plin_IR * p[3] * k + 0.5 * pfo->fft_ws->sigma_v0 * Plin_IR / (3. * k);
+      pfo -> pk_halo_rsd_nl -> J12111[index_k]  = pow(k, 3.) * Plin_IR * p[3] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin_IR / (3. * k);
 
       pfo -> pk_halo_rsd_nl -> J11211[index_k]  = -0.5 * k * Plin_IR * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
 
@@ -311,14 +311,30 @@ void rsd_3_FFTLog(struct fourier *pfo, int index_k, double Plin_IR)
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12112y_mat, Nmax+1, &p[1]);
 
       // adding factored out k and mu dependencies
-      pfo -> pk_halo_rsd_nl -> J21112x[index_k] = pow(k, 3.) * np[0] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> J21112y[index_k] = pow(k, 3.) * np[1] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> N12x[index_k]    = pow(k, 3.) * np[2] * pow(k, 3.);
-      pfo -> pk_halo_rsd_nl -> N12y[index_k]    = pow(k, 3.) * np[3] * pow(k, 3.);
+      pfo -> pk_halo_rsd_nl -> J21112x[index_k] = pow(k, 3.) * np[0] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> J21112y[index_k] = pow(k, 3.) * np[1] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> N12x[index_k]    = pow(k, 3.) * np[2] / pow(k, 3.);
+      pfo -> pk_halo_rsd_nl -> N12y[index_k]    = pow(k, 3.) * np[3] / pow(k, 3.);
 
-      pfo -> pk_halo_rsd_nl -> J12112x[index_k] = pow(k, 3.) * Plin_IR * p[0] * pow(k, 2.);
-      pfo -> pk_halo_rsd_nl -> J12112y[index_k] = pow(k, 3.) * Plin_IR * p[1] * pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin_IR;
+      pfo -> pk_halo_rsd_nl -> J12112x[index_k] = pow(k, 3.) * Plin_IR * p[0] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl -> J12112y[index_k] = pow(k, 3.) * Plin_IR * p[1] / pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin_IR;
+      
+      double J21112 =  pfo -> pk_halo_rsd_nl -> J21112x[index_k] +  pfo -> pk_halo_rsd_nl -> J21112y[index_k];
+      double J12112 =  pfo -> pk_halo_rsd_nl -> J12112x[index_k] +  pfo -> pk_halo_rsd_nl -> J12112y[index_k];
+
+      double N12 =  pfo -> pk_halo_rsd_nl -> N12x[index_k] + pfo -> pk_halo_rsd_nl -> N12y[index_k];
+
+      double ph_loops  = J21112 + J12112 + N12;
+           
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/3_moment_FFT.txt");
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+          k, Plin_IR, J21112, J12112, N12, ph_loops);
+      fclose(fpa);
 }
+
 
 /*
       _________________ 4-th Moment _______________________
@@ -352,9 +368,19 @@ void rsd_4_FFTLog(struct fourier *pfo, int index_k)
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N22z_mat, vec_m, Nmax+1, &np[2]);
 
       // adding factored out k and mu dependencies
-      pfo -> pk_halo_rsd_nl -> N22x[index_k] = pow(k, 3.) * cpow(k, 4.) * np[0];
-      pfo -> pk_halo_rsd_nl -> N22y[index_k] = pow(k, 3.) * cpow(k, 4.) * np[1];
-      pfo -> pk_halo_rsd_nl -> N22z[index_k] = pow(k, 3.) * cpow(k, 4.) * np[2];
+      pfo -> pk_halo_rsd_nl -> N22x[index_k] = pow(k, 3.) / pow(k, 4.) * np[0];
+      pfo -> pk_halo_rsd_nl -> N22y[index_k] = pow(k, 3.) / pow(k, 4.) * np[1];
+      pfo -> pk_halo_rsd_nl -> N22z[index_k] = pow(k, 3.) / pow(k, 4.) * np[2];
+
+      double N22 = pfo -> pk_halo_rsd_nl -> N22x[index_k] + pfo -> pk_halo_rsd_nl -> N22y[index_k] + pfo -> pk_halo_rsd_nl -> N22z[index_k];
+
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/4_moment_FFT.txt");
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.6e %12.6e\n",\
+          k,  N22);
+      fclose(fpa);
 }
 
 double P22_new(struct fft_struct *fft_input, double k, double z, int cleanup)
