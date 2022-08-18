@@ -523,7 +523,7 @@ double sigman2_integrand(double x, void *p)
       
       double pm = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
 
-      f = 1/(6 * pow(M_PI, 2)) * pow(q, 2. * (n + 1) + 1) * pow(window, 2.) * pm;
+      f = 1/(2 * pow(M_PI, 2)) * pow(q, 2. * (n + 1) + 1) * pow(window, 2.) * pm;
 
 	return f;
 
