@@ -33,6 +33,31 @@ int PS_hh_1(   struct background * pba,
                struct fourier * pfo,
                double k,
                double z,
+               double mu,
+               long SPLIT);
+
+int PS_hh_2(   struct background * pba,
+               struct primordial * ppm,
+               struct fourier * pfo,
+               double k,
+               double z,
+               double mu,
+               long SPLIT);
+
+int PS_hh_3(   struct background * pba,
+               struct primordial * ppm,
+               struct fourier * pfo,
+               double k,
+               double z,
+               double mu,
+               long SPLIT);
+
+int PS_hh_4(   struct background * pba,
+               struct primordial * ppm,
+               struct fourier * pfo,
+               double k,
+               double z,
+               double mu,
                long SPLIT);
 
 int Compute_G_loops(
@@ -60,6 +85,7 @@ int Compute_1_loops(
                     struct fourier * pfo,
                     double k,
                     double z,
+                    double mu,
                     long SPLIT,
                     double *result);
                     
@@ -76,6 +102,7 @@ int Compute_2_loops(
                     struct fourier * pfo,
                     double k,
                     double z,
+                    double mu,
                     long SPLIT,
                     double *result);
                     
@@ -92,6 +119,7 @@ int Compute_3_loops(
                     struct fourier * pfo,
                     double k,
                     double z,
+                    double mu,
                     long SPLIT,
                     double *result);
                     
@@ -108,6 +136,7 @@ int Compute_4_loops(
                     struct fourier * pfo,
                     double k,
                     double z,
+                    double mu,
                     long SPLIT,
                     double *result);
                     
@@ -127,5 +156,11 @@ double S2(double mu);
 double F2(double k1,double k2,double mu);
 double G2(double k1,double k2,double mu);
 
+double LoS1(double q, double k, double cos, double mu);
+double LoS2(double q, double k, double cos, double mu);
+double LoS3(double q, double k, double cos, double mu);
+double LoS4(double q, double k, double cos, double mu);
+double LoS5(double q, double k, double cos, double mu);
+double LoS6(double q, double k, double cos, double mu);
 
 #endif
