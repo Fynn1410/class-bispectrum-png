@@ -602,7 +602,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> fft_ws -> fft_matrix -> I2211_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
       np_mat_fill(I2211, pfo -> fft_ws -> fft_input, MATTER, pfo -> fft_ws -> fft_matrix -> I2211_mat);
       pfo -> fft_ws -> fft_matrix -> J21111_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-      np_mat_fill(J21111, pfo -> fft_ws -> fft_input, HALO, pfo -> fft_ws -> fft_matrix -> J21111_mat);
+      np_mat_fill(J21111, pfo -> fft_ws -> fft_input, MATTER, pfo -> fft_ws -> fft_matrix -> J21111_mat);
       pfo -> fft_ws -> fft_matrix -> N11x_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
       np_mat_fill(N11x, pfo -> fft_ws -> fft_input, MATTER,  pfo -> fft_ws -> fft_matrix -> N11x_mat);
       pfo -> fft_ws -> fft_matrix -> N11y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
