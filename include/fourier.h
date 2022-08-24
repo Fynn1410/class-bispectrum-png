@@ -33,6 +33,8 @@ enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_
 enum hmcode_baryonic_feedback_model {nl_emu_dmonly, nl_owls_dmonly, nl_owls_ref, nl_owls_agn, nl_owls_dblim, nl_user_defined};
 enum out_sigmas {out_sigma,out_sigma_prime,out_sigma_disp};
 
+enum rsd_ir_type {lin, no_wiggle, real_ir};
+
 /**
  * Structure containing all information on non-linear spectra.
  *
@@ -130,10 +132,9 @@ struct oneloop_fftlog_workspace {
 
   double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
 
-  struct fft_struct *fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
-
-  // FFTLog matrices for the Loop-Integrals
-  struct fft_matrices *fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
+  // FFTLog for the Linear Power Spectrum / no-wiggle Linear Power Spectrum / Real-Space IR-Resummed Linear Power Spectrum-> index coming from enum rsd_ir_type
+  struct fft_struct **fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
+  struct fft_matrices **fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
 
   // Eulerian Biases
   double b1;
@@ -147,21 +148,36 @@ struct oneloop_fftlog_workspace {
 
 };
 
+struct oneloop_fftlog_matter_real {
+
+  /** @name - terms in the real space bias expansion at one-loop */
+
+  //@{
+  double * Plin_IR;
+  double * P_mm;
+  double * I2200;
+  double * I1300;
+  //@}
+};
+
 struct oneloop_fftlog_halo_real {
 
   /** @name - terms in the real space bias expansion at one-loop */
 
   //@{
-  double * plin_ir;
-  double * pmm;
-  double * pb1b2;
-  double * pb1bg2;
-  double * pb22;
-  double * pbg22;
-  double * pb2bg2;
-  double * pb1b3nl;
+  double * Plin_IR;
+  double * P_mm;
+  double * I2200;
+  double * Idelta200;
+  double * IG200;
+  double * Idelta2delta200;
+  double * IG2G200;
+  double * Idelta2G200;
+  double * I1300;
+  double * FG200;
+  double * IR2;
+  double * P_hh;
   //@}
-
 };
 
 struct oneloop_fftlog_halo_rsd {
@@ -394,12 +410,19 @@ struct fourier {
  
   /** @name - parameters for the oneloop FFTLog method */
 
-  struct oneloop_fftlog_halo_real * pk_halo_nl; /**< Total halo power spectrum (nonlinear) in real space.
+  // FFTLog solutions for the Linear Power Spectrum / no-wiggle Linear Power Spectrum -> index coming from enum rsd_ir_type
+
+    struct oneloop_fftlog_matter_real * pk_matter_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
                           Only depends on indices index_k:
                           ln_pk[index_k]
                        */
 
-  struct oneloop_fftlog_halo_rsd * pk_halo_rsd_nl; /**< Total halo power spectrum (nonlinear) in redshift space.
+  struct oneloop_fftlog_halo_real * pk_halo_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
+                          Only depends on indices index_k:
+                          ln_pk[index_k]
+                       */
+
+  struct oneloop_fftlog_halo_rsd ** pk_halo_rsd_nl; /**< Total halo power spectrum (nonlinear) in redshift space.
                           Only depends on indices index_k:
                           ln_pk[index_k]
                           */

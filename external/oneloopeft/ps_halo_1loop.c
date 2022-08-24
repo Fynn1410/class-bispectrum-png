@@ -286,7 +286,7 @@ int PS_hh_1(   struct background * pba,
 
       FILE *fpa;
       char file_name[50];
-      sprintf(file_name, "data/1_moment_DI.txt");
+      sprintf(file_name, "data/1_moment_DI_%g.txt",mu);
       fpa = fopen(file_name, "a");
       fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
           k, pm_lin_IR, I2201, I1301, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
@@ -350,7 +350,7 @@ int PS_hh_2(   struct background * pba,
 
       FILE *fpa;
       char file_name[50];
-      sprintf(file_name, "data/2_moment_DI.txt");
+      sprintf(file_name, "data/2_moment_DI_%g.txt",mu);
       fpa = fopen(file_name, "a");
       fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
           k, pm_lin_IR, J12102, J21102, Jdelta202, JG202, I2211, I1311, J12111, J11211, J21111, N11, ph_loops, plos_loops);
@@ -406,7 +406,7 @@ int PS_hh_3(   struct background * pba,
 
       FILE *fpa;
       char file_name[50];
-      sprintf(file_name, "data/3_moment_DI.txt");
+      sprintf(file_name, "data/3_moment_DI_%g.txt",mu);
       fpa = fopen(file_name, "a");
       fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
           k, pm_lin_IR, J21112, J12112, N12, ph_loops);
@@ -448,7 +448,7 @@ int PS_hh_4(   struct background * pba,
 
       FILE *fpa;
       char file_name[50];
-      sprintf(file_name, "data/4_moment_DI.txt");
+      sprintf(file_name, "data/4_moment_DI_%g.txt",mu);
       fpa = fopen(file_name, "a");
       fprintf(fpa, "%12.6e %12.6e %12.6e\n",\
           k, pm_lin_IR, N22);

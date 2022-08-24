@@ -26,37 +26,32 @@
  */
 
 int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 int index_k,  double z, long SPLIT, double * pk_nl)
+                 int index_k,  double z, long SPLIT)
 {
-    static int cleanup_mloops  = 0;
-
     double k = pfo->k[index_k];
 
-    double cs2 =  0.2;
-
-    double k0         = 1.e-5;
-    double k_max      = 1.e3;
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, k0, 0, SPLIT);
+    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
-    double sigma2     = IR_Sigma2(pba, ppm, pfo, z, k0, SPLIT);
+    double sigma2     = pfo -> fft_ws -> sigma_2_IR;
     double sup        = exp(-k * k * sigma2);
 
-    double sigmav2    = sigman(pba, ppm, pfo, z, k0, k_max, -1, SPLIT);
-    double P22_IR     = P22_new(pfo -> fft_ws -> fft_input, k, z, cleanup_mloops);
-    double P13_IR     = pm_lin_IR * P13_new(pfo -> fft_ws -> fft_input, k, z, cleanup_mloops);
-    double P13_uv     = - 61./105. * pm_lin_IR * pow(k, 2.) * sigmav2;
-    double P13_IR_tot = P13_IR + P13_uv;
+    double sigmav2    = pfo -> fft_ws -> sigma_v2;
+    
+    P_mm_FFTLog(pfo, index_k, pm_lin_IR);
+
+    double P22  = 2. * pfo -> pk_matter_real_nl -> I2200[index_k];
+    double P13  = 6. * pfo -> pk_matter_real_nl -> I1300[index_k];
 
     /* 
      * Compute the EFT counter-term contribution
      */
+    double cs2 =  0.2;
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    double ph_tot = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22_IR + P13_IR_tot) + pm_ct; 
+    pfo -> pk_matter_real_nl -> P_mm = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct; 
 
-    *pk_nl = ph_tot;
     return _SUCCESS_;
 }
 
@@ -78,30 +73,54 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
                     int index_k, double z, long SPLIT)
 
 { 
-    static int cleanup_gloops = 0;
-
     double k = pfo->k[index_k];
 
-    double pm_1loop_IR;
-    pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop_IR);
-    double pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-    // double pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+    double b1  = 2.0;
+    double b2  = -1.0;
+    double bG2 = 0.1;
+    double btd = -0.1;
+    double R2  =  5.0;
+    double cs2 = 0.2;
+
+    double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+    double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
+    double p_wiggle   = plin - p_nowiggle;
+    double sigma2     = pfo -> fft_ws -> sigma_2_IR;
+    double sup        = exp(-k * k * sigma2);
+
+    double sigmav2    = pfo -> fft_ws -> sigma_v2;
+
+    P_hh_FFTLog(pfo, index_k, pm_lin_IR);
 
     /* 
-     * Compute the 1loop IR-resummed loops of galaxy power spectrum
+     * Compute the EFT counter-term contribution 
      */
-    double prop_term = pgloops_propag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops);
-    double *ps_hloops = make_1Darray(5);
-    pgloops_nonpropag(pfo -> fft_ws -> fft_input, k, z, cleanup_gloops, ps_hloops);
+    double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    pfo -> pk_halo_nl -> plin_ir[index_k] = pm_lin_IR;
-    pfo -> pk_halo_nl -> pmm[index_k]     = pm_1loop_IR;
-    pfo -> pk_halo_nl -> pb1b2[index_k]   = ps_hloops[0];
-    pfo -> pk_halo_nl -> pb1bg2[index_k]  = ps_hloops[1];
-    pfo -> pk_halo_nl -> pb22[index_k]    = ps_hloops[2];
-    pfo -> pk_halo_nl -> pbg22[index_k]   = ps_hloops[3];
-    pfo -> pk_halo_nl -> pb2bg2[index_k]  = ps_hloops[4];
-    pfo -> pk_halo_nl -> pb1b3nl[index_k] = pm_lin_IR * prop_term;
+    double P22  = 2. * pfo -> pk_halo_real_nl -> I2200;
+    double P13  = 6. * pfo -> pk_halo_real_nl -> I1300;
+    double P_mm = pow(b1,2.) * ((p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct); 
+
+    double p_r2     = b1 * R2 * pfo -> pk_halo_real_nl[real_ir] -> IR2[index_k];
+    double pb1b2    = 2. * b1 * b2  *  pfo -> pk_halo_real_nl[real_ir] -> Idelta200[index_k];
+    double pb1bg2   = 4. * b1 * bG2 * pfo -> pk_halo_real_nl[real_ir] -> IG200[index_k];
+    double pb22     = 0.5 * pow(b2, 2.) * pfo -> pk_halo_real_nl[real_ir] -> Idelta2delta200[index_k];
+    double pbg22    = 2. * pow(bG2, 2.)  * pfo -> pk_halo_real_nl[real_ir] -> IG2G200[index_k];
+    double pb2bg2   = 2. * b2 * bG2 * pfo -> pk_halo_real_nl[real_ir] -> Idelta2G200[index_k];
+    double pb1b3nl  = 8. * b1 * (bG2 + 2./5. * btd) * pfo -> pk_halo_real_nl[real_ir] -> FG200[index_k];
+
+    double ph_loops = p_r2 + pb1b2 + pb1bg2 + pb22 + pbg22 + pb2bg2 + pb1b3nl + P_mm;
+    pfo -> pk_halo_real_nl -> P_hh[index_k] = ph_loops;
+
+
+    // FILE *fpa;
+    // char file_name[50];
+    // sprintf(file_name, "data/pg_FFT_const.txt");
+    // fpa = fopen(file_name, "a");
+    // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+    //     k, pm_lin_IR, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+    // fclose(fpa);
 
     return _SUCCESS_;
 }

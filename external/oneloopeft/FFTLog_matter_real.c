@@ -41,159 +41,72 @@
  * @return value of P22 term in unit of (Mpc/h)^3 as a function of redshift and wavnumber
  */
 
-double P22(struct fft_struct *fft_input, double k, double z, int cleanup)
+void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
 {
-      int Nmax     = fft_input -> nfft;
+      int Nmax = pfo -> fft_ws -> fft_input[real_ir] -> nfft;
+      double k = pfo->k[index_k];
 
-      static gsl_matrix_complex *M22_mat;
-      double complex nu1, nu2;
-      gsl_complex cmk_gsl, out_complex;
+      double *np = make_1Darray(1);
+      double *p  = make_1Darray(1);
 
-      gsl_vector_complex *cmk_vec   = gsl_vector_complex_alloc(Nmax+1);
-      gsl_vector_complex *matvec    = gsl_vector_complex_alloc(Nmax+1);
+      // Linear cpow Spectrum vector
+      double complex *vec_m = make_1D_c_array(Nmax+1);
+      vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
 
-      int i, j;
-      static int first = 1;
-      if(first==1)
-      {
-         gsl_complex M22_gsl;
+      // non-propagator calculations
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I2200_mat, vec_m, Nmax+1, &np[0]);
 
-         M22_mat = gsl_matrix_complex_alloc(Nmax+1,Nmax+1);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I1300_mat, Nmax+1, &p[0]);
 
-         for (i=0; i<Nmax+1; i++){
-               for (j=i; j<Nmax+1; j++){                        
-                     nu1 = -0.5 * fft_input->etam_m[i];
-                     nu2 = -0.5 * fft_input->etam_m[j];
-                     //printf("M22 %d %d %12.6e %12.6e %12.6e  \n", i, j, k,  creal(M22(nu1,nu2)), cimag(M22(nu1,nu2)));
-                     
-                     GSL_SET_COMPLEX(&M22_gsl,creal(M22(nu1,nu2)),cimag(M22(nu1,nu2)));
-                     gsl_matrix_complex_set(M22_mat, i, j, M22_gsl);
-                     gsl_matrix_complex_set(M22_mat, j, i, M22_gsl); 
-               }
-         }
-         first=0;
-      }   
+      // adding factored out k and mu dependencies
+      pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np[0];
+      pfo -> pk_halo_real_nl[real_ir] -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+}
 
-      for (i=0; i<Nmax+1; i++){ 
-            nu1 = -0.5 * fft_input->etam_m[i];                       
-            GSL_SET_COMPLEX(&cmk_gsl, creal(fft_input->cmsym_m[i] * cpow(k,-2.*nu1)), cimag(fft_input->cmsym_m[i] * cpow(k,-2.*nu1)));
-            gsl_vector_complex_set(cmk_vec, i, cmk_gsl);
+void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
+{
+      int Nmax = pfo -> fft_ws -> fft_input[real_ir] -> nfft;
+      double k = pfo->k[index_k];
 
-      }
-
-      gsl_blas_zgemv(CblasNoTrans, GSL_COMPLEX_ONE, M22_mat, cmk_vec, GSL_COMPLEX_ZERO, matvec);
-           
-      gsl_blas_zdotu(cmk_vec, matvec, &out_complex);
-      double out = pow(k,3.) * GSL_REAL(out_complex);
-
-      gsl_vector_complex_free(cmk_vec);
-      gsl_vector_complex_free(matvec);
-
-      if(cleanup == 1)
-            gsl_matrix_complex_free(M22_mat);
+      double *np = make_1Darray(6);
+      double *p  = make_1Darray(2);
       
+      // Linear cpow Spectrum vector for halos
+      double complex *vec_h = make_1D_c_array(Nmax+1);
+      vec_fill(pfo -> fft_ws -> fft_input[real_ir], k, HALO, vec_h);
 
-      // printf("suceessfully computed P22 using FFTLog\n");
+      double complex *vec_h_min = make_1D_c_array(Nmax+1);
+      vec_fill(pfo -> fft_ws -> fft_input[real_ir], pfo -> fft_ws -> fft_input[real_ir]->kmin_fft_g, HALO, vec_h_min);
 
-      return out;
+      // Linear cpow Spectrum vector for matter
+      double complex *vec_m = make_1D_c_array(Nmax+1);
+      vec_fill(pfo -> fft_ws -> fft_input[real_ir], k, MATTER, vec_m);
+      
+      // non-propagator calculations
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I2200_mat,           vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta200_mat,       vec_h, Nmax+1, &np[1]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> IG200_mat,           vec_h, Nmax+1, &np[2]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2delta200_mat, vec_h, Nmax+1, &np[3]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> IG2G200_mat,         vec_h, Nmax+1, &np[4]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2G200_mat,     vec_h, Nmax+1, &np[5]);
+      
+      double Idelta2delta200_const;
+      c_nonprop(vec_h_min, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
 
+      // propagator calculations
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I1300_mat, Nmax+1, &p[0]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> FG200_mat, Nmax+1, &p[1]);
+           
+      // adding factored out k and mu dependencies
+      pfo -> pk_halo_real_nl[real_ir] -> I2200[index_k]           = pow(k, 3.) * np[0];
+      pfo -> pk_halo_real_nl[real_ir] -> Idelta200[index_k]       = pow(k, 3.) * np[1];
+      pfo -> pk_halo_real_nl[real_ir] -> IG200[index_k]           = pow(k, 3.) * np[2];
+      pfo -> pk_halo_real_nl[real_ir] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[real_ir]->kmin_fft_g, 3.) * Idelta2delta200_const ;
+      pfo -> pk_halo_real_nl[real_ir] -> IG2G200[index_k]         = pow(k, 3.) * np[4];
+      pfo -> pk_halo_real_nl[real_ir] -> Idelta2G200[index_k]     = pow(k, 3.) * np[5];
+
+      pfo -> pk_halo_real_nl[real_ir] -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      pfo -> pk_halo_real_nl[real_ir] -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
+
+      pfo -> pk_halo_real_nl[real_ir] -> IR2[index_k] = - 2. * pow(k, 2.) * Plin;
 }
-
-
-/**
- * Compute the P13 contribution to non-linear matter power spectrum given the FFTLog coefficents and frequencies
- *
- * @param fft_struct    Input: structure containing fft coefficents and params
- * @param k             Input: wavenumber in unit of h/Mpc. 
- * @param z             Input: redshift
- * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the pipeline
- * @return value of P13 term in unit of (Mpc/h)^3 as a function of redshift and wavnumber
- */
-
-double P13(struct fft_struct *fft_input, double k, double z, int cleanup)
-{
-      fftw_complex M22_elems;
-
-      int Nmax     = fft_input -> nfft;
-
-      static gsl_vector_complex *M13_vec;
-      gsl_vector_complex *cmk_vec  = gsl_vector_complex_alloc(Nmax+1);
-
-      gsl_complex cmk_gsl, out_complex;
-      double complex nu1;
-
-      static int first = 1;
-      if(first==1)
-      {
-         gsl_complex M13_gsl;
-         M13_vec  = gsl_vector_complex_alloc(Nmax+1);
-
-         for (int i=0; i<Nmax+1; i++){
-               nu1 = -0.5 * fft_input->etam_m[i];
-               GSL_SET_COMPLEX(&M13_gsl,creal(M13(nu1)),cimag(M13(nu1)));
-               //printf("M13 %d %12.6e %12.6e %12.6e  %12.6e %12.6e \n", i, k, creal(nu1), cimag(nu1), GSL_REAL(M13_gsl), GSL_IMAG(M13_gsl));
-
-               gsl_vector_complex_set(M13_vec, i, M13_gsl);
-         }
-         first=0;
-      }         
-      for (int i=0; i<Nmax+1; i++){
-             nu1 = -0.5 * fft_input->etam_m[i];
-             GSL_SET_COMPLEX(&cmk_gsl, creal(fft_input->cmsym_m[i] * cpow(k,-2.*nu1)), cimag(fft_input->cmsym_m[i] * cpow(k,-2.*nu1)));
-             // printf("cmk13 %d %12.6e %12.6e %12.6e  \n", i, k,  GSL_REAL(cmk_gsl), GSL_IMAG(cmk_gsl));
-
-            gsl_vector_complex_set(cmk_vec, i, cmk_gsl);
-      }
-      gsl_blas_zdotu(cmk_vec, M13_vec, &out_complex);
-      double out = pow(k,3.) * GSL_REAL(out_complex);
-
-
-      gsl_vector_complex_free(cmk_vec);
-
-      if(cleanup == 1)
-         gsl_vector_complex_free(M13_vec);
-
-      // printf("suceessfully computed P13 using FFTLog\n");
-
-      return out;
-}
-
-
-
-/**
- * Analytic expression of M22 matrix
- *
- * @param nu1         Input: FFTLog coeffcients
- * @param nu2         Input: FFTLog frequency exponents
- * @return value of M22
- */
-
-double complex M22(double complex nu1, double complex nu2)
-{
-      double complex numerator   = ((-3. + 2. * nu1 + 2. * nu2)*(-1. + 2. * nu1 + 2. * nu2) * (58. + 98. * cpow(nu1, 3.) * nu2 \
-                                 + (3. - 91. * nu2) * nu2 + 7. * cpow(nu1, 2.) * (- 13. - 2. * nu2 + 28. * cpow(nu2, 2.))
-                                 + nu1 * (3. + 2. * nu2 * (- 73. + 7. * nu2 * (- 1. + 7. * nu2)))));
-      double complex denominator = (196. * nu1 * (1. + nu1) * (-1. + 2. * nu1) * nu2 * (1. + nu2) * (- 1. + 2. * nu2));
-      double complex out         = numerator/denominator * J(nu1, nu2);
-
-      return out;
-}
-
-
-
-/**
- * Analytic expression of M13 matrix
- *
- * @param nu1         Input: power of q
- * @return value of M13
- */
-
-double complex M13(double complex nu1)
-{
-      double complex numerator   = (1. + 9. * nu1) * ctan(nu1 * M_PI);
-      double complex denominator = (112. *  M_PI * nu1 * (-6. + 5. * nu1 + 5. * cpow(nu1, 2.) - 5. * cpow(nu1, 3.) + cpow(nu1, 4.)));
-      double complex out          = numerator/denominator;
-
-      return out;
-}
-

@@ -1,10 +1,10 @@
 #include <complex.h>
 
-void rsd_0_FFTLog(struct fourier *pfo, int index_k, double Plin_IR);
-void rsd_1_FFTLog(struct fourier *pfo, int index_k, double Plin_IR);
-void rsd_2_FFTLog(struct fourier *pfo, int index_k, double Plin_IR);
-void rsd_3_FFTLog(struct fourier *pfo, int index_k, double Plin_IR);
-void rsd_4_FFTLog(struct fourier *pfo, int index_k);
+void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin);
+void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, double Plin);
+void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, double Plin);
+void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, double Plin);
+void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, double Plin);
 
 double P22_new(struct fft_struct *fft_input, double k, double z, int cleanup);
 double P13_new(struct fft_struct *fft_input, double k, double z, int cleanup);

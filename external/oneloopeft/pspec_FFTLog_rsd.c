@@ -12,25 +12,32 @@
 #include "header.h"
 
 int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    int index_k, double z, long SPLIT)
+                    int index_k, double z, double mu, long SPLIT)
 {
     double k = pfo->k[index_k];
 
     // Storing IR-resummed Plin in pfo
-    double pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-    pfo -> pk_halo_rsd_nl-> Plin_IR[index_k] = pm_lin_IR;
+    double pm_lin = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+    pfo -> pk_halo_rsd_nl[linear]    -> Plin_IR[index_k] = pm_lin;
+    double pm_lin_nw = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
+    pfo -> pk_halo_rsd_nl[no_wiggle] -> Plin_IR[index_k] = pm_lin_nw;
 
     // Storing P_mm in pfo
-    double pm_1loop_IR;
-    pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop_IR);
-    pfo -> pk_halo_rsd_nl-> P_mm[index_k] = pm_1loop_IR;
+    double pm_1loop, pm_1loop_nw;
+    pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop);
+    pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop_nw);
+    pfo -> pk_halo_rsd_nl[linear]    -> P_mm[index_k] = pm_1loop;
+    pfo -> pk_halo_rsd_nl[no_wiggle] -> P_mm[index_k] = pm_1loop_nw;
 
-    // Calculation of the Loop-Integrals
-    rsd_0_FFTLog(pfo, index_k, pm_lin_IR);
-    rsd_1_FFTLog(pfo, index_k, pm_lin_IR);
-    rsd_2_FFTLog(pfo, index_k, pm_lin_IR);
-    rsd_3_FFTLog(pfo, index_k, pm_lin_IR);
-    rsd_4_FFTLog(pfo, index_k);
+    // Calculation of the Loop-Integrals for the full linear power spectrum and the no-wiggle linear power spectrum
+    double plin;
+    for (int idx = lin; idx <= no_wiggle; idx++){
+        rsd_0_FFTLog(pfo, idx, index_k,     pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
+        rsd_1_FFTLog(pfo, idx, index_k, mu, pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
+        rsd_2_FFTLog(pfo, idx, index_k, mu, pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
+        rsd_3_FFTLog(pfo, idx, index_k, mu, pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
+        rsd_4_FFTLog(pfo, idx, index_k, mu, pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
+    }
 
     return _SUCCESS_;
 }
