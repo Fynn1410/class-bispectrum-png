@@ -184,6 +184,7 @@ struct integrand_parameters2
 	long p18;
 
 	int p19;
+	int p23;
 
 	double *p20;
 	size_t p22;

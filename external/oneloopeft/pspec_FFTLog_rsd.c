@@ -236,6 +236,83 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
     return _SUCCESS_;
 }
 
+int RSD_Multipole(struct fourier *pfo, int index_k, double z, int l, double * result)
+{
+    //extern struct globals gb;
+    double integ=0., error=0.;
+    gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000000);
+
+    struct integrand_parameters2 par; 
+
+    double mu_min = -1.;
+    double mu_max =  1.;
+
+    gsl_function F;
+    F.function = &RSD_Multipole_integrand;
+    F.params = &par;
+
+    par.pfo = pfo;
+    par.p5  = z;
+    par.p19 = l;
+    par.p23 = index_k;
+    gsl_integration_qags(&F,mu_min,mu_max,0.0,1.0e-1,1000000,w,&integ,&error);
+    gsl_integration_workspace_free(w);
+
+    *result = integ;
+
+    double k = pfo->k[index_k];
+
+    FILE *fpa10;
+    char file_name10[50];
+    sprintf(file_name10, "data/%d_Moment.txt",l);
+    fpa10 = fopen(file_name10, "a");
+    fprintf(fpa10, "%12.6e %12.6e\n",k,integ);
+    fclose(fpa10);
+
+    return _SUCCESS_;
+}
+
+double RSD_Multipole_integrand(double x, void *par)
+{
+    double result = 0;
+    
+    struct integrand_parameters2 pij;
+    pij = *((struct integrand_parameters2 *)par);
+
+    struct fourier *pfo = pij.pfo;
+    double z            = pij.p5;
+    int    l            = pij.p19;
+    int    index_k      = pij.p23;
+
+    double rsd;
+    RSD_IR_Ressummed(pfo, index_k, z, x, &rsd);
+
+    result = (2.*l + 1.)/2. * rsd * Legendre_Polynomial(l, x);
+
+    return result;
+}
+
+double Legendre_Polynomial(int l, double mu)
+{
+    double result = 0.;
+    if(l==0){
+        result = 1.;
+    }
+    else if(l==1){
+        result = mu;
+    }
+    else if(l==2){
+        result = 0.5*(3.*pow(mu,2.)-1);
+    }
+    else if(l==3){
+        result = 0.5*(5.*pow(mu,3.)-3.*mu);
+    }
+    else{
+        result = 0.;
+    }
+    return result;
+}
+
 // int FFTLog_fill_bias_vector(struct fourier *pfo, double b1, double b2, double bG2, double btd, double cs2, double R2){
 //     pfo -> fft_ws -> b1  = b1;
 //     pfo -> fft_ws -> b2  = b2;
