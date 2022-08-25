@@ -80,7 +80,7 @@ typedef struct fft_matrices
   double complex ** J21101_mat; 
   double complex ** Jdelta201_mat; 
   double complex ** JG201_mat; 
-  double complex *  I1301_mat; 
+  double complex *  I1301p3101_mat; 
   double complex *  J12101_mat; 
   
   // 2-nd moment in RSD Biased loops
@@ -209,7 +209,7 @@ struct oneloop_fftlog_halo_rsd {
   double * J21101;
   double * Jdelta201;
   double * JG201;
-  double * I1301;
+  double * I1301p3101;
   double * J12101;
   double * J11201;
 

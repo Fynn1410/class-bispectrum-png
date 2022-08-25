@@ -29,7 +29,7 @@ double complex J21101(double complex n1, double complex n2);
 double complex Jdelta201(double complex n1, double complex n2);
 double complex JG201(double complex n1, double complex n2);
 
-double complex I1301(double complex n1);
+double complex I1301p3101(double complex n1);
 double complex J12101(double complex n1);
 
 //2-nd moment

@@ -505,7 +505,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             pfo -> pk_halo_rsd_nl[idx] -> J21101 = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> Jdelta201 = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> JG201 = make_1Darray(pfo->k_size);
-            pfo -> pk_halo_rsd_nl[idx] -> I1301 = make_1Darray(pfo->k_size);
+            pfo -> pk_halo_rsd_nl[idx] -> I1301p3101 = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> J12101 = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> J11201 = make_1Darray(pfo->k_size);
 
@@ -631,8 +631,8 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             np_mat_fill(JG201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> JG201_mat);
 
             // FFTLog matrices (propagator)
-            pfo -> fft_ws -> fft_matrix[idx] -> I1301_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(I1301, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> I1301_mat);
+            pfo -> fft_ws -> fft_matrix[idx] -> I1301p3101_mat = make_1D_c_array(N_FFTLog+1);
+            p_mat_fill(I1301p3101, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> I1301p3101_mat);
             pfo -> fft_ws -> fft_matrix[idx] -> J12101_mat = make_1D_c_array(N_FFTLog+1);
             p_mat_fill(J12101, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> J12101_mat);
 

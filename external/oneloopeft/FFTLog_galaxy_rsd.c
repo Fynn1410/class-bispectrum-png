@@ -137,7 +137,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> JG201_mat,     vec_h, Nmax+1, &np[6]);
 
       // propagator calculations
-      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1301_mat,  Nmax+1, &p[0]);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1301p3101_mat,  Nmax+1, &p[0]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12101_mat, Nmax+1, &p[1]);
 
       // adding factored out k dependencies
@@ -149,7 +149,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] = pow(k, 3.) * np[5] / k;
       pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k]     = pow(k, 3.) * np[6] / k;
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301[index_k]  = pow(k, 3.) * Plin * p[0] - 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k]  = pow(k, 3.) * Plin * p[0] - 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin;
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] = pow(k, 3.) * Plin * p[1] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
 
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
@@ -472,7 +472,7 @@ double complex I2201(double complex n1, double complex n2)
       return out;
 } 
 
-double complex I1301(double complex n1)
+double complex I1301p3101(double complex n1)
 {
       double complex numerator   = ((-7 + 9*n1)*ctan(n1*M_PI));
       double complex denominator = (336.*n1*(-6 + 5*n1 + 5*cpow(n1,2) - 5*cpow(n1,3) + cpow(n1,4))*M_PI);
