@@ -340,7 +340,7 @@ cdef extern from "class.h":
         double * J21101;
         double * Jdelta201;
         double * JG201;
-        double * I1301;
+        double * I1301p3101;
         double * J12101;
         double * J11201;
 

@@ -226,12 +226,12 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
     
     *result = RSD_IR_Ressummed;
 
-    FILE *fpa9;
-    char file_name9[50];
-    sprintf(file_name9, "data/IR_res_RSD_%g.txt",mu);
-    fpa9 = fopen(file_name9, "a");
-    fprintf(fpa9, "%12.6e %12.6e\n", k, RSD_IR_Ressummed);
-    fclose(fpa9);
+    // FILE *fpa9;
+    // char file_name9[50];
+    // sprintf(file_name9, "data/IR_res_RSD_%g.txt",mu);
+    // fpa9 = fopen(file_name9, "a");
+    // fprintf(fpa9, "%12.6e %12.6e\n", k, RSD_IR_Ressummed);
+    // fclose(fpa9);
 
     return _SUCCESS_;
 }

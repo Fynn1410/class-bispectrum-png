@@ -960,7 +960,7 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t,ndim=2] J21101_arr = np.zeros((2, self.fo.k_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=2] Jdelta201_arr = np.zeros((2, self.fo.k_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=2] JG201_arr = np.zeros((2, self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] I1301_arr = np.zeros((2, self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] I1301p3101_arr = np.zeros((2, self.fo.k_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=2] J12101_arr = np.zeros((2, self.fo.k_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=2] J11201_arr = np.zeros((2, self.fo.k_size),'float64')
 
@@ -1012,7 +1012,7 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t,ndim=1] J21101 = np.zeros((2),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] Jdelta201 = np.zeros((2),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] JG201 = np.zeros((2),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] I1301 = np.zeros((2),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] I1301p3101 = np.zeros((2),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] J12101 = np.zeros((2),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] J11201 = np.zeros((2),'float64')
 
@@ -1091,7 +1091,7 @@ cdef class Class:
                         J21101_arr[rsd_ir_idx][index_k] = self.fo.pk_halo_rsd_nl[rsd_ir_idx].J21101[index_k]
                         Jdelta201_arr[rsd_ir_idx][index_k] = self.fo.pk_halo_rsd_nl[rsd_ir_idx].Jdelta201[index_k]
                         JG201_arr[rsd_ir_idx][index_k] = self.fo.pk_halo_rsd_nl[rsd_ir_idx].JG201[index_k]
-                        I1301_arr[rsd_ir_idx][index_k] = self.fo.pk_halo_rsd_nl[rsd_ir_idx].I1301[index_k]
+                        I1301p3101_arr[rsd_ir_idx][index_k] = self.fo.pk_halo_rsd_nl[rsd_ir_idx].I1301p3101[index_k]
                         J12101_arr[rsd_ir_idx][index_k] = self.fo.pk_halo_rsd_nl[rsd_ir_idx].J12101[index_k]
                         J11201_arr[rsd_ir_idx][index_k] = self.fo.pk_halo_rsd_nl[rsd_ir_idx].J11201[index_k]
 
@@ -1127,6 +1127,7 @@ cdef class Class:
             
         for rsd_ir_idx in range(2):
 
+            #0-th moment
             Plin[rsd_ir_idx] = UnivariateSpline(k_arr, Plin_arr[rsd_ir_idx],s=0)(k)
             P_mm[rsd_ir_idx] = UnivariateSpline(k_arr, P_mm_arr[rsd_ir_idx],s=0)(k)
 
@@ -1140,71 +1141,81 @@ cdef class Class:
             FG200[rsd_ir_idx] = UnivariateSpline(k_arr, FG200_arr[rsd_ir_idx],s=0)(k)
             IR2[rsd_ir_idx] = UnivariateSpline(k_arr, IR2_arr[rsd_ir_idx],s=0)(k)
 
-            I2201[rsd_ir_idx] = UnivariateSpline(k_arr, I2201_arr[rsd_ir_idx],s=0)(k)*2*f*mu**2
-            Idelta201[rsd_ir_idx] = UnivariateSpline(k_arr, Idelta201_arr[rsd_ir_idx],s=0)(k)*2*f*mu**2
-            IG201[rsd_ir_idx] = UnivariateSpline(k_arr, IG201_arr[rsd_ir_idx],s=0)(k)*2*f*mu**2
-            FG201[rsd_ir_idx] = UnivariateSpline(k_arr, FG201_arr[rsd_ir_idx],s=0)(k)*2*f*mu**2
-            J21101[rsd_ir_idx] = UnivariateSpline(k_arr, J21101_arr[rsd_ir_idx],s=0)(k)*mu *2*2*f*mu*k
-            Jdelta201[rsd_ir_idx] = UnivariateSpline(k_arr, Jdelta201_arr[rsd_ir_idx],s=0)(k)*mu *2*2*f*mu*k
-            JG201[rsd_ir_idx] = UnivariateSpline(k_arr, JG201_arr[rsd_ir_idx],s=0)(k)*mu *2*2*f*mu*k
-            I1301[rsd_ir_idx] = UnivariateSpline(k_arr, I1301_arr[rsd_ir_idx],s=0)(k)*2*f*mu**2
-            J12101[rsd_ir_idx] = UnivariateSpline(k_arr, J12101_arr[rsd_ir_idx],s=0)(k)*mu *2*2*f*mu*k
-            J11201[rsd_ir_idx] = UnivariateSpline(k_arr, J11201_arr[rsd_ir_idx],s=0)(k)*mu *2*2*f*mu*k
+            Moment_0[rsd_ir_idx] = b1**2 *(Plin[rsd_ir_idx] + 2.*I2200[rsd_ir_idx] + 6.*I1300[rsd_ir_idx]) + 2.*b1*b2*Idelta200[rsd_ir_idx] + 4.*b1*bG2*IG200[rsd_ir_idx] \
+                        + 0.5*b2**2 *Idelta2delta200[rsd_ir_idx] + 2.*bG2**2 *IG2G200[rsd_ir_idx] + 8.*(bG2 + 0.4*btd)*FG200[rsd_ir_idx] + b1*R2*IR2[rsd_ir_idx]
 
+            #1-st moment
+            I2201[rsd_ir_idx] = UnivariateSpline(k_arr, I2201_arr[rsd_ir_idx],s=0)(k)
+            Idelta201[rsd_ir_idx] = UnivariateSpline(k_arr, Idelta201_arr[rsd_ir_idx],s=0)(k)
+            IG201[rsd_ir_idx] = UnivariateSpline(k_arr, IG201_arr[rsd_ir_idx],s=0)(k)
+            FG201[rsd_ir_idx] = UnivariateSpline(k_arr, FG201_arr[rsd_ir_idx],s=0)(k)
+            J21101[rsd_ir_idx] = UnivariateSpline(k_arr, J21101_arr[rsd_ir_idx],s=0)(k)*mu
+            Jdelta201[rsd_ir_idx] = UnivariateSpline(k_arr, Jdelta201_arr[rsd_ir_idx],s=0)(k)*mu
+            JG201[rsd_ir_idx] = UnivariateSpline(k_arr, JG201_arr[rsd_ir_idx],s=0)(k)*mu
+            I1301p3101[rsd_ir_idx] = UnivariateSpline(k_arr, I1301p3101_arr[rsd_ir_idx],s=0)(k)
+            J12101[rsd_ir_idx] = UnivariateSpline(k_arr, J12101_arr[rsd_ir_idx],s=0)(k)*mu
+            J11201[rsd_ir_idx] = UnivariateSpline(k_arr, J11201_arr[rsd_ir_idx],s=0)(k)*mu
+
+            Moment_1[rsd_ir_idx] =   2. * (f*mu/k) *b1*Plin[rsd_ir_idx]\
+                        + 2. * (f*mu/k) * (2.*b1*I2201[rsd_ir_idx] + 3.*b1*I1301p3101[rsd_ir_idx] + b2*Idelta201[rsd_ir_idx] + 2.*bG2*IG201[rsd_ir_idx] + 4.*(bG2 + 0.4*btd)*FG201[rsd_ir_idx])\
+                        + 2. * (2*f)    * (b1**2 *(J12101[rsd_ir_idx] + J11201[rsd_ir_idx] + J21101[rsd_ir_idx]) + 0.5*b1*b2*Jdelta201[rsd_ir_idx] + b1*bG2*JG201[rsd_ir_idx])
+
+            #2-nd moment
             J21102x[rsd_ir_idx] = UnivariateSpline(k_arr, J21102x_arr[rsd_ir_idx],s=0)(k)
             J21102y[rsd_ir_idx] = UnivariateSpline(k_arr, J21102y_arr[rsd_ir_idx],s=0)(k)
-            J21102[rsd_ir_idx] = (J21102x[rsd_ir_idx] + J21102y[rsd_ir_idx]*mu**2)*(f*mu*k)**2
+            J21102[rsd_ir_idx] = (J21102x[rsd_ir_idx] + J21102y[rsd_ir_idx]*mu**2)
             Jdelta202x[rsd_ir_idx] = UnivariateSpline(k_arr, Jdelta202x_arr[rsd_ir_idx],s=0)(k)
             Jdelta202y[rsd_ir_idx] = UnivariateSpline(k_arr, Jdelta202y_arr[rsd_ir_idx],s=0)(k)
-            Jdelta202[rsd_ir_idx] = (Jdelta202x[rsd_ir_idx] + Jdelta202y[rsd_ir_idx]*mu**2)*(f*mu*k)**2
+            Jdelta202[rsd_ir_idx] = (Jdelta202x[rsd_ir_idx] + Jdelta202y[rsd_ir_idx]*mu**2)
             JG202x[rsd_ir_idx] = UnivariateSpline(k_arr, JG202x_arr[rsd_ir_idx],s=0)(k)
             JG202y[rsd_ir_idx] = UnivariateSpline(k_arr, JG202y_arr[rsd_ir_idx],s=0)(k)
-            JG202[rsd_ir_idx] = (JG202x[rsd_ir_idx] + JG202y[rsd_ir_idx]*mu**2)*(f*mu*k)**2
-            I2211[rsd_ir_idx] = UnivariateSpline(k_arr, I2211_arr[rsd_ir_idx],s=0)(k)*f**2*mu**4
-            J21111[rsd_ir_idx] = UnivariateSpline(k_arr, J21111_arr[rsd_ir_idx],s=0)(k)*mu *4*f**2*mu**3*k
+            JG202[rsd_ir_idx] = (JG202x[rsd_ir_idx] + JG202y[rsd_ir_idx]*mu**2)
+            I2211[rsd_ir_idx] = UnivariateSpline(k_arr, I2211_arr[rsd_ir_idx],s=0)(k)
+            J21111[rsd_ir_idx] = UnivariateSpline(k_arr, J21111_arr[rsd_ir_idx],s=0)(k)*mu
             N11x[rsd_ir_idx] = UnivariateSpline(k_arr, N11x_arr[rsd_ir_idx],s=0)(k)
             N11y[rsd_ir_idx] = UnivariateSpline(k_arr, N11y_arr[rsd_ir_idx],s=0)(k)
-            N11[rsd_ir_idx] = (N11x[rsd_ir_idx] + N11y[rsd_ir_idx]*mu**2)*(f*mu*k)**2
+            N11[rsd_ir_idx] = (N11x[rsd_ir_idx] + N11y[rsd_ir_idx]*mu**2)
             J12102x[rsd_ir_idx] = UnivariateSpline(k_arr, J12102x_arr[rsd_ir_idx],s=0)(k)
             J12102y[rsd_ir_idx] = UnivariateSpline(k_arr, J12102y_arr[rsd_ir_idx],s=0)(k)
-            J12102[rsd_ir_idx] = (J12102x[rsd_ir_idx] + J12102y[rsd_ir_idx]*mu**2)*(f*mu*k)**2
-            I1311[rsd_ir_idx] = UnivariateSpline(k_arr, I1311_arr[rsd_ir_idx],s=0)(k)*f**2*mu**4
-            J12111[rsd_ir_idx] = UnivariateSpline(k_arr, J12111_arr[rsd_ir_idx],s=0)(k)*mu *4*f**2*mu**3*k
-            J11211[rsd_ir_idx] = UnivariateSpline(k_arr, J11211_arr[rsd_ir_idx],s=0)(k)*mu *4*f**2*mu**3*k
+            J12102[rsd_ir_idx] = (J12102x[rsd_ir_idx] + J12102y[rsd_ir_idx]*mu**2)
+            I1311[rsd_ir_idx] = UnivariateSpline(k_arr, I1311_arr[rsd_ir_idx],s=0)(k)
+            J12111[rsd_ir_idx] = UnivariateSpline(k_arr, J12111_arr[rsd_ir_idx],s=0)(k)*mu
+            J11211[rsd_ir_idx] = UnivariateSpline(k_arr, J11211_arr[rsd_ir_idx],s=0)(k)*mu
         
+            Moment_2[rsd_ir_idx] =   2. * (f*mu/k)**2 * Plin[rsd_ir_idx]\
+                        + 2. * (f*mu/k)**2 * (2.*I2211[rsd_ir_idx] + 6.*I1311[rsd_ir_idx])\
+                        + 8. * f**2 *(mu/k) * (b1*(J12111[rsd_ir_idx] + J11211[rsd_ir_idx] + J21111[rsd_ir_idx]))\
+                        + 2. * f**2  * (b1**2 *N11[rsd_ir_idx])\
+                        + 2. * f**2  * (4.*b1*J12102[rsd_ir_idx] + 2.*b1*J21102[rsd_ir_idx] + b2*Jdelta202[rsd_ir_idx] + 2.*bG2*JG202[rsd_ir_idx] + b1**2 *Plin[rsd_ir_idx]*sigma_v2)
+
+            #3-rd moment
             J21112x[rsd_ir_idx] = UnivariateSpline(k_arr, J21112x_arr[rsd_ir_idx],s=0)(k)
             J21112y[rsd_ir_idx] = UnivariateSpline(k_arr, J21112y_arr[rsd_ir_idx],s=0)(k)
-            J21112[rsd_ir_idx] = (J21112x[rsd_ir_idx] + J21112y[rsd_ir_idx]*mu**2)*2*f**3*mu**4*k**2
+            J21112[rsd_ir_idx] = (J21112x[rsd_ir_idx] + J21112y[rsd_ir_idx]*mu**2)
             N12x[rsd_ir_idx] = UnivariateSpline(k_arr, N12x_arr[rsd_ir_idx],s=0)(k)
             N12y[rsd_ir_idx] = UnivariateSpline(k_arr, N12y_arr[rsd_ir_idx],s=0)(k)
-            N12[rsd_ir_idx] = (N12x[rsd_ir_idx]*mu + N12y[rsd_ir_idx]*mu**3)*2*(f*mu*k)**k
+            N12[rsd_ir_idx] = (N12x[rsd_ir_idx]*mu + N12y[rsd_ir_idx]*mu**3)
             J12112x[rsd_ir_idx] = UnivariateSpline(k_arr, J12112x_arr[rsd_ir_idx],s=0)(k)
             J12112y[rsd_ir_idx] = UnivariateSpline(k_arr, J12112y_arr[rsd_ir_idx],s=0)(k)
-            J12112[rsd_ir_idx] = (J12112x[rsd_ir_idx] + J12112y[rsd_ir_idx]*mu**2)*2*f**3*mu**4*k**2
+            J12112[rsd_ir_idx] = (J12112x[rsd_ir_idx] + J12112y[rsd_ir_idx]*mu**2)
 
+            Moment_3[rsd_ir_idx] = - 6. * f**3 *(mu/k) * b1*Plin[rsd_ir_idx]*sigma_v2\
+                + 12.* f**3 *(mu/k) * (J21112[rsd_ir_idx] + 2.*J12112[rsd_ir_idx])\
+                - 6. * f**3 *(mu/k) * b1*Plin[rsd_ir_idx]*sigma_v2\
+                + 12.* f**3  * b1*N12[rsd_ir_idx]
+
+            #4-th moment
             N22x[rsd_ir_idx] = UnivariateSpline(k_arr, N22x_arr[rsd_ir_idx],s=0)(k)
             N22y[rsd_ir_idx] = UnivariateSpline(k_arr, N22y_arr[rsd_ir_idx],s=0)(k)
             N22z[rsd_ir_idx] = UnivariateSpline(k_arr, N22z_arr[rsd_ir_idx],s=0)(k)
-            N22[rsd_ir_idx] = (N22x[rsd_ir_idx] + N22y[rsd_ir_idx]*mu**2 + N22z[rsd_ir_idx]*mu**4)*0.5*(f*mu*k)**4
+            N22[rsd_ir_idx] = (N22x[rsd_ir_idx] + N22y[rsd_ir_idx]*mu**2 + N22z[rsd_ir_idx]*mu**4)
 
+            Moment_4[rsd_ir_idx] = -24. * f**4 *(mu/k)**2 * Plin[rsd_ir_idx]*sigma_v2\
+                        +12. * f**4 * N22[rsd_ir_idx]
 
-            # Construction of the 0-th moment
-            Moment_0[rsd_ir_idx] = b1**2 *P_mm[rsd_ir_idx] + 2*b1*b2*Idelta200[rsd_ir_idx] + 4*b1*bG2*IG200[rsd_ir_idx] + 0.5*b2**2 *Idelta2delta200[rsd_ir_idx] + 2*bG2**2 *IG2G200[rsd_ir_idx] + 2*b2*bG2*Idelta2G200[rsd_ir_idx] + 8.*b1*(bG2+2/5 *btd)*FG200[rsd_ir_idx] + b1*R2*IR2[rsd_ir_idx]
-
-            # Construction of the 1-th moment
-            Moment_1[rsd_ir_idx] = b1*f*mu**2 *Plin[rsd_ir_idx] + 2*b1*I2201[rsd_ir_idx] + 3*b1*I1300[rsd_ir_idx] + b2*Idelta201[rsd_ir_idx] + 2*bG2*IG201[rsd_ir_idx] + 4*(bG2+0.4*btd)*FG201[rsd_ir_idx] + b1**2 *(J12101[rsd_ir_idx]+J11201[rsd_ir_idx]+J21101[rsd_ir_idx]) + 0.5*b1*b2*Jdelta201[rsd_ir_idx] + b1*bG2*JG201[rsd_ir_idx] 
-
-            # Construction of the 2-th moment
-            Moment_2[rsd_ir_idx] = Plin[rsd_ir_idx]*f**2 *mu**4 + 4*b1*J12102[rsd_ir_idx] + 2*b1*J21102[rsd_ir_idx] + b2*Jdelta202[rsd_ir_idx] + 2*bG2*JG202[rsd_ir_idx] + (f*k*mu)**2 *(b1**2*Plin[rsd_ir_idx]*sigma_v2) + 2*I2211[rsd_ir_idx] + 6*I1311[rsd_ir_idx] + b1*(J12111[rsd_ir_idx]+J11211[rsd_ir_idx]+J21111[rsd_ir_idx]) + b1**2*N11[rsd_ir_idx]  
-
-            # Construction of the 3-th moment
-            Moment_3[rsd_ir_idx] = J21112[rsd_ir_idx] + 2*J12112[rsd_ir_idx] + b1*N12[rsd_ir_idx] - 2*f**3 * mu**4 * k**2 *b1*Plin[rsd_ir_idx]*sigma_v2
-            
-            # Construction of the 4-th moment
-            Moment_4[rsd_ir_idx] = N22[rsd_ir_idx] - f**4 *mu**6 *k**2 *Plin[rsd_ir_idx]*sigma_v2
-
-            RSD[rsd_ir_idx] = Moment_0[rsd_ir_idx] + Moment_1[rsd_ir_idx] + Moment_2[rsd_ir_idx] + Moment_3[rsd_ir_idx] + Moment_4[rsd_ir_idx]
-        
+            #RSD expansion
+            RSD[rsd_ir_idx] = Moment_0[rsd_ir_idx] + k*mu * Moment_1[rsd_ir_idx] + (1./2.) * (k*mu)**2 * Moment_2[rsd_ir_idx] \
+                    + (1./6.) * (k*mu)**3 * Moment_3[rsd_ir_idx] + (1./24.) * (k*mu)**4 * Moment_4[rsd_ir_idx]
 
         cdef double sigma_tot = (1 + f * mu**2 * (2 + f))*sigma_2_IR + f**2 * mu**2 * (mu**2 - 1)*del_sigma_2_IR
         cdef double suppression = exp(-k**2 * sigma_tot)
