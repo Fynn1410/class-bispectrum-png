@@ -50,7 +50,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double cs2 =  0.2;
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    pfo -> pk_matter_real_nl -> P_mm = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct; 
+    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct; 
 
     return _SUCCESS_;
 }
@@ -91,24 +91,26 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     double sigmav2    = pfo -> fft_ws -> sigma_v2;
 
-    P_hh_FFTLog(pfo, index_k, pm_lin_IR);
+    P_gg_FFTLog(pfo, index_k, pm_lin_IR);
 
     /* 
      * Compute the EFT counter-term contribution 
      */
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    double P22  = 2. * pfo -> pk_halo_real_nl -> I2200;
-    double P13  = 6. * pfo -> pk_halo_real_nl -> I1300;
+    double P22  = 2. * pfo -> pk_halo_real_nl -> I2200[index_k];
+    double P13  = 6. * pfo -> pk_halo_real_nl -> I1300[index_k];
     double P_mm = pow(b1,2.) * ((p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct); 
+    pfo -> pk_halo_real_nl -> P_mm[index_k] = P_mm/pow(b1,2.);
+    // fprintf(stderr, "%g", pfo -> pk_halo_real_nl -> P_mm[index_k]);
 
-    double p_r2     = b1 * R2 * pfo -> pk_halo_real_nl[real_ir] -> IR2[index_k];
-    double pb1b2    = 2. * b1 * b2  *  pfo -> pk_halo_real_nl[real_ir] -> Idelta200[index_k];
-    double pb1bg2   = 4. * b1 * bG2 * pfo -> pk_halo_real_nl[real_ir] -> IG200[index_k];
-    double pb22     = 0.5 * pow(b2, 2.) * pfo -> pk_halo_real_nl[real_ir] -> Idelta2delta200[index_k];
-    double pbg22    = 2. * pow(bG2, 2.)  * pfo -> pk_halo_real_nl[real_ir] -> IG2G200[index_k];
-    double pb2bg2   = 2. * b2 * bG2 * pfo -> pk_halo_real_nl[real_ir] -> Idelta2G200[index_k];
-    double pb1b3nl  = 8. * b1 * (bG2 + 2./5. * btd) * pfo -> pk_halo_real_nl[real_ir] -> FG200[index_k];
+    double p_r2     = b1 * R2 * pfo -> pk_halo_real_nl -> IR2[index_k];
+    double pb1b2    = 2. * b1 * b2  *  pfo -> pk_halo_real_nl -> Idelta200[index_k];
+    double pb1bg2   = 4. * b1 * bG2 * pfo -> pk_halo_real_nl -> IG200[index_k];
+    double pb22     = 0.5 * pow(b2, 2.) * pfo -> pk_halo_real_nl -> Idelta2delta200[index_k];
+    double pbg22    = 2. * pow(bG2, 2.)  * pfo -> pk_halo_real_nl -> IG2G200[index_k];
+    double pb2bg2   = 2. * b2 * bG2 * pfo -> pk_halo_real_nl -> Idelta2G200[index_k];
+    double pb1b3nl  = 8. * b1 * (bG2 + 2./5. * btd) * pfo -> pk_halo_real_nl -> FG200[index_k];
 
     double ph_loops = p_r2 + pb1b2 + pb1bg2 + pb22 + pbg22 + pb2bg2 + pb1b3nl + P_mm;
     pfo -> pk_halo_real_nl -> P_hh[index_k] = ph_loops;

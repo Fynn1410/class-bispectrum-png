@@ -221,11 +221,10 @@ double IR_del_Sigma2_integrand(double x, void *par)
  * 
  * @return value of IR resummation suppression factor          
  */
-double IR_Sigma2_rsd(struct background * pba,
+double IR_del_Sigma2(struct background * pba,
                 struct primordial * ppm,
                 struct fourier * pfo, 
                 double z, 
-                double mu,
                 double kf0, 
                 long SPLIT)
 {
@@ -254,11 +253,11 @@ double IR_Sigma2_rsd(struct background * pba,
     gsl_integration_qags(&F,kmin,kmax,0.0,1.0e-3,1000000,w,&del_sigma_2,&error);
     gsl_integration_workspace_free(w);
 
-    double sigma_IR = IR_Sigma2(pba, ppm, pfo, z, kf0, SPLIT);
+    // double sigma_IR = IR_Sigma2(pba, ppm, pfo, z, kf0, SPLIT);
 
-    double result = (1 + f * pow(mu,2.) * (2 + f)) * sigma_IR + pow(f*mu, 2.) * (pow(mu,2.) - 1) * del_sigma_2;
+    // double result = (1 + f * pow(mu,2.) * (2 + f)) * sigma_IR + pow(f*mu, 2.) * (pow(mu,2.) - 1) * del_sigma_2;
 
-    return result;
+    return del_sigma_2;
 }
 
 /**

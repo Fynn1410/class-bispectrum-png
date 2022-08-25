@@ -48,6 +48,11 @@ cdef extern from "class.h":
         pk_linear
         pk_nonlinear
 
+    cdef enum rsd_ir_type:
+        lin
+        no_wiggle
+        real_ir
+
     cdef enum out_sigmas:
         out_sigma
         out_sigma_prime
@@ -292,19 +297,31 @@ cdef extern from "class.h":
 
     cdef struct oneloop_fftlog_workspace:
         double sigma_v2;
+        double sigma_2_IR;
+        double del_sigma_2_IR;
+
+    cdef struct oneloop_fftlog_matter_real:
+        double * Plin_IR;
+        double * P_mm;
+        double * I2200;
+        double * I1300;
 
     cdef struct oneloop_fftlog_halo_real:
-        double * plin_ir;
-        double * pmm;
-        double * pb1b2;
-        double * pb1bg2;
-        double * pb22;
-        double * pbg22;
-        double * pb2bg2;
-        double * pb1b3nl;
+        double * Plin_IR;
+        double * P_mm;
+        double * I2200;
+        double * Idelta200;
+        double * IG200;
+        double * Idelta2delta200;
+        double * IG2G200;
+        double * Idelta2G200;
+        double * I1300;
+        double * FG200;
+        double * IR2;
+        double * P_hh;
 
     cdef struct oneloop_fftlog_halo_rsd:
-        double * Plin_IR;
+        double * Plin;
         double * P_mm;
         double * I2200;
         double * Idelta200;
@@ -369,8 +386,9 @@ cdef extern from "class.h":
         double ** ln_pk_l
         double ** ln_pk_nl
         oneloop_fftlog_workspace * fft_ws;
-        oneloop_fftlog_halo_real * pk_halo_nl
-        oneloop_fftlog_halo_rsd * pk_halo_rsd_nl
+        oneloop_fftlog_matter_real * pk_matter_real_nl
+        oneloop_fftlog_halo_real * pk_halo_real_nl
+        oneloop_fftlog_halo_rsd ** pk_halo_rsd_nl
         double * sigma8
         int has_pk_m
         int has_pk_cb

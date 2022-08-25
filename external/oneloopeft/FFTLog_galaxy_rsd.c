@@ -112,7 +112,7 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
  * @return void           
  */
 
-void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, double Plin)
+void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -140,7 +140,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, doub
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1301_mat,  Nmax+1, &p[0]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12101_mat, Nmax+1, &p[1]);
 
-      // adding factored out k and mu dependencies
+      // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k]     = pow(k, 3.) * np[0];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k] = pow(k, 3.) * np[1];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k]     = pow(k, 3.) * np[2];
@@ -192,7 +192,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, doub
  * @return void           
  */
 
-void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, double Plin)
+void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -225,7 +225,7 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, doub
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1311_mat,   Nmax+1, &p[2]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12111_mat,  Nmax+1, &p[3]);
 
-      // adding factored out k and mu dependencies
+      // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k]    = pow(k, 3.) * np[0] / pow(k, 2.); 
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102y[index_k]    = pow(k, 3.) * np[1] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202x[index_k] = pow(k, 3.) * np[2] / pow(k, 2.);
@@ -285,7 +285,7 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, doub
  * @return void           
  */
 
-void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, double Plin)
+void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -310,7 +310,7 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, doub
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12112x_mat, Nmax+1, &p[0]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12112y_mat, Nmax+1, &p[1]);
 
-      // adding factored out k and mu dependencies
+      // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_k] = pow(k, 3.) * np[0] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112y[index_k] = pow(k, 3.) * np[1] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N12x[index_k]    = pow(k, 3.) * np[2] / pow(k, 3.);
@@ -351,7 +351,7 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, doub
  * @return void           
  */
 
-void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, double Plin)
+void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -367,7 +367,7 @@ void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double mu, doub
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N22y_mat, vec_m, Nmax+1, &np[1]);
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N22z_mat, vec_m, Nmax+1, &np[2]);
 
-      // adding factored out k and mu dependencies
+      // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] = pow(k, 3.) / pow(k, 4.) * np[0];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] = pow(k, 3.) / pow(k, 4.) * np[1];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k] = pow(k, 3.) / pow(k, 4.) * np[2];

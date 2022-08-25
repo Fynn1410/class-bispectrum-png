@@ -453,9 +453,9 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> fft_ws -> fft_input  = (struct fft_struct **)malloc(3*sizeof(struct fft_struct*));
       pfo -> fft_ws -> fft_matrix = (struct fft_matrices **)malloc(3*sizeof(struct fft_matrices*));
 
-      pfo -> pk_matter_nl = (struct oneloop_fftlog_matter_real *)malloc(sizeof(struct oneloop_fftlog_matter_real));
-      pfo -> pk_halo_nl = (struct oneloop_fftlog_halo_real *)malloc(sizeof(struct oneloop_fftlog_halo_real));
-      pfo -> pk_halo_rsd_nl = (struct oneloop_fftlog_halo_rsd **)malloc(2*sizeof(struct oneloop_fftlog_halo_rsd*));
+      pfo -> pk_matter_real_nl = (struct oneloop_fftlog_matter_real *)malloc(sizeof(struct oneloop_fftlog_matter_real));
+      pfo -> pk_halo_real_nl   = (struct oneloop_fftlog_halo_real *)malloc(sizeof(struct oneloop_fftlog_halo_real));
+      pfo -> pk_halo_rsd_nl    = (struct oneloop_fftlog_halo_rsd **)malloc(2*sizeof(struct oneloop_fftlog_halo_rsd*));
 
       for(int idx = lin; idx <= real_ir; idx++){
             pfo -> fft_ws -> fft_input[idx]  = (struct fft_struct *)malloc(sizeof(struct fft_struct));
@@ -486,7 +486,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       for (int idx = lin; idx <= no_wiggle; idx++){
             pfo -> pk_halo_rsd_nl[idx] = (struct oneloop_fftlog_halo_rsd *)malloc(sizeof(struct oneloop_fftlog_halo_rsd));
 
-            pfo -> pk_halo_rsd_nl[idx] -> Plin_IR = make_1Darray(pfo->k_size);
+            pfo -> pk_halo_rsd_nl[idx] -> Plin = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> P_mm = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> I2200 = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> Idelta200 = make_1Darray(pfo->k_size);
@@ -564,6 +564,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> fft_ws -> sigma_v0 = sigman(pba, ppm, pfo, z, 1.e-5,  1.e3,  0, 142L); // density variance
       pfo -> fft_ws -> sigma_v2 = (1./3.) * sigman(pba, ppm, pfo, z, 1.e-5,  1.e3, -1, 142L); // Linear displacement field (velocity) variance
       pfo -> fft_ws -> sigma_2_IR = IR_Sigma2(pba, ppm, pfo, z, 1e-4, 142L); // IR-Ressumation supression exponent
+      pfo -> fft_ws -> del_sigma_2_IR = IR_del_Sigma2(pba, ppm, pfo, z, 1e-4, 142L); // IR-Ressumation supression exponent for RSD
 
       // fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
 

@@ -12,37 +12,34 @@
 #include "header.h"
 
 int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    int index_k, double z, double mu, long SPLIT)
+                    int index_k, double z, long SPLIT)
 {
     double k = pfo->k[index_k];
 
     // Storing IR-resummed Plin in pfo
     double pm_lin = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-    pfo -> pk_halo_rsd_nl[linear]    -> Plin_IR[index_k] = pm_lin;
+    pfo -> pk_halo_rsd_nl[linear]    -> Plin[index_k] = pm_lin;
     double pm_lin_nw = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
-    pfo -> pk_halo_rsd_nl[no_wiggle] -> Plin_IR[index_k] = pm_lin_nw;
-
-    // Storing P_mm in pfo
-    double pm_1loop, pm_1loop_nw;
-    pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop);
-    pm_IR_FFTLog(pba, ppm, pfo, index_k, z, SPLIT, &pm_1loop_nw);
-    pfo -> pk_halo_rsd_nl[linear]    -> P_mm[index_k] = pm_1loop;
-    pfo -> pk_halo_rsd_nl[no_wiggle] -> P_mm[index_k] = pm_1loop_nw;
+    pfo -> pk_halo_rsd_nl[no_wiggle] -> Plin[index_k] = pm_lin_nw;
 
     // Calculation of the Loop-Integrals for the full linear power spectrum and the no-wiggle linear power spectrum
     double plin;
     for (int idx = lin; idx <= no_wiggle; idx++){
-        rsd_0_FFTLog(pfo, idx, index_k,     pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
-        rsd_1_FFTLog(pfo, idx, index_k, mu, pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
-        rsd_2_FFTLog(pfo, idx, index_k, mu, pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
-        rsd_3_FFTLog(pfo, idx, index_k, mu, pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
-        rsd_4_FFTLog(pfo, idx, index_k, mu, pfo -> pk_halo_rsd_nl[idx] -> Plin_IR[index_k]);
+        rsd_0_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+        rsd_1_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+        rsd_2_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+        rsd_3_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+        rsd_4_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
     }
 
     return _SUCCESS_;
 }
 
+// int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
+//                     int index_k, double z, double mu, long SPLIT)
+// {
 
+// }
 
 // int FFTLog_fill_bias_vector(struct fourier *pfo, double b1, double b2, double bG2, double btd, double cs2, double R2){
 //     pfo -> fft_ws -> b1  = b1;

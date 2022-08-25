@@ -131,6 +131,8 @@ struct oneloop_fftlog_workspace {
   double sigma_v2; /** Value of the integrated linear power spectrum divided by q^2 (for the UV- / IR-divergences of the integrals) **/
 
   double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
+  
+  double del_sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation in RSD**/
 
   // FFTLog for the Linear Power Spectrum / no-wiggle Linear Power Spectrum / Real-Space IR-Resummed Linear Power Spectrum-> index coming from enum rsd_ir_type
   struct fft_struct **fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
@@ -187,7 +189,7 @@ struct oneloop_fftlog_halo_rsd {
   //@{
 
   //0-th moment
-  double * Plin_IR;
+  double * Plin;
   double * P_mm;
   double * I2200;
   double * Idelta200;

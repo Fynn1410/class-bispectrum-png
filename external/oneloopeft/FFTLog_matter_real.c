@@ -51,7 +51,7 @@ void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
 
       // Linear cpow Spectrum vector
       double complex *vec_m = make_1D_c_array(Nmax+1);
-      vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
+      vec_fill(pfo -> fft_ws -> fft_input[real_ir], k, MATTER, vec_m);
 
       // non-propagator calculations
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I2200_mat, vec_m, Nmax+1, &np[0]);
@@ -60,7 +60,7 @@ void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
 
       // adding factored out k and mu dependencies
       pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np[0];
-      pfo -> pk_halo_real_nl[real_ir] -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      pfo -> pk_matter_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
 }
 
 void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
@@ -98,15 +98,15 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> FG200_mat, Nmax+1, &p[1]);
            
       // adding factored out k and mu dependencies
-      pfo -> pk_halo_real_nl[real_ir] -> I2200[index_k]           = pow(k, 3.) * np[0];
-      pfo -> pk_halo_real_nl[real_ir] -> Idelta200[index_k]       = pow(k, 3.) * np[1];
-      pfo -> pk_halo_real_nl[real_ir] -> IG200[index_k]           = pow(k, 3.) * np[2];
-      pfo -> pk_halo_real_nl[real_ir] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[real_ir]->kmin_fft_g, 3.) * Idelta2delta200_const ;
-      pfo -> pk_halo_real_nl[real_ir] -> IG2G200[index_k]         = pow(k, 3.) * np[4];
-      pfo -> pk_halo_real_nl[real_ir] -> Idelta2G200[index_k]     = pow(k, 3.) * np[5];
+      pfo -> pk_halo_real_nl -> I2200[index_k]           = pow(k, 3.) * np[0];
+      pfo -> pk_halo_real_nl -> Idelta200[index_k]       = pow(k, 3.) * np[1];
+      pfo -> pk_halo_real_nl -> IG200[index_k]           = pow(k, 3.) * np[2];
+      pfo -> pk_halo_real_nl -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[real_ir]->kmin_fft_g, 3.) * Idelta2delta200_const ;
+      pfo -> pk_halo_real_nl -> IG2G200[index_k]         = pow(k, 3.) * np[4];
+      pfo -> pk_halo_real_nl -> Idelta2G200[index_k]     = pow(k, 3.) * np[5];
 
-      pfo -> pk_halo_real_nl[real_ir] -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
-      pfo -> pk_halo_real_nl[real_ir] -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
+      pfo -> pk_halo_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      pfo -> pk_halo_real_nl -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
 
-      pfo -> pk_halo_real_nl[real_ir] -> IR2[index_k] = - 2. * pow(k, 2.) * Plin;
+      pfo -> pk_halo_real_nl -> IR2[index_k] = - 2. * pow(k, 2.) * Plin;
 }

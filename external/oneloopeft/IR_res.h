@@ -11,7 +11,7 @@ double IR_Sigma2_integrand(double x, void *par);
 double IR_Sigma2(struct background * pba, struct primordial * ppm, struct fourier * pfo, double z,double kf0, long SPLIT);
 
 double IR_del_Sigma2_integrand(double x, void *par);
-double IR_Sigma2_rsd(struct background * pba, struct primordial * ppm, struct fourier * pfo,  double z,  double mu, double kf0,  long SPLIT);
+double IR_del_Sigma2(struct background * pba, struct primordial * ppm, struct fourier * pfo,  double z, double kf0, long SPLIT);
 
 double sigman2_integrand(double x, void *p);
 double sigman(struct background * pba, struct primordial * ppm, struct fourier * pfo, double z, double k_min, double k_max, long n, long SPLIT);
