@@ -255,7 +255,7 @@ int RSD_Multipole(struct fourier *pfo, int index_k, double z, int l, double * re
     par.p5  = z;
     par.p19 = l;
     par.p23 = index_k;
-    gsl_integration_qags(&F,mu_min,mu_max,0.0,1.0e-1,1000000,w,&integ,&error);
+    gsl_integration_qags(&F,mu_min,mu_max,0.0,1.0e-5,1000000,w,&integ,&error);
     gsl_integration_workspace_free(w);
 
     *result = integ;
@@ -287,7 +287,7 @@ double RSD_Multipole_integrand(double x, void *par)
     double rsd;
     RSD_IR_Ressummed(pfo, index_k, z, x, &rsd);
 
-    result = (2.*l + 1.)/2. * rsd * Legendre_Polynomial(l, x);
+    result = rsd * gsl_sf_legendre_Pl(l,x);//(2.*l + 1.)/2.
 
     return result;
 }
