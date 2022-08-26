@@ -41,12 +41,19 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
 
     double f = 1.; // Place holder
 
+    // Biases
     double b1  =  2.0;
     double b2  = -1.0;
     double bG2 =  0.1;
     double btd = -0.1;
-    double cs2 =  0.2;
     double R2  =  5.0;
+
+    // Counter terms
+    double cs2 =  0.2;
+    double c0  = -3./7.;
+    double c2  = 135./7.;
+    double c4  = -5.;
+    double c_tilde = 100.;
 
     double sigma_v2 = pfo -> fft_ws -> sigma_v2;
     double sigma_2_IR = pfo -> fft_ws -> sigma_2_IR;
@@ -143,7 +150,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
         FG200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> FG200[index_k];
         IR2[idx]             = pfo -> pk_halo_rsd_nl[idx] -> IR2[index_k];
         
-        Moment_0[idx] = pow(b1,2.)*(Plin[idx] + 2.*I2200[idx] + 6.*I1300[idx]) + 2.*b1*b2*Idelta200[idx] + 4.*b1*bG2*IG200[idx] \
+        Moment_0[idx] = pow(b1,2.)*(Plin[idx] + 2.*I2200[idx] + 6.*I1300[idx] - 2.*cs2*pow(k,2.)*Plin[idx]) + 2.*b1*b2*Idelta200[idx] + 4.*b1*bG2*IG200[idx] \
                         + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*(bG2 + 0.4*btd)*FG200[idx] + b1*R2*IR2[idx];
 
         //1-st moment
@@ -217,7 +224,9 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
 
         //RSD expansion
         RSD[idx] = Moment_0[idx] + k*mu * Moment_1[idx] + (1./2.) * pow(k*mu,2.) * Moment_2[idx] \
-                + (1./6.) * pow(k*mu,3.) * Moment_3[idx] + (1./24.) * pow(k*mu,4.) * Moment_4[idx];
+                 + (1./6.) * pow(k*mu,3.) * Moment_3[idx] + (1./24.) * pow(k*mu,4.) * Moment_4[idx]\
+                 - 2.*c0*pow(k,2.)*Plin[idx] - 2.*c2*f*pow(mu,2.)*pow(k,2.)*Plin[idx] - 2.*c4*pow(f,2.)*pow(mu,4.)*pow(k,2.)*Plin[idx]\
+                 - c_tilde*pow(f*mu*k,4.)*pow(b1+f*pow(mu,2.),2.)*Plin[idx];
     }
 
     double P_wiggle = Plin[lin] - Plin[no_wiggle];
@@ -264,7 +273,7 @@ int RSD_Multipole(struct fourier *pfo, int index_k, double z, int l, double * re
 
     FILE *fpa10;
     char file_name10[50];
-    sprintf(file_name10, "data/%d_Moment.txt",l);
+    sprintf(file_name10, "data/%d_Moment_ct.txt",l);
     fpa10 = fopen(file_name10, "a");
     fprintf(fpa10, "%12.6e %12.6e\n",k,integ);
     fclose(fpa10);
