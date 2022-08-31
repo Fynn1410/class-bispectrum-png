@@ -253,8 +253,11 @@ void FFT_compute_coeff(struct background * pba,
             if(rsd_ir_switch == lin){
                   pk_bin[i] = Pk_dlnPk(pba, ppm, pfo, k[i], z, LPOWER);
             }
-            else{
+            else if(rsd_ir_switch == no_wiggle){
                   pk_bin[i] = pm_nowiggle(pba, ppm, pfo, k[i], z, 1.e-4, 0, SPLIT);
+            }
+            else{
+                  pk_bin[i] = pm_IR_LO(pba, ppm, pfo, k[i], z, SPLIT);
             }
             // printf("all pk %12.6e %12.6e \n", k[i],pk_bin[i]);
       }      
