@@ -24,8 +24,9 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
 
     // Calculation of the Loop-Integrals for the full linear power spectrum and the no-wiggle linear power spectrum
     double plin;
-    for (int idx = lin; idx <= no_wiggle; idx++){
-        rsd_0_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+    // for (int idx = lin; idx <= no_wiggle; idx++){
+    for (int idx = lin; idx <= lin; idx++){
+        // rsd_0_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
         rsd_1_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
         rsd_2_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
         rsd_3_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
@@ -35,11 +36,11 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     return _SUCCESS_;
 }
 
-int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, double * result)
+int RSD_IR_Ressummed(struct fourier *pfo, double f, int index_k, double z, double mu, double * result)
 {
     double k = pfo->k[index_k];
 
-    double f = 1.; // Place holder
+    // double f = 1.; // Place holder
 
     // Biases
     double b1  =  2.0;
@@ -50,10 +51,14 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
 
     // Counter terms
     double cs2 =  0.2;
-    double c0  = -3./7.;
-    double c2  = 135./7.;
-    double c4  = -5.;
-    double c_tilde = 100.;
+    double c00  = 0.;
+    double c10  = 0.;
+    double c20  = 0.;
+    double c22  = 0.;
+    double c30  = 0.;
+    double c32  = 0.;
+    double c42  = 0.;
+
 
     double sigma_v2 = pfo -> fft_ws -> sigma_v2;
     double sigma_2_IR = pfo -> fft_ws -> sigma_2_IR;
@@ -151,7 +156,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
         IR2[idx]             = pfo -> pk_halo_rsd_nl[idx] -> IR2[index_k];
         
         Moment_0[idx] = pow(b1,2.)*(Plin[idx] + 2.*I2200[idx] + 6.*I1300[idx] - 2.*cs2*pow(k,2.)*Plin[idx]) + 2.*b1*b2*Idelta200[idx] + 4.*b1*bG2*IG200[idx] \
-                        + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*(bG2 + 0.4*btd)*FG200[idx] + b1*R2*IR2[idx];
+                        + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*b1*(bG2 + 0.4*btd)*FG200[idx] + b1*R2*IR2[idx];
 
         //1-st moment
         I2201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I2201[index_k];
@@ -167,7 +172,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
 
         Moment_1[idx] =   2. * (f*mu/k) *b1*Plin[idx]\
                         + 2. * (f*mu/k) * (2.*b1*I2201[idx] + 3.*b1*I1301p3101[idx] + b2*Idelta201[idx] + 2.*bG2*IG201[idx] + 4.*(bG2 + 0.4*btd)*FG201[idx])\
-                        + 2. * (2*f)    * (pow(b1,2.)*(J12101[idx] + J11201[idx] + J21101[idx]) + 0.5*b1*b2*Jdelta201[idx] + b1*bG2*JG201[idx]);
+                        + 2. * (2.*f)    * (pow(b1,2.)*(J12101[idx] + J11201[idx] + J21101[idx]) + 0.5*b1*b2*Jdelta201[idx] + b1*bG2*JG201[idx])\
+                        + c10*f*mu*k*Plin[idx];
 
         //2-nd moment
         J21102x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102x[index_k];
@@ -195,7 +201,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
                         + 2. * pow(f*mu/k,2.) * (2.*I2211[idx] + 6.*I1311[idx])\
                         + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[idx] + J11211[idx] + J21111[idx]))\
                         + 2. * pow(f,2.) * (pow(b1,2.)*N11[idx])\
-                        + 2. * pow(f,2.) * (4.*b1*J12102[idx] + 2.*b1*J21102[idx] + b2*Jdelta202[idx] + 2.*bG2*JG202[idx] + pow(b1,2.)*Plin[idx]*sigma_v2);
+                        + 2. * pow(f,2.) * (4.*b1*J12102[idx] + 2.*b1*J21102[idx] + b2*Jdelta202[idx] + 2.*bG2*JG202[idx] + pow(b1,2.)*Plin[idx]*sigma_v2)\
+                        - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[idx];
 
         //3-rd moment
         J21112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112x[index_k];
@@ -211,7 +218,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
         Moment_3[idx] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[idx]*sigma_v2\
                         + 12.* pow(f,3.)*(mu/k) * (J21112[idx] + 2.*J12112[idx])\
                         - 6. * pow(f,3.)*(mu/k) * b1*Plin[idx]*sigma_v2\
-                        + 12.* pow(f,3.) * b1*N12[idx];
+                        + 12.* pow(f,3.) * b1*N12[idx]\
+                        + 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[idx];
 
         //4-th moment
         N22x[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22x[index_k];
@@ -220,17 +228,16 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
         N22[idx]  = (N22x[idx] + N22y[idx] * pow(mu,2.) + N22z[idx] * pow(mu,4.));
 
         Moment_4[idx] = -24. * pow(f,4.)*pow(mu/k,2.) * Plin[idx]*sigma_v2\
-                        +12. * pow(f,4.) * N22[idx];
+                        +12. * pow(f,4.) * N22[idx]\
+                        +24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[idx];
 
         //RSD expansion
         RSD[idx] = Moment_0[idx] + k*mu * Moment_1[idx] + (1./2.) * pow(k*mu,2.) * Moment_2[idx] \
-                 + (1./6.) * pow(k*mu,3.) * Moment_3[idx] + (1./24.) * pow(k*mu,4.) * Moment_4[idx]\
-                 - 2.*c0*pow(k,2.)*Plin[idx] - 2.*c2*f*pow(mu,2.)*pow(k,2.)*Plin[idx] - 2.*c4*pow(f,2.)*pow(mu,4.)*pow(k,2.)*Plin[idx]\
-                 - c_tilde*pow(f*mu*k,4.)*pow(b1+f*pow(mu,2.),2.)*Plin[idx];
+                 + (1./6.) * pow(k*mu,3.) * Moment_3[idx] + (1./24.) * pow(k*mu,4.) * Moment_4[idx];
     }
 
     double P_wiggle = Plin[lin] - Plin[no_wiggle];
-    double RSD_IR_Ressummed = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1 + pow(k,2.)*sigma_tot))\
+    double RSD_IR_Ressummed = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot))\
                             + RSD[no_wiggle] + suppression * (RSD[lin] - RSD[no_wiggle]);
     
     *result = RSD_IR_Ressummed;
@@ -245,7 +252,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, int index_k, double z, double mu, doub
     return _SUCCESS_;
 }
 
-int RSD_Multipole(struct fourier *pfo, int index_k, double z, int l, double * result)
+int RSD_Multipole(struct fourier *pfo, double f, int index_k, double z, int l, double * result)
 {
     //extern struct globals gb;
     double integ=0., error=0.;
@@ -262,6 +269,7 @@ int RSD_Multipole(struct fourier *pfo, int index_k, double z, int l, double * re
 
     par.pfo = pfo;
     par.p5  = z;
+    par.p6  = f;
     par.p19 = l;
     par.p23 = index_k;
     gsl_integration_qags(&F,mu_min,mu_max,0.0,1.0e-5,1000000,w,&integ,&error);
@@ -290,11 +298,12 @@ double RSD_Multipole_integrand(double x, void *par)
 
     struct fourier *pfo = pij.pfo;
     double z            = pij.p5;
+    double f            = pij.p6;
     int    l            = pij.p19;
     int    index_k      = pij.p23;
 
     double rsd;
-    RSD_IR_Ressummed(pfo, index_k, z, x, &rsd);
+    RSD_IR_Ressummed(pfo, f, index_k, z, x, &rsd);
 
     result = rsd * gsl_sf_legendre_Pl(l,x);//(2.*l + 1.)/2.
 
@@ -311,7 +320,7 @@ double Legendre_Polynomial(int l, double mu)
         result = mu;
     }
     else if(l==2){
-        result = 0.5*(3.*pow(mu,2.)-1);
+        result = 0.5*(3.*pow(mu,2.)-1.);
     }
     else if(l==3){
         result = 0.5*(5.*pow(mu,3.)-3.*mu);
