@@ -3,9 +3,7 @@
 #include "/home/dennis/Software/class/external/oneloopeft/library/Cuba-4.2.1/cuba.h"
 
 int PS_hh_G(
-               struct precision * ppr,
                struct background * pba,
-               struct perturbations * ppt,
                struct primordial * ppm,
                struct fourier * pfo,
                double k,
@@ -16,9 +14,7 @@ int PS_hh_G(
                double * pk_nl);
 
 int PS_mm_G(
-            struct precision * ppr,
             struct background * pba,
-            struct perturbations * ppt,
             struct primordial * ppm,
             struct fourier * pfo,
             double k,

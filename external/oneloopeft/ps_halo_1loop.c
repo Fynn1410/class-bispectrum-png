@@ -38,9 +38,7 @@
  */
 
 int PS_hh_G(
-               struct precision * ppr,
                struct background * pba,
-               struct perturbations * ppt,
                struct primordial * ppm,
                struct fourier * pfo,
                double k,
@@ -79,11 +77,11 @@ int PS_hh_G(
 
           double *ps_hloops, *ps_mloops;
           ps_hloops = make_1Darray(6);
-          ps_mloops = make_1Darray(2);
+          // ps_mloops = make_1Darray(2);
 
           if (has_ir == _TRUE_) {
-            Compute_G_loops(pba, ppm, pfo, k, z, _TRUE_, MATTER, SPLIT, ps_mloops);
-            matter = clock();
+            // Compute_G_loops(pba, ppm, pfo, k, z, _TRUE_, MATTER, SPLIT, ps_mloops);
+            // matter = clock();
             // fprintf(stderr,"Matter Loops done! %f sec. needed.\n", (double)(matter-start) / CLOCKS_PER_SEC);
             Compute_G_loops(pba, ppm, pfo, k, z, _TRUE_, HALO, SPLIT, ps_hloops);
             halo = clock();
@@ -91,45 +89,51 @@ int PS_hh_G(
           }
           else {
             Compute_G_loops(pba, ppm, pfo, k, z, NOIR, HALO, SPLIT, ps_hloops);
-            Compute_G_loops(pba, ppm, pfo, k, z, NOIR, MATTER, SPLIT, ps_mloops);
+            // Compute_G_loops(pba, ppm, pfo, k, z, NOIR, MATTER, SPLIT, ps_mloops);
           }
-
+          pm_lin_IR       = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
           double pb1b2    = b1 * b2  * ps_hloops[0];
           double pb1bg2   = 2. * b1 * bG2 * ps_hloops[1];
           double pb22     = 0.25 * pow(b2, 2.) * ps_hloops[2];
           double pbg22    = pow(bG2, 2.)  * ps_hloops[3];
           double pb2bg2   = b2 * bG2 * ps_hloops[4];
           double pb1b3nl  = 2. * b1 * (bG2 + 2./5. * btd) * ps_hloops[5];
-          double ph_loops =  pb1b2 + pb1bg2 + pb22+ pbg22 + pb2bg2 + pb1b3nl;
+          double pR2      = - 2. * b1 * R2 * pow(k, 2.) * pm_lin_IR;
+          double ph_loops =  pb1b2 + pb1bg2 + pb22+ pbg22 + pb2bg2 + pb1b3nl + pR2;
 
           double khat     = 1. * pba->h;
 
-          if (has_ir == _FALSE_) {
-            pm_lin   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-            pm_22    = ps_mloops[0];
-            pm_13    = ps_mloops[1];
-            pm_1loop = pm_lin + pm_22 + pm_13;
-            pm_ct    = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) * pm_lin;
-            ph_tot   = pow(b1, 2.) * pm_1loop + pm_ct + ph_loops;
-          }
-          else {
-            pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-            pm_22       = ps_mloops[0];
-            pm_13       = ps_mloops[1];
-            pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-            pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
-            pm_ct       = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) *  pm_lin_IR; //pow(k, 2.)/(1.+pow(k/khat,2.))*
-            ph_tot      = pow(b1, 2.) * pm_1loop_IR + pm_ct + ph_loops;
-          }
+          double p_mm;
+          PS_mm_G(pba,ppm,pfo,k,z,has_loop,has_ir,SPLIT,&p_mm);
+
+          // if (has_ir == _FALSE_) {
+          //   pm_lin   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+          //   pm_22    = ps_mloops[0];
+          //   pm_13    = ps_mloops[1];
+          //   pm_1loop = pm_lin + pm_22 + pm_13;
+          //   pm_ct    = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) * pm_lin;
+          //   ph_tot   = pow(b1, 2.) * pm_1loop + pm_ct + ph_loops;
+          // }
+          // else {
+          //   pm_lin      = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+          //   pm_22       = ps_mloops[0];
+          //   pm_13       = ps_mloops[1];
+          //   pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+          //   pm_1loop_IR = pm_IR_NLO(pba, ppm, pfo, k, z, SPLIT);
+          //   pm_ct       = - 2. * b1 * (R2 + cs2 * b1) * pow(k, 2.) *  pm_lin_IR; //pow(k, 2.)/(1.+pow(k/khat,2.))*
+          //   ph_tot      = pow(b1, 2.) * pm_1loop_IR + pm_ct + ph_loops;
+          // }
 
           // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
+
+          ph_tot = pow(b1, 2.) * p_mm  + ph_loops;
 
           FILE *fpa;
           char file_name[50];
           sprintf(file_name, "data/pg_DI.txt");
           fpa = fopen(file_name, "a");
-          fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-              k, pm_lin_IR, pow(b1, 2.) * (pm_1loop_IR - 2. * cs2 * pow(k, 2.) * pm_lin_IR), pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+          fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+              k, pm_lin_IR, pow(b1, 2.) * p_mm, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
           fclose(fpa);
 
           free(ps_hloops);
@@ -164,9 +168,7 @@ int PS_hh_G(
  */
 
 int PS_mm_G(
-            struct precision * ppr,
             struct background * pba,
-            struct perturbations * ppt,
             struct primordial * ppm,
             struct fourier * pfo,
             double k,
@@ -202,7 +204,7 @@ int PS_mm_G(
     if (has_ir == _FALSE_){
       pm_ct    = - 2. * cs2 * pow(k, 2.) * pm_lin;
       ph_tot   = pm_lin + pm_22 + pm_13 + pm_ct;
-      fprintf(stderr,"%e %e %e %e %e %e\n",k, pm_lin, pm_13, pm_22, pm_ct, ph_tot);
+      // fprintf(stderr,"%e %e %e %e %e %e\n",k, pm_lin, pm_13, pm_22, pm_ct, ph_tot);
     }
     else {
       double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 0., 0, SPLIT);
@@ -217,9 +219,9 @@ int PS_mm_G(
 
       FILE *fpa;
       char file_name[50];
-      sprintf(file_name, "pm_DI.txt");
+      sprintf(file_name, "data/pm_DI.txt");
       fpa = fopen(file_name, "a");
-      fprintf(fpa,"%e %e %e %e %e %e %e\n",k, pm_lin_IR, p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2), pm_22, pm_13, pm_ct, ph_tot);
+      fprintf(fpa,"%e %e %e %e %e %e\n",k , pm_lin_IR, pm_22, pm_13, pm_ct, ph_tot);
       fclose(fpa);
     }
 
@@ -266,7 +268,7 @@ int PS_hh_1(   struct background * pba,
       // fprintf(stderr,"Halo Loops for the 1-st moment done! %f sec. needed.\n", (double)(halo-start) / CLOCKS_PER_SEC);
 
       double I2201     = ps_hloops[0];
-      double I1301     = ps_hloops[1];
+      double I1301p3101     = ps_hloops[1];
       double Idelta201 = ps_hloops[2];
       double IG201     = ps_hloops[3];
       double FG201     = ps_hloops[4];
@@ -277,9 +279,10 @@ int PS_hh_1(   struct background * pba,
       double Jdelta201 = ps_hloops[8];
       double JG201     = ps_hloops[9];
 
-      double ph_loops  = I2201 + I1301 + Idelta201 + IG201 + FG201;
+      double ph_loops  = I2201 + I1301p3101 + Idelta201 + IG201 + FG201;
       double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
-      pm_lin_IR =  pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      // pm_lin_IR =  pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      pm_lin_IR =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
       double khat     = 1. * pba->h;
 
       // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
@@ -289,7 +292,7 @@ int PS_hh_1(   struct background * pba,
       sprintf(file_name, "data/1_moment_DI_%g.txt",mu);
       fpa = fopen(file_name, "a");
       fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
-          k, pm_lin_IR, I2201, I1301, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
+          k, pm_lin_IR, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
       fclose(fpa);
 
       free(ps_hloops);
@@ -343,7 +346,8 @@ int PS_hh_2(   struct background * pba,
 
       double ph_loops  = J12102 + J21102 + Jdelta202 + JG202;
       double plos_loops  = I2211 + I1311 + J12111 + J11211 + J21111 + N11;
-      pm_lin_IR =  pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      // pm_lin_IR =  pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      pm_lin_IR =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
       double khat     = 1. * pba->h;
 
       // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
@@ -399,7 +403,8 @@ int PS_hh_3(   struct background * pba,
       double N12 = ps_hloops[2];
 
       double ph_loops  = J21112 + J12112 + N12;
-      pm_lin_IR =  pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      // pm_lin_IR =  pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      pm_lin_IR =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
       double khat     = 1. * pba->h;
 
       // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
@@ -441,7 +446,8 @@ int PS_hh_4(   struct background * pba,
 
       double N22 = ps_hloops[0];
 
-      double pm_lin_IR =  pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      // double pm_lin_IR =  pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      double pm_lin_IR =  Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
       double khat     = 1. * pba->h;
 
       // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
@@ -659,7 +665,7 @@ static int G_loop_integrands(
             else if(hm_switch == MATTER)
             {
                 ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(F2_s(q, k, cos), 2.);
-                ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q * F3_s(k, q, cos);
+                ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q * F3_s(q, k, cos);
             }
             for(int i =0;i<nn;i++){
               if (isnan(ff[i]))
@@ -687,7 +693,7 @@ static int G_loop_integrands(
               // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.) * theta_kmq\
               //       + 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kpq * pow(F2_s(q, k, -cos), 2.) * theta_kpq;
               ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.);
-              ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * F3_s(k, q, cos);
+              ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * F3_s(q, k, cos);
           }
 
 
@@ -727,7 +733,8 @@ int Compute_1_loops(
       double prob[ncomp];
       double plin_IR_k;
 
-      plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      // plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      plin_IR_k   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
 
       // Parsing information to the integrand
       par.ppm = ppm;
@@ -835,9 +842,14 @@ static int G1_loop_integrands(
 
       if(kmq <= exp(logqmax) && kmq>=exp(logqmin) && kpq <= exp(logqmax) && kpq>=exp(logqmin)){
 
-        plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
-        plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
-        double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
+        // plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
+        plin_IR_q   = Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
+        // plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
+        plin_IR_kmq   = Pk_dlnPk(pba, ppm, pfo, kmq, z, LPOWER);
+
+        // double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
+        double plin_IR_kpq   = Pk_dlnPk(pba, ppm, pfo, kpq, z, LPOWER);
+
 
         double kmq2 = pow(k,2.)+pow(q,2.)-2.*cos*k*q;
 
@@ -895,7 +907,8 @@ int Compute_2_loops(
       double prob[ncomp];
       double plin_IR_k;
 
-      plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      // plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      plin_IR_k   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
 
       // Parsing information to the integrand
       par.ppm = ppm;
@@ -1016,9 +1029,13 @@ static int G2_loop_integrands(
 
       if(kmq <= exp(logqmax) && kmq>=exp(logqmin) && kpq <= exp(logqmax) && kpq>=exp(logqmin)){
 
-        plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
-        plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
-        double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
+        // plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
+        plin_IR_q   = Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
+        // plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
+        plin_IR_kmq   = Pk_dlnPk(pba, ppm, pfo, kmq, z, LPOWER);
+
+        // double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
+        double plin_IR_kpq   = Pk_dlnPk(pba, ppm, pfo, kpq, z, LPOWER);
 
         double kmq2 = pow(k,2.)+pow(q,2.)-2.*cos*k*q;
 
@@ -1084,7 +1101,8 @@ int Compute_3_loops(
       double prob[ncomp];
       double plin_IR_k;
 
-      plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      // plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      plin_IR_k   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
 
       // Parsing information to the integrand
       par.ppm = ppm;
@@ -1192,9 +1210,13 @@ static int G3_loop_integrands(
 
       if(kmq <= exp(logqmax) && kmq>=exp(logqmin) && kpq <= exp(logqmax) && kpq>=exp(logqmin)){
 
-        plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
-        plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
-        double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
+        // plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
+        plin_IR_q   = Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
+        // plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
+        plin_IR_kmq   = Pk_dlnPk(pba, ppm, pfo, kmq, z, LPOWER);
+
+        // double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
+        double plin_IR_kpq   = Pk_dlnPk(pba, ppm, pfo, kpq, z, LPOWER);
 
         double kmq2 = pow(k,2.)+pow(q,2.)-2.*cos*k*q;
 
@@ -1239,7 +1261,8 @@ int Compute_4_loops(
       double prob[ncomp];
       double plin_IR_k;
 
-      plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      // plin_IR_k   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
+      plin_IR_k   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
 
       // Parsing information to the integrand
       par.ppm = ppm;
@@ -1347,9 +1370,13 @@ static int G4_loop_integrands(
 
       if(kmq <= exp(logqmax) && kmq>=exp(logqmin) && kpq <= exp(logqmax) && kpq>=exp(logqmin)){
 
-        plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
-        plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
-        double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
+        // plin_IR_q   = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
+        plin_IR_q   = Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
+        // plin_IR_kmq = pm_IR_LO(pba, ppm, pfo, kmq, z, SPLIT);
+        plin_IR_kmq   = Pk_dlnPk(pba, ppm, pfo, kmq, z, LPOWER);
+
+        // double plin_IR_kpq = pm_IR_LO(pba, ppm, pfo, kpq, z, SPLIT);
+        double plin_IR_kpq   = Pk_dlnPk(pba, ppm, pfo, kpq, z, LPOWER);
 
         double kmq2 = pow(k,2.)+pow(q,2.)-2.*cos*k*q;
 
