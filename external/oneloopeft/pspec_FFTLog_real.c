@@ -26,7 +26,7 @@
  */
 
 int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 int index_tau, int index_k,  double z, long SPLIT)
+                 int index_k,  double z, long SPLIT)
 {
     double k = pfo->k[index_k];
 
@@ -39,10 +39,10 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     double sigmav2    = pfo -> fft_ws -> sigma_v2;
     
-    P_mm_FFTLog(pfo, index_tau, index_k, pm_lin_IR);
+    P_mm_FFTLog(pfo, index_k, pm_lin_IR);
 
-    double P22  = 2. * pfo -> pk_matter_real_nl -> I2200[index_tau][index_k];
-    double P13  = 6. * pfo -> pk_matter_real_nl -> I1300[index_tau][index_k];
+    double P22  = 2. * pfo -> pk_matter_real_nl -> I2200[index_k];
+    double P13  = 6. * pfo -> pk_matter_real_nl -> I1300[index_k];
 
     /* 
      * Compute the EFT counter-term contribution
@@ -50,15 +50,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double cs2 =  0.2;
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    pfo -> pk_matter_real_nl -> P_mm[index_tau][index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct; 
-    double ph_tot = pfo -> pk_matter_real_nl -> P_mm[index_tau][index_k];
-
-    FILE *fpa;
-    char file_name[50];
-    sprintf(file_name, "data/pm_FFT.txt");
-    fpa = fopen(file_name, "a");
-    fprintf(fpa,"%e %e %e %e %e %e\n",k, pm_lin_IR, P22, P13, pm_ct, ph_tot);
-    fclose(fpa);
+    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct; 
 
     return _SUCCESS_;
 }
@@ -78,7 +70,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
  */
 
 int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    int index_tau, int index_k, double z, long SPLIT)
+                    int index_k, double z, long SPLIT)
 
 { 
     double k = pfo->k[index_k];
@@ -99,38 +91,38 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     double sigmav2    = pfo -> fft_ws -> sigma_v2;
 
-    P_gg_FFTLog(pfo, index_tau, index_k, pm_lin_IR);
+    P_gg_FFTLog(pfo, index_k, pm_lin_IR);
 
     /* 
      * Compute the EFT counter-term contribution 
      */
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    double P22  = 2. * pfo -> pk_halo_real_nl -> I2200[index_tau][index_k];
-    double P13  = 6. * pfo -> pk_halo_real_nl -> I1300[index_tau][index_k];
+    double P22  = 2. * pfo -> pk_halo_real_nl -> I2200[index_k];
+    double P13  = 6. * pfo -> pk_halo_real_nl -> I1300[index_k];
     double P_mm = pow(b1,2.) * ((p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct); 
-    pfo -> pk_halo_real_nl -> P_mm[index_tau][index_k] = P_mm/pow(b1,2.);
+    pfo -> pk_halo_real_nl -> P_mm[index_k] = P_mm/pow(b1,2.);
     // fprintf(stderr, "%g", pfo -> pk_halo_real_nl -> P_mm[index_k]);
 
-    double p_r2     = b1 * R2 * pfo -> pk_halo_real_nl -> IR2[index_tau][index_k];
-    double pb1b2    = 2. * b1 * b2  *  pfo -> pk_halo_real_nl -> Idelta200[index_tau][index_k];
-    double pb1bg2   = 4. * b1 * bG2 * pfo -> pk_halo_real_nl -> IG200[index_tau][index_k];
-    double pb22     = 0.5 * pow(b2, 2.) * pfo -> pk_halo_real_nl -> Idelta2delta200[index_tau][index_k];
-    double pbg22    = 2. * pow(bG2, 2.)  * pfo -> pk_halo_real_nl -> IG2G200[index_tau][index_k];
-    double pb2bg2   = 2. * b2 * bG2 * pfo -> pk_halo_real_nl -> Idelta2G200[index_tau][index_k];
-    double pb1b3nl  = 8. * b1 * (bG2 + 2./5. * btd) * pfo -> pk_halo_real_nl -> FG200[index_tau][index_k];
+    double p_r2     = b1 * R2 * pfo -> pk_halo_real_nl -> IR2[index_k];
+    double pb1b2    = 2. * b1 * b2  *  pfo -> pk_halo_real_nl -> Idelta200[index_k];
+    double pb1bg2   = 4. * b1 * bG2 * pfo -> pk_halo_real_nl -> IG200[index_k];
+    double pb22     = 0.5 * pow(b2, 2.) * pfo -> pk_halo_real_nl -> Idelta2delta200[index_k];
+    double pbg22    = 2. * pow(bG2, 2.)  * pfo -> pk_halo_real_nl -> IG2G200[index_k];
+    double pb2bg2   = 2. * b2 * bG2 * pfo -> pk_halo_real_nl -> Idelta2G200[index_k];
+    double pb1b3nl  = 8. * b1 * (bG2 + 2./5. * btd) * pfo -> pk_halo_real_nl -> FG200[index_k];
 
-    double ph_loops = p_r2 + pb1b2 + pb1bg2 + pb22 + pbg22 + pb2bg2 + pb1b3nl;
-    pfo -> pk_halo_real_nl -> P_hh[index_tau][index_k] = ph_loops + P_mm;
+    double ph_loops = p_r2 + pb1b2 + pb1bg2 + pb22 + pbg22 + pb2bg2 + pb1b3nl + P_mm;
+    pfo -> pk_halo_real_nl -> P_hh[index_k] = ph_loops;
 
 
-    FILE *fpa;
-    char file_name[50];
-    sprintf(file_name, "data/pg_FFT.txt");
-    fpa = fopen(file_name, "a");
-    fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-        k, pm_lin_IR, P_mm, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_loops+P_mm);
-    fclose(fpa);
+    // FILE *fpa;
+    // char file_name[50];
+    // sprintf(file_name, "data/pg_FFT_const.txt");
+    // fpa = fopen(file_name, "a");
+    // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+    //     k, pm_lin_IR, pow(b1, 2.) * pm_1loop_IR, pm_ct, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
+    // fclose(fpa);
 
     return _SUCCESS_;
 }

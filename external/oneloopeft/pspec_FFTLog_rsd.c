@@ -12,31 +12,31 @@
 #include "header.h"
 
 int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    int index_tau, int index_k, double z, long SPLIT)
+                    int index_k, double z, long SPLIT)
 {
     double k = pfo->k[index_k];
 
     // Storing IR-resummed Plin in pfo
     double pm_lin = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-    pfo -> pk_halo_rsd_nl[linear]    -> Plin[index_tau][index_k] = pm_lin;
+    pfo -> pk_halo_rsd_nl[linear]    -> Plin[index_k] = pm_lin;
     double pm_lin_nw = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
-    pfo -> pk_halo_rsd_nl[no_wiggle] -> Plin[index_tau][index_k] = pm_lin_nw;
+    pfo -> pk_halo_rsd_nl[no_wiggle] -> Plin[index_k] = pm_lin_nw;
 
     // Calculation of the Loop-Integrals for the full linear power spectrum and the no-wiggle linear power spectrum
     double plin;
-
-    for (int idx = lin; idx <= no_wiggle; idx++){
-        rsd_0_FFTLog(pfo, idx, index_tau, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_tau][index_k]);
-        rsd_1_FFTLog(pfo, idx, index_tau, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_tau][index_k]);
-        rsd_2_FFTLog(pfo, idx, index_tau, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_tau][index_k]);
-        rsd_3_FFTLog(pfo, idx, index_tau, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_tau][index_k]);
-        rsd_4_FFTLog(pfo, idx, index_tau, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_tau][index_k]);
+    // for (int idx = lin; idx <= no_wiggle; idx++){
+    for (int idx = lin; idx <= lin; idx++){
+        // rsd_0_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+        rsd_1_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+        rsd_2_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+        rsd_3_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
+        rsd_4_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);
     }
 
     return _SUCCESS_;
 }
 
-int RSD_IR_Ressummed(struct fourier *pfo, double f, int index_tau, int index_k, double z, double mu, double * result)
+int RSD_IR_Ressummed(struct fourier *pfo, double f, int index_k, double z, double mu, double * result)
 {
     double k = pfo->k[index_k];
 
@@ -144,31 +144,31 @@ int RSD_IR_Ressummed(struct fourier *pfo, double f, int index_tau, int index_k, 
     // Append the prefactors in terms of mu dependencies from the integrand
     for (int idx = lin; idx <= no_wiggle; idx++){
         //0-th moment
-        Plin[idx]            = pfo -> pk_halo_rsd_nl[idx] -> Plin[index_tau][index_k];
-        I2200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> I2200[index_tau][index_k];
-        Idelta200[idx]       = pfo -> pk_halo_rsd_nl[idx] -> Idelta200[index_tau][index_k];
-        IG200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> IG200[index_tau][index_k];
-        Idelta2delta200[idx] = pfo -> pk_halo_rsd_nl[idx] -> Idelta2delta200[index_tau][index_k];
-        IG2G200[idx]         = pfo -> pk_halo_rsd_nl[idx] -> IG2G200[index_tau][index_k];
-        Idelta2G200[idx]     = pfo -> pk_halo_rsd_nl[idx] -> Idelta2G200[index_tau][index_k];
-        I1300[idx]           = pfo -> pk_halo_rsd_nl[idx] -> I1300[index_tau][index_k];
-        FG200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> FG200[index_tau][index_k];
-        IR2[idx]             = pfo -> pk_halo_rsd_nl[idx] -> IR2[index_tau][index_k];
+        Plin[idx]            = pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k];
+        I2200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> I2200[index_k];
+        Idelta200[idx]       = pfo -> pk_halo_rsd_nl[idx] -> Idelta200[index_k];
+        IG200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> IG200[index_k];
+        Idelta2delta200[idx] = pfo -> pk_halo_rsd_nl[idx] -> Idelta2delta200[index_k];
+        IG2G200[idx]         = pfo -> pk_halo_rsd_nl[idx] -> IG2G200[index_k];
+        Idelta2G200[idx]     = pfo -> pk_halo_rsd_nl[idx] -> Idelta2G200[index_k];
+        I1300[idx]           = pfo -> pk_halo_rsd_nl[idx] -> I1300[index_k];
+        FG200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> FG200[index_k];
+        IR2[idx]             = pfo -> pk_halo_rsd_nl[idx] -> IR2[index_k];
         
         Moment_0[idx] = pow(b1,2.)*(Plin[idx] + 2.*I2200[idx] + 6.*I1300[idx] - 2.*cs2*pow(k,2.)*Plin[idx]) + 2.*b1*b2*Idelta200[idx] + 4.*b1*bG2*IG200[idx] \
                         + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*b1*(bG2 + 0.4*btd)*FG200[idx] + b1*R2*IR2[idx];
 
         //1-st moment
-        I2201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I2201[index_tau][index_k];
-        Idelta201[idx]  = pfo -> pk_halo_rsd_nl[idx] -> Idelta201[index_tau][index_k];
-        IG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> IG201[index_tau][index_k];
-        FG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> FG201[index_tau][index_k];
-        J21101[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J21101[index_tau][index_k] * mu;
-        Jdelta201[idx]  = pfo -> pk_halo_rsd_nl[idx] -> Jdelta201[index_tau][index_k] * mu;
-        JG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> JG201[index_tau][index_k] * mu;
-        I1301p3101[idx] = pfo -> pk_halo_rsd_nl[idx] -> I1301p3101[index_tau][index_k];
-        J12101[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J12101[index_tau][index_k] * mu;
-        J11201[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J11201[index_tau][index_k] * mu;
+        I2201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I2201[index_k];
+        Idelta201[idx]  = pfo -> pk_halo_rsd_nl[idx] -> Idelta201[index_k];
+        IG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> IG201[index_k];
+        FG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> FG201[index_k];
+        J21101[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J21101[index_k] * mu;
+        Jdelta201[idx]  = pfo -> pk_halo_rsd_nl[idx] -> Jdelta201[index_k] * mu;
+        JG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> JG201[index_k] * mu;
+        I1301p3101[idx] = pfo -> pk_halo_rsd_nl[idx] -> I1301p3101[index_k];
+        J12101[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J12101[index_k] * mu;
+        J11201[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J11201[index_k] * mu;
 
         Moment_1[idx] =   2. * (f*mu/k) *b1*Plin[idx]\
                         + 2. * (f*mu/k) * (2.*b1*I2201[idx] + 3.*b1*I1301p3101[idx] + b2*Idelta201[idx] + 2.*bG2*IG201[idx] + 4.*(bG2 + 0.4*btd)*FG201[idx])\
@@ -176,26 +176,26 @@ int RSD_IR_Ressummed(struct fourier *pfo, double f, int index_tau, int index_k, 
                         + c10*f*mu*k*Plin[idx];
 
         //2-nd moment
-        J21102x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102x[index_tau][index_k];
-        J21102y[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102y[index_tau][index_k];
+        J21102x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102x[index_k];
+        J21102y[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102y[index_k];
         J21102[idx]     = (J21102x[idx] + J21102y[idx] * pow(mu,2.));
-        Jdelta202x[idx] = pfo -> pk_halo_rsd_nl[idx] -> Jdelta202x[index_tau][index_k];
-        Jdelta202y[idx] = pfo -> pk_halo_rsd_nl[idx] -> Jdelta202y[index_tau][index_k];
+        Jdelta202x[idx] = pfo -> pk_halo_rsd_nl[idx] -> Jdelta202x[index_k];
+        Jdelta202y[idx] = pfo -> pk_halo_rsd_nl[idx] -> Jdelta202y[index_k];
         Jdelta202[idx]  = (Jdelta202x[idx] + Jdelta202y[idx] * pow(mu,2.));
-        JG202x[idx]     = pfo -> pk_halo_rsd_nl[idx] -> JG202x[index_tau][index_k];
-        JG202y[idx]     = pfo -> pk_halo_rsd_nl[idx] -> JG202y[index_tau][index_k];
+        JG202x[idx]     = pfo -> pk_halo_rsd_nl[idx] -> JG202x[index_k];
+        JG202y[idx]     = pfo -> pk_halo_rsd_nl[idx] -> JG202y[index_k];
         JG202[idx]      = (JG202x[idx] + JG202y[idx] * pow(mu,2.));
-        I2211[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I2211[index_tau][index_k];
-        J21111[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J21111[index_tau][index_k] * mu;
-        N11x[idx]       = pfo -> pk_halo_rsd_nl[idx] -> N11x[index_tau][index_k];
-        N11y[idx]       = pfo -> pk_halo_rsd_nl[idx] -> N11y[index_tau][index_k];
+        I2211[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I2211[index_k];
+        J21111[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J21111[index_k] * mu;
+        N11x[idx]       = pfo -> pk_halo_rsd_nl[idx] -> N11x[index_k];
+        N11y[idx]       = pfo -> pk_halo_rsd_nl[idx] -> N11y[index_k];
         N11[idx]        = (N11x[idx] + N11y[idx] * pow(mu,2.));
-        J12102x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J12102x[index_tau][index_k];
-        J12102y[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J12102y[index_tau][index_k];
+        J12102x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J12102x[index_k];
+        J12102y[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J12102y[index_k];
         J12102[idx]     = (J12102x[idx] + J12102y[idx] * pow(mu,2.));
-        I1311[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I1311[index_tau][index_k];
-        J12111[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J12111[index_tau][index_k] * mu;
-        J11211[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J11211[index_tau][index_k] * mu;
+        I1311[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I1311[index_k];
+        J12111[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J12111[index_k] * mu;
+        J11211[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J11211[index_k] * mu;
 
         Moment_2[idx] =   2. * pow(f*mu/k,2.) * Plin[idx]\
                         + 2. * pow(f*mu/k,2.) * (2.*I2211[idx] + 6.*I1311[idx])\
@@ -205,14 +205,14 @@ int RSD_IR_Ressummed(struct fourier *pfo, double f, int index_tau, int index_k, 
                         - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[idx];
 
         //3-rd moment
-        J21112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112x[index_tau][index_k];
-        J21112y[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112y[index_tau][index_k];
+        J21112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112x[index_k];
+        J21112y[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112y[index_k];
         J21112[idx]  = (J21112x[idx] + J21112y[idx] * pow(mu,2.));
-        N12x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> N12x[index_tau][index_k];
-        N12y[idx]    = pfo -> pk_halo_rsd_nl[idx] -> N12y[index_tau][index_k];
+        N12x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> N12x[index_k];
+        N12y[idx]    = pfo -> pk_halo_rsd_nl[idx] -> N12y[index_k];
         N12[idx]     = (N12x[idx] * mu + N12y[idx] * pow(mu,3.));
-        J12112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J12112x[index_tau][index_k];
-        J12112y[idx] = pfo -> pk_halo_rsd_nl[idx] -> J12112y[index_tau][index_k];
+        J12112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J12112x[index_k];
+        J12112y[idx] = pfo -> pk_halo_rsd_nl[idx] -> J12112y[index_k];
         J12112[idx]  = (J12112x[idx] + J12112y[idx] * pow(mu,2.));
 
         Moment_3[idx] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[idx]*sigma_v2\
@@ -222,9 +222,9 @@ int RSD_IR_Ressummed(struct fourier *pfo, double f, int index_tau, int index_k, 
                         + 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[idx];
 
         //4-th moment
-        N22x[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22x[index_tau][index_k];
-        N22y[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22y[index_tau][index_k];
-        N22z[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22z[index_tau][index_k];
+        N22x[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22x[index_k];
+        N22y[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22y[index_k];
+        N22z[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22z[index_k];
         N22[idx]  = (N22x[idx] + N22y[idx] * pow(mu,2.) + N22z[idx] * pow(mu,4.));
 
         Moment_4[idx] = -24. * pow(f,4.)*pow(mu/k,2.) * Plin[idx]*sigma_v2\
@@ -252,7 +252,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, double f, int index_tau, int index_k, 
     return _SUCCESS_;
 }
 
-int RSD_Multipole(struct fourier *pfo, double f, int index_tau, int index_k, double z, int l, double * result)
+int RSD_Multipole(struct fourier *pfo, double f, int index_k, double z, int l, double * result)
 {
     //extern struct globals gb;
     double integ=0., error=0.;
@@ -272,7 +272,6 @@ int RSD_Multipole(struct fourier *pfo, double f, int index_tau, int index_k, dou
     par.p6  = f;
     par.p19 = l;
     par.p23 = index_k;
-    par.p24 = index_tau;
     gsl_integration_qags(&F,mu_min,mu_max,0.0,1.0e-5,1000000,w,&integ,&error);
     gsl_integration_workspace_free(w);
 
@@ -282,7 +281,7 @@ int RSD_Multipole(struct fourier *pfo, double f, int index_tau, int index_k, dou
 
     FILE *fpa10;
     char file_name10[50];
-    sprintf(file_name10, "data/%d_Moment_%g.txt",l,z);
+    sprintf(file_name10, "data/%d_Moment_ct.txt",l);
     fpa10 = fopen(file_name10, "a");
     fprintf(fpa10, "%12.6e %12.6e\n",k,integ);
     fclose(fpa10);
@@ -302,13 +301,11 @@ double RSD_Multipole_integrand(double x, void *par)
     double f            = pij.p6;
     int    l            = pij.p19;
     int    index_k      = pij.p23;
-    int    index_tau    = pij.p24;
 
     double rsd;
-    RSD_IR_Ressummed(pfo, f, index_tau, index_k, z, x, &rsd);
+    RSD_IR_Ressummed(pfo, f, index_k, z, x, &rsd);
 
-    // result = rsd * gsl_sf_legendre_Pl(l,x);//(2.*l + 1.)/2.
-    result = rsd * Legendre_Polynomial(l,x)*(2.*l + 1.)/2.;//(2.*l + 1.)/2.
+    result = rsd * gsl_sf_legendre_Pl(l,x);//(2.*l + 1.)/2.
 
     return result;
 }
@@ -327,9 +324,6 @@ double Legendre_Polynomial(int l, double mu)
     }
     else if(l==3){
         result = 0.5*(5.*pow(mu,3.)-3.*mu);
-    }
-    else if(l==4){
-        result = (35.*pow(mu,4.)-30.*pow(mu,2.)+3.)/8.;
     }
     else{
         result = 0.;

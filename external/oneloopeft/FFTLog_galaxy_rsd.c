@@ -49,7 +49,7 @@
  * @return void           
  */
 
-void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, double Plin)
+void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -84,17 +84,17 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> FG200_mat, Nmax+1, &p[1]);
            
       // adding factored out k and mu dependencies
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> I2200[index_tau][index_k]           = pow(k, 3.) * np[0];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta200[index_tau][index_k]       = pow(k, 3.) * np[1];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> IG200[index_tau][index_k]           = pow(k, 3.) * np[2];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2delta200[index_tau][index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[rsd_idx]->kmin_fft_g, 3.) * Idelta2delta200_const ;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> IG2G200[index_tau][index_k]         = pow(k, 3.) * np[4];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2G200[index_tau][index_k]     = pow(k, 3.) * np[5];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> I2200[index_k]           = pow(k, 3.) * np[0];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta200[index_k]       = pow(k, 3.) * np[1];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> IG200[index_k]           = pow(k, 3.) * np[2];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[rsd_idx]->kmin_fft_g, 3.) * Idelta2delta200_const ;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> IG2G200[index_k]         = pow(k, 3.) * np[4];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2G200[index_k]     = pow(k, 3.) * np[5];
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1300[index_tau][index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> FG200[index_tau][index_k] = pow(k, 3.) * Plin * p[1];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> IR2[index_tau][index_k] = - 2. * pow(k, 2.) * Plin;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> IR2[index_k] = - 2. * pow(k, 2.) * Plin;
 }
 
 /*
@@ -112,7 +112,7 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
  * @return void           
  */
 
-void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, double Plin)
+void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -141,43 +141,43 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12101_mat, Nmax+1, &p[1]);
 
       // adding factored out k dependencies
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_tau][index_k]     = pow(k, 3.) * np[0];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_tau][index_k] = pow(k, 3.) * np[1];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_tau][index_k]     = pow(k, 3.) * np[2];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_tau][index_k]     = pow(k, 3.) * np[3];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_tau][index_k]    = pow(k, 3.) * np[4] / k;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_tau][index_k] = pow(k, 3.) * np[5] / k;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_tau][index_k]     = pow(k, 3.) * np[6] / k;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k]     = pow(k, 3.) * np[0];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k] = pow(k, 3.) * np[1];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k]     = pow(k, 3.) * np[2];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k]     = pow(k, 3.) * np[3];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_k]    = pow(k, 3.) * np[4] / k;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] = pow(k, 3.) * np[5] / k;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k]     = pow(k, 3.) * np[6] / k;
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_tau][index_k]  = pow(k, 3.) * Plin * p[0] - 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_tau][index_k] = pow(k, 3.) * Plin * p[1] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k]  = pow(k, 3.) * Plin * p[0] - 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] = pow(k, 3.) * Plin * p[1] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_tau][index_k] = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
 
       
-      // double mu = 1.0;
+      double mu = 1.0;
 
-      // double I2201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k];
-      // double I1301p3101     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k];
-      // double Idelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k];
-      // double IG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k];
-      // double FG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k];
-      // double ph_loops  = I2201 + I1301p3101 + Idelta201 + IG201 + FG201;
+      double I2201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k];
+      double I1301p3101     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k];
+      double Idelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k];
+      double IG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k];
+      double FG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k];
+      double ph_loops  = I2201 + I1301p3101 + Idelta201 + IG201 + FG201;
 
-      // double J12101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] * mu;
-      // double J11201    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] * mu;
-      // double J21101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_k] * mu;
-      // double Jdelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] * mu;
-      // double JG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k] * mu;
-      // double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
+      double J12101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] * mu;
+      double J11201    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] * mu;
+      double J21101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_k] * mu;
+      double Jdelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] * mu;
+      double JG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k] * mu;
+      double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
 
-      // FILE *fpa;
-      // char file_name[50];
-      // sprintf(file_name, "data/1_moment_FFT_%g.txt",mu);
-      // fpa = fopen(file_name, "a");
-      // fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
-      //     k, Plin, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
-      // fclose(fpa);
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/1_moment_FFT_%g.txt",mu);
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
+          k, Plin, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
+      fclose(fpa);
 }
 
 /*
@@ -195,7 +195,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
  * @return void           
  */
 
-void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, double Plin)
+void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -229,49 +229,49 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12111_mat,  Nmax+1, &p[3]);
 
       // adding factored out k dependencies
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_tau][index_k]    = pow(k, 3.) * np[0] / pow(k, 2.); 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102y[index_tau][index_k]    = pow(k, 3.) * np[1] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202x[index_tau][index_k] = pow(k, 3.) * np[2] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202y[index_tau][index_k] = pow(k, 3.) * np[3] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> JG202x[index_tau][index_k]     = pow(k, 3.) * np[4] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> JG202y[index_tau][index_k]     = pow(k, 3.) * np[5] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> I2211[index_tau][index_k]      = pow(k, 3.) * np[6];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21111[index_tau][index_k]     = pow(k, 3.) * np[7] / k;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> N11x[index_tau][index_k]       = pow(k, 3.) * np[8] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> N11y[index_tau][index_k]       = pow(k, 3.) * np[9] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k]    = pow(k, 3.) * np[0] / pow(k, 2.); 
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102y[index_k]    = pow(k, 3.) * np[1] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202x[index_k] = pow(k, 3.) * np[2] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202y[index_k] = pow(k, 3.) * np[3] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> JG202x[index_k]     = pow(k, 3.) * np[4] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> JG202y[index_k]     = pow(k, 3.) * np[5] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> I2211[index_k]      = pow(k, 3.) * np[6];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21111[index_k]     = pow(k, 3.) * np[7] / k;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> N11x[index_k]       = pow(k, 3.) * np[8] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> N11y[index_k]       = pow(k, 3.) * np[9] / pow(k, 2.);
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12102x[index_tau][index_k] = pow(k, 3.) * Plin * p[0] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12102y[index_tau][index_k] = pow(k, 3.) * Plin * p[1] / pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1311[index_tau][index_k]   = pow(k, 3.) * Plin * p[2] - 0.3 * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12111[index_tau][index_k]  = pow(k, 3.) * Plin * p[3] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12102x[index_k] = pow(k, 3.) * Plin * p[0] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12102y[index_k] = pow(k, 3.) * Plin * p[1] / pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1311[index_k]   = pow(k, 3.) * Plin * p[2] - 0.3 * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12111[index_k]  = pow(k, 3.) * Plin * p[3] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J11211[index_tau][index_k]  = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J11211[index_k]  = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
 
       
-      // double mu = 1.0;
+      double mu = 1.0;
 
-      // double J12102    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12102x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->J12102y[index_k];
-      // double J21102    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->J21102y[index_k];
-      // double Jdelta202 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->Jdelta202y[index_k];
-      // double JG202     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG202x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->JG202y[index_k];
+      double J12102    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12102x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->J12102y[index_k];
+      double J21102    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->J21102y[index_k];
+      double Jdelta202 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->Jdelta202y[index_k];
+      double JG202     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG202x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->JG202y[index_k];
 
-      // double I2211  = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2211[index_k];
-      // double I1311  = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1311[index_k];
-      // double J12111 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12111[index_k] * mu;
-      // double J11211 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11211[index_k] * mu;
-      // double J21111 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21111[index_k] * mu;
-      // double N11    = pfo -> pk_halo_rsd_nl[rsd_idx] -> N11x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->N11y[index_k];
+      double I2211  = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2211[index_k];
+      double I1311  = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1311[index_k];
+      double J12111 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12111[index_k] * mu;
+      double J11211 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11211[index_k] * mu;
+      double J21111 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21111[index_k] * mu;
+      double N11    = pfo -> pk_halo_rsd_nl[rsd_idx] -> N11x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->N11y[index_k];
 
-      // double ph_loops  = J12102 + J21102 + Jdelta202 + JG202;
-      // double plos_loops  = I2211 + I1311 + J12111 + J11211 + J21111 + N11;
+      double ph_loops  = J12102 + J21102 + Jdelta202 + JG202;
+      double plos_loops  = I2211 + I1311 + J12111 + J11211 + J21111 + N11;
 
-      // FILE *fpa;
-      // char file_name[50];
-      // sprintf(file_name, "data/2_moment_FFT_%g.txt",mu);
-      // fpa = fopen(file_name, "a");
-      // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-      //     k, Plin, J12102, J21102, Jdelta202, JG202, I2211, I1311, J12111, J11211, J21111, N11, ph_loops, plos_loops);
-      // fclose(fpa);
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/2_moment_FFT_%g.txt",mu);
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+          k, Plin, J12102, J21102, Jdelta202, JG202, I2211, I1311, J12111, J11211, J21111, N11, ph_loops, plos_loops);
+      fclose(fpa);
 }
 
 /*
@@ -289,7 +289,7 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
  * @return void           
  */
 
-void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, double Plin)
+void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -315,31 +315,31 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12112y_mat, Nmax+1, &p[1]);
 
       // adding factored out k dependencies
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_tau][index_k] = pow(k, 3.) * np[0] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112y[index_tau][index_k] = pow(k, 3.) * np[1] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> N12x[index_tau][index_k]    = pow(k, 3.) * np[2] / pow(k, 3.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> N12y[index_tau][index_k]    = pow(k, 3.) * np[3] / pow(k, 3.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_k] = pow(k, 3.) * np[0] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112y[index_k] = pow(k, 3.) * np[1] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> N12x[index_k]    = pow(k, 3.) * np[2] / pow(k, 3.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> N12y[index_k]    = pow(k, 3.) * np[3] / pow(k, 3.);
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112x[index_tau][index_k] = pow(k, 3.) * Plin * p[0] / pow(k, 2.);
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112y[index_tau][index_k] = pow(k, 3.) * Plin * p[1] / pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112x[index_k] = pow(k, 3.) * Plin * p[0] / pow(k, 2.);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112y[index_k] = pow(k, 3.) * Plin * p[1] / pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin;
       
 
-      // double mu = 1.0;
+      double mu = 1.0;
 
-      // double J21112 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112y[index_k];
-      // double J12112 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112y[index_k];
+      double J21112 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112y[index_k];
+      double J12112 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112y[index_k];
 
-      // double N12 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> N12x[index_k] * mu + pow(mu,3.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N12y[index_k];
+      double N12 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> N12x[index_k] * mu + pow(mu,3.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N12y[index_k];
 
-      // double ph_loops  = J21112 + J12112 + N12;
+      double ph_loops  = J21112 + J12112 + N12;
            
-      // FILE *fpa;
-      // char file_name[50];
-      // sprintf(file_name, "data/3_moment_FFT_%g.txt",mu);
-      // fpa = fopen(file_name, "a");
-      // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-      //     k, Plin, J21112, J12112, N12, ph_loops);
-      // fclose(fpa);
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/3_moment_FFT_%g.txt",mu);
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+          k, Plin, J21112, J12112, N12, ph_loops);
+      fclose(fpa);
 }
 
 
@@ -358,7 +358,7 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
  * @return void           
  */
 
-void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, double Plin)
+void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
@@ -375,22 +375,22 @@ void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_tau, int index_k, 
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N22z_mat, vec_m, Nmax+1, &np[2]);
 
       // adding factored out k dependencies
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_tau][index_k] = pow(k, 3.) / pow(k, 4.) * np[0];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_tau][index_k] = pow(k, 3.) / pow(k, 4.) * np[1];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_tau][index_k] = pow(k, 3.) / pow(k, 4.) * np[2];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] = pow(k, 3.) / pow(k, 4.) * np[0];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] = pow(k, 3.) / pow(k, 4.) * np[1];
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k] = pow(k, 3.) / pow(k, 4.) * np[2];
 
       
-      // double mu = 1.0;
+      double mu = 1.0;
 
-      // double N22 = pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] + pow(mu,4.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k];
+      double N22 = pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] + pow(mu,4.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k];
 
-      // FILE *fpa;
-      // char file_name[50];
-      // sprintf(file_name, "data/4_moment_FFT_%g.txt",mu);
-      // fpa = fopen(file_name, "a");
-      // fprintf(fpa, "%12.6e %12.6e %12.6e\n",\
-      //     k, Plin, N22);
-      // fclose(fpa);
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/4_moment_FFT_%g.txt",mu);
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.6e %12.6e %12.6e\n",\
+          k, Plin, N22);
+      fclose(fpa);
 }
 
 /*
