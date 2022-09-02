@@ -1713,7 +1713,7 @@ int fourier_init(
 
 #pragma omp parallel \
       shared(pfo, pba, ppm, z, index_tau, abort) \
-      private(index_k,thread,tspent,tstart,tstop, pk_mm_oneloop) \
+      private(index_k,thread,tspent,tstart,tstop) \
       num_threads(number_of_threads)
 
         {
@@ -1892,10 +1892,10 @@ int fourier_init(
                     pfo->error_message);
           // fprintf(stderr, "%e\n", pfo->pk_halo_rsd_nl->P_mm[index_k]);
 
-          pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
-            = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
+          // pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
+          //   = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
-          pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
+          // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
           // }
       } 
 

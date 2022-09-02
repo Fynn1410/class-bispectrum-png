@@ -125,7 +125,7 @@
 #include "cosmology.h"
 #include "wnw_split.h"
 #include "IR_res.h"
-// #include "ps_halo_1loop.h"
+#include "ps_halo_1loop.h"
 
 
 
