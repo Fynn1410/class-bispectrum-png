@@ -125,7 +125,7 @@
 #include "cosmology.h"
 #include "wnw_split.h"
 #include "IR_res.h"
-// #include "ps_halo_1loop.h"
+#include "ps_halo_1loop.h"
 
 
 
@@ -185,6 +185,7 @@ struct integrand_parameters2
 
 	int p19;
 	int p23;
+	int p24;
 
 	double *p20;
 	size_t p22;

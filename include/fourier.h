@@ -155,10 +155,10 @@ struct oneloop_fftlog_matter_real {
   /** @name - terms in the real space bias expansion at one-loop */
 
   //@{
-  double * Plin_IR;
-  double * P_mm;
-  double * I2200;
-  double * I1300;
+  double ** Plin_IR;
+  double ** P_mm;
+  double ** I2200;
+  double ** I1300;
   //@}
 };
 
@@ -167,18 +167,18 @@ struct oneloop_fftlog_halo_real {
   /** @name - terms in the real space bias expansion at one-loop */
 
   //@{
-  double * Plin_IR;
-  double * P_mm;
-  double * I2200;
-  double * Idelta200;
-  double * IG200;
-  double * Idelta2delta200;
-  double * IG2G200;
-  double * Idelta2G200;
-  double * I1300;
-  double * FG200;
-  double * IR2;
-  double * P_hh;
+  double ** Plin_IR;
+  double ** P_mm;
+  double ** I2200;
+  double ** Idelta200;
+  double ** IG200;
+  double ** Idelta2delta200;
+  double ** IG2G200;
+  double ** Idelta2G200;
+  double ** I1300;
+  double ** FG200;
+  double ** IR2;
+  double ** P_hh;
   //@}
 };
 
@@ -189,59 +189,59 @@ struct oneloop_fftlog_halo_rsd {
   //@{
 
   //0-th moment
-  double * Plin;
-  double * P_mm;
-  double * I2200;
-  double * Idelta200;
-  double * IG200;
-  double * Idelta2delta200;
-  double * IG2G200;
-  double * Idelta2G200;
-  double * I1300;
-  double * FG200;
-  double * IR2;
+  double ** Plin;
+  double ** P_mm;
+  double ** I2200;
+  double ** Idelta200;
+  double ** IG200;
+  double ** Idelta2delta200;
+  double ** IG2G200;
+  double ** Idelta2G200;
+  double ** I1300;
+  double ** FG200;
+  double ** IR2;
 
   //1-st moment
-  double * I2201;
-  double * Idelta201;
-  double * IG201;
-  double * FG201;
-  double * J21101;
-  double * Jdelta201;
-  double * JG201;
-  double * I1301p3101;
-  double * J12101;
-  double * J11201;
+  double ** I2201;
+  double ** Idelta201;
+  double ** IG201;
+  double ** FG201;
+  double ** J21101;
+  double ** Jdelta201;
+  double ** JG201;
+  double ** I1301p3101;
+  double ** J12101;
+  double ** J11201;
 
   //2-nd moment
-  double * J21102x;
-  double * J21102y;
-  double * Jdelta202x;
-  double * Jdelta202y;
-  double * JG202x;
-  double * JG202y;
-  double * I2211;
-  double * J21111;
-  double * N11x;
-  double * N11y;
-  double * J12102x;
-  double * J12102y;
-  double * I1311;
-  double * J12111;
-  double * J11211;
+  double ** J21102x;
+  double ** J21102y;
+  double ** Jdelta202x;
+  double ** Jdelta202y;
+  double ** JG202x;
+  double ** JG202y;
+  double ** I2211;
+  double ** J21111;
+  double ** N11x;
+  double ** N11y;
+  double ** J12102x;
+  double ** J12102y;
+  double ** I1311;
+  double ** J12111;
+  double ** J11211;
 
   //3-rd moment
-  double * J21112x;
-  double * J21112y;
-  double * N12x;
-  double * N12y;
-  double * J12112x;
-  double * J12112y;
+  double ** J21112x;
+  double ** J21112y;
+  double ** N12x;
+  double ** N12y;
+  double ** J12112x;
+  double ** J12112y;
   
   //4-th moment
-  double * N22x;
-  double * N22y;
-  double * N22z;
+  double ** N22x;
+  double ** N22y;
+  double ** N22z;
 
   //@}
 
@@ -414,19 +414,20 @@ struct fourier {
 
   // FFTLog solutions for the Linear Power Spectrum / no-wiggle Linear Power Spectrum -> index coming from enum rsd_ir_type
 
-    struct oneloop_fftlog_matter_real * pk_matter_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
-                          Only depends on indices index_k:
-                          ln_pk[index_k]
+  struct oneloop_fftlog_matter_real * pk_matter_real_nl; /**< Total matter power spectrum (nonlinear) in real space ingredients.
+                          The arrays within depend on indices index_k and index_tau:
+                          ln_pk[index_tau][index_k]
                        */
 
-  struct oneloop_fftlog_halo_real * pk_halo_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
-                          Only depends on indices index_k:
-                          ln_pk[index_k]
+  struct oneloop_fftlog_halo_real * pk_halo_real_nl; /**< Total halo power spectrum (nonlinear) in real space ingredients.
+                          The arrays within depend on indices index_k and index_tau:
+                          ln_pk[index_tau][index_k]
                        */
 
-  struct oneloop_fftlog_halo_rsd ** pk_halo_rsd_nl; /**< Total halo power spectrum (nonlinear) in redshift space.
-                          Only depends on indices index_k:
-                          ln_pk[index_k]
+  struct oneloop_fftlog_halo_rsd ** pk_halo_rsd_nl; /**< Total halo power spectrum (nonlinear) in redshift space ingredients.
+                          Constructed for the expansion in the linear and no-wiggle power spectrum for RSD IR-resummation
+                          The arrays within depend on indices index_k and index_tau:
+                          ln_pk[index_tau][index_k]
                           */
 
   //@{

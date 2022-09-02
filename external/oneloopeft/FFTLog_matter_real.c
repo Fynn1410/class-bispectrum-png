@@ -41,7 +41,7 @@
  * @return value of P22 term in unit of (Mpc/h)^3 as a function of redshift and wavnumber
  */
 
-void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
+void P_mm_FFTLog(struct fourier *pfo, int index_tau, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[real_ir] -> nfft;
       double k = pfo->k[index_k];
@@ -59,11 +59,11 @@ void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I1300_mat, Nmax+1, &p[0]);
 
       // adding factored out k and mu dependencies
-      pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np[0];
-      pfo -> pk_matter_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      pfo -> pk_matter_real_nl -> I2200[index_tau][index_k] = pow(k, 3.) * np[0];
+      pfo -> pk_matter_real_nl -> I1300[index_tau][index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
 }
 
-void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
+void P_gg_FFTLog(struct fourier *pfo, int index_tau, int index_k, double Plin)
 {
       int Nmax = pfo -> fft_ws -> fft_input[real_ir] -> nfft;
       double k = pfo->k[index_k];
@@ -98,15 +98,15 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> FG200_mat, Nmax+1, &p[1]);
            
       // adding factored out k and mu dependencies
-      pfo -> pk_halo_real_nl -> I2200[index_k]           = pow(k, 3.) * np[0];
-      pfo -> pk_halo_real_nl -> Idelta200[index_k]       = pow(k, 3.) * np[1];
-      pfo -> pk_halo_real_nl -> IG200[index_k]           = pow(k, 3.) * np[2];
-      pfo -> pk_halo_real_nl -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[real_ir]->kmin_fft_g, 3.) * Idelta2delta200_const ;
-      pfo -> pk_halo_real_nl -> IG2G200[index_k]         = pow(k, 3.) * np[4];
-      pfo -> pk_halo_real_nl -> Idelta2G200[index_k]     = pow(k, 3.) * np[5];
+      pfo -> pk_halo_real_nl -> I2200[index_tau][index_k]           = pow(k, 3.) * np[0];
+      pfo -> pk_halo_real_nl -> Idelta200[index_tau][index_k]       = pow(k, 3.) * np[1];
+      pfo -> pk_halo_real_nl -> IG200[index_tau][index_k]           = pow(k, 3.) * np[2];
+      pfo -> pk_halo_real_nl -> Idelta2delta200[index_tau][index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[real_ir]->kmin_fft_g, 3.) * Idelta2delta200_const ;
+      pfo -> pk_halo_real_nl -> IG2G200[index_tau][index_k]         = pow(k, 3.) * np[4];
+      pfo -> pk_halo_real_nl -> Idelta2G200[index_tau][index_k]     = pow(k, 3.) * np[5];
 
-      pfo -> pk_halo_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
-      pfo -> pk_halo_real_nl -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
+      pfo -> pk_halo_real_nl -> I1300[index_tau][index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      pfo -> pk_halo_real_nl -> FG200[index_tau][index_k] = pow(k, 3.) * Plin * p[1];
 
-      pfo -> pk_halo_real_nl -> IR2[index_k] = - 2. * pow(k, 2.) * Plin;
+      pfo -> pk_halo_real_nl -> IR2[index_tau][index_k] = - 2. * pow(k, 2.) * Plin;
 }
