@@ -279,12 +279,12 @@ int RSD_Multipole(struct fourier *pfo, double f, int index_k, double z, int l, d
 
     double k = pfo->k[index_k];
 
-    FILE *fpa10;
-    char file_name10[50];
-    sprintf(file_name10, "data/%d_Moment_ct.txt",l);
-    fpa10 = fopen(file_name10, "a");
-    fprintf(fpa10, "%12.6e %12.6e\n",k,integ);
-    fclose(fpa10);
+    // FILE *fpa10;
+    // char file_name10[50];
+    // sprintf(file_name10, "data/%d_Moment_ct.txt",l);
+    // fpa10 = fopen(file_name10, "a");
+    // fprintf(fpa10, "%12.6e %12.6e\n",k,integ);
+    // fclose(fpa10);
 
     return _SUCCESS_;
 }
@@ -305,7 +305,7 @@ double RSD_Multipole_integrand(double x, void *par)
     double rsd;
     RSD_IR_Ressummed(pfo, f, index_k, z, x, &rsd);
 
-    result = rsd * gsl_sf_legendre_Pl(l,x);//(2.*l + 1.)/2.
+    result = rsd * Legendre_Polynomial(l,x) * (2.*l + 1.)/2.;
 
     return result;
 }
@@ -324,6 +324,9 @@ double Legendre_Polynomial(int l, double mu)
     }
     else if(l==3){
         result = 0.5*(5.*pow(mu,3.)-3.*mu);
+    }
+    else if(l==4){
+        result = (35.*pow(mu,4.)-30.*pow(mu,2.)+3.)/8.;
     }
     else{
         result = 0.;

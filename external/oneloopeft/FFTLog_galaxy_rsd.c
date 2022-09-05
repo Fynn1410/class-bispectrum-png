@@ -171,13 +171,13 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       double JG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k] * mu;
       double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/1_moment_FFT_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
-          k, Plin, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/1_moment_FFT_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
+      //     k, Plin, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
+      // fclose(fpa);
 }
 
 /*
@@ -265,13 +265,13 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       double ph_loops  = J12102 + J21102 + Jdelta202 + JG202;
       double plos_loops  = I2211 + I1311 + J12111 + J11211 + J21111 + N11;
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/2_moment_FFT_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-          k, Plin, J12102, J21102, Jdelta202, JG202, I2211, I1311, J12111, J11211, J21111, N11, ph_loops, plos_loops);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/2_moment_FFT_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+      //     k, Plin, J12102, J21102, Jdelta202, JG202, I2211, I1311, J12111, J11211, J21111, N11, ph_loops, plos_loops);
+      // fclose(fpa);
 }
 
 /*
@@ -333,13 +333,13 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
       double ph_loops  = J21112 + J12112 + N12;
            
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/3_moment_FFT_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-          k, Plin, J21112, J12112, N12, ph_loops);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/3_moment_FFT_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+      //     k, Plin, J21112, J12112, N12, ph_loops);
+      // fclose(fpa);
 }
 
 
@@ -384,13 +384,13 @@ void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
       double N22 = pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] + pow(mu,4.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k];
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/4_moment_FFT_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.6e %12.6e %12.6e\n",\
-          k, Plin, N22);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/4_moment_FFT_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.6e %12.6e %12.6e\n",\
+      //     k, Plin, N22);
+      // fclose(fpa);
 }
 
 /*
