@@ -637,41 +637,39 @@ double growth_D(struct background * pba,
 
 
 
-// /**
-//  * Compute the scale-dependant linear growth rate f(k,z) (i.e the velocity growth factor)
-//  * by taking numerical derivative of the scale_dep_growth_D() function f(k,a) = d ln D(k,a)/d ln a.
-//  * The switch "mode" can be set to CDM, BA, TOT to return the growth factor of the corresponding matter component.
-//  *
-//  * This is a useful function when constraining physics that induces scale-dependant growth 
-//  * such as massive neutrinos. 
-//  * 
-//  * @param Cx                Input: pointer to Cosmology structure
-//  * @param k                 Input: wavenumbber in unit of 1/Mpc
-//  * @param z                 Input: redshift to compute the spectrum
-//  * @return the growth rate, can be k-dep (ex. with nonzero neutrino mass)
-//  */
+/**
+ * Compute the scale-dependant linear growth rate f(k,z) (i.e the velocity growth factor)
+ * by taking numerical derivative of the scale_dep_growth_D() function f(k,a) = d ln D(k,a)/d ln a.
+ * The switch "mode" can be set to CDM, BA, TOT to return the growth factor of the corresponding matter component.
+ *
+ * This is a useful function when constraining physics that induces scale-dependant growth 
+ * such as massive neutrinos. 
+ * 
+ * @param Cx                Input: pointer to Cosmology structure
+ * @param k                 Input: wavenumbber in unit of 1/Mpc
+ * @param z                 Input: redshift to compute the spectrum
+ * @return the growth rate, can be k-dep (ex. with nonzero neutrino mass)
+ */
 
-// double growth_f(struct Cosmology *Cx, double z)
-// { 
+double growth_f(struct background * pba, double z)
+{ 
 
-//   double tau;
-//   int last_index; ///junk
-//   double * pvecback;
+  double tau;
+  int last_index; ///junk
+  double * pvecback;
 
-//   pvecback = (double*) calloc(Cx -> ccs.ba.bg_size,sizeof(double));
+  pvecback = (double*) calloc(pba->bg_size,sizeof(double));
 
-//   class_call(background_tau_of_z(&Cx -> ccs.ba,z,&tau),
-//             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
-//   class_call(background_at_tau(&Cx -> ccs.ba,tau,long_info,inter_normal,&last_index,pvecback),
-//             Cx->ccs.ba.error_message,Cx->ccs.pt.error_message);
+  background_tau_of_z(pba,z,&tau);
+  background_at_tau(pba,tau,long_info,inter_normal,&last_index,pvecback);
 
-//   double fz = pvecback[Cx -> ccs.ba.index_bg_f];
+  double fz = pvecback[pba->index_bg_f];
 
 
-//   free(pvecback);
+  free(pvecback);
 
-//   return fz;
-// }
+  return fz;
+}
 
 
 // /**

@@ -1672,12 +1672,53 @@ int fourier_init(
     // TODO: code only efficient and tested at z=0. Check other values of z / tau.
 
     // variables for the computation
-    double z  = 0.0;
+    double z   = 0.0;
+    double mu  = 1.0;
 
     /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
     // fprintf(stderr,"Start FFTLog_init\n");
     FFTLog_rsd_init(pba, ppm, pfo, z);
     // fprintf(stderr,"Finish FFTLog_init\n");
+
+    // int N = 1000;
+    // double * k_arr = loginit_1Darray(N, 1e-12, 1e6);
+    // double pk;
+
+    // FILE *fpa1;
+    // char file_name1[50];
+    // sprintf(file_name1, "data/Linear_extra_%g.txt",z);
+    // fpa1 = fopen(file_name1, "w");
+    // fprintf(fpa1, "k Plin\n");
+    // for (int idx = 0; idx<N; idx++){
+    //   // fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_arr[idx], z, pfo -> index_pk_cb, &pk, NULL);
+    //   pk = Pk_dlnPk(pba, ppm, pfo, k_arr[idx], z, LPOWER);
+    //   fprintf(fpa1, "%g %g\n",k_arr[idx], pk);
+    // }
+    // fclose(fpa1);
+
+    // FILE *fpa2;
+    // char file_name2[50];
+    // sprintf(file_name2, "data/No_Wiggle_extra_%g.txt",z);
+    // fpa2 = fopen(file_name2, "w");
+    // fprintf(fpa2, "k Plin\n");
+    // for (int idx = 0; idx<N; idx++){
+    //   // fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_arr[idx], z, pfo -> index_pk_cb, &pk, NULL);
+    //   pk = pm_nowiggle(pba, ppm, pfo, k_arr[idx], z, 1.e-5, 0, 142L);
+    //   fprintf(fpa2, "%g %g\n",k_arr[idx], pk);
+    // }
+    // fclose(fpa2);
+
+    // FILE *fpa3;
+    // char file_name3[50];
+    // sprintf(file_name3, "data/IR_extra_%g.txt",z);
+    // fpa3 = fopen(file_name3, "w");
+    // fprintf(fpa3, "k Plin\n");
+    // for (int idx = 0; idx<N; idx++){
+    //   // fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k_arr[idx], z, pfo -> index_pk_cb, &pk, NULL);
+    //   pk = pm_IR_LO(pba, ppm, pfo, k_arr[idx], z, 142L);
+    //   fprintf(fpa3, "%g %g\n",k_arr[idx], pk);
+    // }
+    // fclose(fpa3);
   
     /* number of threads (always one if no openmp) */
     int number_of_threads=1;
@@ -1705,7 +1746,7 @@ int fourier_init(
 
 #pragma omp parallel
         {
-          number_of_threads= omp_get_num_threads();
+          // number_of_threads= omp_get_num_threads();
         }
 #endif
 
@@ -1793,37 +1834,79 @@ int fourier_init(
       // fprintf(fpa8, "k Plin_IR N22\n");
       // fclose(fpa8);
 
-      // double phh = 0.;
+      // FILE *fpa9;
+      // char file_name9[50];
+      // sprintf(file_name9, "data/RSD_lin_%g.txt",mu);
+      // fpa9 = fopen(file_name9, "w");
+      // fprintf(fpa9, "k Mom_0 Mom_1 Mom_2 Mom_3 Mom_4 RSD\n");
+      // fclose(fpa9);
+
+      // FILE *fpa10;
+      // char file_name10[50];
+      // sprintf(file_name10, "data/RSD_nw_%g.txt",mu);
+      // fpa10 = fopen(file_name10, "w");
+      // fprintf(fpa10, "k Mom_0 Mom_1 Mom_2 Mom_3 Mom_4 RSD\n");
+      // fclose(fpa10);
+
+      // FILE *fpa11;
+      // char file_name11[50];
+      // sprintf(file_name11, "data/RSD_%g.txt",mu);
+      // fpa11 = fopen(file_name11, "w");
+      // fprintf(fpa11, "k Plin RSD\n");
+      // fclose(fpa11);
+
+      FILE *fpa10;
+      char file_name10[50];
+      sprintf(file_name10, "data/0_Multipol_1.txt");
+      fpa10 = fopen(file_name10, "w");
+      fprintf(fpa10, "k 0_Moment\n");
+      fclose(fpa10);
+
+      FILE *fpa12;
+      char file_name12[50];
+      sprintf(file_name12, "data/2_Multipol_1.txt");
+      fpa12 = fopen(file_name12, "w");
+      fprintf(fpa12, "k 2_Moment\n");
+      fclose(fpa12);
+
+      // FILE *fpa13;
+      // char file_name13[50];
+      // sprintf(file_name13, "data/4_Multipol_1.txt");
+      // fpa13 = fopen(file_name13, "w");
+      // fprintf(fpa13, "k 4_Moment\n");
+      // fclose(fpa13);
+
+      double rsd = 0.;
 
       #pragma omp for schedule (dynamic)
       for (index_k=0; index_k<pfo->k_size; index_k++) {
 #ifdef _OPENMP
         tstart = omp_get_wtime();
 #endif
-          // if(pfo->k[index_k]>1e-3 && pfo->k[index_k]<4e-1){
+          if(pfo->k[index_k]>1e-3 && pfo->k[index_k]<4e-1){
             // fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
             // class_call_parallel(PS_hh_G(ppr, pba, ppt, ppm, pfo, pfo->k[index_k],z,_TRUE_,_TRUE_, 142L,&phh),pfo->error_message,pfo->error_message);
 
-          fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call_parallel(pm_IR_FFTLog(pba,
-                                  ppm,
-                                  pfo,
-                                  index_k,
-                                  z,
-                                  142L),
-                    pfo->error_message,
-                    pfo->error_message);
-          // fprintf(stderr, "%e\n", pk_mm_oneloop);
+          // fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+          // class_call_parallel(pm_IR_FFTLog(pba,
+          //                         ppm,
+          //                         pfo,
+          //                         index_k,
+          //                         z,
+          //                         142L),
+          //           pfo->error_message,
+          //           pfo->error_message);
+          // // fprintf(stderr, "%e\n", pk_mm_oneloop);
 
-          fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call_parallel(pg_IR_FFTLog(pba,
-                                  ppm,
-                                  pfo,
-                                  index_k,
-                                  z,
-                                  142L),
-                    pfo->error_message,
-                    pfo->error_message);
+          // fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+          // class_call_parallel(pg_IR_FFTLog(pba,
+          //                         ppm,
+          //                         pfo,
+          //                         index_k,
+          //                         z,
+          //                         142L),
+          //           pfo->error_message,
+          //           pfo->error_message);
           // fprintf(stderr, "%e\n", pfo->pk_halo_nl->pmm[index_k]);
 
             // fprintf(stderr,"call PS_hh_0 for k/h=%e\n",pfo->k[index_k] / pba->h);
@@ -1890,13 +1973,54 @@ int fourier_init(
                                   142L),
                     pfo->error_message,
                     pfo->error_message);
+
+          // fprintf(stderr,"call RSD_PowerSpectra for k/h=%e\n",pfo->k[index_k] / pba->h);
+          // class_call_parallel(RSD_IR_Ressummed(pfo, 
+          //                         pba, 
+          //                         index_k, 
+          //                         z, 
+          //                         mu, 
+          //                         &rsd),
+          //           pfo->error_message,
+          //           pfo->error_message);
+
+          fprintf(stderr,"call RSD_Multipole 0 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          class_call_parallel(RSD_Multipole(pfo,
+                                  pba,
+                                  index_k,
+                                  z,
+                                  0,
+                                  &rsd),
+                    pfo->error_message,
+                    pfo->error_message);
+
+          fprintf(stderr,"call RSD_Multipole 2 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          class_call_parallel(RSD_Multipole(pfo,
+                                  pba,
+                                  index_k,
+                                  z,
+                                  2,
+                                  &rsd),
+                    pfo->error_message,
+                    pfo->error_message);
+
+          fprintf(stderr,"call RSD_Multipole 4 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          class_call_parallel(RSD_Multipole(pfo,
+                                  pba,
+                                  index_k,
+                                  z,
+                                  4,
+                                  &rsd),
+                    pfo->error_message,
+                    pfo->error_message);
+
           // fprintf(stderr, "%e\n", pfo->pk_halo_rsd_nl->P_mm[index_k]);
 
           // pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
           //   = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
           // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
-          // }
+          }
       } 
 
 #ifdef _OPENMP
