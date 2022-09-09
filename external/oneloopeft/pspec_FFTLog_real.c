@@ -76,17 +76,17 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
  */
 
 int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    int index_k, double z, long SPLIT, double *pk)
+                    int index_k, double z, double b1, double b2, double bG2, double btd, double R2, double cs2, long SPLIT, double *pk)
 
 { 
     double k = pfo->k[index_k];
 
-    double b1  = 2.0;
-    double b2  = -1.0;
-    double bG2 = 0.1;
-    double btd = -0.1;
-    double R2  =  5.0;
-    double cs2 = 0.2;
+    // double b1  = 2.0;
+    // double b2  = -1.0;
+    // double bG2 = 0.1;
+    // double btd = -0.1;
+    // double R2  =  5.0;
+    // double cs2 = 0.2;
 
     double D  = growth_D(pba, z);
     double D2 = pow(D,2.);
