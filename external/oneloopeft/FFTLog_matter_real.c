@@ -61,6 +61,8 @@ void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
       // adding factored out k and mu dependencies
       pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np[0];
       pfo -> pk_matter_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+
+      pfo -> pk_matter_real_nl -> Plin_IR[index_k] = Plin;
 }
 
 void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
@@ -108,5 +110,6 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
       pfo -> pk_halo_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
       pfo -> pk_halo_real_nl -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
 
-      pfo -> pk_halo_real_nl -> IR2[index_k] = - 2. * pow(k, 2.) * Plin;
+
+      pfo -> pk_halo_real_nl -> Plin_IR[index_k] = Plin;
 }

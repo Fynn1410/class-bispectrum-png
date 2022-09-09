@@ -24,11 +24,11 @@ double complex FG200(double complex n1);
 double complex I2201(double complex n1, double complex n2);
 double complex Idelta201(double complex n1, double complex n2);
 double complex IG201(double complex n1, double complex n2);
-double complex FG201(double complex n1, double complex n2);
 double complex J21101(double complex n1, double complex n2);
 double complex Jdelta201(double complex n1, double complex n2);
 double complex JG201(double complex n1, double complex n2);
 
+double complex FG201(double complex n1);
 double complex I1301p3101(double complex n1);
 double complex J12101(double complex n1);
 

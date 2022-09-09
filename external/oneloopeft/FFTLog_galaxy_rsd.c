@@ -88,13 +88,12 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta200[index_k]       = pow(k, 3.) * np[1];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> IG200[index_k]           = pow(k, 3.) * np[2];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[rsd_idx]->kmin_fft_g, 3.) * Idelta2delta200_const ;
+      // pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> IG2G200[index_k]         = pow(k, 3.) * np[4];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2G200[index_k]     = pow(k, 3.) * np[5];
 
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
       pfo -> pk_halo_rsd_nl[rsd_idx] -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
-
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> IR2[index_k] = - 2. * pow(k, 2.) * Plin;
 }
 
 /*
@@ -117,8 +116,8 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       int Nmax = pfo -> fft_ws -> fft_input[rsd_idx] -> nfft;
       double k = pfo->k[index_k];
 
-      double *np = make_1Darray(7);
-      double *p  = make_1Darray(2);
+      double *np = make_1Darray(6);
+      double *p  = make_1Darray(3);
 
       // Linear cpow Spectrum vector
       double complex *vec_h = make_1D_c_array(Nmax+1);
@@ -131,31 +130,31 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I2201_mat,     vec_m, Nmax+1, &np[0]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Idelta201_mat, vec_h, Nmax+1, &np[1]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> IG201_mat,     vec_h, Nmax+1, &np[2]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> FG201_mat,     vec_h, Nmax+1, &np[3]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J21101_mat,    vec_m, Nmax+1, &np[4]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Jdelta201_mat, vec_h, Nmax+1, &np[5]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> JG201_mat,     vec_h, Nmax+1, &np[6]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J21101_mat,    vec_m, Nmax+1, &np[3]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Jdelta201_mat, vec_h, Nmax+1, &np[4]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> JG201_mat,     vec_h, Nmax+1, &np[5]);
 
       // propagator calculations
-      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1301p3101_mat,  Nmax+1, &p[0]);
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12101_mat, Nmax+1, &p[1]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> FG201_mat, Nmax+1, &p[0]);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1301p3101_mat,  Nmax+1, &p[1]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12101_mat, Nmax+1, &p[2]);
 
       // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k]     = pow(k, 3.) * np[0];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k] = pow(k, 3.) * np[1];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k]     = pow(k, 3.) * np[2];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k]     = pow(k, 3.) * np[3];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_k]    = pow(k, 3.) * np[4] / k;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] = pow(k, 3.) * np[5] / k;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k]     = pow(k, 3.) * np[6] / k;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_k]    = pow(k, 3.) * np[3] / k;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] = pow(k, 3.) * np[4] / k;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k]     = pow(k, 3.) * np[5] / k;
 
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k]  = pow(k, 3.) * Plin * p[0] - 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin;
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] = pow(k, 3.) * Plin * p[1] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k]     = pow(k, 3.) * p[0] * Plin;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k]  = pow(k, 3.) * Plin * p[1] - 25./63. * pow(k, 2.) * pfo->fft_ws->sigma_v2 * Plin;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] = pow(k, 3.) * Plin * p[2] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
 
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
 
       
-      double mu = 1.0;
+      double mu = 0.5;
 
       double I2201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k];
       double I1301p3101     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k];
@@ -171,13 +170,13 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       double JG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k] * mu;
       double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
 
-      // FILE *fpa;
-      // char file_name[50];
-      // sprintf(file_name, "data/1_moment_FFT_%g.txt",mu);
-      // fpa = fopen(file_name, "a");
-      // fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
-      //     k, Plin, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
-      // fclose(fpa);
+      FILE *fpa;
+      char file_name[50];
+      sprintf(file_name, "data/1_moment_FFT_%g.txt",mu);
+      fpa = fopen(file_name, "a");
+      fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
+          k, Plin, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
+      fclose(fpa);
 }
 
 /*
@@ -509,10 +508,11 @@ double complex IG201(double complex n1, double complex n2)
       return out;
 } 
 
-double complex FG201(double complex n1, double complex n2)
+double complex FG201(double complex n1)
 {
       double complex numerator   =  -15. * ctan(n1*M_PI);
-      double complex denominator = 112.*n1*(-6. + 5.*n1 + 5.*cpow(n1,2.) - 5.* cpow(n1,3.) + cpow(n1,4.))*M_PI;
+      double complex denominator = 112.*n1*(n1+1.)*(n1-1.)*(n1-2.)*(n1-3.)*M_PI;
+      // double complex denominator = 112.*n1*(-6. + 5.*n1 + 5.*cpow(n1,2.) - 5.* cpow(n1,3.) + cpow(n1,4.))*M_PI;
       double complex out         = numerator/denominator;
 
       return out;

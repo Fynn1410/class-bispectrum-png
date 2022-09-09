@@ -219,9 +219,7 @@ void FFT_compute_coeff(struct background * pba,
             // kmax_fft = 7854.064; // Model 2 parameters for Model 1 testing
             // kmax_fft = 1062.590; // Model 1 parameters for Model 2 testing
       }
-      // fprintf(stderr, "Hi %e %e\n", fft_bias, kmin_fft);
       double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
-      // fprintf(stderr, "no Hi\n");
       double Delta   = log(kmax_fft/kmin_fft)/(Nmaxd-1); 
       double *k      = make_1Darray(Nmax);
       double *pkz    = make_1Darray(Nmax);
@@ -254,7 +252,7 @@ void FFT_compute_coeff(struct background * pba,
                   pk_bin[i] = Pk_dlnPk(pba, ppm, pfo, k[i], z, LPOWER);
             }
             else if(rsd_ir_switch == no_wiggle){
-                  pk_bin[i] = pm_nowiggle(pba, ppm, pfo, k[i], z, 1.e-4, 0, SPLIT);
+                  pk_bin[i] = pm_nowiggle(pba, ppm, pfo, k[i], z, 1.e-5, 0, SPLIT);
             }
             else{
                   pk_bin[i] = pm_IR_LO(pba, ppm, pfo, k[i], z, SPLIT);
@@ -481,8 +479,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_real_nl -> IG2G200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_real_nl -> Idelta2G200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_real_nl -> I1300 = make_1Darray(pfo->k_size);
-      pfo -> pk_halo_real_nl -> FG200 = make_1Darray(pfo->k_size);
-      pfo -> pk_halo_real_nl -> IR2 = make_1Darray(pfo->k_size);  
+      pfo -> pk_halo_real_nl -> FG200 = make_1Darray(pfo->k_size);  
       pfo -> pk_halo_real_nl -> P_hh = make_1Darray(pfo->k_size);
 
       // Solutions for the full linear power spectrum and the no-wiggle linear power spectrum
@@ -499,7 +496,6 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             pfo -> pk_halo_rsd_nl[idx] -> Idelta2G200 = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> I1300 = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> FG200 = make_1Darray(pfo->k_size);
-            pfo -> pk_halo_rsd_nl[idx] -> IR2 = make_1Darray(pfo->k_size);
 
             pfo -> pk_halo_rsd_nl[idx] -> I2201 = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> Idelta201 = make_1Darray(pfo->k_size);
@@ -542,15 +538,16 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
       /* FFTLog parameters */
       int    N_FFTLog   = 256; // fast -> 128, precise -> 256
-      double kmin_fft_m = 1.e-8;
+      double kmin_fft_m = 1.e-12;
       double kmin_fft_g = 1.e-4;
+
 
       /* Setting the FFTLog parameters and calculating the etam and cmsym */
       for (int idx = lin; idx <= real_ir; idx++){
             pfo -> fft_ws -> fft_input[idx] -> nfft = N_FFTLog;
             pfo -> fft_ws -> fft_input[idx] -> fft_bias_m = - 0.3;  
             pfo -> fft_ws -> fft_input[idx] -> kmin_fft_m = kmin_fft_m;    
-            pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = - 1.6; 
+            pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = - 1.55; 
             pfo -> fft_ws -> fft_input[idx] -> kmin_fft_g = kmin_fft_g;
 
             pfo -> fft_ws -> fft_input[idx] -> etam_m  = make_1D_c_array(N_FFTLog + 1);
@@ -558,18 +555,40 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             pfo -> fft_ws -> fft_input[idx] -> etam_g  = make_1D_c_array(N_FFTLog + 1);
             pfo -> fft_ws -> fft_input[idx] -> cmsym_g = make_1D_c_array(N_FFTLog + 1);
 
-            FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input[idx], idx, 142L, HALO);
             FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input[idx], idx, 142L, MATTER);
+            FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input[idx], idx, 142L, HALO);
+      
+            // FILE *fpa9;
+            // char file_name9[50];
+            // if(idx == lin){
+            //       sprintf(file_name9, "data/FFTLog_expansion_lin.txt");
+            // }
+            // else if(idx == no_wiggle){ 
+            //       sprintf(file_name9, "data/FFTLog_expansion_nw.txt");
+            // }
+            // else{
+            //       sprintf(file_name9, "data/FFTLog_expansion_ir.txt");
+            // }
+            // fpa9 = fopen(file_name9, "w");
+            // fprintf(fpa9, "etam_m_r cmsym_m_r etam_g_r cmsym_g_r etam_m_c cmsym_m_c etam_g_c cmsym_g_c\n");
+            // for (int i=0; i<=N_FFTLog; i++){
+            //       fprintf(fpa9, "%g %g %g %g %g %g %g %g \n"
+            //                         , creal(pfo->fft_ws->fft_input[idx]->etam_m[i]), creal(pfo->fft_ws->fft_input[idx]->cmsym_m[i]), creal(pfo->fft_ws->fft_input[idx]->etam_g[i]), creal(pfo->fft_ws->fft_input[idx]->cmsym_g[i])
+            //                         , cimag(pfo->fft_ws->fft_input[idx]->etam_m[i]), cimag(pfo->fft_ws->fft_input[idx]->cmsym_m[i]), cimag(pfo->fft_ws->fft_input[idx]->etam_g[i]), cimag(pfo->fft_ws->fft_input[idx]->cmsym_g[i]));
+            // }
+            // fclose(fpa9);
       }
 
-
       /* Important values for the calculation */
-      pfo -> fft_ws -> sigma_v0 = sigman(pba, ppm, pfo, z, 1.e-5,  1.e3,  0, 142L); // density variance
-      pfo -> fft_ws -> sigma_v2 = (1./3.) * sigman(pba, ppm, pfo, z, 1.e-5,  1.e3, -1, 142L); // Linear displacement field (velocity) variance
-      pfo -> fft_ws -> sigma_2_IR = IR_Sigma2(pba, ppm, pfo, z, 1e-4, 142L); // IR-Ressumation supression exponent
-      pfo -> fft_ws -> del_sigma_2_IR = IR_del_Sigma2(pba, ppm, pfo, z, 1e-4, 142L); // IR-Ressumation supression exponent for RSD
+      pfo -> fft_ws -> sigma_v0 = sigman(pba, ppm, pfo, z, 1.e-5, 1.e3, 0, 142L); // density variance
+      // pfo -> fft_ws -> sigma_v0 = 0.; // density variance
+      pfo -> fft_ws -> sigma_v2 = (1./3.) * sigman(pba, ppm, pfo, z, 1.e-5, 1.e3, -1, 142L); // Linear displacement field (velocity) variance
+      // pfo -> fft_ws -> sigma_v2 = 7.714931e+01; // Linear displacement field (velocity) variance
+      pfo -> fft_ws -> sigma_2_IR = IR_Sigma2(pba, ppm, pfo, z, 1e-5, 142L); // IR-Ressumation supression exponent
+      pfo -> fft_ws -> del_sigma_2_IR = IR_del_Sigma2(pba, ppm, pfo, z, 1e-5, 142L); // IR-Ressumation supression exponent for RSD
 
-      // fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
+      fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
+      // fprintf(stderr, "sigma_2_IR = %e\ndel_sigma_2_IR = %e\n", pfo -> fft_ws -> sigma_2_IR, pfo -> fft_ws -> del_sigma_2_IR);
 
       // Filling the matrices needed for Real Space
       // FFTLog matrices non-propagator
@@ -624,8 +643,6 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             np_mat_fill(Idelta201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> Idelta201_mat);
             pfo -> fft_ws -> fft_matrix[idx] -> IG201_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
             np_mat_fill(IG201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> IG201_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> FG201_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(FG201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> FG201_mat);
             pfo -> fft_ws -> fft_matrix[idx] -> J21101_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
             np_mat_fill(J21101, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> J21101_mat);
             pfo -> fft_ws -> fft_matrix[idx] -> Jdelta201_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
@@ -634,6 +651,8 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             np_mat_fill(JG201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> JG201_mat);
 
             // FFTLog matrices (propagator)
+            pfo -> fft_ws -> fft_matrix[idx] -> FG201_mat   = make_1D_c_array(N_FFTLog+1);
+            p_mat_fill(FG201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> FG201_mat);
             pfo -> fft_ws -> fft_matrix[idx] -> I1301p3101_mat = make_1D_c_array(N_FFTLog+1);
             p_mat_fill(I1301p3101, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> I1301p3101_mat);
             pfo -> fft_ws -> fft_matrix[idx] -> J12101_mat = make_1D_c_array(N_FFTLog+1);

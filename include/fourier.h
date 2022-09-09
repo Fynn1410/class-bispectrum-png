@@ -76,10 +76,10 @@ typedef struct fft_matrices
   double complex ** I2201_mat; 
   double complex ** Idelta201_mat; 
   double complex ** IG201_mat; 
-  double complex ** FG201_mat; 
   double complex ** J21101_mat; 
   double complex ** Jdelta201_mat; 
   double complex ** JG201_mat; 
+  double complex *  FG201_mat; 
   double complex *  I1301p3101_mat; 
   double complex *  J12101_mat; 
   
@@ -177,7 +177,6 @@ struct oneloop_fftlog_halo_real {
   double * Idelta2G200;
   double * I1300;
   double * FG200;
-  double * IR2;
   double * P_hh;
   //@}
 };
@@ -199,7 +198,6 @@ struct oneloop_fftlog_halo_rsd {
   double * Idelta2G200;
   double * I1300;
   double * FG200;
-  double * IR2;
 
   //1-st moment
   double * I2201;
