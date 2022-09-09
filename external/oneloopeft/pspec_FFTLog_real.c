@@ -26,12 +26,16 @@
  */
 
 int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 int index_k,  double z, long SPLIT)
+                 int index_k,  double z, long SPLIT, double *pk)
 {
     double k = pfo->k[index_k];
 
+    double D  = growth_D(pba, z);
+    double D2 = pow(D,2.);
+    double D4 = pow(D,4.);
+
+    double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, 0., SPLIT); // Power Spectrum at redshift z=0., loops get scaled individually
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-    double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
     double sigma2     = pfo -> fft_ws -> sigma_2_IR;
@@ -50,7 +54,9 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double cs2 =  0.2;
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct; 
+    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_ct)*D2 + (P22 + P13)*D4 ; 
+
+    *pk = pfo -> pk_matter_real_nl -> P_mm[index_k];
 
     return _SUCCESS_;
 }
@@ -70,7 +76,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
  */
 
 int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                    int index_k, double z, long SPLIT)
+                    int index_k, double z, long SPLIT, double *pk)
 
 { 
     double k = pfo->k[index_k];
@@ -82,8 +88,12 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double R2  =  5.0;
     double cs2 = 0.2;
 
+    double D  = growth_D(pba, z);
+    double D2 = pow(D,2.);
+    double D4 = pow(D,4.);
+
+    double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, 0., SPLIT); // Power Spectrum at redshift z=0., loops get scaled individually
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-    double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
     double sigma2     = pfo -> fft_ws -> sigma_2_IR;
@@ -100,11 +110,11 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
 
     double P22  = 2. * pfo -> pk_halo_real_nl -> I2200[index_k];
     double P13  = 6. * pfo -> pk_halo_real_nl -> I1300[index_k];
-    double P_mm = pow(b1,2.) * ((p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + P22 + P13) + pm_ct); 
+    double P_mm = pow(b1,2.) * ((p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_ct)*D2 + (P22 + P13)*D4); 
     pfo -> pk_halo_real_nl -> P_mm[index_k] = P_mm/pow(b1,2.);
     // fprintf(stderr, "%g", pfo -> pk_halo_real_nl -> P_mm[index_k]);
 
-    double p_r2     = b1 * R2 * pfo -> pk_halo_real_nl -> IR2[index_k];
+    double p_r2     = -2. * pow(k,2.) * b1 * R2 * pm_lin_IR;
     double pb1b2    = 2. * b1 * b2  *  pfo -> pk_halo_real_nl -> Idelta200[index_k];
     double pb1bg2   = 4. * b1 * bG2 * pfo -> pk_halo_real_nl -> IG200[index_k];
     double pb22     = 0.5 * pow(b2, 2.) * pfo -> pk_halo_real_nl -> Idelta2delta200[index_k];
@@ -112,9 +122,10 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double pb2bg2   = 2. * b2 * bG2 * pfo -> pk_halo_real_nl -> Idelta2G200[index_k];
     double pb1b3nl  = 8. * b1 * (bG2 + 2./5. * btd) * pfo -> pk_halo_real_nl -> FG200[index_k];
 
-    double ph_loops = p_r2 + pb1b2 + pb1bg2 + pb22 + pbg22 + pb2bg2 + pb1b3nl + P_mm;
+    double ph_loops = p_r2*D2 + (pb1b2 + pb1bg2 + pb22 + pbg22 + pb2bg2 + pb1b3nl)*D4 + P_mm;
     pfo -> pk_halo_real_nl -> P_hh[index_k] = ph_loops;
 
+    *pk = ph_loops;
 
     // FILE *fpa;
     // char file_name[50];
