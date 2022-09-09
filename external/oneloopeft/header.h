@@ -176,6 +176,11 @@ struct integrand_parameters2
 	double p11;
 	double p12;
 
+	double p24;
+	double p25;
+	double p26;
+	double p27;
+
 	long p13;
 	long p14;
 	long p15;

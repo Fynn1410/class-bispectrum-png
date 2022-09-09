@@ -36,26 +36,37 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     return _SUCCESS_;
 }
 
-int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, double z, double mu, double * result)
+int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
+     int index_k, double z, double mu, 
+     double b1, double b2, double bG2, double btd, 
+     double c00, double c10, double c20, double c22, double c30, double c32, double c42,
+     double * result)
 {
     double k = pfo->k[index_k];
 
-    // Biases
-    double b1  = 1.0;// 2.0;
-    double b2  = 0.0;//-1.0;
-    double bG2 = 0.0;// 0.1;
-    double btd = 0.0;//-0.1;
-    double R2  = 0.0;// 0.;//5.0;
+    // // Biases
+    // double b1  = 1.0;
+    // double b2  = 0.;
+    // double bG2 = 0.;
+    // double btd = 0.;
 
-    // Counter terms
-    double cs2 =  0.;//0.2;
-    double c00  = 0.;
-    double c10  = 0.;
-    double c20  = 0.;
-    double c22  = 0.;
-    double c30  = 0.;
-    double c32  = 0.;
-    double c42  = 0.;
+    // // Biases
+    // double b1  =  2.0;
+    // double b2  = -1.0;
+    // double bG2 =  0.1;
+    // double btd = -0.1;
+
+    // double h = pba->h;
+
+    // // Counter terms
+    // double c00  = -2. * (b1 *5.0 + 0.2*pow(b1,2.))/pow(h,2);
+    // // double c00  = -2. * (0.2*pow(b1,2.))/pow(h,2);
+    // double c10  = 0.;
+    // double c20  = 0.;
+    // double c22  = 0.;
+    // double c30  = 0.;
+    // double c32  = 0.;
+    // double c42  = 0.;
 
 
     double D = growth_D(pba, z);
@@ -67,8 +78,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
 
 
     double sigma_v2 = pfo -> fft_ws -> sigma_v2;
-    double sigma_2_IR = pfo -> fft_ws -> sigma_2_IR;
-    double del_sigma_2_IR = pfo -> fft_ws -> del_sigma_2_IR;
+    double sigma_2_IR = pfo -> fft_ws -> sigma_2_IR *D2;
+    double del_sigma_2_IR = pfo -> fft_ws -> del_sigma_2_IR *D2;
 
     double sigma_tot = (1. + f*pow(mu,2.)*(2. + f))*sigma_2_IR + pow(f*mu,2.)*(pow(mu,2.) - 1.)*del_sigma_2_IR;
     double suppression = exp(-pow(k,2.)*sigma_tot);
@@ -84,7 +95,6 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
     double * Idelta2G200 = make_1Darray(2);
     double * I1300 = make_1Darray(2);
     double * FG200 = make_1Darray(2);
-    double * IR2 = make_1Darray(2);
     double * Moment_0 = make_1Darray(2);
 
     //1-st moment
@@ -159,17 +169,18 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
         Idelta2G200[idx]     = pfo -> pk_halo_rsd_nl[idx] -> Idelta2G200[index_k];
         I1300[idx]           = pfo -> pk_halo_rsd_nl[idx] -> I1300[index_k];
         FG200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> FG200[index_k];
-        IR2[idx]             = pfo -> pk_halo_rsd_nl[idx] -> IR2[index_k]; // Exclude it
+
         //pow(b1,2.)*Plin[idx] 
-        Moment_0[idx] = (- 2.*cs2*pow(b1,2.)*pow(k,2.)*Plin[idx] + b1*R2*IR2[idx]) *D2 \
-                        + (pow(b1,2.)*(2.*I2200[idx] + 6.*I1300[idx]) + 2.*b1*b2*Idelta200[idx] + 4.*b1*bG2*IG200[idx] \
-                        + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*b1*(bG2 + 0.4*btd)*FG200[idx]) *D4;
+        Moment_0[idx] = + (pow(b1,2.)*(2.*I2200[idx] + 6.*I1300[idx]) + 2.*b1*b2*Idelta200[idx] + 4.*b1*bG2*IG200[idx] \
+                        + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*b1*(bG2 + 0.4*btd)*FG200[idx]) *D4 \
+                        + c00*pow(k,2.)*Plin[idx] *D2;
 
         //1-st moment
         I2201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I2201[index_k];
         Idelta201[idx]  = pfo -> pk_halo_rsd_nl[idx] -> Idelta201[index_k];
         IG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> IG201[index_k];
         FG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> FG201[index_k];
+        // fprintf(stderr, "%e %e \n", FG201[idx], IG201[idx]);
         J21101[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J21101[index_k] * mu;
         Jdelta201[idx]  = pfo -> pk_halo_rsd_nl[idx] -> Jdelta201[index_k] * mu;
         JG201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> JG201[index_k] * mu;
@@ -177,10 +188,16 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
         J12101[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J12101[index_k] * mu;
         J11201[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J11201[index_k] * mu;
 
-        Moment_1[idx] =   0./ //2. * (f*mu/k) *b1*Plin[idx] *D2
-                        + 2. * (f*mu/k) * (2.*b1*I2201[idx] + 3.*b1*I1301p3101[idx] + b2*Idelta201[idx] + 2.*bG2*IG201[idx] + 4.*(bG2 + 0.4*btd)*FG201[idx]) *D4\
+        Moment_1[idx] =   2. * (f*mu/k) * (2.*b1*I2201[idx] + 3.*b1*I1301p3101[idx] + b2*Idelta201[idx] + 2.*bG2*IG201[idx] + 4.*(bG2 + 0.4*btd)*FG201[idx]) *D4\
                         + 2. * (2.*f)    * (pow(b1,2.)*(J12101[idx] + J11201[idx] + J21101[idx]) + 0.5*b1*b2*Jdelta201[idx] + b1*bG2*JG201[idx]) *D4\
                         + c10*f*mu*k*Plin[idx] *D2;
+                        
+
+        // Moment_1[idx] =  2. * (f*mu/k) * (2.*bG2*IG201[idx]) *D4; //2. * (f*mu/k) *b1*Plin[idx] *D2
+        //                 // + 2. * (f*mu/k) * (4.*(bG2 + 0.4*btd)*FG201[idx]) *D4\
+        //                 // + c10*f*mu*k*Plin[idx] *D2;
+
+        // fprintf(stderr,"bG2 = %e\nFG201 = %e", bG2, FG201[idx]);
 
         //2-nd moment
         J21102x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102x[index_k];
@@ -203,6 +220,11 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
         I1311[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I1311[index_k];
         J12111[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J12111[index_k] * mu;
         J11211[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J11211[index_k] * mu;
+
+        // Moment_2[idx] = 0.\
+        //                 + 2. * pow(f,2.) * (4.*b1*J12102[idx] + 2.*b1*J21102[idx] + b2*Jdelta202[idx] + 2.*bG2*JG202[idx] + pow(b1,2.)*Plin[idx]*sigma_v2) *D4\
+        //                 - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[idx] *D2;
+        //                  //+2. * pow(f*mu/k,2.) * Plin[idx] *D2
 
         Moment_2[idx] = + 2. * pow(f*mu/k,2.) * (2.*I2211[idx] + 6.*I1311[idx]) *D4\
                         + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[idx] + J11211[idx] + J21111[idx])) *D4\
@@ -249,7 +271,9 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
     
 
     // *result = Moment_0[lin] +  k*mu * Moment_1[lin] + pow(b1,2.)*Plin[lin] + 2. * (f*pow(mu,2.)) *b1*Plin[lin];
-    // *result = Moment_0[lin] +  k*mu * Moment_1[lin] + (1./2.) * pow(k*mu,2.) * Moment_2[lin] + pow(b1 + f*pow(mu,2.),2.)*Plin[lin];
+    // *result = Moment_0[lin] +  k*mu * Moment_1[lin] + (1./2.) * pow(k*mu,2.) * Moment_2[lin] + (1./6.) * pow(k*mu,3.) * Moment_3[lin] + (1./24.) * pow(k*mu,4.) * Moment_4[lin] + pow(b1 + f*pow(mu,2.),2.)*Plin[lin];
+    // *result = k*mu * Moment_1[lin];
+    // fprintf(stderr, "Moment_1 = %e\n", Moment_1[lin]);
     *result = RSD_IR_Ressummed;
 
     // FILE *fpa9;
@@ -276,7 +300,10 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
     return _SUCCESS_;
 }
 
-int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, double z, int l, double * result)
+int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, double z, 
+        double b1, double b2, double bG2, double btd, 
+        double c00, double c10, double c20, double c22, double c30, double c32, double c42,
+        int l, double * result)
 {
     //extern struct globals gb;
     double integ=0., error=0.;
@@ -294,6 +321,17 @@ int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, doub
     par.pfo = pfo;
     par.pba = pba;
     par.p5  = z;
+    par.p6  = b1;
+    par.p7  = b2;
+    par.p8  = bG2;
+    par.p9  = btd;
+    par.p10 = c00;
+    par.p11 = c10;
+    par.p12 = c20;
+    par.p24 = c22;
+    par.p25 = c30;
+    par.p26 = c32;
+    par.p27 = c42;
     par.p19 = l;
     par.p23 = index_k;
     gsl_integration_qags(&F,mu_min,mu_max,0.0,1.0e-5,1000000,w,&integ,&error);
@@ -303,12 +341,12 @@ int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, doub
 
     double k = pfo->k[index_k];
 
-    FILE *fpa10;
-    char file_name10[50];
-    sprintf(file_name10, "data/%d_Multipol_1.txt",l);
-    fpa10 = fopen(file_name10, "a");
-    fprintf(fpa10, "%12.6e %12.6e\n",k,integ);
-    fclose(fpa10);
+    // FILE *fpa10;
+    // char file_name10[50];
+    // sprintf(file_name10, "data/%d_Multipol.txt",l);
+    // fpa10 = fopen(file_name10, "a");
+    // fprintf(fpa10, "%12.6e %12.6e\n",k,integ);
+    // fclose(fpa10);
 
     return _SUCCESS_;
 }
@@ -323,12 +361,23 @@ double RSD_Multipole_integrand(double x, void *par)
     struct fourier *pfo    = pij.pfo;
     struct background *pba = pij.pba;
     double z               = pij.p5;
+    double b1              = pij.p6;
+    double b2              = pij.p7;
+    double bG2             = pij.p8;
+    double btd             = pij.p9;
+    double c00             = pij.p10;
+    double c10             = pij.p11;
+    double c20             = pij.p12;
+    double c22             = pij.p24;
+    double c30             = pij.p25;
+    double c32             = pij.p26;
+    double c42             = pij.p27;
     int    l               = pij.p19;
     int    index_k         = pij.p23;
 
     double rsd;
-    RSD_IR_Ressummed(pfo, pba, index_k, z, x, &rsd);
-
+    RSD_IR_Ressummed(pfo, pba, index_k, z, x, b1, b2, bG2, btd, c00, c10, c20, c22, c30, c32, c42, &rsd);
+    // fprintf(stderr, "%e", rsd);
     result = rsd * Legendre_Polynomial(l,x)* (2.*l + 1.)/2.;
 
     return result;
@@ -357,63 +406,3 @@ double Legendre_Polynomial(int l, double mu)
     }
     return result;
 }
-
-// int FFTLog_fill_bias_vector(struct fourier *pfo, double b1, double b2, double bG2, double btd, double cs2, double R2){
-//     pfo -> fft_ws -> b1  = b1;
-//     pfo -> fft_ws -> b2  = b2;
-//     pfo -> fft_ws -> bG2 = bG2;
-//     pfo -> fft_ws -> btd = btd;
-//     pfo -> fft_ws -> cs2 = cs2;
-//     pfo -> fft_ws -> R2  = R2;
-
-//     // 0-th moment
-//     pfo -> fft_ws -> bias -> np_bias_vec0 = make_1Darray(6);
-//     pfo -> fft_ws -> bias -> p_bias_vec0  = make_1Darray(2);
-//     pfo -> fft_ws -> bias -> np_bias_vec0[0] = 2.* pow(b1, 2.);
-//     pfo -> fft_ws -> bias -> np_bias_vec0[1] = 2.* b1 * b2;
-//     pfo -> fft_ws -> bias -> np_bias_vec0[2] = 4.* b1 * bG2;
-//     pfo -> fft_ws -> bias -> np_bias_vec0[3] = 0.5 * pow(b2, 2.);
-//     pfo -> fft_ws -> bias -> np_bias_vec0[4] = 2.* pow(bG2, 2.);
-//     pfo -> fft_ws -> bias -> np_bias_vec0[5] = 2.* b2 * bG2;
-//     pfo -> fft_ws -> bias -> p_bias_vec0[0] = 6.* pow(b1, 2.);
-//     pfo -> fft_ws -> bias -> p_bias_vec0[1] = 8. * b1 * (bG2 + 2./5. * btd);
-
-//     // 1-st moment
-//     pfo -> fft_ws -> bias -> np_bias_vec1 = make_1Darray(7);
-//     pfo -> fft_ws -> bias -> p_bias_vec1  = make_1Darray(2);
-//     pfo -> fft_ws -> bias -> np_bias_vec1[0] = 2. * b1;
-//     pfo -> fft_ws -> bias -> np_bias_vec1[1] = b2;
-//     pfo -> fft_ws -> bias -> np_bias_vec1[2] = 2. * bG2;
-//     pfo -> fft_ws -> bias -> np_bias_vec1[3] = 4. * (bG2 + 2./5. * btd);
-//     pfo -> fft_ws -> bias -> np_bias_vec1[4] = pow(b1, 2.);
-//     pfo -> fft_ws -> bias -> np_bias_vec1[5] = 0.5 * b1 * b2;
-//     pfo -> fft_ws -> bias -> np_bias_vec1[6] = b1 * bG2;
-//     pfo -> fft_ws -> bias -> p_bias_vec1[0] = 3. * b1;
-//     pfo -> fft_ws -> bias -> p_bias_vec1[1] = pow(b1, 2.);
-
-//     // 2-nd moment
-//     pfo -> fft_ws -> bias -> np_bias_vec2 = make_1Darray(6);
-//     pfo -> fft_ws -> bias -> p_bias_vec2  = make_1Darray(3);
-//     pfo -> fft_ws -> bias -> np_bias_vec2[0] = 2. * b1;
-//     pfo -> fft_ws -> bias -> np_bias_vec2[1] = b2;
-//     pfo -> fft_ws -> bias -> np_bias_vec2[2] = 2. * bG2;
-//     pfo -> fft_ws -> bias -> np_bias_vec2[3] = 2.;
-//     pfo -> fft_ws -> bias -> np_bias_vec2[4] = b1;
-//     pfo -> fft_ws -> bias -> np_bias_vec2[5] = pow(b1, 2.);
-//     pfo -> fft_ws -> bias -> p_bias_vec2[0] = 4. * b1;
-//     pfo -> fft_ws -> bias -> p_bias_vec2[1] = 6.;
-//     pfo -> fft_ws -> bias -> p_bias_vec2[2] = b1;
-
-//     // 3-rd moment
-//     pfo -> fft_ws -> bias -> np_bias_vec3 = make_1Darray(2);
-//     pfo -> fft_ws -> bias -> p_bias_vec3  = make_1Darray(1);
-//     pfo -> fft_ws -> bias -> np_bias_vec3[0] = 1.;
-//     pfo -> fft_ws -> bias -> np_bias_vec3[1] = b1;
-//     pfo -> fft_ws -> bias -> p_bias_vec3[0] = 2.;
-
-//     // 4-th moment
-//     pfo -> fft_ws -> bias -> np_bias_vec4 = make_1Darray(1);
-//     pfo -> fft_ws -> bias -> np_bias_vec4[0] = 1.;
-
-//     return _SUCCESS_;
-// }
