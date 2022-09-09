@@ -96,7 +96,7 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
-    double sigma2     = pfo -> fft_ws -> sigma_2_IR;
+    double sigma2     = pfo -> fft_ws -> sigma_2_IR *D2;
     double sup        = exp(-k * k * sigma2);
 
     double sigmav2    = pfo -> fft_ws -> sigma_v2;
