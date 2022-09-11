@@ -818,7 +818,7 @@ cdef class Class:
         return pk_cb
 
     # Gives the halo pk for a given k-array and a given z in real-space
-    def pk_matter_real(self,double* k,double z):
+    def pk_matter_real(self,k,double z):
         """
         Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -850,7 +850,7 @@ cdef class Class:
         return pk
 
     # Gives the halo pk for a given k-array and a given (z,b1,b2,bG2,btd,R2) in real-space
-    def pk_halo_real(self,double* k,double z,double b1,double b2,double bG2, double btd, double R2, double cs2):
+    def pk_halo_real(self,k,double z,double b1,double b2,double bG2, double btd, double R2, double cs2):
         """
         Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -882,7 +882,7 @@ cdef class Class:
         return pk
 
     # Gives the halo pk for a given (k,z,f,mu,b1) in redshift-space
-    def pk_halo_rsd(self,double* k,double z,double mu,double b1,double b2,double bG2, double btd,double c00, double c10, double c20, double c22, double c30, double c32, double c42):
+    def pk_halo_rsd(self,k,double z,double mu,double b1,double b2,double bG2, double btd,double c00, double c10, double c20, double c22, double c30, double c32, double c42):
         """
         Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 

@@ -154,29 +154,29 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
 
       
-      double mu = 0.5;
+      // double mu = 0.5;
 
-      double I2201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k];
-      double I1301p3101 = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k];
-      double Idelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k];
-      double IG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k];
-      double FG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k];
-      double ph_loops  = I2201 + I1301p3101 + Idelta201 + IG201 + FG201;
+      // double I2201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k];
+      // double I1301p3101 = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k];
+      // double Idelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k];
+      // double IG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k];
+      // double FG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k];
+      // double ph_loops  = I2201 + I1301p3101 + Idelta201 + IG201 + FG201;
 
-      double J12101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] * mu;
-      double J11201    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] * mu;
-      double J21101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_k] * mu;
-      double Jdelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] * mu;
-      double JG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k] * mu;
-      double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
+      // double J12101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] * mu;
+      // double J11201    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] * mu;
+      // double J21101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_k] * mu;
+      // double Jdelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] * mu;
+      // double JG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k] * mu;
+      // double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/1_moment_FFT_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
-          k, Plin, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/1_moment_FFT_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
+      //     k, Plin, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
+      // fclose(fpa);
 }
 
 /*
@@ -247,22 +247,22 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J11211[index_k]  = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
 
       
-      double mu = 1.0;
+      // double mu = 1.0;
 
-      double J12102    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12102x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->J12102y[index_k];
-      double J21102    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->J21102y[index_k];
-      double Jdelta202 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->Jdelta202y[index_k];
-      double JG202     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG202x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->JG202y[index_k];
+      // double J12102    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12102x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->J12102y[index_k];
+      // double J21102    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->J21102y[index_k];
+      // double Jdelta202 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->Jdelta202y[index_k];
+      // double JG202     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG202x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->JG202y[index_k];
 
-      double I2211  = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2211[index_k];
-      double I1311  = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1311[index_k];
-      double J12111 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12111[index_k] * mu;
-      double J11211 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11211[index_k] * mu;
-      double J21111 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21111[index_k] * mu;
-      double N11    = pfo -> pk_halo_rsd_nl[rsd_idx] -> N11x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->N11y[index_k];
+      // double I2211  = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2211[index_k];
+      // double I1311  = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1311[index_k];
+      // double J12111 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12111[index_k] * mu;
+      // double J11211 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11211[index_k] * mu;
+      // double J21111 = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21111[index_k] * mu;
+      // double N11    = pfo -> pk_halo_rsd_nl[rsd_idx] -> N11x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] ->N11y[index_k];
 
-      double ph_loops  = J12102 + J21102 + Jdelta202 + JG202;
-      double plos_loops  = I2211 + I1311 + J12111 + J11211 + J21111 + N11;
+      // double ph_loops  = J12102 + J21102 + Jdelta202 + JG202;
+      // double plos_loops  = I2211 + I1311 + J12111 + J11211 + J21111 + N11;
 
       // FILE *fpa;
       // char file_name[50];
@@ -323,14 +323,14 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112y[index_k] = pow(k, 3.) * Plin * p[1] / pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin;
       
 
-      double mu = 1.0;
+      // double mu = 1.0;
 
-      double J21112 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112y[index_k];
-      double J12112 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112y[index_k];
+      // double J21112 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112y[index_k];
+      // double J12112 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112y[index_k];
 
-      double N12 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> N12x[index_k] * mu + pow(mu,3.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N12y[index_k];
+      // double N12 =  pfo -> pk_halo_rsd_nl[rsd_idx] -> N12x[index_k] * mu + pow(mu,3.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N12y[index_k];
 
-      double ph_loops  = J21112 + J12112 + N12;
+      // double ph_loops  = J21112 + J12112 + N12;
            
       // FILE *fpa;
       // char file_name[50];
@@ -379,9 +379,9 @@ void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k] = pow(k, 3.) / pow(k, 4.) * np[2];
 
       
-      double mu = 1.0;
+      // double mu = 1.0;
 
-      double N22 = pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] + pow(mu,4.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k];
+      // double N22 = pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] + pow(mu,2.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] + pow(mu,4.) * pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k];
 
       // FILE *fpa;
       // char file_name[50];

@@ -452,7 +452,7 @@ double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struc
   double pknw, logpknw, logk;
 
   if(k<kmin || k >kmax) {
-      pknw = 0.;
+      pknw = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
   }
   else{
       logk    = log(k);
@@ -582,26 +582,25 @@ double pm_nowiggle_dst(struct background * pba,
 double sigman2_integrand(double x, void *p)
 {
 	double f=0;
-	double result = 0;
 	double q = exp(x);
 
 	struct integrand_parameters2 pij;
 	pij = *((struct integrand_parameters2 *)p);
 
-      struct background *pba = pij.pba;
-      struct primordial *ppm = pij.ppm;
-      struct fourier *pfo    = pij.pfo;
-      double z 		           = pij.p4;
-      long 	 n 		           = pij.p14;
-      long   SPLIT           = pij.p15;
-      double window  = 1;
-      
-      double pm = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
+  struct background *pba = pij.pba;
+  struct primordial *ppm = pij.ppm;
+  struct fourier *pfo    = pij.pfo;
+  double z 		           = pij.p4;
+  long 	 n 		           = pij.p14;
+  long   SPLIT           = pij.p15;
+  double window  = 1;
+  
+  double pm = Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
+  // double pm = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
 
-      f = 1/(2 * pow(M_PI, 2)) * pow(q, 2. * (n + 1) + 1) * pow(window, 2.) * pm;
+  f = 1./(2. * pow(M_PI, 2.)) * pow(q, 2. * (n + 1.) + 1.) * pow(window, 2.) * pm;
 
 	return f;
-
 }
 
 

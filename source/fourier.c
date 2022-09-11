@@ -1673,7 +1673,7 @@ int fourier_init(
 
     // variables for the computation
     double z   = 0.0;
-    double mu  = 1.0;
+    double mu  = 0.5;
 
     /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
     // fprintf(stderr,"Start FFTLog_init\n");
@@ -1746,7 +1746,7 @@ int fourier_init(
 
 #pragma omp parallel
         {
-          // number_of_threads= omp_get_num_threads();
+          number_of_threads= omp_get_num_threads();
         }
 #endif
 
@@ -1855,23 +1855,23 @@ int fourier_init(
       // fprintf(fpa11, "k Plin RSD\n");
       // fclose(fpa11);
 
-      FILE *fpa10;
-      char file_name10[50];
-      sprintf(file_name10, "data/0_Multipol_1.txt");
-      fpa10 = fopen(file_name10, "w");
-      fprintf(fpa10, "k 0_Moment\n");
-      fclose(fpa10);
+      // FILE *fpa10;
+      // char file_name10[50];
+      // sprintf(file_name10, "data/0_Multipol.txt");
+      // fpa10 = fopen(file_name10, "w");
+      // fprintf(fpa10, "k 0_Moment\n");
+      // fclose(fpa10);
 
-      FILE *fpa12;
-      char file_name12[50];
-      sprintf(file_name12, "data/2_Multipol_1.txt");
-      fpa12 = fopen(file_name12, "w");
-      fprintf(fpa12, "k 2_Moment\n");
-      fclose(fpa12);
+      // FILE *fpa12;
+      // char file_name12[50];
+      // sprintf(file_name12, "data/2_Multipol.txt");
+      // fpa12 = fopen(file_name12, "w");
+      // fprintf(fpa12, "k 2_Moment\n");
+      // fclose(fpa12);
 
       // FILE *fpa13;
       // char file_name13[50];
-      // sprintf(file_name13, "data/4_Multipol_1.txt");
+      // sprintf(file_name13, "data/4_Multipol.txt");
       // fpa13 = fopen(file_name13, "w");
       // fprintf(fpa13, "k 4_Moment\n");
       // fclose(fpa13);
@@ -1883,7 +1883,7 @@ int fourier_init(
 #ifdef _OPENMP
         tstart = omp_get_wtime();
 #endif
-          if(pfo->k[index_k]>1e-3 && pfo->k[index_k]<4e-1){
+          if(pfo->k[index_k]>1e-5 && pfo->k[index_k]<5e-1){
             // fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
             // class_call_parallel(PS_hh_G(ppr, pba, ppt, ppm, pfo, pfo->k[index_k],z,_TRUE_,_TRUE_, 142L,&phh),pfo->error_message,pfo->error_message);
 
@@ -1984,35 +1984,35 @@ int fourier_init(
           //           pfo->error_message,
           //           pfo->error_message);
 
-          fprintf(stderr,"call RSD_Multipole 0 for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call_parallel(RSD_Multipole(pfo,
-                                  pba,
-                                  index_k,
-                                  z,
-                                  0,
-                                  &rsd),
-                    pfo->error_message,
-                    pfo->error_message);
+          // fprintf(stderr,"call RSD_Multipole 0 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          // class_call_parallel(RSD_Multipole(pfo,
+          //                         pba,
+          //                         index_k,
+          //                         z,
+          //                         0,
+          //                         &rsd),
+          //           pfo->error_message,
+          //           pfo->error_message);
 
-          fprintf(stderr,"call RSD_Multipole 2 for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call_parallel(RSD_Multipole(pfo,
-                                  pba,
-                                  index_k,
-                                  z,
-                                  2,
-                                  &rsd),
-                    pfo->error_message,
-                    pfo->error_message);
+          // fprintf(stderr,"call RSD_Multipole 2 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          // class_call_parallel(RSD_Multipole(pfo,
+          //                         pba,
+          //                         index_k,
+          //                         z,
+          //                         2,
+          //                         &rsd),
+          //           pfo->error_message,
+          //           pfo->error_message);
 
-          fprintf(stderr,"call RSD_Multipole 4 for k/h=%e\n",pfo->k[index_k] / pba->h);
-          class_call_parallel(RSD_Multipole(pfo,
-                                  pba,
-                                  index_k,
-                                  z,
-                                  4,
-                                  &rsd),
-                    pfo->error_message,
-                    pfo->error_message);
+          // fprintf(stderr,"call RSD_Multipole 4 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          // class_call_parallel(RSD_Multipole(pfo,
+          //                         pba,
+          //                         index_k,
+          //                         z,
+          //                         4,
+          //                         &rsd),
+          //           pfo->error_message,
+          //           pfo->error_message);
 
           // fprintf(stderr, "%e\n", pfo->pk_halo_rsd_nl->P_mm[index_k]);
 
