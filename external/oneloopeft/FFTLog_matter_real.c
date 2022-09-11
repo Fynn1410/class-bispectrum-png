@@ -54,9 +54,9 @@ void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
       vec_fill(pfo -> fft_ws -> fft_input[real_ir], k, MATTER, vec_m);
 
       // non-propagator calculations
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I2200_mat, vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2200_mat, vec_m, Nmax+1, &np[0]);
 
-      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I1300_mat, Nmax+1, &p[0]);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
 
       // adding factored out k and mu dependencies
       pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np[0];
@@ -85,19 +85,19 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
       vec_fill(pfo -> fft_ws -> fft_input[real_ir], k, MATTER, vec_m);
       
       // non-propagator calculations
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I2200_mat,           vec_m, Nmax+1, &np[0]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta200_mat,       vec_h, Nmax+1, &np[1]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> IG200_mat,           vec_h, Nmax+1, &np[2]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2delta200_mat, vec_h, Nmax+1, &np[3]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> IG2G200_mat,         vec_h, Nmax+1, &np[4]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2G200_mat,     vec_h, Nmax+1, &np[5]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2200_mat,           vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta200_mat,       vec_h, Nmax+1, &np[1]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> IG200_mat,           vec_h, Nmax+1, &np[2]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat, vec_h, Nmax+1, &np[3]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> IG2G200_mat,         vec_h, Nmax+1, &np[4]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta2G200_mat,     vec_h, Nmax+1, &np[5]);
       
       double Idelta2delta200_const;
-      c_nonprop(vec_h_min, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
+      c_nonprop(vec_h_min, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
 
       // propagator calculations
-      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[real_ir] -> I1300_mat, Nmax+1, &p[0]);
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[real_ir] -> FG200_mat, Nmax+1, &p[1]);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> FG200_mat, Nmax+1, &p[1]);
            
       // adding factored out k and mu dependencies
       pfo -> pk_halo_real_nl -> I2200[index_k]           = pow(k, 3.) * np[0];

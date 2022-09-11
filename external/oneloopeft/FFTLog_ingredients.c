@@ -452,7 +452,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> fft_ws = (struct oneloop_fftlog_workspace *)malloc(sizeof(struct oneloop_fftlog_workspace));
 
       pfo -> fft_ws -> fft_input  = (struct fft_struct **)malloc(3*sizeof(struct fft_struct*));
-      pfo -> fft_ws -> fft_matrix = (struct fft_matrices **)malloc(3*sizeof(struct fft_matrices*));
+      pfo -> fft_ws -> fft_matrix = (struct fft_matrices *)malloc(sizeof(struct fft_matrices));
 
       pfo -> pk_matter_real_nl = (struct oneloop_fftlog_matter_real *)malloc(sizeof(struct oneloop_fftlog_matter_real));
       pfo -> pk_halo_real_nl   = (struct oneloop_fftlog_halo_real *)malloc(sizeof(struct oneloop_fftlog_halo_real));
@@ -460,7 +460,6 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
       for(int idx = lin; idx <= real_ir; idx++){
             pfo -> fft_ws -> fft_input[idx]  = (struct fft_struct *)malloc(sizeof(struct fft_struct));
-            pfo -> fft_ws -> fft_matrix[idx] = (struct fft_matrices *)malloc(sizeof(struct fft_matrices));
       }
 
       // Solutions for the matter real-space IR-Resummed linear power spectrum
@@ -590,133 +589,112 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
       // fprintf(stderr, "sigma_2_IR = %e\ndel_sigma_2_IR = %e\n", pfo -> fft_ws -> sigma_2_IR, pfo -> fft_ws -> del_sigma_2_IR);
 
-      // Filling the matrices needed for Real Space
+      /* Filling the matrices needed for the RSD. 
+      Since the eta_m are representing the spacing of the power spectra, which is the same for spectra, we choose one of them to fill the matrices
+      */
+
+      /* 0-th moment */
       // FFTLog matrices non-propagator
-      pfo -> fft_ws -> fft_matrix[real_ir] -> I2200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-      np_mat_fill(I2200, pfo -> fft_ws -> fft_input[real_ir], MATTER, pfo -> fft_ws -> fft_matrix[real_ir] ->  I2200_mat);
-      pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-      np_mat_fill(Idelta200, pfo -> fft_ws -> fft_input[real_ir], HALO, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta200_mat);
-      pfo -> fft_ws -> fft_matrix[real_ir] -> IG200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-      np_mat_fill(IG200, pfo -> fft_ws -> fft_input[real_ir], HALO, pfo -> fft_ws -> fft_matrix[real_ir] -> IG200_mat);
-      pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2delta200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-      np_mat_fill(Idelta2delta200, pfo -> fft_ws -> fft_input[real_ir], HALO, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2delta200_mat);
-      pfo -> fft_ws -> fft_matrix[real_ir] -> IG2G200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-      np_mat_fill(IG2G200, pfo -> fft_ws -> fft_input[real_ir], HALO, pfo -> fft_ws -> fft_matrix[real_ir] -> IG2G200_mat);
-      pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2G200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-      np_mat_fill(Idelta2G200, pfo -> fft_ws -> fft_input[real_ir], HALO, pfo -> fft_ws -> fft_matrix[real_ir] -> Idelta2G200_mat);
+      pfo -> fft_ws -> fft_matrix -> I2200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(I2200, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I2200_mat);
+      pfo -> fft_ws -> fft_matrix -> Idelta200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(Idelta200, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> Idelta200_mat);
+      pfo -> fft_ws -> fft_matrix -> IG200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(IG200, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> IG200_mat);
+      pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(Idelta2delta200, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat);
+      pfo -> fft_ws -> fft_matrix -> IG2G200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(IG2G200, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> IG2G200_mat);
+      pfo -> fft_ws -> fft_matrix -> Idelta2G200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(Idelta2G200, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> Idelta2G200_mat);
 
       // FFTLog matrices propagator
-      pfo -> fft_ws -> fft_matrix[real_ir] -> I1300_mat   = make_1D_c_array(N_FFTLog+1);
-      p_mat_fill(I1300, pfo -> fft_ws -> fft_input[real_ir], MATTER, pfo -> fft_ws -> fft_matrix[real_ir] ->  I1300_mat);
-      pfo -> fft_ws -> fft_matrix[real_ir] -> FG200_mat = make_1D_c_array(N_FFTLog+1);
-      p_mat_fill(FG200, pfo -> fft_ws -> fft_input[real_ir], HALO, pfo -> fft_ws -> fft_matrix[real_ir] -> FG200_mat);
+      pfo -> fft_ws -> fft_matrix -> I1300_mat   = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(I1300, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix ->  I1300_mat);
+      pfo -> fft_ws -> fft_matrix -> FG200_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(FG200, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> FG200_mat);
 
+      /* 1-st moment */
+      // FFTLog matrices (non-propagator)
+      pfo -> fft_ws -> fft_matrix -> I2201_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(I2201, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I2201_mat);
+      pfo -> fft_ws -> fft_matrix -> Idelta201_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(Idelta201, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> Idelta201_mat);
+      pfo -> fft_ws -> fft_matrix -> IG201_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(IG201, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> IG201_mat);
+      pfo -> fft_ws -> fft_matrix -> J21101_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(J21101, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> J21101_mat);
+      pfo -> fft_ws -> fft_matrix -> Jdelta201_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(Jdelta201, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> Jdelta201_mat);
+      pfo -> fft_ws -> fft_matrix -> JG201_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(JG201, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> JG201_mat);
 
-      // Filling the matrices needed for the RSD
-      for (int idx = lin; idx <= no_wiggle; idx++){
-            /* 0-th moment */
-            // FFTLog matrices non-propagator
-            pfo -> fft_ws -> fft_matrix[idx] -> I2200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(I2200, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] ->  I2200_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> Idelta200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(Idelta200, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> Idelta200_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> IG200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(IG200, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> IG200_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> Idelta2delta200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(Idelta2delta200, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> Idelta2delta200_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> IG2G200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(IG2G200, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> IG2G200_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> Idelta2G200_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(Idelta2G200, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> Idelta2G200_mat);
+      // FFTLog matrices (propagator)
+      pfo -> fft_ws -> fft_matrix -> FG201_mat   = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(FG201, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> FG201_mat);
+      pfo -> fft_ws -> fft_matrix -> I1301p3101_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(I1301p3101, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I1301p3101_mat);
+      pfo -> fft_ws -> fft_matrix -> J12101_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(J12101, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12101_mat);
 
-            // FFTLog matrices propagator
-            pfo -> fft_ws -> fft_matrix[idx] -> I1300_mat   = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(I1300, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] ->  I1300_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> FG200_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(FG200, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> FG200_mat);
+      /* 2-nd moment */
+      // FFTLog matrices (non-propagator)
+      pfo -> fft_ws -> fft_matrix -> J21102x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(J21102x, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> J21102x_mat);
+      pfo -> fft_ws -> fft_matrix -> J21102y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(J21102y, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> J21102y_mat);
+      pfo -> fft_ws -> fft_matrix -> Jdelta202x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(Jdelta202x, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> Jdelta202x_mat);
+      pfo -> fft_ws -> fft_matrix -> Jdelta202y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(Jdelta202y, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> Jdelta202y_mat);
+      pfo -> fft_ws -> fft_matrix -> JG202x_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(JG202x, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> JG202x_mat);
+      pfo -> fft_ws -> fft_matrix -> JG202y_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(JG202y, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> JG202y_mat);
+      pfo -> fft_ws -> fft_matrix -> I2211_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(I2211, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I2211_mat);
+      pfo -> fft_ws -> fft_matrix -> J21111_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(J21111, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> J21111_mat);
+      pfo -> fft_ws -> fft_matrix -> N11x_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(N11x, pfo -> fft_ws -> fft_input[lin], MATTER,  pfo -> fft_ws -> fft_matrix -> N11x_mat);
+      pfo -> fft_ws -> fft_matrix -> N11y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(N11y, pfo -> fft_ws -> fft_input[lin], MATTER,  pfo -> fft_ws -> fft_matrix -> N11y_mat);
 
-            /* 1-st moment */
-            // FFTLog matrices (non-propagator)
-            pfo -> fft_ws -> fft_matrix[idx] -> I2201_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(I2201, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> I2201_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> Idelta201_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(Idelta201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> Idelta201_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> IG201_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(IG201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> IG201_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> J21101_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(J21101, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> J21101_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> Jdelta201_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(Jdelta201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> Jdelta201_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> JG201_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(JG201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> JG201_mat);
+      // FFTLog matrices (propagator)
+      pfo -> fft_ws -> fft_matrix -> J12102x_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(J12102x, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12102x_mat);
+      pfo -> fft_ws -> fft_matrix -> J12102y_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(J12102y, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12102y_mat);
+      pfo -> fft_ws -> fft_matrix -> I1311_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(I1311, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I1311_mat);
+      pfo -> fft_ws -> fft_matrix -> J12111_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(J12111, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12111_mat);
 
-            // FFTLog matrices (propagator)
-            pfo -> fft_ws -> fft_matrix[idx] -> FG201_mat   = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(FG201, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> FG201_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> I1301p3101_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(I1301p3101, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> I1301p3101_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> J12101_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(J12101, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> J12101_mat);
+      /* 3-rd moment */
+      // FFTLog matrices (non-propagator)
+      pfo -> fft_ws -> fft_matrix -> J21112x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(J21112x, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> J21112x_mat);
+      pfo -> fft_ws -> fft_matrix -> J21112y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(J21112y, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> J21112y_mat);
+      pfo -> fft_ws -> fft_matrix -> N12x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(N12x, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> N12x_mat);
+      pfo -> fft_ws -> fft_matrix -> N12y_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(N12y, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> N12y_mat);
+      
+      // FFTLog matrices (propagator)
+      pfo -> fft_ws -> fft_matrix -> J12112x_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(J12112x, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12112x_mat);
+      pfo -> fft_ws -> fft_matrix -> J12112y_mat = make_1D_c_array(N_FFTLog+1);
+      p_mat_fill(J12112y, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12112y_mat);
 
-            /* 2-nd moment */
-            // FFTLog matrices (non-propagator)
-            pfo -> fft_ws -> fft_matrix[idx] -> J21102x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(J21102x, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> J21102x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> J21102y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(J21102y, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> J21102y_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> Jdelta202x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(Jdelta202x, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> Jdelta202x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> Jdelta202y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(Jdelta202y, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> Jdelta202y_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> JG202x_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(JG202x, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> JG202x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> JG202y_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(JG202y, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> JG202y_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> I2211_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(I2211, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> I2211_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> J21111_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(J21111, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> J21111_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> N11x_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(N11x, pfo -> fft_ws -> fft_input[idx], MATTER,  pfo -> fft_ws -> fft_matrix[idx] -> N11x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> N11y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(N11y, pfo -> fft_ws -> fft_input[idx], MATTER,  pfo -> fft_ws -> fft_matrix[idx] -> N11y_mat);
-
-            // FFTLog matrices (propagator)
-            pfo -> fft_ws -> fft_matrix[idx] -> J12102x_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(J12102x, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> J12102x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> J12102y_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(J12102y, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> J12102y_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> I1311_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(I1311, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> I1311_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> J12111_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(J12111, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> J12111_mat);
-
-            /* 3-rd moment */
-            // FFTLog matrices (non-propagator)
-            pfo -> fft_ws -> fft_matrix[idx] -> J21112x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(J21112x, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> J21112x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> J21112y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(J21112y, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> J21112y_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> N12x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(N12x, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> N12x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> N12y_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(N12y, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> N12y_mat);
-            
-            // FFTLog matrices (propagator)
-            pfo -> fft_ws -> fft_matrix[idx] -> J12112x_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(J12112x, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> J12112x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> J12112y_mat = make_1D_c_array(N_FFTLog+1);
-            p_mat_fill(J12112y, pfo -> fft_ws -> fft_input[idx], HALO, pfo -> fft_ws -> fft_matrix[idx] -> J12112y_mat);
-
-            /* 4-th moment */
-            // FFTLog matrices (non-propagator)
-            pfo -> fft_ws -> fft_matrix[idx] -> N22x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(N22x, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> N22x_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> N22y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(N22y, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> N22y_mat);
-            pfo -> fft_ws -> fft_matrix[idx] -> N22z_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
-            np_mat_fill(N22z, pfo -> fft_ws -> fft_input[idx], MATTER, pfo -> fft_ws -> fft_matrix[idx] -> N22z_mat);
-      }
+      /* 4-th moment */
+      // FFTLog matrices (non-propagator)
+      pfo -> fft_ws -> fft_matrix -> N22x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(N22x, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> N22x_mat);
+      pfo -> fft_ws -> fft_matrix -> N22y_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(N22y, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> N22y_mat);
+      pfo -> fft_ws -> fft_matrix -> N22z_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
+      np_mat_fill(N22z, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> N22z_mat);
 
       return _SUCCESS_;
 }

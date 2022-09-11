@@ -69,19 +69,19 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
       
       // non-propagator calculations
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I2200_mat,           vec_m, Nmax+1, &np[0]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Idelta200_mat,       vec_h, Nmax+1, &np[1]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> IG200_mat,           vec_h, Nmax+1, &np[2]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Idelta2delta200_mat, vec_h, Nmax+1, &np[3]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> IG2G200_mat,         vec_h, Nmax+1, &np[4]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Idelta2G200_mat,     vec_h, Nmax+1, &np[5]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2200_mat,           vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta200_mat,       vec_h, Nmax+1, &np[1]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> IG200_mat,           vec_h, Nmax+1, &np[2]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat, vec_h, Nmax+1, &np[3]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> IG2G200_mat,         vec_h, Nmax+1, &np[4]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta2G200_mat,     vec_h, Nmax+1, &np[5]);
       
       double Idelta2delta200_const;
-      c_nonprop(vec_h_min, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
+      c_nonprop(vec_h_min, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
 
       // propagator calculations
-      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1300_mat, Nmax+1, &p[0]);
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> FG200_mat, Nmax+1, &p[1]);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> FG200_mat, Nmax+1, &p[1]);
            
       // adding factored out k and mu dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I2200[index_k]           = pow(k, 3.) * np[0];
@@ -127,17 +127,17 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
       
       // non-propagator calculations
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I2201_mat,     vec_m, Nmax+1, &np[0]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Idelta201_mat, vec_h, Nmax+1, &np[1]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> IG201_mat,     vec_h, Nmax+1, &np[2]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J21101_mat,    vec_m, Nmax+1, &np[3]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Jdelta201_mat, vec_h, Nmax+1, &np[4]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> JG201_mat,     vec_h, Nmax+1, &np[5]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2201_mat,     vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta201_mat, vec_h, Nmax+1, &np[1]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> IG201_mat,     vec_h, Nmax+1, &np[2]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> J21101_mat,    vec_m, Nmax+1, &np[3]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Jdelta201_mat, vec_h, Nmax+1, &np[4]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> JG201_mat,     vec_h, Nmax+1, &np[5]);
 
       // propagator calculations
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> FG201_mat, Nmax+1, &p[0]);
-      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1301p3101_mat,  Nmax+1, &p[1]);
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12101_mat, Nmax+1, &p[2]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> FG201_mat, Nmax+1, &p[0]);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1301p3101_mat,  Nmax+1, &p[1]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12101_mat, Nmax+1, &p[2]);
 
       // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k]     = pow(k, 3.) * np[0];
@@ -157,7 +157,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       double mu = 0.5;
 
       double I2201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k];
-      double I1301p3101     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k];
+      double I1301p3101 = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k];
       double Idelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k];
       double IG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k];
       double FG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k];
@@ -210,22 +210,22 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
 
       // non-propagator calculations
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J21102x_mat,    vec_m, Nmax+1, &np[0]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J21102y_mat,    vec_m, Nmax+1, &np[1]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Jdelta202x_mat, vec_h, Nmax+1, &np[2]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> Jdelta202y_mat, vec_h, Nmax+1, &np[3]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> JG202x_mat,     vec_h, Nmax+1, &np[4]);
-      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> JG202y_mat,     vec_h, Nmax+1, &np[5]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I2211_mat,      vec_m, Nmax+1, &np[6]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J21111_mat,     vec_m, Nmax+1, &np[7]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N11x_mat,       vec_m, Nmax+1, &np[8]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N11y_mat,       vec_m, Nmax+1, &np[9]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> J21102x_mat,    vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> J21102y_mat,    vec_m, Nmax+1, &np[1]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Jdelta202x_mat, vec_h, Nmax+1, &np[2]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Jdelta202y_mat, vec_h, Nmax+1, &np[3]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> JG202x_mat,     vec_h, Nmax+1, &np[4]);
+      c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> JG202y_mat,     vec_h, Nmax+1, &np[5]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2211_mat,      vec_m, Nmax+1, &np[6]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> J21111_mat,     vec_m, Nmax+1, &np[7]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N11x_mat,       vec_m, Nmax+1, &np[8]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N11y_mat,       vec_m, Nmax+1, &np[9]);
 
       // propagator calculations
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12102x_mat, Nmax+1, &p[0]);
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12102y_mat, Nmax+1, &p[1]);
-      c_dot(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> I1311_mat,   Nmax+1, &p[2]);
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12111_mat,  Nmax+1, &p[3]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12102x_mat, Nmax+1, &p[0]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12102y_mat, Nmax+1, &p[1]);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1311_mat,   Nmax+1, &p[2]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12111_mat,  Nmax+1, &p[3]);
 
       // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k]    = pow(k, 3.) * np[0] / pow(k, 2.); 
@@ -304,14 +304,14 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
 
       // non-propagator calculations
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J21112x_mat, vec_m, Nmax+1, &np[0]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J21112y_mat, vec_m, Nmax+1, &np[1]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N12x_mat,    vec_m, Nmax+1, &np[2]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N12y_mat,    vec_m, Nmax+1, &np[3]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> J21112x_mat, vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> J21112y_mat, vec_m, Nmax+1, &np[1]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N12x_mat,    vec_m, Nmax+1, &np[2]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N12y_mat,    vec_m, Nmax+1, &np[3]);
 
       // propagator calculations
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12112x_mat, Nmax+1, &p[0]);
-      c_dot(vec_h, pfo -> fft_ws -> fft_matrix[rsd_idx] -> J12112y_mat, Nmax+1, &p[1]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12112x_mat, Nmax+1, &p[0]);
+      c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12112y_mat, Nmax+1, &p[1]);
 
       // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_k] = pow(k, 3.) * np[0] / pow(k, 2.);
@@ -369,9 +369,9 @@ void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
 
       // non-propagator calculations
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N22x_mat, vec_m, Nmax+1, &np[0]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N22y_mat, vec_m, Nmax+1, &np[1]);
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix[rsd_idx] -> N22z_mat, vec_m, Nmax+1, &np[2]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N22x_mat, vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N22y_mat, vec_m, Nmax+1, &np[1]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N22z_mat, vec_m, Nmax+1, &np[2]);
 
       // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] = pow(k, 3.) / pow(k, 4.) * np[0];

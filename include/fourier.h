@@ -136,7 +136,7 @@ struct oneloop_fftlog_workspace {
 
   // FFTLog for the Linear Power Spectrum / no-wiggle Linear Power Spectrum / Real-Space IR-Resummed Linear Power Spectrum-> index coming from enum rsd_ir_type
   struct fft_struct **fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
-  struct fft_matrices **fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
+  struct fft_matrices *fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
 
   // Eulerian Biases
   double b1;
