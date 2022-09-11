@@ -913,6 +913,37 @@ cdef class Class:
         
         return pk
 
+        # Gives the halo pk for a given (k,z,f,mu,b1) in redshift-space
+    def pk_rsd_multipoles(self,k,double z,int l,double b1,double b2,double bG2, double btd,double c00, double c10, double c20, double c22, double c30, double c32, double c42):
+        """
+        Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
+
+        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
+        
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+        if (self.fo.method == nl_oneloopPT):
+            for index_k in xrange(self.fo.k_size):
+                k_arr[index_k] = self.fo.k[index_k]
+                if (RSD_Multipole(&self.fo,&self.ba,index_k,z,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,l,&pk_rsd[index_k])==_FAILURE_):
+                    raise CosmoSevereError(self.fo.error_message)
+            
+            for index_k in xrange(len(k)):
+                pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
+        else:
+            raise CosmoSevereError("Only available for oneloopPT.")
+        
+        return pk
 
     # Gives the total matter pk for a given (k,z)
     def pk_lin(self,double k,double z):
