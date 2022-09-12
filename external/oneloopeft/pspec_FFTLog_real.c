@@ -26,7 +26,7 @@
  */
 
 int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
-                 int index_k,  double z, long SPLIT, double *pk)
+                 int index_k,  double z, double cs2, long SPLIT, double *pk)
 {
     double k = pfo->k[index_k];
 
@@ -35,10 +35,10 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double D4 = pow(D,4.);
 
     double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, 0., SPLIT); // Power Spectrum at redshift z=0., loops get scaled individually
-    double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
+    double plin       = Pk_dlnPk(pba, ppm, pfo, k, 0., LPOWER);
+    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, 0., 1.e-4, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
-    double sigma2     = pfo -> fft_ws -> sigma_2_IR;
+    double sigma2     = pfo -> fft_ws -> sigma_2_IR * D2;
     double sup        = exp(-k * k * sigma2);
 
     double sigmav2    = pfo -> fft_ws -> sigma_v2;
@@ -51,10 +51,12 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     /* 
      * Compute the EFT counter-term contribution
      */
-    double cs2 =  0.2;
+    // double cs2 =  0.2;
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_ct)*D2 + (P22 + P13)*D4 ; 
+    fprintf(stderr, "z=%g, D=%g, Plin=%12.6e, Loops=%12.6e",z,D,plin,(P22 + P13)*D4);
+
+    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_ct)*D2 + (P22 + P13)*D4; 
 
     *pk = pfo -> pk_matter_real_nl -> P_mm[index_k];
 
@@ -93,8 +95,8 @@ int pg_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     double D4 = pow(D,4.);
 
     double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, 0., SPLIT); // Power Spectrum at redshift z=0., loops get scaled individually
-    double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
-    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
+    double plin       = Pk_dlnPk(pba, ppm, pfo, k, 0., LPOWER);
+    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, 0., 1.e-4, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
     double sigma2     = pfo -> fft_ws -> sigma_2_IR *D2;
     double sup        = exp(-k * k * sigma2);
