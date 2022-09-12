@@ -266,7 +266,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
 
     double P_wiggle = Plin[lin] - Plin[no_wiggle];
     // fprintf(stderr, "for k = %12.6e -> P_wiggle = %12.6e\n",k ,P_wiggle);
-    double RSD_IR_Ressummed = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot))\
+    double RSD_IR_Ressummed = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot)) *D2\
                             + RSD[no_wiggle] + suppression * (RSD[lin] - RSD[no_wiggle]);
     
 
