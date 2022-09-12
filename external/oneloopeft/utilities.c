@@ -317,7 +317,7 @@ long count_lines_in_file(char *fname)
        			numcoms++;
        		    	
 	}
-	if (verbose > 3) printf("Number of lines: %ld Number of comment lines: %ld\n",numlines,numcoms);		
+	if (verbose > 3) printf("Number of lines: %ld Number of comment lines: %d\n",numlines,numcoms);		
 	
 	int data_len = 	numlines-numcoms;
 
