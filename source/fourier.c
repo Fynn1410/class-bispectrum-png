@@ -1673,11 +1673,17 @@ int fourier_init(
 
     // variables for the computation
     double z   = 0.0;
-    double mu  = 0.5;
+    double mu  = 1.0;
+
+    struct timeval t0,t1,t2;
 
     /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
     // fprintf(stderr,"Start FFTLog_init\n");
+    gettimeofday(&t0, NULL);
     FFTLog_rsd_init(pba, ppm, pfo, z);
+    gettimeofday(&t1, NULL);
+    fprintf(stderr,"FFTLog init(): %g sec.\n", (t1.tv_sec-t0.tv_sec) + (t1.tv_usec-t0.tv_usec)/(1.e6));
+
     // fprintf(stderr,"Finish FFTLog_init\n");
 
     // int N = 1000;
@@ -1768,14 +1774,14 @@ int fourier_init(
       // char file_name1[50];
       // sprintf(file_name1, "data/pg_DI.txt");
       // fpa1 = fopen(file_name1, "w");
-      // fprintf(fpa1, "k Plin P_mm P_ct Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Ploops RSD0\n");
+      // fprintf(fpa1, "k Plin I2200 I1300 Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200\n");
       // fclose(fpa1);
 
       // FILE *fpa2;
       // char file_name2[50];
-      // sprintf(file_name2, "data/pg_FFT_const.txt");
+      // sprintf(file_name2, "data/pg_FFT.txt");
       // fpa2 = fopen(file_name2, "w");
-      // fprintf(fpa2, "k Plin P_mm P_ct Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200 Ploops RSD0\n");
+      // fprintf(fpa2, "k Plin I2200 I1300_IR I1300_UV I1300 Idelta200 IG200 Idelta2delta200 IG2G200 Idelta2G200 FG200\n");
       // fclose(fpa2);
 
       // FILE *fpa1;
@@ -1883,88 +1889,90 @@ int fourier_init(
 #ifdef _OPENMP
         tstart = omp_get_wtime();
 #endif
-          if(pfo->k[index_k]>1e-5 && pfo->k[index_k]<5e-1){
+          // if(pfo->k[index_k]>1e-4 && pfo->k[index_k]<5e-1){
             // fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
             // class_call_parallel(PS_hh_G(ppr, pba, ppt, ppm, pfo, pfo->k[index_k],z,_TRUE_,_TRUE_, 142L,&phh),pfo->error_message,pfo->error_message);
 
-          // fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-          // class_call_parallel(pm_IR_FFTLog(pba,
-          //                         ppm,
-          //                         pfo,
-          //                         index_k,
-          //                         z,
-          //                         142L),
-          //           pfo->error_message,
-          //           pfo->error_message);
-          // // fprintf(stderr, "%e\n", pk_mm_oneloop);
+            fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            class_call_parallel(pm_IR_FFTLog(pba,
+                                    ppm,
+                                    pfo,
+                                    index_k,
+                                    z,
+                                    142L),
+                      pfo->error_message,
+                      pfo->error_message);
+            // fprintf(stderr, "%e\n", pk_mm_oneloop);
 
-          // fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-          // class_call_parallel(pg_IR_FFTLog(pba,
-          //                         ppm,
-          //                         pfo,
-          //                         index_k,
-          //                         z,
-          //                         142L),
-          //           pfo->error_message,
-          //           pfo->error_message);
-          // fprintf(stderr, "%e\n", pfo->pk_halo_nl->pmm[index_k]);
+            fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            class_call_parallel(pg_IR_FFTLog(pba,
+                                    ppm,
+                                    pfo,
+                                    index_k,
+                                    z,
+                                    142L),
+                      pfo->error_message,
+                      pfo->error_message);
+            fprintf(stderr, "%e\n", pfo->pk_halo_nl->pmm[index_k]);
 
-            // fprintf(stderr,"call PS_hh_0 for k/h=%e\n",pfo->k[index_k] / pba->h);
-            // class_call_parallel(PS_hh_0(pba,
+            // fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
+            // class_call_parallel(PS_hh_G(pba,
             //                         ppm,
             //                         pfo,
             //                         pfo->k[index_k],
             //                         z,
-            //                         mu,
-            //                         142L),
+            //                         _TRUE_,
+            //                         _FALSE_,
+            //                         142L,
+            //                         &rsd),
             //           pfo->error_message,
             //           pfo->error_message);
 
-            // fprintf(stderr,"call PS_hh_1 for k/h=%e\n",pfo->k[index_k] / pba->h);
-            // class_call_parallel(PS_hh_1(pba,
-            //                         ppm,
-            //                         pfo,
-            //                         pfo->k[index_k],
-            //                         z,
-            //                         mu,
-            //                         142L),
-            //           pfo->error_message,
-            //           pfo->error_message);
+          //   fprintf(stderr,"call PS_hh_1 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          //   class_call_parallel(PS_hh_1(pba,
+          //                           ppm,
+          //                           pfo,
+          //                           pfo->k[index_k],
+          //                           z,
+          //                           mu,
+          //                           142L),
+          //             pfo->error_message,
+          //             pfo->error_message);
 
-            // fprintf(stderr,"call PS_hh_2 for k/h=%e\n",pfo->k[index_k] / pba->h);
-            // class_call_parallel(PS_hh_2(pba,
-            //                         ppm,
-            //                         pfo,
-            //                         pfo->k[index_k],
-            //                         z,
-            //                         mu,
-            //                         142L),
-            //           pfo->error_message,
-            //           pfo->error_message);
+          //   fprintf(stderr,"call PS_hh_2 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          //   class_call_parallel(PS_hh_2(pba,
+          //                           ppm,
+          //                           pfo,
+          //                           pfo->k[index_k],
+          //                           z,
+          //                           mu,
+          //                           142L),
+          //             pfo->error_message,
+          //             pfo->error_message);
 
-            // fprintf(stderr,"call PS_hh_3 for k/h=%e\n",pfo->k[index_k] / pba->h);
-            // class_call_parallel(PS_hh_3(pba,
-            //                         ppm,
-            //                         pfo,
-            //                         pfo->k[index_k],
-            //                         z,
-            //                         mu,
-            //                         142L),
-            //           pfo->error_message,
-            //           pfo->error_message);
+          //   fprintf(stderr,"call PS_hh_3 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          //   class_call_parallel(PS_hh_3(pba,
+          //                           ppm,
+          //                           pfo,
+          //                           pfo->k[index_k],
+          //                           z,
+          //                           mu,
+          //                           142L),
+          //             pfo->error_message,
+          //             pfo->error_message);
 
-            // fprintf(stderr,"call PS_hh_4 for k/h=%e\n",pfo->k[index_k] / pba->h);
-            // class_call_parallel(PS_hh_4(pba,
-            //                         ppm,
-            //                         pfo,
-            //                         pfo->k[index_k],
-            //                         z,
-            //                         mu,
-            //                         142L),
-            //           pfo->error_message,
-            //           pfo->error_message);
+          //   fprintf(stderr,"call PS_hh_4 for k/h=%e\n",pfo->k[index_k] / pba->h);
+          //   class_call_parallel(PS_hh_4(pba,
+          //                           ppm,
+          //                           pfo,
+          //                           pfo->k[index_k],
+          //                           z,
+          //                           mu,
+          //                           142L),
+          //             pfo->error_message,
+          //             pfo->error_message);
 
-          fprintf(stderr,"call rsd_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+          // fprintf(stderr,"call rsd_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
           class_call_parallel(rsd_oneloop_FFTLog(pba,
                                   ppm,
                                   pfo,
@@ -2020,7 +2028,7 @@ int fourier_init(
           //   = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
           // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
-          }
+          // }
       } 
 
 #ifdef _OPENMP
@@ -2033,7 +2041,9 @@ int fourier_init(
       printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
              __func__,tspent,thread);
 #endif
-
+    FFTLog_rsd_init(pba, ppm, pfo, z);
+    gettimeofday(&t2, NULL);
+    fprintf(stderr,"Loop_integrals: %g sec.\n", (t2.tv_sec-t1.tv_sec) + (t2.tv_usec-t1.tv_usec)/(1.e6));
   } /* end of parallel zone */
 
     if (abort == _TRUE_) return _FAILURE_;

@@ -54,7 +54,7 @@ int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier 
     // double cs2 =  0.2;
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
 
-    fprintf(stderr, "z=%g, D=%g, Plin=%12.6e, Loops=%12.6e",z,D,plin,(P22 + P13)*D4);
+    // fprintf(stderr, "z=%g, D=%g, Plin=%12.6e, Loops=%12.6e",z,D,plin,(P22 + P13)*D4);
 
     pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_ct)*D2 + (P22 + P13)*D4; 
 
