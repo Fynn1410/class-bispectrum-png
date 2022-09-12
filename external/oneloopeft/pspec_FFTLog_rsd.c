@@ -23,7 +23,6 @@ int rsd_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     pfo -> pk_halo_rsd_nl[no_wiggle] -> Plin[index_k] = pm_lin_nw;
 
     // Calculation of the Loop-Integrals for the full linear power spectrum and the no-wiggle linear power spectrum
-    double plin;
     // for (int idx = lin; idx <= lin; idx++){
     for (int idx = lin; idx <= no_wiggle; idx++){
         rsd_0_FFTLog(pfo, idx, index_k, pfo -> pk_halo_rsd_nl[idx] -> Plin[index_k]);

@@ -1,3 +1,5 @@
+int real_oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
+                    int index_k, double z, long SPLIT);
 
 int pm_IR_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
                  int index_k, double z, double cs2, long SPLIT, double *pk);

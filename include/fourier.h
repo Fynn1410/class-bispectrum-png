@@ -9,7 +9,7 @@
 // #include "pspec_FFTLog_rsd.h"
 
 // #include "IR_res.h"
-#include "/home/dennis/Software/class/external/oneloopeft/header.h"
+#include "../external/oneloopeft/header.h"
 
 
 #include <complex.h>

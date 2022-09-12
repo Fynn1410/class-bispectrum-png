@@ -1893,8 +1893,8 @@ int fourier_init(
             // fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
             // class_call_parallel(PS_hh_G(ppr, pba, ppt, ppm, pfo, pfo->k[index_k],z,_TRUE_,_TRUE_, 142L,&phh),pfo->error_message,pfo->error_message);
 
-            fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-            class_call_parallel(pm_IR_FFTLog(pba,
+            // fprintf(stderr,"call real_oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            class_call_parallel(real_oneloop_FFTLog(pba,
                                     ppm,
                                     pfo,
                                     index_k,
@@ -1902,18 +1902,28 @@ int fourier_init(
                                     142L),
                       pfo->error_message,
                       pfo->error_message);
-            // fprintf(stderr, "%e\n", pk_mm_oneloop);
 
-            fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-            class_call_parallel(pg_IR_FFTLog(pba,
-                                    ppm,
-                                    pfo,
-                                    index_k,
-                                    z,
-                                    142L),
-                      pfo->error_message,
-                      pfo->error_message);
-            fprintf(stderr, "%e\n", pfo->pk_halo_nl->pmm[index_k]);
+            // fprintf(stderr,"call pm_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            // class_call_parallel(pm_IR_FFTLog(pba,
+            //                         ppm,
+            //                         pfo,
+            //                         index_k,
+            //                         z,
+            //                         142L),
+            //           pfo->error_message,
+            //           pfo->error_message);
+            // // fprintf(stderr, "%e\n", pk_mm_oneloop);
+
+            // fprintf(stderr,"call pg_IR_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+            // class_call_parallel(pg_IR_FFTLog(pba,
+            //                         ppm,
+            //                         pfo,
+            //                         index_k,
+            //                         z,
+            //                         142L),
+            //           pfo->error_message,
+            //           pfo->error_message);
+            // fprintf(stderr, "%e\n", pfo->pk_halo_nl->pmm[index_k]);
 
             // fprintf(stderr,"call PS_hh_G for k/h=%e\n",pfo->k[index_k] / pba->h);
             // class_call_parallel(PS_hh_G(pba,
@@ -2041,7 +2051,7 @@ int fourier_init(
       printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
              __func__,tspent,thread);
 #endif
-    FFTLog_rsd_init(pba, ppm, pfo, z);
+
     gettimeofday(&t2, NULL);
     fprintf(stderr,"Loop_integrals: %g sec.\n", (t2.tv_sec-t1.tv_sec) + (t2.tv_usec-t1.tv_usec)/(1.e6));
   } /* end of parallel zone */
