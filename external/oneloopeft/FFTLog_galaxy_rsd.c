@@ -87,8 +87,8 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I2200[index_k]           = pow(k, 3.) * np[0];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta200[index_k]       = pow(k, 3.) * np[1];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> IG200[index_k]           = pow(k, 3.) * np[2];
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[rsd_idx]->kmin_fft_g, 3.) * Idelta2delta200_const ;
-      // pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3];
+      // pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[rsd_idx]->kmin_fft_g, 3.) * Idelta2delta200_const ;
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2delta200[index_k] = pow(k, 3.) * np[3];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> IG2G200[index_k]         = pow(k, 3.) * np[4];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta2G200[index_k]     = pow(k, 3.) * np[5];
 
