@@ -818,7 +818,7 @@ cdef class Class:
         return pk_cb
 
     # Gives the halo pk for a given k-array and a given z in real-space
-    def pk_matter_real(self,k,double z):
+    def pk_matter_real(self,k,double z,double cs2):
         """
         Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -839,7 +839,7 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 k_arr[index_k] = self.fo.k[index_k]
-                if (pm_IR_FFTLog(&self.ba,&self.pm,&self.fo,index_k,z,142L,&pk_matter[index_k])==_FAILURE_):
+                if (pm_IR_FFTLog(&self.ba,&self.pm,&self.fo,index_k,z,cs2,142L,&pk_matter[index_k])==_FAILURE_):
                     raise CosmoSevereError(self.fo.error_message)
 
             for index_k in xrange(len(k)):

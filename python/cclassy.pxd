@@ -560,6 +560,7 @@ cdef extern from "class.h":
         void *pfo,
         int index_k,  
         double z, 
+        double cs2,
         long SPLIT, 
         double *pk)
 
