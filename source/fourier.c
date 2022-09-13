@@ -1311,6 +1311,12 @@ int fourier_init(
                  pfo->error_message,
                  pfo->error_message);
 
+      /** --> one more call to get the linear power spectrum
+              extrapolated up to very large k, for this time and type,
+              but ignoring the case of multiple initial
+              conditions. Result stored in ln_pk_l_extra (different
+              from non-extrapolated ln_pk_l) */
+
       class_call(fourier_pk_linear(
                                    pba,
                                    ppt,
@@ -1319,7 +1325,7 @@ int fourier_init(
                                    index_pk,
                                    index_tau_sources,
                                    pfo->k_size_extra,
-                                   &(pfo->ln_pk_l_extra[index_pk][index_tau * pfo->k_size]),
+                                   &(pfo->ln_pk_l_extra[index_pk][index_tau * pfo->k_size_extra]),
                                    NULL
                                    ),
                  pfo->error_message,
@@ -1725,7 +1731,7 @@ int fourier_init(
     //   fprintf(fpa3, "%g %g\n",k_arr[idx], pk);
     // }
     // fclose(fpa3);
-  
+
     /* number of threads (always one if no openmp) */
     int number_of_threads=1;
     /* index of the thread (always 0 if no openmp) */
@@ -1993,11 +1999,11 @@ int fourier_init(
                     pfo->error_message);
 
           // fprintf(stderr,"call RSD_PowerSpectra for k/h=%e\n",pfo->k[index_k] / pba->h);
-          // class_call_parallel(RSD_IR_Ressummed(pfo, 
-          //                         pba, 
-          //                         index_k, 
-          //                         z, 
-          //                         mu, 
+          // class_call_parallel(RSD_IR_Ressummed(pfo,
+          //                         pba,
+          //                         index_k,
+          //                         z,
+          //                         mu,
           //                         &rsd),
           //           pfo->error_message,
           //           pfo->error_message);
@@ -2037,9 +2043,9 @@ int fourier_init(
           // pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
           //   = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
-          // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
+          // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);
           // }
-      } 
+      }
 
 #ifdef _OPENMP
       tstop = omp_get_wtime();
@@ -2059,7 +2065,7 @@ int fourier_init(
     if (abort == _TRUE_) return _FAILURE_;
 
   }
-  
+
 
   /** - if the nl_method could not be identified */
   else {
@@ -2228,13 +2234,14 @@ int fourier_indices(
 
   if (pfo->ln_tau_size > 1) {
 
-    class_alloc(pfo->ddln_pk_ic_l,pfo->pk_size*sizeof(double*),pfo->error_message);
-    class_alloc(pfo->ddln_pk_l   ,pfo->pk_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ddln_pk_ic_l,    pfo->pk_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ddln_pk_l,       pfo->pk_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ddln_pk_l_extra, pfo->pk_size*sizeof(double*),pfo->error_message);
 
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
-      class_alloc(pfo->ddln_pk_ic_l[index_pk],pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
-      class_alloc(pfo->ddln_pk_l[index_pk]   ,pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
-      class_alloc(pfo->ddln_pk_l_extra[index_pk]   ,pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ddln_pk_ic_l[index_pk],    pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ddln_pk_l[index_pk],       pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ddln_pk_l_extra[index_pk], pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
     }
   }
 
