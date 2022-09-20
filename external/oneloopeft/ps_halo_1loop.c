@@ -77,7 +77,7 @@ int PS_hh_G(
 
           double *ps_hloops, *ps_mloops;
           ps_hloops = make_1Darray(6);
-          // ps_mloops = make_1Darray(2);
+          ps_mloops = make_1Darray(2);
 
           if (has_ir == _TRUE_) {
             // Compute_G_loops(pba, ppm, pfo, k, z, _TRUE_, MATTER, SPLIT, ps_mloops);
@@ -85,6 +85,7 @@ int PS_hh_G(
             // fprintf(stderr,"Matter Loops done! %f sec. needed.\n", (double)(matter-start) / CLOCKS_PER_SEC);
             Compute_G_loops(pba, ppm, pfo, k, z, _TRUE_, HALO, SPLIT, ps_hloops);
             halo = clock();
+            // Compute_G_loops(pba, ppm, pfo, k, z, has_ir, MATTER, SPLIT, ps_mloops);
             // fprintf(stderr,"Matter Loops done! %f sec. needed.\n", (double)(halo-matter) / CLOCKS_PER_SEC);
           }
           else {
@@ -128,13 +129,13 @@ int PS_hh_G(
 
           ph_tot = pow(b1, 2.) * p_mm  + ph_loops;
 
-          FILE *fpa;
-          char file_name[50];
-          sprintf(file_name, "data/pg_DI.txt");
-          fpa = fopen(file_name, "a");
-          fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-              k, pm_lin_IR, pow(b1, 2.) * p_mm, pb1b2, pb1bg2, pb22, pbg22, pb2bg2, pb1b3nl, ph_loops, ph_tot);
-          fclose(fpa);
+          // FILE *fpa;
+          // char file_name[50];
+          // sprintf(file_name, "data/pg_DI.txt");
+          // fpa = fopen(file_name, "a");
+          // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+          //     k, pm_lin_IR, ps_mloops[0], ps_mloops[1], ps_hloops[0], ps_hloops[1], ps_hloops[2], ps_hloops[3], ps_hloops[4], ps_hloops[5]);
+          // fclose(fpa);
 
           free(ps_hloops);
           free(ps_mloops);
@@ -217,12 +218,12 @@ int PS_mm_G(
       pm_ct       = - 2. * cs2 * pow(k, 2.) *  pm_lin_IR; // pow(k, 2.)/(1.+pow(k/khat,2.))
       ph_tot      = pm_1loop_IR + pm_ct;
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/pm_DI.txt");
-      fpa = fopen(file_name, "a");
-      fprintf(fpa,"%e %e %e %e %e %e\n",k , pm_lin_IR, pm_22, pm_13, pm_ct, ph_tot);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/pm_DI.txt");
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa,"%e %e %e %e %e %e\n",k , pm_lin_IR, pm_22, pm_13, pm_ct, ph_tot);
+      // fclose(fpa);
     }
 
     free(ps_mloops);
@@ -287,13 +288,13 @@ int PS_hh_1(   struct background * pba,
 
       // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/1_moment_DI_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
-          k, pm_lin_IR, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/1_moment_DI_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e %12.12e\n",\
+      //     k, pm_lin_IR, I2201, I1301p3101, Idelta201, IG201, FG201, J12101, J11201, J21101, Jdelta201, JG201, ph_loops, plos_loops);
+      // fclose(fpa);
 
       free(ps_hloops);
       //free(ps_mloops);
@@ -352,13 +353,13 @@ int PS_hh_2(   struct background * pba,
 
       // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/2_moment_DI_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-          k, pm_lin_IR, J12102, J21102, Jdelta202, JG202, I2211, I1311, J12111, J11211, J21111, N11, ph_loops, plos_loops);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/2_moment_DI_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+      //     k, pm_lin_IR, J12102, J21102, Jdelta202, JG202, I2211, I1311, J12111, J11211, J21111, N11, ph_loops, plos_loops);
+      // fclose(fpa);
 
       free(ps_hloops);
       //free(ps_mloops);
@@ -409,13 +410,13 @@ int PS_hh_3(   struct background * pba,
 
       // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/3_moment_DI_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
-          k, pm_lin_IR, J21112, J12112, N12, ph_loops);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/3_moment_DI_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.6e %12.6e %12.6e %12.6e %12.6e %12.6e\n",\
+      //     k, pm_lin_IR, J21112, J12112, N12, ph_loops);
+      // fclose(fpa);
 
       free(ps_hloops);
       //free(ps_mloops);
@@ -452,13 +453,13 @@ int PS_hh_4(   struct background * pba,
 
       // fprintf(stderr,"Loops done in %f sec.\n", (double)(halo-start) / CLOCKS_PER_SEC);
 
-      FILE *fpa;
-      char file_name[50];
-      sprintf(file_name, "data/4_moment_DI_%g.txt",mu);
-      fpa = fopen(file_name, "a");
-      fprintf(fpa, "%12.6e %12.6e %12.6e\n",\
-          k, pm_lin_IR, N22);
-      fclose(fpa);
+      // FILE *fpa;
+      // char file_name[50];
+      // sprintf(file_name, "data/4_moment_DI_%g.txt",mu);
+      // fpa = fopen(file_name, "a");
+      // fprintf(fpa, "%12.6e %12.6e %12.6e\n",\
+      //     k, pm_lin_IR, N22);
+      // fclose(fpa);
 
       free(ps_hloops);
       //free(ps_mloops);
@@ -556,7 +557,7 @@ int Compute_G_loops(
       else if(hm_switch == HALO)
           key = 13;
 
-      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e8;
+      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e6;
       int nregions, neval;
 
       Cuhre(ndim,ncomp, G_loop_integrands, &par, nvec,
@@ -655,17 +656,27 @@ static int G_loop_integrands(
 
             if(hm_switch == HALO)
             {
-                ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos);
-                ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
-                ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * (plin_kmq - plin_q);
-                ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(S2_s(q, k, cos), 2.);
-                ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * S2_s(q,k,cos);
-                ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q   * S2_s(q, k, cos) * F2(q, k, -cos);
+                // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos);
+                // ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
+                // // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * (plin_kmq - plin_q);
+                // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq;
+                // ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(S2_s(q, k, cos), 2.);
+                // ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * S2_s(q,k,cos);
+                // ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q   * S2_s(q, k, cos) * F2(q, k, -cos);
+                ff[0] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos);
+                ff[1] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
+                ff[2] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * (plin_kmq - plin_q);
+                // ff[2] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq;
+                ff[3] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(S2_s(q, k, cos), 2.);
+                ff[4] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * S2_s(q,k,cos);
+                ff[5] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q   * S2_s(q, k, cos) * F2(q, k, -cos);
             }
             else if(hm_switch == MATTER)
             {
-                ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(F2_s(q, k, cos), 2.);
-                ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q * F3_s(q, k, cos);
+                // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(F2_s(q, k, cos), 2.);
+                // ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q * F3_s(q, k, cos);
+                ff[0] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_q * plin_kmq * pow(F2_s(q, k, cos), 2.);
+                ff[1] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_k * plin_q * F3_s(q, k, cos);
             }
             for(int i =0;i<nn;i++){
               if (isnan(ff[i]))
@@ -680,20 +691,29 @@ static int G_loop_integrands(
 
           if(hm_switch == HALO)
           {
-              ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos);
-              ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
+              // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos);
+              // ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
+              // // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
               // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
-              ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
-              ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(S2_s(q, k, cos), 2.);
-              ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * S2_s(q, k, cos);
-              ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * S2_s(q, k, cos) * F2(q, k, -cos);
+              // ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(S2_s(q, k, cos), 2.);
+              // ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * S2_s(q, k, cos);
+              // ff[5] = 1./pow(2.*M_PI,3.) * 4. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * S2_s(q, k, cos) * F2(q, k, -cos);
+              ff[0] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos);
+              ff[1] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * F2_s(q, k, cos) * S2_s(q, k, cos);
+              // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
+              ff[2] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * (plin_IR_kmq - plin_IR_q);
+              ff[3] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(S2_s(q, k, cos), 2.);
+              ff[4] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * S2_s(q, k, cos);
+              ff[5] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * S2_s(q, k, cos) * F2(q, k, -cos);
           }
           else if(hm_switch == MATTER)
           {
               // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.) * theta_kmq\
               //       + 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kpq * pow(F2_s(q, k, -cos), 2.) * theta_kpq;
-              ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.);
-              ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * F3_s(q, k, cos);
+              // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.);
+              // ff[1] = 1./pow(2.*M_PI,3.) * 6. * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * F3_s(q, k, cos);
+              ff[0] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow(F2_s(q, k, cos), 2.);
+              ff[1] = 1./pow(2.*M_PI,3.) * 2. * M_PI * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q * F3_s(q, k, cos);
           }
 
 
@@ -753,7 +773,7 @@ int Compute_1_loops(
                              * The first time it is called, and then call the p(q) and p(kmq) and p(kpq) inside the integrand
                              */
 
-      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e8;
+      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e6;
       int nregions, neval;
 
       int key = 7;
@@ -1281,7 +1301,7 @@ int Compute_4_loops(
                              * The first time it is called, and then call the p(q) and p(kmq) and p(kpq) inside the integrand
                              */
 
-      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e8;
+      int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e6;
       int nregions, neval;
 
       int key = 13;

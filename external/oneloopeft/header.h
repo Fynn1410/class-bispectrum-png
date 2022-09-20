@@ -197,9 +197,8 @@ struct integrand_parameters2
 
 #include "utilities.h"
 #include "FFTLog_ingredients.h"
-#include "FFTLog_matter_real.h"
-#include "FFTLog_galaxy_real.h"
-#include "FFTLog_galaxy_rsd.h"
+#include "FFTLog_real.h"
+#include "FFTLog_rsd.h"
 #include "pspec_FFTLog_real.h"
 #include "pspec_FFTLog_rsd.h"
 

@@ -89,10 +89,11 @@ EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o energy_injec
 HEADERFILES += $(wildcard ./$(HYREC)/*.h)
 endif
 
-# update flags for including oneloopeft (ps_halo_1loop.o)
+# update flags for including oneloopeft 
+# append (ps_halo_1loop.o) for OneloopPT Direct integration
 vpath %.c $(ONELOOPEFT)
 INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.1 -I../$(ONELOOPEFT) 
-EXTERNAL += utilities.o cosmology.o IR_res.o wnw_split.o pspec_FFTLog_real.o pspec_FFTLog_rsd.o FFTLog_ingredients.o FFTLog_matter_real.o FFTLog_galaxy_real.o FFTLog_galaxy_rsd.o
+EXTERNAL += utilities.o cosmology.o IR_res.o wnw_split.o pspec_FFTLog_real.o pspec_FFTLog_rsd.o FFTLog_ingredients.o FFTLog_real.o FFTLog_rsd.o
 HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)  $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.1/*.h)
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
@@ -156,6 +157,7 @@ INI_ALL = explanatory.ini lcdm.ini
 MISC_FILES = Makefile CPU psd_FD_single.dat myselection.dat myevolution.dat README bbn/sBBN.dat external_Pk/* cpp
 PYTHON_FILES = python/classy.pyx python/setup.py python/cclassy.pxd python/test_class.py
 
+#For OneloopPT Direct integration
 #-L./$(ONELOOPEFT)/library/Cuba-4.2.1 -lcuba 
 
 all: class libclass.a classy
@@ -164,7 +166,7 @@ libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm  -lgsl -lgslcblas -lfftw3
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm  -lgsl -lgslcblas -lfftw3 -L./$(ONELOOPEFT)/library/Cuba-4.2.1 -lcuba
 
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm

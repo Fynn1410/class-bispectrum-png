@@ -817,8 +817,8 @@ cdef class Class:
 
         return pk_cb
 
-    # Gives the matter pk for a given (k_arr,z,cs2)
-    def pk_matter_real(self,k,double z,double cs2):
+    # Gives the matter pk for a given (k_arr,z)
+    def pk_matter_real(self,k,double z):
         """
         Gives the Real-Space Matter Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for a given cs2 matter counter-term
 
@@ -839,7 +839,7 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 k_arr[index_k] = self.fo.k[index_k]
-                if (pm_IR_FFTLog(&self.ba,&self.pm,&self.fo,index_k,z,cs2,142L,&pk_matter[index_k])==_FAILURE_):
+                if (Real_Matter_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&pk_matter[index_k])==_FAILURE_):
                     raise CosmoSevereError(self.fo.error_message)
 
             for index_k in xrange(len(k)):
@@ -849,8 +849,8 @@ cdef class Class:
 
         return pk
 
-    # Gives the halo pk for a given (k_arr,z,b1,b2,bG2,btd,R2,cs2) in real-space
-    def pk_halo_real(self,k,double z,double b1,double b2,double bG2, double btd, double R2, double cs2):
+    # Gives the halo pk for a given (k_arr,z) in real-space
+    def pk_halo_real(self,k,double z):
         """
         Gives the Real-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for a given set of biases (b1,b2,bG2,btd,R2) and counter-term cs2 matter counter-term
 
@@ -871,7 +871,7 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 k_arr[index_k] = self.fo.k[index_k]
-                if (pg_IR_FFTLog(&self.ba,&self.pm,&self.fo,index_k,z,b1,b2,bG2,btd,R2,cs2,142L,&pk_halo[index_k])==_FAILURE_):
+                if (Real_Galaxy_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&pk_halo[index_k])==_FAILURE_):
                     raise CosmoSevereError(self.fo.error_message)
             
             for index_k in xrange(len(k)):
@@ -881,8 +881,8 @@ cdef class Class:
 
         return pk
 
-    # Gives the halo pk for a given (k_arr,z,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42) in redshift-space
-    def pk_halo_rsd(self,k,double z,mu_arr,double b1,double b2,double bG2, double btd,double c00, double c10, double c20, double c22, double c30, double c32, double c42):
+    # Gives the halo pk for a given (k_arr,z) in redshift-space
+    def pk_halo_rsd(self,k,double z,mu_arr):
         """
         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd,R2) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
 
@@ -904,7 +904,7 @@ cdef class Class:
             for index_mu, mu in enumerate(mu_arr):
                 for index_k in xrange(self.fo.k_size):
                     k_arr[index_k] = self.fo.k[index_k]
-                    if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
+                    if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
                         raise CosmoSevereError(self.fo.error_message)
                 
                 for index_k in xrange(len(k)):
@@ -915,7 +915,7 @@ cdef class Class:
         return pk
 
         # Gives the halo pk for a given (k,z,f,mu,b1) in redshift-space
-    def pk_rsd_multipoles(self,k,double z,int l,double b1,double b2,double bG2, double btd,double c00, double c10, double c20, double c22, double c30, double c32, double c42):
+    def pk_rsd_multipoles(self,k,double z,int l):
         """
         Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -936,7 +936,7 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 k_arr[index_k] = self.fo.k[index_k]
-                if (RSD_Multipole(&self.fo,&self.ba,index_k,z,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,l,&pk_rsd[index_k])==_FAILURE_):
+                if (RSD_Multipole(&self.fo,&self.ba,index_k,z,l,&pk_rsd[index_k])==_FAILURE_):
                     raise CosmoSevereError(self.fo.error_message)
             
             for index_k in xrange(len(k)):

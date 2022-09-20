@@ -3,12 +3,6 @@
 #include "primordial.h"
 #include "trigonometric_integrals.h"
 
-/** Oneloop **/
-// #include "ps_halo_1loop.h"
-// #include "pspec_FFTLog_real.h"
-// #include "pspec_FFTLog_rsd.h"
-
-// #include "IR_res.h"
 #include "../external/oneloopeft/header.h"
 
 
@@ -265,6 +259,24 @@ struct fourier {
   double z_infinity; /** for HMcode: z value at which Dark Energy correction is evaluated needs to be at early times (default */
 
   short has_pk_eq;  /**< flag: in case wa_fld is defined and non-zero, should we use the pk_eq method? */
+
+  short has_rsd; /** for OneloopPT: flag indicating if the loop contributions for the galaxy power spectrum in redshift space needed to be computed */
+
+  double b1; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
+  double b2; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
+  double bG2; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
+  double btd; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
+
+  double cs2; /** for OneloopPT: Matter counter term for the matter power spectrum in real space */
+  double R2; /** for OneloopPT: Halo/Galaxy counter term for the galaxy power spectrum in real space */
+
+  double c00; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 0-th moment */
+  double c10; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 1-st moment */
+  double c20; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */ 
+  double c22; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */
+  double c30; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 3-rd moment */
+  double c32; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 3-rd moment */
+  double c42; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 4-th moment */
 
   //@}
 

@@ -22,10 +22,8 @@
  * The best value seem to be around 600 points, which takes ~ 0.6 seconds and is in exquisit agreement with direct integration. 
  *
  * In summary, the following functions can be called from other modules:
- * -# P22()
- * -# P13()
- * -# M22()
- * -# M13()
+ * -# P_mm_FFTLog()
+ * -# P_gg_FFTLog()
  */
 
 #include "header.h"
@@ -104,12 +102,24 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
       pfo -> pk_halo_real_nl -> Idelta200[index_k]       = pow(k, 3.) * np[1];
       pfo -> pk_halo_real_nl -> IG200[index_k]           = pow(k, 3.) * np[2];
       pfo -> pk_halo_real_nl -> Idelta2delta200[index_k] = pow(k, 3.) * np[3] - pow(pfo->fft_ws->fft_input[real_ir]->kmin_fft_g, 3.) * Idelta2delta200_const ;
+      // pfo -> pk_halo_real_nl -> Idelta2delta200[index_k] = pow(k, 3.) * np[3];
       pfo -> pk_halo_real_nl -> IG2G200[index_k]         = pow(k, 3.) * np[4];
       pfo -> pk_halo_real_nl -> Idelta2G200[index_k]     = pow(k, 3.) * np[5];
 
       pfo -> pk_halo_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
       pfo -> pk_halo_real_nl -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
 
-
       pfo -> pk_halo_real_nl -> Plin_IR[index_k] = Plin;
+
+      double I2200 = pfo -> pk_halo_real_nl -> I2200[index_k];           
+      double Idelta200 = pfo -> pk_halo_real_nl -> Idelta200[index_k];       
+      double IG200 = pfo -> pk_halo_real_nl -> IG200[index_k];           
+      double Idelta2delta200 = pfo -> pk_halo_real_nl -> Idelta2delta200[index_k];
+      double IG2G200 = pfo -> pk_halo_real_nl -> IG2G200[index_k];         
+      double Idelta2G200 = pfo -> pk_halo_real_nl -> Idelta2G200[index_k];     
+
+      double I1300 = pfo -> pk_halo_real_nl -> I1300[index_k];
+      double I1300_IR = pow(k, 3.) * Plin * p[0];
+      double I1300_UV = - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      double FG200 = pfo -> pk_halo_real_nl -> FG200[index_k];
 }

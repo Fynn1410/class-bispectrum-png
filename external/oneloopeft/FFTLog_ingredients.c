@@ -206,20 +206,22 @@ void FFT_compute_coeff(struct background * pba,
       // choosing a given bias for Matter or Galaxy/Halo calculations
       double fft_bias = 0.0;
       double kmin_fft = 0.0;
-      // double kmax_fft = 0.0;
+      double kmax_fft = 0.0;
       if(hm_switch == MATTER){
             fft_bias = fft_input->fft_bias_m;
             kmin_fft = fft_input->kmin_fft_m;
-            // kmax_fft = 113.4721; // Model 2 parameters for Model 1 testing
-            // kmax_fft = 130.2380; // Model 1 parameters for Model 2 testing
+            kmax_fft = 1.287508e+02; // Model 2 parameters for Model 1 testing
+            // kmax_fft = 1.282917e+02; // Model 1 parameters for Model 2 testing
+            // kmax_fft = 1.4e+02; // Misaligning
       }
       else{
             fft_bias = fft_input->fft_bias_g;
             kmin_fft = fft_input->kmin_fft_g;
-            // kmax_fft = 7854.064; // Model 2 parameters for Model 1 testing
-            // kmax_fft = 1062.590; // Model 1 parameters for Model 2 testing
+            kmax_fft = 1.027477e+04; // Model 2 parameters for Model 1 testing
+            // kmax_fft = 9.879399e+03; // Model 1 parameters for Model 2 testing
+            // kmax_fft = 1.1e+04 ; // Misaligning
       }
-      double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
+      // double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
       double Delta   = log(kmax_fft/kmin_fft)/(Nmaxd-1); 
       double *k      = make_1Darray(Nmax);
       double *pkz    = make_1Darray(Nmax);
@@ -301,23 +303,6 @@ void FFT_compute_coeff(struct background * pba,
 
       cmsym[0]    = cmsym[0]/2.;
       cmsym[Nmax] = cmsym[Nmax]/2.;
-
-      // FILE *fpa;
-      // char file_name[50];
-      // if(hm_switch == MATTER){
-      //       sprintf(file_name, "FFTcoeff_m2_128.txt");
-      // }
-      // else{
-      //       sprintf(file_name, "FFTcoeff_g2_128.txt");
-      // }
-
-      // fpa = fopen(file_name, "w");
-      // fprintf(fpa, "kmin: %12.6e; kmax: %12.6e; fftbias: %12.6e; nfft: %d \n \n",\
-      //               kmin_fft, kmax_fft, fft_bias, Nmax+1);
-      // for (index_c=0; index_c < Nmax+1; index_c++){
-      //       fprintf(fpa, "%e %e %e %e\n", creal(biased_etam[index_c]), cimag(biased_etam[index_c]), creal(cmsym[index_c]), cimag(cmsym[index_c]));
-      // }
-      // fclose(fpa);
 
       // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
       if(hm_switch == MATTER){
@@ -537,7 +522,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
       /* FFTLog parameters */
       int    N_FFTLog   = 256; // fast -> 128, precise -> 256
-      double kmin_fft_m = 1.e-12;
+      double kmin_fft_m = 1.e-8;
       double kmin_fft_g = 1.e-4;
 
 
@@ -546,7 +531,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             pfo -> fft_ws -> fft_input[idx] -> nfft = N_FFTLog;
             pfo -> fft_ws -> fft_input[idx] -> fft_bias_m = - 0.3;  
             pfo -> fft_ws -> fft_input[idx] -> kmin_fft_m = kmin_fft_m;    
-            pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = - 1.55; 
+            pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = - 1.6; 
             pfo -> fft_ws -> fft_input[idx] -> kmin_fft_g = kmin_fft_g;
 
             pfo -> fft_ws -> fft_input[idx] -> etam_m  = make_1D_c_array(N_FFTLog + 1);
@@ -557,36 +542,15 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input[idx], idx, 142L, MATTER);
             FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input[idx], idx, 142L, HALO);
       
-            // FILE *fpa9;
-            // char file_name9[50];
-            // if(idx == lin){
-            //       sprintf(file_name9, "data/FFTLog_expansion_lin.txt");
-            // }
-            // else if(idx == no_wiggle){ 
-            //       sprintf(file_name9, "data/FFTLog_expansion_nw.txt");
-            // }
-            // else{
-            //       sprintf(file_name9, "data/FFTLog_expansion_ir.txt");
-            // }
-            // fpa9 = fopen(file_name9, "w");
-            // fprintf(fpa9, "etam_m_r cmsym_m_r etam_g_r cmsym_g_r etam_m_c cmsym_m_c etam_g_c cmsym_g_c\n");
-            // for (int i=0; i<=N_FFTLog; i++){
-            //       fprintf(fpa9, "%g %g %g %g %g %g %g %g \n"
-            //                         , creal(pfo->fft_ws->fft_input[idx]->etam_m[i]), creal(pfo->fft_ws->fft_input[idx]->cmsym_m[i]), creal(pfo->fft_ws->fft_input[idx]->etam_g[i]), creal(pfo->fft_ws->fft_input[idx]->cmsym_g[i])
-            //                         , cimag(pfo->fft_ws->fft_input[idx]->etam_m[i]), cimag(pfo->fft_ws->fft_input[idx]->cmsym_m[i]), cimag(pfo->fft_ws->fft_input[idx]->etam_g[i]), cimag(pfo->fft_ws->fft_input[idx]->cmsym_g[i]));
-            // }
-            // fclose(fpa9);
       }
 
       /* Important values for the calculation */
       pfo -> fft_ws -> sigma_v0 = sigman(pba, ppm, pfo, z, 1.e-5, 1.e3, 0, 142L); // density variance
-      // pfo -> fft_ws -> sigma_v0 = 0.; // density variance
       pfo -> fft_ws -> sigma_v2 = (1./3.) * sigman(pba, ppm, pfo, z, 1.e-5, 1.e3, -1, 142L); // Linear displacement field (velocity) variance
-      // pfo -> fft_ws -> sigma_v2 = 7.714931e+01; // Linear displacement field (velocity) variance
       pfo -> fft_ws -> sigma_2_IR = IR_Sigma2(pba, ppm, pfo, z, 1e-5, 142L); // IR-Ressumation supression exponent
       pfo -> fft_ws -> del_sigma_2_IR = IR_del_Sigma2(pba, ppm, pfo, z, 1e-5, 142L); // IR-Ressumation supression exponent for RSD
 
-      fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
+      // fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
       // fprintf(stderr, "sigma_2_IR = %e\ndel_sigma_2_IR = %e\n", pfo -> fft_ws -> sigma_2_IR, pfo -> fft_ws -> del_sigma_2_IR);
 
       /* Filling the matrices needed for the RSD. 
@@ -594,6 +558,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       */
 
       /* 0-th moment */
+      
       // FFTLog matrices non-propagator
       pfo -> fft_ws -> fft_matrix -> I2200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
       np_mat_fill(I2200, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I2200_mat);
@@ -669,7 +634,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       p_mat_fill(I1311, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I1311_mat);
       pfo -> fft_ws -> fft_matrix -> J12111_mat = make_1D_c_array(N_FFTLog+1);
       p_mat_fill(J12111, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12111_mat);
-
+      
       /* 3-rd moment */
       // FFTLog matrices (non-propagator)
       pfo -> fft_ws -> fft_matrix -> J21112x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
