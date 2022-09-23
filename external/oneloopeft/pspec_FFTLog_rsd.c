@@ -32,10 +32,11 @@ int RSD_Oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     return _SUCCESS_;
 }
 
-int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, double z, double mu, double * result)
+int RSD_IR_Ressummed_default(struct fourier *pfo, struct background *pba, 
+                    int index_k, double z, double mu, 
+                    double * result)
 {
-    double k = pfo->k[index_k];
-
+    
     // Biases
     double b1  = pfo->b1;
     double b2  = pfo->b2;
@@ -43,14 +44,28 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
     double btd = pfo->btd;
 
     // Counter terms
-    double c00  = pfo->c00;
-    double c10  = pfo->c10;
-    double c20  = pfo->c20;
-    double c22  = pfo->c22;
-    double c30  = pfo->c30;
-    double c32  = pfo->c32;
-    double c42  = pfo->c42;
+    double c00 = pfo->c00;
+    double c10 = pfo->c10;
+    double c20 = pfo->c20;
+    double c22 = pfo->c22;
+    double c30 = pfo->c30;
+    double c32 = pfo->c32;
+    double c42 = pfo->c42;
 
+    class_call(RSD_IR_Ressummed(pfo, pba, index_k, z, mu, b1, b2, bG2, btd, c00, c10, c20, c22, c30, c32, c42, result),
+                pfo->error_message,
+                pfo->error_message);
+
+    return _SUCCESS_;
+}
+
+int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, 
+                    int index_k, double z, double mu, 
+                    double b1, double b2, double bG2, double btd,
+                    double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
+                    double * result)
+{
+    double k = pfo->k[index_k];
 
     double D = growth_D(pba, z);
     double f = growth_f(pba, z);
@@ -243,7 +258,37 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, int index_k, d
     return _SUCCESS_;
 }
 
-int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, double z, int l, double * result)
+int RSD_Multipole_default(struct fourier *pfo, struct background *pba, 
+                          int index_k, double z, int l, 
+                          double * result)
+{
+    
+    // Biases
+    double b1  = pfo->b1;
+    double b2  = pfo->b2;
+    double bG2 = pfo->bG2;
+    double btd = pfo->btd;
+
+    // Counter terms
+    double c00 = pfo->c00;
+    double c10 = pfo->c10;
+    double c20 = pfo->c20;
+    double c22 = pfo->c22;
+    double c30 = pfo->c30;
+    double c32 = pfo->c32;
+    double c42 = pfo->c42;
+
+    class_call(RSD_Multipole(pfo, pba, index_k, z, b1, b2, bG2, btd, c00, c10, c20, c22, c30, c32, c42, l, result),
+                pfo->error_message,
+                pfo->error_message);
+
+    return _SUCCESS_;
+}
+
+int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, double z, int l,
+     double b1, double b2, double bG2, double btd,
+     double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
+     double * result)
 {
     //extern struct globals gb;
     double integ=0., error=0.;
@@ -261,6 +306,17 @@ int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, doub
     par.pfo = pfo;
     par.pba = pba;
     par.p5  = z;
+    par.p6  = b1;
+    par.p7  = b2;
+    par.p8  = bG2;
+    par.p9  = btd;
+    par.p10 = c00;
+    par.p11 = c10;
+    par.p12 = c20;
+    par.p24 = c22;
+    par.p25 = c30;
+    par.p26 = c32;
+    par.p27 = c42;
     par.p19 = l;
     par.p23 = index_k;
     gsl_integration_qags(&F,mu_min,mu_max,0.0,1.0e-5,1000000,w,&integ,&error);
@@ -286,8 +342,20 @@ double RSD_Multipole_integrand(double x, void *par)
     int    l               = pij.p19;
     int    index_k         = pij.p23;
 
+    double b1  = pij.p6; 
+    double b2  = pij.p7;
+    double bG2 = pij.p8;
+    double btd = pij.p9;
+    double c00 = pij.p10;
+    double c10 = pij.p11;
+    double c20 = pij.p12;
+    double c22 = pij.p24;
+    double c30 = pij.p25;
+    double c32 = pij.p26;
+    double c42 = pij.p27;
+
     double rsd;
-    RSD_IR_Ressummed(pfo, pba, index_k, z, x, &rsd);
+    RSD_IR_Ressummed(pfo, pba, index_k, z, x, b1, b2, bG2, btd, c00, c10, c20, c22, c30, c32, c42, &rsd);
     result = rsd * Legendre_Polynomial(l,x)* (2.*l + 1.)/2.;
 
     return result;
