@@ -278,7 +278,7 @@ int RSD_Multipole_default(struct fourier *pfo, struct background *pba,
     double c32 = pfo->c32;
     double c42 = pfo->c42;
 
-    class_call(RSD_Multipole(pfo, pba, index_k, z, b1, b2, bG2, btd, c00, c10, c20, c22, c30, c32, c42, l, result),
+    class_call(RSD_Multipole(pfo, pba, index_k, z, l, b1, b2, bG2, btd, c00, c10, c20, c22, c30, c32, c42, result),
                 pfo->error_message,
                 pfo->error_message);
 
