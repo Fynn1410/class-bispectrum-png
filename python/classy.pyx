@@ -830,26 +830,26 @@ cdef class Class:
         """
         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
 
-        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] pk_matter = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_matter = np.zeros((self.fo.k_size),'float64')
 
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
-                k_arr[index_k] = self.fo.k[index_k]
-                if (Real_Matter_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&pk_matter[index_k])==_FAILURE_):
+                internal_k_arr[index_k] = self.fo.k[index_k]
+                if (Real_Matter_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&internal_pk_matter[index_k])==_FAILURE_):
                     raise CosmoSevereError(self.fo.error_message)
 
-            for index_k in xrange(len(k)):
-                pk[index_k] = UnivariateSpline(k_arr, pk_matter,s=0)(k[index_k])
+            pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_matter,s=0)
+            pk = pk_interp_k(k)
         else:
             raise CosmoSevereError("Only available for oneloopPT.")
 
         return pk
 
-    # Gives the halo pk for a given (k_arr,z) in real-space
+    # Gives the halo pk for a given (k,z) in real-space
     def pk_halo_real(self,k,double z):
         """
         Gives the Real-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for a given set of biases (b1,b2,bG2,btd,R2) and counter-term cs2 matter counter-term
@@ -862,20 +862,20 @@ cdef class Class:
         """
         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
 
-        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] pk_halo = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_halo = np.zeros((self.fo.k_size),'float64')
         
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
-                k_arr[index_k] = self.fo.k[index_k]
-                if (Real_Galaxy_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&pk_halo[index_k])==_FAILURE_):
+                internal_k_arr[index_k] = self.fo.k[index_k]
+                if (Real_Galaxy_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&internal_pk_halo[index_k])==_FAILURE_):
                     raise CosmoSevereError(self.fo.error_message)
             
-            for index_k in xrange(len(k)):
-                pk[index_k] = UnivariateSpline(k_arr, pk_halo,s=0)(k[index_k])
+            pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
+            pk = pk_interp_k(k)
         else:
             raise CosmoSevereError("Only available for oneloopPT.")
 
