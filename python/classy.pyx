@@ -881,8 +881,8 @@ cdef class Class:
 
         return pk
 
-    # Gives the halo pk for a given (k_arr,z) in redshift-space
-    def pk_halo_rsd(self, k, double z, mu_arr):
+    # Gives the halo pk for a given (k_arr,z,mu_arr) in redshift-space for initialized biases and counter terms
+    def pk_halo_rsd_default(self, k, double z, mu_arr):
         """
         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd,R2) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
 
@@ -906,7 +906,7 @@ cdef class Class:
             for index_mu, mu in enumerate(internal_mu_arr):
                 for index_k in xrange(self.fo.k_size):
                     internal_k_arr[index_k] = self.fo.k[index_k]
-                    if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
+                    if (RSD_IR_Ressummed_default(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
                         raise CosmoSevereError(self.fo.error_message)
                     internal_pk[index_mu][index_k] = pk_rsd[index_k]
             pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
@@ -916,8 +916,46 @@ cdef class Class:
         
         return pk
 
-        # Gives the halo pk for a given (k,z,f,mu,b1) in redshift-space
-    def pk_rsd_multipoles(self,k,double z,int l):
+    # Gives the halo pk for a given (k_arr,z, mu_arr, biases, counters) in redshift-space
+    def pk_halo_rsd(self, k, double z, mu_arr, biases, counters):
+        """
+        Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        b1, b2, bG2, btd = biases
+        c00, c10, c20, c22, c30, c32, c42 = counters
+
+        k = np.atleast_1d(k)
+        mu_arr = np.atleast_1d(mu_arr)
+        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((len(mu_arr),len(k)),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] internal_mu_arr = np.linspace(-1.0, 1.0, 200,'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] internal_pk = np.zeros((len(internal_mu_arr),len(internal_k_arr)),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+        if (self.fo.method == nl_oneloopPT):
+            for index_mu, mu in enumerate(internal_mu_arr):
+                for index_k in xrange(self.fo.k_size):
+                    internal_k_arr[index_k] = self.fo.k[index_k]
+                    if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
+                        raise CosmoSevereError(self.fo.error_message)
+                    internal_pk[index_mu][index_k] = pk_rsd[index_k]
+            pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
+            pk = pk_interp_k_mu(mu_arr, k)
+        else:
+            raise CosmoSevereError("Only available for oneloopPT.")
+        
+        return pk
+
+    # Gives the halo multipoles for a given (k_arr,z,l,biases,counters) in redshift-space
+    def pk_rsd_multipoles(self,k,double z,int l, biases, counters):
         """
         Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -927,6 +965,9 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        b1, b2, bG2, btd = biases
+        c00, c10, c20, c22, c30, c32, c42 = counters
+
         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
 
         cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
@@ -938,7 +979,40 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 k_arr[index_k] = self.fo.k[index_k]
-                if (RSD_Multipole(&self.fo,&self.ba,index_k,z,l,&pk_rsd[index_k])==_FAILURE_):
+                if (RSD_Multipole(&self.fo,&self.ba,index_k,z,l,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
+                    raise CosmoSevereError(self.fo.error_message)
+            
+            for index_k in xrange(len(k)):
+                pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
+        else:
+            raise CosmoSevereError("Only available for oneloopPT.")
+        
+        return pk
+
+    # Gives the halo multipoles for a given (k_arr,z,l) in redshift-space for initialized biases and counter terms
+    def pk_rsd_multipoles_default(self,k,double z,int l):
+        """
+        Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+
+        cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
+
+        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
+        
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+        if (self.fo.method == nl_oneloopPT):
+            for index_k in xrange(self.fo.k_size):
+                k_arr[index_k] = self.fo.k[index_k]
+                if (RSD_Multipole_default(&self.fo,&self.ba,index_k,z,l,&pk_rsd[index_k])==_FAILURE_):
                     raise CosmoSevereError(self.fo.error_message)
             
             for index_k in xrange(len(k)):

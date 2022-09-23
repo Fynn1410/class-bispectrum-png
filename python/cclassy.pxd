@@ -557,20 +557,40 @@ cdef extern from "class.h":
         long SPLIT, 
         double *pk)
 
+    int RSD_IR_Ressummed_default(
+        void* pfo, 
+        void* pba, 
+        int index_k, 
+        double z, 
+        double mu, 
+        double *result);
+
     int RSD_IR_Ressummed(
         void *pfo, 
         void *pba,
         int index_k, 
         double z, 
         double mu, 
-        double * result)
+        double b1, double b2, double bG2, double btd,
+        double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
+        double *result)
+
+    int RSD_Multipole_default(
+        void* pfo, 
+        void* pba, 
+        int index_k, 
+        double z, 
+        int l, 
+        double *result)
 
     int RSD_Multipole(
         void *pfo, 
         void *pba, 
         int index_k, 
         double z, 
-        int l, 
+        int l,
+        double b1, double b2, double bG2, double btd,
+        double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
         double * result)
 
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
