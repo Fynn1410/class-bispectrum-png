@@ -20,7 +20,7 @@ from libc.string cimport *
 import cython
 cimport cython
 from scipy.interpolate import CubicSpline
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import UnivariateSpline, RectBivariateSpline
 
 # Nils : Added for python 3.x and python 2.x compatibility
 import sys
@@ -882,7 +882,7 @@ cdef class Class:
         return pk
 
     # Gives the halo pk for a given (k_arr,z) in redshift-space
-    def pk_halo_rsd(self,k,double z,mu_arr):
+    def pk_halo_rsd(self, k, double z, mu_arr):
         """
         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd,R2) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
 
@@ -892,23 +892,25 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
+        k = np.atleast_1d(k)
+        mu_arr = np.atleast_1d(mu_arr)
         cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((len(mu_arr),len(k)),'float64')
-
-        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] internal_mu_arr = np.linspace(-1.0, 1.0, 200,'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] internal_pk = np.zeros((len(internal_mu_arr),len(internal_k_arr)),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-        
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
         if (self.fo.method == nl_oneloopPT):
-            for index_mu, mu in enumerate(mu_arr):
+            for index_mu, mu in enumerate(internal_mu_arr):
                 for index_k in xrange(self.fo.k_size):
-                    k_arr[index_k] = self.fo.k[index_k]
+                    internal_k_arr[index_k] = self.fo.k[index_k]
                     if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
                         raise CosmoSevereError(self.fo.error_message)
-                
-                for index_k in xrange(len(k)):
-                    pk[index_mu][index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
+                    internal_pk[index_mu][index_k] = pk_rsd[index_k]
+            pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
+            pk = pk_interp_k_mu(mu_arr, k)
         else:
             raise CosmoSevereError("Only available for oneloopPT.")
         

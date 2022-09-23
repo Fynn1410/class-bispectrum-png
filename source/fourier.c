@@ -1730,7 +1730,7 @@ int fourier_init(
       tstart = omp_get_wtime();
 #endif
 
-      fprintf(stderr,"call Real_Oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+      // fprintf(stderr,"call Real_Oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
       class_call_parallel(Real_Oneloop_FFTLog(pba,
                               ppm,
                               pfo,
@@ -1740,7 +1740,7 @@ int fourier_init(
                 pfo->error_message,
                 pfo->error_message);
 
-      fprintf(stderr,"call RSD_Oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
+       // fprintf(stderr,"call RSD_Oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
       class_call_parallel(RSD_Oneloop_FFTLog(pba,
                               ppm,
                               pfo,
