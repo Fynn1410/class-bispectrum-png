@@ -1135,7 +1135,7 @@ cdef class Class:
 
         loops = self.pk_halo_rsd_pieces()
 
-        k_arr = loops['k_array']
+        k_arr = loops['k_arr']
 
         pk_arr = loops['pk_arr']
 
@@ -1280,7 +1280,7 @@ cdef class Class:
 
             J21102x[:]    = loops['J21102x'][:,index_k]
             J21102y[:]    = loops['J21102y'][:,index_k]
-            J21102[:]     = (J21102x[:,index_k] + J21102y[:,index_k] * pow(mu,2.));
+            J21102[:]     = (J21102x[:] + J21102y[:] * pow(mu,2.));
             Jdelta202x[:] = loops['Jdelta202x'][:,index_k]
             Jdelta202y[:] = loops['Jdelta202y'][:,index_k]
             Jdelta202[:]  = (Jdelta202x[:] + Jdelta202y[:] * pow(mu,2.));
