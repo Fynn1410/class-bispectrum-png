@@ -1299,7 +1299,7 @@ cdef class Class:
             J12111[:]     = loops['J12111'][:,index_k] * mu;
             J11211[:]     = loops['J11211'][:,index_k] * mu;
 
-            Moment_2[:] = 2. * pow(f*mu/k,2.) * (2.*I2211[:] + 6.*I1311[:]) *D4 + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[:] + J11211[:] + J21111[:])) *D4 + 2. * pow(f,2.) * (pow(b1,2.)*N11[:]) *D4 + 2. * pow(f,2.) * (4.*b1*J12102[:] + 2.*b1*J21102[:] + b2*Jdelta202[:] + 2.*bG2*JG202[:]+pow(b1,2.)*Plin[:]*sigma_v2) *D4 - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[:] *D2;
+            Moment_2[:] = 2. * pow(f*mu/k,2.) * (2.*I2211[:] + 6.*I1311[:]) *D4 + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[:] + J11211[:] + J21111[:])) *D4 + 2. * pow(f,2.) * (pow(b1,2.)*N11[:]) *D4 + 2. * pow(f,2.) * (4.*b1*J12102[:] + 2.*b1*J21102[:] + b2*Jdelta202[:] + 2.*bG2*JG202[:] - pow(b1,2.)*Plin[:]*sigma_v2) *D4 - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[:] *D2;
 
             # 3-rd moment
 

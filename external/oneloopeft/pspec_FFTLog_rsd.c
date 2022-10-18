@@ -1,5 +1,5 @@
-/** @file pspec_FFTLog.c Documented FFT-Log based 1loop matter and galaxy power spectrum 
- * 
+/** @file pspec_FFTLog.c Documented FFT-Log based 1loop matter and galaxy power spectrum
+ *
  * Azadeh Moradinezhad Dizgah,June 16th 2021
  *
  *
@@ -8,7 +8,7 @@
  * -# pg_IR_FFTLog()
  *
  */
- 
+
 #include "header.h"
 
 int RSD_Oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fourier *pfo,
@@ -32,11 +32,11 @@ int RSD_Oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
     return _SUCCESS_;
 }
 
-int RSD_IR_Ressummed_default(struct fourier *pfo, struct background *pba, 
-                    int index_k, double z, double mu, 
+int RSD_IR_Ressummed_default(struct fourier *pfo, struct background *pba,
+                    int index_k, double z, double mu,
                     double * result)
 {
-    
+
     // Biases
     double b1  = pfo->b1;
     double b2  = pfo->b2;
@@ -59,10 +59,10 @@ int RSD_IR_Ressummed_default(struct fourier *pfo, struct background *pba,
     return _SUCCESS_;
 }
 
-int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba, 
-                    int index_k, double z, double mu, 
+int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
+                    int index_k, double z, double mu,
                     double b1, double b2, double bG2, double btd,
-                    double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
+                    double c00, double c10, double c20, double c22, double c30, double c32, double c42,
                     double * result)
 {
     double k = pfo->k[index_k];
@@ -71,8 +71,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
     double f = growth_f(pba, z);
     // fprintf(stderr, "RSD at z = %g, D(z) = %g, f(z) = %g\n",z,D,f);
 
-    double D2 = pow(D,2.); 
-    double D4 = pow(D,4.); 
+    double D2 = pow(D,2.);
+    double D4 = pow(D,4.);
 
 
     double sigma_v2 = pfo -> fft_ws -> sigma_v2;
@@ -187,7 +187,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         Moment_1[idx] =   2. * (f*mu/k) * (2.*b1*I2201[idx] + 3.*b1*I1301p3101[idx] + b2*Idelta201[idx] + 2.*bG2*IG201[idx] + 4.*(bG2 + 0.4*btd)*FG201[idx]) *D4\
                         + 2. * (2.*f)    * (pow(b1,2.)*(J12101[idx] + J11201[idx] + J21101[idx]) + 0.5*b1*b2*Jdelta201[idx] + b1*bG2*JG201[idx]) *D4\
                         + c10*f*mu*k*Plin[idx] *D2;
-                        
+
         //2-nd moment
         J21102x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102x[index_k];
         J21102y[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102y[index_k];
@@ -213,7 +213,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         Moment_2[idx] = + 2. * pow(f*mu/k,2.) * (2.*I2211[idx] + 6.*I1311[idx]) *D4\
                         + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[idx] + J11211[idx] + J21111[idx])) *D4\
                         + 2. * pow(f,2.) * (pow(b1,2.)*N11[idx]) *D4\
-                        + 2. * pow(f,2.) * (4.*b1*J12102[idx] + 2.*b1*J21102[idx] + b2*Jdelta202[idx] + 2.*bG2*JG202[idx]+pow(b1,2.)*Plin[idx]*sigma_v2) *D4\
+                        + 2. * pow(f,2.) * (4.*b1*J12102[idx] + 2.*b1*J21102[idx] + b2*Jdelta202[idx] + 2.*bG2*JG202[idx] - pow(b1,2.)*Plin[idx]*sigma_v2) *D4\
                         - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[idx] *D2;
 
         //3-rd moment
@@ -252,17 +252,17 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
 
     double RSD_IR_Ressummed = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot)) *D2\
                             + RSD[no_wiggle] + suppression * (RSD[lin] - RSD[no_wiggle]);
-    
+
     *result = RSD_IR_Ressummed;
 
     return _SUCCESS_;
 }
 
-int RSD_Multipole_default(struct fourier *pfo, struct background *pba, 
-                          int index_k, double z, int l, 
+int RSD_Multipole_default(struct fourier *pfo, struct background *pba,
+                          int index_k, double z, int l,
                           double * result)
 {
-    
+
     // Biases
     double b1  = pfo->b1;
     double b2  = pfo->b2;
@@ -287,14 +287,14 @@ int RSD_Multipole_default(struct fourier *pfo, struct background *pba,
 
 int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, double z, int l,
      double b1, double b2, double bG2, double btd,
-     double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
+     double c00, double c10, double c20, double c22, double c30, double c32, double c42,
      double * result)
 {
     //extern struct globals gb;
     double integ=0., error=0.;
     gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000000);
 
-    struct integrand_parameters2 par; 
+    struct integrand_parameters2 par;
 
     double mu_min = -1.;
     double mu_max =  1.;
@@ -332,7 +332,7 @@ int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, doub
 double RSD_Multipole_integrand(double x, void *par)
 {
     double result = 0;
-    
+
     struct integrand_parameters2 pij;
     pij = *((struct integrand_parameters2 *)par);
 
@@ -342,7 +342,7 @@ double RSD_Multipole_integrand(double x, void *par)
     int    l               = pij.p19;
     int    index_k         = pij.p23;
 
-    double b1  = pij.p6; 
+    double b1  = pij.p6;
     double b2  = pij.p7;
     double bG2 = pij.p8;
     double btd = pij.p9;
