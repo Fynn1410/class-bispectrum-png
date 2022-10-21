@@ -44,22 +44,32 @@ void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
       int Nmax = pfo -> fft_ws -> fft_input[real_ir] -> nfft;
       double k = pfo->k[index_k];
 
-      double *np = make_1Darray(1);
-      double *p  = make_1Darray(1);
-
+      // JL change
+      //double *np = make_1Darray(1);
+      //double *p  = make_1Darray(1);
+      double np;
+      double p;
+      
       // Linear cpow Spectrum vector
       double complex *vec_m = make_1D_c_array(Nmax+1);
       vec_fill(pfo -> fft_ws -> fft_input[real_ir], k, MATTER, vec_m);
 
       // non-propagator calculations
-      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2200_mat, vec_m, Nmax+1, &np[0]);
+      // JL change
+      //c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2200_mat, vec_m, Nmax+1, &np[0]);
+      c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2200_mat, vec_m, Nmax+1, &np);
 
-      c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
-
+      // JL change
+      //c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
+      c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p);
+      
       // adding factored out k and mu dependencies
-      pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np[0];
-      pfo -> pk_matter_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
-
+      // JL change
+      //pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np[0];
+      //pfo -> pk_matter_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np;
+      pfo -> pk_matter_real_nl -> I1300[index_k] = pow(k, 3.) * Plin * p - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
+      
       pfo -> pk_matter_real_nl -> Plin_IR[index_k] = Plin;
 }
 
@@ -122,4 +132,7 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
       double I1300_IR = pow(k, 3.) * Plin * p[0];
       double I1300_UV = - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
       double FG200 = pfo -> pk_halo_real_nl -> FG200[index_k];
+
+      free(np);
+      free(p);
 }

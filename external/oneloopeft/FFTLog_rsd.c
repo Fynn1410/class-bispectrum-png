@@ -95,6 +95,8 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I1300[index_k] = pow(k, 3.) * Plin * p[0] - 61./630. * Plin * pow(k, 2.) * pfo->fft_ws->sigma_v2;
       pfo -> pk_halo_rsd_nl[rsd_idx] -> FG200[index_k] = pow(k, 3.) * Plin * p[1];
 
+      free(np);
+      free(p);
 }
 
 /*
@@ -171,6 +173,8 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       double JG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k] * mu;
       double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
 
+      free(np);
+      free(p);
 }
 
 /*
@@ -239,6 +243,9 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J12111[index_k]  = pow(k, 3.) * Plin * p[3] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
 
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J11211[index_k]  = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
+
+      free(np);
+      free(p);
 }
 
 /*
@@ -289,6 +296,9 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112x[index_k] = pow(k, 3.) * Plin * p[0] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J12112y[index_k] = pow(k, 3.) * Plin * p[1] / pow(k, 2.) - 0.5 * pfo->fft_ws->sigma_v2 * Plin;
+
+      free(np);
+      free(p);
 }
 
 
@@ -327,6 +337,8 @@ void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] = pow(k, 3.) / pow(k, 4.) * np[0];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] = pow(k, 3.) / pow(k, 4.) * np[1];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22z[index_k] = pow(k, 3.) / pow(k, 4.) * np[2];
+
+      free(np);
 }
 
 /*

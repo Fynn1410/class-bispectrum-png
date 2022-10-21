@@ -93,8 +93,16 @@ int fourier_pk_at_z(
     for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
 
       if (pk_output == pk_linear) {
-        out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
-
+	class_test((pfo->ln_tau_size-1)*pfo->k_size_extra+index_k < 0,
+		   pfo->error_message,"");
+	class_test((pfo->ln_tau_size-1)*pfo->k_size_extra+index_k >= pfo->k_size_extra,
+		   pfo->error_message,"");
+	class_test(index_pk != 0,
+		   pfo->error_message,"%d %d %e",index_k,index_pk,z);
+	double test;
+	test = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
+        out_pk[index_k] = test;
+	
         if (do_ic == _TRUE_) {
           for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
             out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2] =
@@ -1777,6 +1785,8 @@ int fourier_init(
     }
    /* end of parallel zone */
 
+    FFTLog_rsd_init(pba, ppm, pfo, z);
+    
     if (abort == _TRUE_) return _FAILURE_;
 
   }

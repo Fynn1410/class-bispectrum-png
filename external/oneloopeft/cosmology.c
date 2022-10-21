@@ -395,12 +395,20 @@ double Pk_dlnPk(struct background * pba,
 
   double result;
   double pk_cb;
-
+  int index_pk;
+  
+  if (pfo->has_pk_cb == _TRUE_)
+    index_pk = pfo->index_pk_cb;
+  else if (pfo->has_pk_m == _TRUE_)
+    index_pk = pfo->index_pk_m;
+  else
+    fprintf(stderr,"Temporary debugging message in Pk_dlnPk of comsology.c");
+  
   if (mode == LPOWER){
-    fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k, z, pfo -> index_pk_cb, &pk_cb, NULL);
+    fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k, z, index_pk, &pk_cb, NULL);
   }
   else if (mode == NLPOWER){
-    fourier_pk_at_k_and_z(pba, ppm, pfo, pk_nonlinear, k, z, pfo -> index_pk_cb, &pk_cb, NULL);
+    fourier_pk_at_k_and_z(pba, ppm, pfo, pk_nonlinear, k, z, index_pk, &pk_cb, NULL);
   }
   
   result = pk_cb;

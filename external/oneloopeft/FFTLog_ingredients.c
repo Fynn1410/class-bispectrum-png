@@ -226,7 +226,12 @@ void FFT_compute_coeff(struct background * pba,
       double *k      = make_1Darray(Nmax);
       double *pkz    = make_1Darray(Nmax);
       double *pk_bin = make_1Darray(Nmax);
-      double *window = make_1Darray(Nmax);
+      // JL change: suspicious use of either Nmax or Nmax+1 in this
+      // routine. The one below was changed to avoid memory issues, but the
+      // solution is maybe to reduce the later loop oin index_b to
+      // index_c<MNmax.
+      //double *window = make_1Darray(Nmax);
+      double *window = make_1Darray(Nmax+1);
       
       int mleft     = - 0.75 * Nmax/2;
       int mright    =  0.75 * Nmax/2;
@@ -662,4 +667,139 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       np_mat_fill(N22z, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> N22z_mat);
 
       return _SUCCESS_;
+}
+
+int FFTLog_rsd_free(struct background *pba, struct primordial *ppm, struct fourier *pfo, double z) {
+
+  free(pfo -> fft_ws -> fft_matrix -> I2200_mat);
+  free(pfo -> fft_ws -> fft_matrix -> Idelta200_mat);
+  free(pfo -> fft_ws -> fft_matrix -> IG200_mat);
+  free(pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat);
+  free(pfo -> fft_ws -> fft_matrix -> IG2G200_mat);
+  free(pfo -> fft_ws -> fft_matrix -> Idelta2G200_mat);
+
+  free(pfo -> fft_ws -> fft_matrix -> I1300_mat);
+  free(pfo -> fft_ws -> fft_matrix -> FG200_mat);
+
+  free(pfo -> fft_ws -> fft_matrix -> I2201_mat);
+  free(pfo -> fft_ws -> fft_matrix -> Idelta201_mat);
+  free(pfo -> fft_ws -> fft_matrix -> IG201_mat);
+  free(pfo -> fft_ws -> fft_matrix -> J21101_mat);
+  free(pfo -> fft_ws -> fft_matrix -> Jdelta201_mat);
+  free(pfo -> fft_ws -> fft_matrix -> JG201_mat);
+  
+  free(pfo -> fft_ws -> fft_matrix -> FG201_mat);
+  free(pfo -> fft_ws -> fft_matrix -> I1301p3101_mat);
+  free(pfo -> fft_ws -> fft_matrix -> J12101_mat);
+  
+  free(pfo -> fft_ws -> fft_matrix -> J21102x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> J21102y_mat);
+  free(pfo -> fft_ws -> fft_matrix -> Jdelta202x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> Jdelta202y_mat);
+  free(pfo -> fft_ws -> fft_matrix -> JG202x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> JG202y_mat);
+  free(pfo -> fft_ws -> fft_matrix -> I2211_mat);
+  free(pfo -> fft_ws -> fft_matrix -> J21111_mat);
+  free(pfo -> fft_ws -> fft_matrix -> N11x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> N11y_mat);
+
+  free(pfo -> fft_ws -> fft_matrix -> J12102x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> J12102y_mat);
+  free(pfo -> fft_ws -> fft_matrix -> I1311_mat);
+  free(pfo -> fft_ws -> fft_matrix -> J12111_mat);
+
+  free(pfo -> fft_ws -> fft_matrix -> J21112x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> J21112y_mat);
+  free(pfo -> fft_ws -> fft_matrix -> N12x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> N12y_mat);
+  
+  free(pfo -> fft_ws -> fft_matrix -> J12112x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> J12112y_mat);
+
+  free(pfo -> fft_ws -> fft_matrix -> N22x_mat);
+  free(pfo -> fft_ws -> fft_matrix -> N22y_mat);
+  free(pfo -> fft_ws -> fft_matrix -> N22z_mat);
+  
+  for (int idx = lin; idx <= real_ir; idx++){
+    free(pfo -> fft_ws -> fft_input[idx] -> etam_m);
+    free(pfo -> fft_ws -> fft_input[idx] -> cmsym_m);
+    free(pfo -> fft_ws -> fft_input[idx] -> etam_g);
+    free(pfo -> fft_ws -> fft_input[idx] -> cmsym_g);
+  }
+	
+  for (int idx = lin; idx <= no_wiggle; idx++){
+    free(pfo -> pk_halo_rsd_nl[idx] -> Plin);
+    free(pfo -> pk_halo_rsd_nl[idx] -> P_mm);
+    free(pfo -> pk_halo_rsd_nl[idx] -> I2200);
+    free(pfo -> pk_halo_rsd_nl[idx] -> Idelta200);
+    free(pfo -> pk_halo_rsd_nl[idx] -> IG200);
+    free(pfo -> pk_halo_rsd_nl[idx] -> Idelta2delta200);
+    free(pfo -> pk_halo_rsd_nl[idx] -> IG2G200);
+    free(pfo -> pk_halo_rsd_nl[idx] -> Idelta2G200);
+    free(pfo -> pk_halo_rsd_nl[idx] -> I1300);
+    free(pfo -> pk_halo_rsd_nl[idx] -> FG200);
+    free(pfo -> pk_halo_rsd_nl[idx] -> I2201);
+    free(pfo -> pk_halo_rsd_nl[idx] -> Idelta201);
+    free(pfo -> pk_halo_rsd_nl[idx] -> IG201);
+    free(pfo -> pk_halo_rsd_nl[idx] -> FG201);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J21101);
+    free(pfo -> pk_halo_rsd_nl[idx] -> Jdelta201);
+    free(pfo -> pk_halo_rsd_nl[idx] -> JG201);
+    free(pfo -> pk_halo_rsd_nl[idx] -> I1301p3101);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J12101);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J11201);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J21102x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J21102y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> Jdelta202x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> Jdelta202y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> JG202x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> JG202y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> I2211);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J21111);
+    free(pfo -> pk_halo_rsd_nl[idx] -> N11x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> N11y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J12102x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J12102y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> I1311);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J12111);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J11211);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J21112x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J21112y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> N12x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> N12y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J12112x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> J12112y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> N22x);
+    free(pfo -> pk_halo_rsd_nl[idx] -> N22y);
+    free(pfo -> pk_halo_rsd_nl[idx] -> N22z);
+    free(pfo -> pk_halo_rsd_nl[idx]);
+  }
+
+  for(int idx = lin; idx <= real_ir; idx++){
+    free(pfo -> fft_ws -> fft_input[idx]);
+  }
+    
+  free(pfo -> fft_ws);
+  free(pfo -> fft_ws -> fft_input);
+  free(pfo -> fft_ws -> fft_matrix);
+  free(pfo -> pk_matter_real_nl);
+  free(pfo -> pk_halo_real_nl);
+  free(pfo -> pk_halo_rsd_nl);
+  free(pfo -> pk_matter_real_nl -> Plin_IR);
+  free(pfo -> pk_matter_real_nl -> P_mm);
+  free(pfo -> pk_matter_real_nl -> I2200);
+  free(pfo -> pk_matter_real_nl -> I1300);
+  free(pfo -> pk_halo_real_nl -> Plin_IR);
+  free(pfo -> pk_halo_real_nl -> P_mm);
+  free(pfo -> pk_halo_real_nl -> I2200);
+  free(pfo -> pk_halo_real_nl -> Idelta200);
+  free(pfo -> pk_halo_real_nl -> IG200);
+  free(pfo -> pk_halo_real_nl -> Idelta2delta200);
+  free(pfo -> pk_halo_real_nl -> IG2G200);
+  free(pfo -> pk_halo_real_nl -> Idelta2G200);
+  free(pfo -> pk_halo_real_nl -> I1300);
+  free(pfo -> pk_halo_real_nl -> FG200);
+  free(pfo -> pk_halo_real_nl -> P_hh);
+
+  return _FALSE_;
 }
