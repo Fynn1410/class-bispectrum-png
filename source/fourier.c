@@ -1681,8 +1681,10 @@ int fourier_init(
     gettimeofday(&t0, NULL);
     FFTLog_rsd_init(pba, ppm, pfo, z);
     gettimeofday(&t1, NULL);
-    fprintf(stderr,"FFTLog init(): %g sec.\n", (t1.tv_sec-t0.tv_sec) + (t1.tv_usec-t0.tv_usec)/(1.e6));
-
+    if (pfo->fourier_verbose > 2) {
+      fprintf(stderr,"FFTLog init(): %g sec.\n", (t1.tv_sec-t0.tv_sec) + (t1.tv_usec-t0.tv_usec)/(1.e6));
+    }
+    
     /* number of threads (always one if no openmp) */
     int number_of_threads=1;
     /* index of the thread (always 0 if no openmp) */
@@ -1757,18 +1759,22 @@ int fourier_init(
     } 
 
 #ifdef _OPENMP
-      tstop = omp_get_wtime();
+    tstop = omp_get_wtime();
 
-      tspent += tstop-tstart;
+    tspent += tstop-tstart;
 #endif
-      }
+	}
 #ifdef _OPENMP
-      printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
-             __func__,tspent,thread);
+	if (pfo->fourier_verbose>2) {	
+	  printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
+		 __func__,tspent,thread);
+	}
 #endif
 
     gettimeofday(&t2, NULL);
-    fprintf(stderr,"%d Loop_integrals(): %g sec.\n", pfo->k_size, (t2.tv_sec-t1.tv_sec) + (t2.tv_usec-t1.tv_usec)/(1.e6));
+    if (pfo->fourier_verbose>2) {
+      fprintf(stderr,"%d Loop_integrals(): %g sec.\n", pfo->k_size, (t2.tv_sec-t1.tv_sec) + (t2.tv_usec-t1.tv_usec)/(1.e6));
+    }
    /* end of parallel zone */
 
     if (abort == _TRUE_) return _FAILURE_;
