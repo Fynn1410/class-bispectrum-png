@@ -93,16 +93,9 @@ int fourier_pk_at_z(
     for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
 
       if (pk_output == pk_linear) {
-	class_test((pfo->ln_tau_size-1)*pfo->k_size_extra+index_k < 0,
-		   pfo->error_message,"");
-	class_test((pfo->ln_tau_size-1)*pfo->k_size_extra+index_k >= pfo->k_size_extra,
-		   pfo->error_message,"");
-	class_test(index_pk != 0,
-		   pfo->error_message,"%d %d %e",index_k,index_pk,z);
-	double test;
-	test = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
-        out_pk[index_k] = test;
-	
+
+        out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
+
         if (do_ic == _TRUE_) {
           for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
             out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2] =
@@ -1692,7 +1685,7 @@ int fourier_init(
     if (pfo->fourier_verbose > 2) {
       fprintf(stderr,"FFTLog init(): %g sec.\n", (t1.tv_sec-t0.tv_sec) + (t1.tv_usec-t0.tv_usec)/(1.e6));
     }
-    
+
     /* number of threads (always one if no openmp) */
     int number_of_threads=1;
     /* index of the thread (always 0 if no openmp) */
@@ -1763,8 +1756,8 @@ int fourier_init(
       // pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
       //   = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
-      // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);  
-    } 
+      // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);
+    }
 
 #ifdef _OPENMP
     tstop = omp_get_wtime();
@@ -1773,7 +1766,7 @@ int fourier_init(
 #endif
 	}
 #ifdef _OPENMP
-	if (pfo->fourier_verbose>2) {	
+	if (pfo->fourier_verbose>2) {
 	  printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
 		 __func__,tspent,thread);
 	}
@@ -1786,7 +1779,7 @@ int fourier_init(
    /* end of parallel zone */
 
     FFTLog_rsd_init(pba, ppm, pfo, z);
-    
+
     if (abort == _TRUE_) return _FAILURE_;
 
   }
