@@ -1,23 +1,23 @@
 
 
-/** @file FFTLog_ingredients.c Documented ingredients for FFT-Log based 1loop integrals of matter and galaxy/halo power spectra in perturbation theory 
- * 
+/** @file FFTLog_ingredients.c Documented ingredients for FFT-Log based 1loop integrals of matter and galaxy/halo power spectra in perturbation theory
+ *
  * Azadeh Moradinezhad Dizgah, June 16th 2021
  *
  * This module computes the three functions that are needed for evaluating the real-space loop integrals using FFTLog technique
  * These functions are called by FFTLog_matter_real.c and and FFTLog_galaxy_real.c modules
  *
- * The FFTLog algorithm for loop integrals closely follows Ref. arXiv:1708.08130 by Simonovic et al. After computing the FFT coefficents of matter power spectrum, 
- * sampled in logarithmic scale, the algorithm involves re-casting the integrals into a form that is analytically calculable (Matrices M_ij, 
+ * The FFTLog algorithm for loop integrals closely follows Ref. arXiv:1708.08130 by Simonovic et al. After computing the FFT coefficents of matter power spectrum,
+ * sampled in logarithmic scale, the algorithm involves re-casting the integrals into a form that is analytically calculable (Matrices M_ij,
  * which can be written in terms of ratios of Gamma functions) and finally performing vactor-matrix-vector or matrix-vector multiplications, which are performed
  * in FFTLog_matter_real.c and and FFTLog_galaxy_real.c modules.
  *
  * An important feauture of fast computation of loop integrals is that all the cosmology-dependance of the loop integrals is captured by the FFT coeffcients
- * which have ~NlogN complexity. The matrices involving the Gamma functions, are computed only once, and at each of MCMC varying cosmological parmaters, 
+ * which have ~NlogN complexity. The matrices involving the Gamma functions, are computed only once, and at each of MCMC varying cosmological parmaters,
  * these coeffcients are evaluated for all k-values at once and then vector-matrix-vector multiplication are computed.
  *
  * The FFT coeffcients are computed using FFTW package, while the vector-matrix-vector computations are performed using blas library implemented in gsl.
- * The analytic formulas for M_ij matrices are computed in Mathematica using a modified version of the publicaly available notebook by Simpnovic. 
+ * The analytic formulas for M_ij matrices are computed in Mathematica using a modified version of the publicaly available notebook by Simpnovic.
  *
  * In summary, the following functions can be called from other modules:
  * -# Ifunc()
@@ -31,9 +31,9 @@
 
 /**
  * Analytic expression of the integrals of the form
- * J(nu1,nu2) = k^(-3 + 2 nu12) * int_q 1/(q^(2 nu1) kmq^(2 nu2) = 
+ * J(nu1,nu2) = k^(-3 + 2 nu12) * int_q 1/(q^(2 nu1) kmq^(2 nu2) =
  *
- * @param nu1         Input: power of q 
+ * @param nu1         Input: power of q
  * @param nu2         Input: power of kmq
  * @return value of I(nu1,nu2)
  */
@@ -43,7 +43,7 @@ double complex J(double complex nu1, double complex nu2)
       double complex nu12 = nu1 + nu2;
       double complex numerator    = Gamma(3./2.-nu1) * Gamma(3./2.-nu2) * Gamma(nu12-3./2.);
       double complex denominator  = Gamma(nu1) * Gamma(nu2) * Gamma(3.-nu12);
-      double complex out          = 1./(8. * pow(M_PI, 3./2.)) * numerator/denominator; 
+      double complex out          = 1./(8. * pow(M_PI, 3./2.)) * numerator/denominator;
 
       return out;
 }
@@ -71,73 +71,73 @@ double complex Gamma(double complex z)
  * Analytic expression of the integrals of the form
  * M1(nu1,nu2) = k^(-3 + 2 nu12) * int_q q|| /(q^(2 nu1) kmq^(2 nu2)
  *
- * @param nu1         Input: power of q 
+ * @param nu1         Input: power of q
  * @param nu2         Input: power of kmq
  * @return value of I(nu1,nu2)
  */
 
 double complex M1(double complex nu1, double complex nu2)
 {
-      double complex out = (J(-1 + nu1,nu2) - J(nu1,-1 + nu2) + J(nu1,nu2))/2.; 
+      double complex out = (J(-1 + nu1,nu2) - J(nu1,-1 + nu2) + J(nu1,nu2))/2.;
 
       return out;
 }
 
 /**
  * Analytic expression of the integrals of the form
- * M2 = k^(-3 + 2 nu12) * int_q q|| q|| /(q^(2 nu1) kmq^(2 nu2) 
+ * M2 = k^(-3 + 2 nu12) * int_q q|| q|| /(q^(2 nu1) kmq^(2 nu2)
  *
- * @param nu1         Input: power of q 
+ * @param nu1         Input: power of q
  * @param nu2         Input: power of kmq
  * @return value of I(nu1,nu2)
  */
 
 double complex M2(double complex nu1, double complex nu2, double mu)
 {
-      double complex A2 = (-J(-2 + nu1,nu2) + 2*J(-1 + nu1,-1 + nu2) + 
-     2*J(-1 + nu1,nu2) - J(nu1,-2 + nu2) + 2*J(nu1,-1 + nu2) - 
+      double complex A2 = (-J(-2 + nu1,nu2) + 2*J(-1 + nu1,-1 + nu2) +
+     2*J(-1 + nu1,nu2) - J(nu1,-2 + nu2) + 2*J(nu1,-1 + nu2) -
      J(nu1,nu2))/8.;
-      double complex B2 = (3*J(-2 + nu1,nu2) - 6*J(-1 + nu1,-1 + nu2) + 
-     2*J(-1 + nu1,nu2) + 3*J(nu1,-2 + nu2) - 
+      double complex B2 = (3*J(-2 + nu1,nu2) - 6*J(-1 + nu1,-1 + nu2) +
+     2*J(-1 + nu1,nu2) + 3*J(nu1,-2 + nu2) -
      6*J(nu1,-1 + nu2) + 3*J(nu1,nu2))/8.;
-      
-      double complex out = A2 + pow(mu, 2.) * B2; 
+
+      double complex out = A2 + pow(mu, 2.) * B2;
 
       return out;
 }
 
 /**
  * Analytic expression of the integrals of the form
- * M3 = k^(-3 + 2 nu12) * int_q q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2) 
+ * M3 = k^(-3 + 2 nu12) * int_q q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2)
  *
- * @param nu1         Input: power of q 
+ * @param nu1         Input: power of q
  * @param nu2         Input: power of kmq
  * @return value of I(nu1,nu2)
  */
 
 double complex M3(double complex nu1, double complex nu2, double mu)
 {
-      double complex A3 = (-3*(J(-3 + nu1,nu2) - 3*J(-2 + nu1,-1 + nu2) - 
-       J(-2 + nu1,nu2) + 3*J(-1 + nu1,-2 + nu2) - 
-       2*J(-1 + nu1,-1 + nu2) - J(-1 + nu1,nu2) - 
-       J(nu1,-3 + nu2) + 3*J(nu1,-2 + nu2) - 
+      double complex A3 = (-3*(J(-3 + nu1,nu2) - 3*J(-2 + nu1,-1 + nu2) -
+       J(-2 + nu1,nu2) + 3*J(-1 + nu1,-2 + nu2) -
+       2*J(-1 + nu1,-1 + nu2) - J(-1 + nu1,nu2) -
+       J(nu1,-3 + nu2) + 3*J(nu1,-2 + nu2) -
        3*J(nu1,-1 + nu2) + J(nu1,nu2)))/16.;
-      double complex B3 = (5*J(-3 + nu1,nu2) - 15*J(-2 + nu1,-1 + nu2) + 
-     3*J(-2 + nu1,nu2) + 15*J(-1 + nu1,-2 + nu2) - 
-     18*J(-1 + nu1,-1 + nu2) + 3*J(-1 + nu1,nu2) - 
-     5*J(nu1,-3 + nu2) + 15*J(nu1,-2 + nu2) - 
+      double complex B3 = (5*J(-3 + nu1,nu2) - 15*J(-2 + nu1,-1 + nu2) +
+     3*J(-2 + nu1,nu2) + 15*J(-1 + nu1,-2 + nu2) -
+     18*J(-1 + nu1,-1 + nu2) + 3*J(-1 + nu1,nu2) -
+     5*J(nu1,-3 + nu2) + 15*J(nu1,-2 + nu2) -
      15*J(nu1,-1 + nu2) + 5*J(nu1,nu2))/16.;
-      
-      double complex out = A3 + pow(mu, 2.) * B3; 
+
+      double complex out = A3 + pow(mu, 2.) * B3;
 
       return out;
 }
 
 /**
  * Analytic expression of the integrals of the form
- * M4 = k^(-3 + 2 nu12) * int_q q|| q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2) 
+ * M4 = k^(-3 + 2 nu12) * int_q q|| q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2)
  *
- * @param nu1         Input: power of q 
+ * @param nu1         Input: power of q
  * @param nu2         Input: power of kmq
  * @return value of I(nu1,nu2)
  */
@@ -145,39 +145,39 @@ double complex M3(double complex nu1, double complex nu2, double mu)
 double complex M4(double complex nu1, double complex nu2, double mu)
 {
 
-      double complex A4 = (3*(J(-4 + nu1,nu2) - 4*J(-3 + nu1,-1 + nu2) - 4*J(-3 + nu1,nu2) + 
-       6*J(-2 + nu1,-2 + nu2) + 4*J(-2 + nu1,-1 + nu2) + 
-       6*J(-2 + nu1,nu2) - 4*J(-1 + nu1,-3 + nu2) + 
-       4*J(-1 + nu1,-2 + nu2) + 4*J(-1 + nu1,-1 + nu2) - 
-       4*J(-1 + nu1,nu2) + J(nu1,-4 + nu2) - 4*J(nu1,-3 + nu2) + 
+      double complex A4 = (3*(J(-4 + nu1,nu2) - 4*J(-3 + nu1,-1 + nu2) - 4*J(-3 + nu1,nu2) +
+       6*J(-2 + nu1,-2 + nu2) + 4*J(-2 + nu1,-1 + nu2) +
+       6*J(-2 + nu1,nu2) - 4*J(-1 + nu1,-3 + nu2) +
+       4*J(-1 + nu1,-2 + nu2) + 4*J(-1 + nu1,-1 + nu2) -
+       4*J(-1 + nu1,nu2) + J(nu1,-4 + nu2) - 4*J(nu1,-3 + nu2) +
        6*J(nu1,-2 + nu2) - 4*J(nu1,-1 + nu2) + J(nu1,nu2)))/128.;
-      double complex B4 = (-3*(5*J(-4 + nu1,nu2) - 20*J(-3 + nu1,-1 + nu2) - 4*J(-3 + nu1,nu2) + 
-       30*J(-2 + nu1,-2 + nu2) - 12*J(-2 + nu1,-1 + nu2) - 
-       2*J(-2 + nu1,nu2) - 20*J(-1 + nu1,-3 + nu2) + 
-       36*J(-1 + nu1,-2 + nu2) - 12*J(-1 + nu1,-1 + nu2) - 
-       4*J(-1 + nu1,nu2) + 5*J(nu1,-4 + nu2) - 20*J(nu1,-3 + nu2) + 
+      double complex B4 = (-3*(5*J(-4 + nu1,nu2) - 20*J(-3 + nu1,-1 + nu2) - 4*J(-3 + nu1,nu2) +
+       30*J(-2 + nu1,-2 + nu2) - 12*J(-2 + nu1,-1 + nu2) -
+       2*J(-2 + nu1,nu2) - 20*J(-1 + nu1,-3 + nu2) +
+       36*J(-1 + nu1,-2 + nu2) - 12*J(-1 + nu1,-1 + nu2) -
+       4*J(-1 + nu1,nu2) + 5*J(nu1,-4 + nu2) - 20*J(nu1,-3 + nu2) +
        30*J(nu1,-2 + nu2) - 20*J(nu1,-1 + nu2) + 5*J(nu1,nu2)))/64.;
-      double complex C4 = (35*J(-4 + nu1,nu2) - 140*J(-3 + nu1,-1 + nu2) + 20*J(-3 + nu1,nu2) + 
-      210*J(-2 + nu1,-2 + nu2) - 180*J(-2 + nu1,-1 + nu2) + 
-      18*J(-2 + nu1,nu2) - 140*J(-1 + nu1,-3 + nu2) + 
-      300*J(-1 + nu1,-2 + nu2) - 180*J(-1 + nu1,-1 + nu2) + 
-      20*J(-1 + nu1,nu2) + 35*J(nu1,-4 + nu2) - 140*J(nu1,-3 + nu2) + 
+      double complex C4 = (35*J(-4 + nu1,nu2) - 140*J(-3 + nu1,-1 + nu2) + 20*J(-3 + nu1,nu2) +
+      210*J(-2 + nu1,-2 + nu2) - 180*J(-2 + nu1,-1 + nu2) +
+      18*J(-2 + nu1,nu2) - 140*J(-1 + nu1,-3 + nu2) +
+      300*J(-1 + nu1,-2 + nu2) - 180*J(-1 + nu1,-1 + nu2) +
+      20*J(-1 + nu1,nu2) + 35*J(nu1,-4 + nu2) - 140*J(nu1,-3 + nu2) +
       210*J(nu1,-2 + nu2) - 140*J(nu1,-1 + nu2) + 35*J(nu1,nu2))/128.;
-      
-      double complex out = A4 + pow(mu, 2.) * B4 + pow(mu, 4.) * C4; 
+
+      double complex out = A4 + pow(mu, 2.) * B4 + pow(mu, 4.) * C4;
 
       return out;
 }
 
 
 /**
- * Compute the FFT coefficients and frequencies of the matter power spectrum 
- * 
- * First the matter power spectrum computed by class is extrapolated for smaller values of k to make 
- * sure the fft is well behaved at the largest scales of interest by extending the edges to scales larger 
+ * Compute the FFT coefficients and frequencies of the matter power spectrum
+ *
+ * First the matter power spectrum computed by class is extrapolated for smaller values of k to make
+ * sure the fft is well behaved at the largest scales of interest by extending the edges to scales larger
  * than the kmin we are interested in MCMC.
- * 
- * Computing fourier coeffcients of the power spectrum using fftw package requires three steps: 
+ *
+ * Computing fourier coeffcients of the power spectrum using fftw package requires three steps:
  * creating a ffw_plan, executing it with fftw_execute(plan) and destroying it with fftw_destroy_plan(plan)
  *
  * @param block        Input: cosmosis datablock
@@ -192,13 +192,13 @@ double complex M4(double complex nu1, double complex nu2, double mu)
 void FFT_compute_coeff(struct background * pba,
                        struct primordial * ppm,
                        struct fourier * pfo,
-                       double z, 
+                       double z,
                        struct fft_struct *fft_input,
                        int rsd_ir_switch,
-                       long SPLIT, 
+                       long SPLIT,
                        long hm_switch)
 {
-      int i, j, m;  
+      int i, j, m;
       int Nmax        = fft_input->nfft;
       int Nmaxf       = fft_input->nfft + 1;
       double Nmaxd    = (double)Nmax;
@@ -222,17 +222,17 @@ void FFT_compute_coeff(struct background * pba,
             // kmax_fft = 1.1e+04 ; // Misaligning
       }
       // double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
-      double Delta   = log(kmax_fft/kmin_fft)/(Nmaxd-1); 
+      double Delta   = log(kmax_fft/kmin_fft)/(Nmaxd-1);
       double *k      = make_1Darray(Nmax);
       double *pkz    = make_1Darray(Nmax);
       double *pk_bin = make_1Darray(Nmax);
       // JL change: suspicious use of either Nmax or Nmax+1 in this
-      // routine. The one below was changed to avoid memory issues, but the
-      // solution is maybe to reduce the later loop oin index_b to
+      // routine. Setting Nmax+1 avoids memory issues, but the
+      // solution is maybe to reduce the following loop in index_c to
       // index_c<MNmax.
       //double *window = make_1Darray(Nmax);
       double *window = make_1Darray(Nmax+1);
-      
+
       int mleft     = - 0.75 * Nmax/2;
       int mright    =  0.75 * Nmax/2;
       double kleft  = k[mleft];
@@ -253,7 +253,7 @@ void FFT_compute_coeff(struct background * pba,
             window[n] = 1;
             // window[n] = FFT_window(k[n], kmin_fft, kmax_fft, kleft, kright);
       }
-      
+
       for(int i=0;i<Nmax;i++){
             if(rsd_ir_switch == lin){
                   pk_bin[i] = Pk_dlnPk(pba, ppm, pfo, k[i], z, LPOWER);
@@ -265,7 +265,7 @@ void FFT_compute_coeff(struct background * pba,
                   pk_bin[i] = pm_IR_LO(pba, ppm, pfo, k[i], z, SPLIT);
             }
             // printf("all pk %12.6e %12.6e \n", k[i],pk_bin[i]);
-      }      
+      }
 
 
       /*
@@ -287,7 +287,7 @@ void FFT_compute_coeff(struct background * pba,
          js[index_c]          = (double)index_c - Nmaxd/2.;
          etam[index_c]        = 2. * M_PI *  js[index_c] / (Nmaxd * Delta);
          biased_etam[index_c] = fft_bias + _Complex_I * etam[index_c];
-      } 
+      }
       for (index_kd = 0; index_kd < Nmax; index_kd++)
          input[index_kd] = pk_bin[index_kd] * exp(- (double)index_kd * fft_bias * Delta);
 
@@ -336,7 +336,7 @@ void FFT_compute_coeff(struct background * pba,
 /**
  * Tapering window function to reduce the edge effect giving rise to ringing (See section of C of FastPT
  * @param k        Input: kvalue
- * return value of window function 
+ * return value of window function
  */
 double FFT_window(double k, double kmin, double kmax, double kleft, double kright)
 {
@@ -352,23 +352,23 @@ double FFT_window(double k, double kmin, double kmax, double kleft, double krigh
 }
 
 /**
- * The following two functions are used to compute the kmax value to be used in computaing the FFT coefficients. The kmax is set such that the low and high end 
- * of the matter power spectrum have the same value. 
- * 
- * The kmax value is determined by solving an algebraic equations using gsl_Brent solver. This routine requires a function for the equation 
+ * The following two functions are used to compute the kmax value to be used in computaing the FFT coefficients. The kmax is set such that the low and high end
+ * of the matter power spectrum have the same value.
+ *
+ * The kmax value is determined by solving an algebraic equations using gsl_Brent solver. This routine requires a function for the equation
  * This is important for loweing the amount of aliasing.FFT_kmax_Brent() and a function that solves the equation using Brent solver FFT_kmax_Brent_solver()
  *
  * parameters of FFT_kmax_Brent
  * @param kmax         Input: value of kmax to be determined by Brent solver
  * @param params       Input: integration parameters
- * @ return double    (the equation to be avaluated)    
+ * @ return double    (the equation to be avaluated)
  *
  * parameters of FFT_kmax_Brent_solver
  * @param block        Input: cosmosis data block
  * @param z            Input: redshift at which to evaluate the kmax
  * @param kmax         Input: kmin of fft grid
  * @param fft_bias     Input: number of points for fft grid
- * @return value of kmax     
+ * @return value of kmax
  */
 double FFT_kmax_Brent(double kmax, void *params)
 {
@@ -384,15 +384,15 @@ double FFT_kmax_Brent(double kmax, void *params)
 
       // fprintf(stderr, "k = %e, bias = %e, P(k) = %e, k_min**bias * P(k_min) = %e, k**bias * P(k) = %e\n", kmax, bias_fft, Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER), Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER)*pow(kmin_fft, -bias_fft), Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER)*pow(kmax, -bias_fft));
       double f = pow(kmax, -bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmax, z, LPOWER) - pow(kmin_fft, -bias_fft) * Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER);
-      
-      return f;   
+
+      return f;
 }
 
 double FFT_kmax_Brent_solver(struct background * pba,
                              struct primordial * ppm,
-                             struct fourier * pfo, 
-                             double z, 
-                             double kmin_fft, 
+                             struct fourier * pfo,
+                             double z,
+                             double kmin_fft,
                              double fft_bias)
 {
       int status;
@@ -404,14 +404,14 @@ double FFT_kmax_Brent_solver(struct background * pba,
       double k_lo = 0.01, k_hi = 20000.;
       gsl_function F;
 
-      struct integrand_parameters2 par; 
+      struct integrand_parameters2 par;
 
       par.ppm = ppm;
       par.pba = pba;
       par.pfo = pfo;
       par.p4  = z;
       par.p5  = kmin_fft;
-      par.p6  = fft_bias; 
+      par.p6  = fft_bias;
       // fprintf(stderr, "z = %e, k_min = %e, bias = %e, P(k_min) = %e, k_min**bias * P(k_min) = %e\n", z, kmin_fft, fft_bias, Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER), Pk_dlnPk(pba, ppm, pfo, kmin_fft, z, LPOWER)*pow(kmin_fft, -fft_bias));
 
       F.function = &FFT_kmax_Brent;
@@ -468,7 +468,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> pk_halo_real_nl -> IG2G200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_real_nl -> Idelta2G200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_real_nl -> I1300 = make_1Darray(pfo->k_size);
-      pfo -> pk_halo_real_nl -> FG200 = make_1Darray(pfo->k_size);  
+      pfo -> pk_halo_real_nl -> FG200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_real_nl -> P_hh = make_1Darray(pfo->k_size);
 
       // Solutions for the full linear power spectrum and the no-wiggle linear power spectrum
@@ -519,7 +519,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             pfo -> pk_halo_rsd_nl[idx] -> N12y = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> J12112x = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> J12112y = make_1Darray(pfo->k_size);
-            
+
             pfo -> pk_halo_rsd_nl[idx] -> N22x = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> N22y = make_1Darray(pfo->k_size);
             pfo -> pk_halo_rsd_nl[idx] -> N22z = make_1Darray(pfo->k_size);
@@ -534,9 +534,9 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       /* Setting the FFTLog parameters and calculating the etam and cmsym */
       for (int idx = lin; idx <= real_ir; idx++){
             pfo -> fft_ws -> fft_input[idx] -> nfft = N_FFTLog;
-            pfo -> fft_ws -> fft_input[idx] -> fft_bias_m = - 0.3;  
-            pfo -> fft_ws -> fft_input[idx] -> kmin_fft_m = kmin_fft_m;    
-            pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = - 1.6; 
+            pfo -> fft_ws -> fft_input[idx] -> fft_bias_m = - 0.3;
+            pfo -> fft_ws -> fft_input[idx] -> kmin_fft_m = kmin_fft_m;
+            pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = - 1.6;
             pfo -> fft_ws -> fft_input[idx] -> kmin_fft_g = kmin_fft_g;
 
             pfo -> fft_ws -> fft_input[idx] -> etam_m  = make_1D_c_array(N_FFTLog + 1);
@@ -546,7 +546,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
             FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input[idx], idx, 142L, MATTER);
             FFT_compute_coeff(pba, ppm, pfo, z, pfo -> fft_ws -> fft_input[idx], idx, 142L, HALO);
-      
+
       }
 
       /* Important values for the calculation */
@@ -558,12 +558,12 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       // fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
       // fprintf(stderr, "sigma_2_IR = %e\ndel_sigma_2_IR = %e\n", pfo -> fft_ws -> sigma_2_IR, pfo -> fft_ws -> del_sigma_2_IR);
 
-      /* Filling the matrices needed for the RSD. 
+      /* Filling the matrices needed for the RSD.
       Since the eta_m are representing the spacing of the power spectra, which is the same for spectra, we choose one of them to fill the matrices
       */
 
       /* 0-th moment */
-      
+
       // FFTLog matrices non-propagator
       pfo -> fft_ws -> fft_matrix -> I2200_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
       np_mat_fill(I2200, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I2200_mat);
@@ -639,7 +639,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       p_mat_fill(I1311, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> I1311_mat);
       pfo -> fft_ws -> fft_matrix -> J12111_mat = make_1D_c_array(N_FFTLog+1);
       p_mat_fill(J12111, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12111_mat);
-      
+
       /* 3-rd moment */
       // FFTLog matrices (non-propagator)
       pfo -> fft_ws -> fft_matrix -> J21112x_mat   = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
@@ -650,7 +650,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       np_mat_fill(N12x, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> N12x_mat);
       pfo -> fft_ws -> fft_matrix -> N12y_mat = make_2D_c_array(N_FFTLog+1, N_FFTLog+1);
       np_mat_fill(N12y, pfo -> fft_ws -> fft_input[lin], MATTER, pfo -> fft_ws -> fft_matrix -> N12y_mat);
-      
+
       // FFTLog matrices (propagator)
       pfo -> fft_ws -> fft_matrix -> J12112x_mat = make_1D_c_array(N_FFTLog+1);
       p_mat_fill(J12112x, pfo -> fft_ws -> fft_input[lin], HALO, pfo -> fft_ws -> fft_matrix -> J12112x_mat);
@@ -669,7 +669,7 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       return _SUCCESS_;
 }
 
-int FFTLog_rsd_free(struct background *pba, struct primordial *ppm, struct fourier *pfo, double z) {
+int FFTLog_rsd_free(struct fourier *pfo) {
 
   free(pfo -> fft_ws -> fft_matrix -> I2200_mat);
   free(pfo -> fft_ws -> fft_matrix -> Idelta200_mat);
@@ -687,11 +687,11 @@ int FFTLog_rsd_free(struct background *pba, struct primordial *ppm, struct fouri
   free(pfo -> fft_ws -> fft_matrix -> J21101_mat);
   free(pfo -> fft_ws -> fft_matrix -> Jdelta201_mat);
   free(pfo -> fft_ws -> fft_matrix -> JG201_mat);
-  
+
   free(pfo -> fft_ws -> fft_matrix -> FG201_mat);
   free(pfo -> fft_ws -> fft_matrix -> I1301p3101_mat);
   free(pfo -> fft_ws -> fft_matrix -> J12101_mat);
-  
+
   free(pfo -> fft_ws -> fft_matrix -> J21102x_mat);
   free(pfo -> fft_ws -> fft_matrix -> J21102y_mat);
   free(pfo -> fft_ws -> fft_matrix -> Jdelta202x_mat);
@@ -712,21 +712,21 @@ int FFTLog_rsd_free(struct background *pba, struct primordial *ppm, struct fouri
   free(pfo -> fft_ws -> fft_matrix -> J21112y_mat);
   free(pfo -> fft_ws -> fft_matrix -> N12x_mat);
   free(pfo -> fft_ws -> fft_matrix -> N12y_mat);
-  
+
   free(pfo -> fft_ws -> fft_matrix -> J12112x_mat);
   free(pfo -> fft_ws -> fft_matrix -> J12112y_mat);
 
   free(pfo -> fft_ws -> fft_matrix -> N22x_mat);
   free(pfo -> fft_ws -> fft_matrix -> N22y_mat);
   free(pfo -> fft_ws -> fft_matrix -> N22z_mat);
-  
+
   for (int idx = lin; idx <= real_ir; idx++){
     free(pfo -> fft_ws -> fft_input[idx] -> etam_m);
     free(pfo -> fft_ws -> fft_input[idx] -> cmsym_m);
     free(pfo -> fft_ws -> fft_input[idx] -> etam_g);
     free(pfo -> fft_ws -> fft_input[idx] -> cmsym_g);
   }
-	
+
   for (int idx = lin; idx <= no_wiggle; idx++){
     free(pfo -> pk_halo_rsd_nl[idx] -> Plin);
     free(pfo -> pk_halo_rsd_nl[idx] -> P_mm);
@@ -778,7 +778,7 @@ int FFTLog_rsd_free(struct background *pba, struct primordial *ppm, struct fouri
   for(int idx = lin; idx <= real_ir; idx++){
     free(pfo -> fft_ws -> fft_input[idx]);
   }
-    
+
   free(pfo -> fft_ws);
   free(pfo -> fft_ws -> fft_input);
   free(pfo -> fft_ws -> fft_matrix);

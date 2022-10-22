@@ -1778,8 +1778,6 @@ int fourier_init(
     }
    /* end of parallel zone */
 
-    FFTLog_rsd_init(pba, ppm, pfo, z);
-
     if (abort == _TRUE_) return _FAILURE_;
 
   }
@@ -1805,6 +1803,10 @@ int fourier_free(
                  struct fourier *pfo
                  ) {
   int index_pk;
+
+  if (pfo->method == nl_oneloopPT) {
+    FFTLog_rsd_free(pfo);
+  }
 
   if ((pfo->has_pk_matter == _TRUE_) || (pfo->method > nl_none)) {
 

@@ -13,4 +13,4 @@ double FFT_kmax_Brent(double kmax, void *params);
 double FFT_window(double k, double kmin, double kmax, double kleft, double kright);
 
 int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fourier *pfo, double z);
-int FFTLog_rsd_free(struct background *pba, struct primordial *ppm, struct fourier *pfo, double z);
+int FFTLog_rsd_free(struct fourier *pfo);
