@@ -646,7 +646,8 @@ int output_pk(
   int index_k;
   int index_z;
   int index_pk;
-
+  int k_size;
+  
   FileName file_name;
 
   char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
@@ -661,8 +662,17 @@ int output_pk(
 
   /** - allocate arrays to store the P(k) */
 
+  switch (pk_output) {
+  case pk_linear:
+    k_size = pfo->k_size_extra;
+    break;
+  case pk_nonlinear:  
+    k_size = pfo->k_size;
+    break;
+  }
+  
   class_alloc(ln_pk,
-              pfo->k_size_extra*sizeof(double),
+              k_size*sizeof(double),
               pop->error_message);
 
   if (do_ic == _TRUE_) {
@@ -841,7 +851,7 @@ int output_pk(
 
       /** - fourth, write in files */
 
-      for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
+      for (index_k=0; index_k<k_size; index_k++) {
 
         class_call(output_one_line_of_pk(out_pk,
                                          exp(pfo->ln_k[index_k])/pba->h,
@@ -849,9 +859,12 @@ int output_pk(
                                          ),
                    pop->error_message,
                    pop->error_message);
+      }
+      
+      if (do_ic == _TRUE_) {
 
-        if (do_ic == _TRUE_) {
-
+	for (index_k=0; index_k<pfo->k_size; index_k++) {
+	  
           for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
 
             if (pfo->is_non_zero[index_ic1_ic2] == _TRUE_) {

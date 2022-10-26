@@ -90,10 +90,8 @@ int fourier_pk_at_z(
   /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
 
-    for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
-
-      if (pk_output == pk_linear) {
-
+    if (pk_output == pk_linear) {
+      for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
         out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
 
         if (do_ic == _TRUE_) {
@@ -103,7 +101,9 @@ int fourier_pk_at_z(
           }
         }
       }
-      else {
+    }
+    else {
+      for (index_k=0; index_k<pfo->k_size; index_k++) {
         out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
       }
     }
@@ -138,8 +138,8 @@ int fourier_pk_at_z(
       /** --> if ln(tau) too small but within tolerance, round it and get right values without interpolating */
       ln_tau = pfo->ln_tau[0];
 
-      for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
-        if (pk_output == pk_linear) {
+      if (pk_output == pk_linear) {
+	for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
           out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][index_k];
           if (do_ic == _TRUE_) {
             for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
@@ -147,7 +147,9 @@ int fourier_pk_at_z(
             }
           }
         }
-        else {
+      }
+      else {
+	for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
           out_pk[index_k] = pfo->ln_pk_nl[index_pk][index_k];
         }
       }
@@ -163,8 +165,8 @@ int fourier_pk_at_z(
       /** --> if ln(tau) too large but within tolerance, round it and get right values without interpolating */
       ln_tau = pfo->ln_tau[pfo->ln_tau_size-1];
 
-      for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
-        if (pk_output == pk_linear) {
+      if (pk_output == pk_linear) {
+	for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
           out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1) * pfo->k_size_extra + index_k];
           if (do_ic == _TRUE_) {
             for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
@@ -172,12 +174,14 @@ int fourier_pk_at_z(
             }
           }
         }
-        else {
+      }
+      else {
+	for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
           out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1) * pfo->k_size_extra + index_k];
         }
       }
     }
-
+    
     /** -> tau is in pre-computed table: interpolate */
     else {
 
@@ -220,7 +224,7 @@ int fourier_pk_at_z(
                                             pfo->ln_tau_size,
                                             pfo->ln_pk_nl[index_pk],
                                             pfo->ddln_pk_nl[index_pk],
-                                            pfo->k_size_extra,
+                                            pfo->k_size,
                                             ln_tau,
                                             &last_index,
                                             out_pk,
