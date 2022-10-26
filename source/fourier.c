@@ -104,7 +104,7 @@ int fourier_pk_at_z(
     }
     else {
       for (index_k=0; index_k<pfo->k_size; index_k++) {
-        out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
+        out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1)*pfo->k_size+index_k];
       }
     }
   }
@@ -177,7 +177,7 @@ int fourier_pk_at_z(
       }
       else {
 	for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
-          out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1) * pfo->k_size_extra + index_k];
+          out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1) * pfo->k_size + index_k];
         }
       }
     }
@@ -1836,6 +1836,7 @@ int fourier_free(
     if (pfo->ln_tau_size>1) {
       free(pfo->ddln_pk_ic_l);
       free(pfo->ddln_pk_l);
+      free(pfo->ddln_pk_l_extra);
       free(pfo->ln_tau);
     }
 

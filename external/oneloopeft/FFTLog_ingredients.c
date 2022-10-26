@@ -671,54 +671,54 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
 int FFTLog_rsd_free(struct fourier *pfo) {
 
-  free(pfo -> fft_ws -> fft_matrix -> I2200_mat);
-  free(pfo -> fft_ws -> fft_matrix -> Idelta200_mat);
-  free(pfo -> fft_ws -> fft_matrix -> IG200_mat);
-  free(pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat);
-  free(pfo -> fft_ws -> fft_matrix -> IG2G200_mat);
-  free(pfo -> fft_ws -> fft_matrix -> Idelta2G200_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> I2200_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> Idelta200_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> IG200_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> IG2G200_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> Idelta2G200_mat);
 
   free(pfo -> fft_ws -> fft_matrix -> I1300_mat);
   free(pfo -> fft_ws -> fft_matrix -> FG200_mat);
 
-  free(pfo -> fft_ws -> fft_matrix -> I2201_mat);
-  free(pfo -> fft_ws -> fft_matrix -> Idelta201_mat);
-  free(pfo -> fft_ws -> fft_matrix -> IG201_mat);
-  free(pfo -> fft_ws -> fft_matrix -> J21101_mat);
-  free(pfo -> fft_ws -> fft_matrix -> Jdelta201_mat);
-  free(pfo -> fft_ws -> fft_matrix -> JG201_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> I2201_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> Idelta201_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> IG201_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> J21101_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> Jdelta201_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> JG201_mat);
 
   free(pfo -> fft_ws -> fft_matrix -> FG201_mat);
   free(pfo -> fft_ws -> fft_matrix -> I1301p3101_mat);
   free(pfo -> fft_ws -> fft_matrix -> J12101_mat);
 
-  free(pfo -> fft_ws -> fft_matrix -> J21102x_mat);
-  free(pfo -> fft_ws -> fft_matrix -> J21102y_mat);
-  free(pfo -> fft_ws -> fft_matrix -> Jdelta202x_mat);
-  free(pfo -> fft_ws -> fft_matrix -> Jdelta202y_mat);
-  free(pfo -> fft_ws -> fft_matrix -> JG202x_mat);
-  free(pfo -> fft_ws -> fft_matrix -> JG202y_mat);
-  free(pfo -> fft_ws -> fft_matrix -> I2211_mat);
-  free(pfo -> fft_ws -> fft_matrix -> J21111_mat);
-  free(pfo -> fft_ws -> fft_matrix -> N11x_mat);
-  free(pfo -> fft_ws -> fft_matrix -> N11y_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> J21102x_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> J21102y_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> Jdelta202x_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> Jdelta202y_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> JG202x_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> JG202y_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> I2211_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> J21111_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> N11x_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> N11y_mat);
 
   free(pfo -> fft_ws -> fft_matrix -> J12102x_mat);
   free(pfo -> fft_ws -> fft_matrix -> J12102y_mat);
   free(pfo -> fft_ws -> fft_matrix -> I1311_mat);
   free(pfo -> fft_ws -> fft_matrix -> J12111_mat);
 
-  free(pfo -> fft_ws -> fft_matrix -> J21112x_mat);
-  free(pfo -> fft_ws -> fft_matrix -> J21112y_mat);
-  free(pfo -> fft_ws -> fft_matrix -> N12x_mat);
-  free(pfo -> fft_ws -> fft_matrix -> N12y_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> J21112x_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> J21112y_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> N12x_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> N12y_mat);
 
   free(pfo -> fft_ws -> fft_matrix -> J12112x_mat);
   free(pfo -> fft_ws -> fft_matrix -> J12112y_mat);
 
-  free(pfo -> fft_ws -> fft_matrix -> N22x_mat);
-  free(pfo -> fft_ws -> fft_matrix -> N22y_mat);
-  free(pfo -> fft_ws -> fft_matrix -> N22z_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> N22x_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> N22y_mat);
+  free_2D_c_array(pfo -> fft_ws -> fft_matrix -> N22z_mat);
 
   for (int idx = lin; idx <= real_ir; idx++){
     free(pfo -> fft_ws -> fft_input[idx] -> etam_m);
@@ -774,21 +774,21 @@ int FFTLog_rsd_free(struct fourier *pfo) {
     free(pfo -> pk_halo_rsd_nl[idx] -> N22z);
     free(pfo -> pk_halo_rsd_nl[idx]);
   }
-
+  free(pfo -> pk_halo_rsd_nl);
+  
   for(int idx = lin; idx <= real_ir; idx++){
     free(pfo -> fft_ws -> fft_input[idx]);
   }
-
-  free(pfo -> fft_ws);
   free(pfo -> fft_ws -> fft_input);
   free(pfo -> fft_ws -> fft_matrix);
-  free(pfo -> pk_matter_real_nl);
-  free(pfo -> pk_halo_real_nl);
-  free(pfo -> pk_halo_rsd_nl);
+  free(pfo -> fft_ws);
+
   free(pfo -> pk_matter_real_nl -> Plin_IR);
   free(pfo -> pk_matter_real_nl -> P_mm);
   free(pfo -> pk_matter_real_nl -> I2200);
   free(pfo -> pk_matter_real_nl -> I1300);
+  free(pfo -> pk_matter_real_nl);
+  
   free(pfo -> pk_halo_real_nl -> Plin_IR);
   free(pfo -> pk_halo_real_nl -> P_mm);
   free(pfo -> pk_halo_real_nl -> I2200);
@@ -800,6 +800,7 @@ int FFTLog_rsd_free(struct fourier *pfo) {
   free(pfo -> pk_halo_real_nl -> I1300);
   free(pfo -> pk_halo_real_nl -> FG200);
   free(pfo -> pk_halo_real_nl -> P_hh);
-
+  free(pfo -> pk_halo_real_nl);
+ 
   return _FALSE_;
 }
