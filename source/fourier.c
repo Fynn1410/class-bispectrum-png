@@ -181,7 +181,7 @@ int fourier_pk_at_z(
         }
       }
     }
-    
+
     /** -> tau is in pre-computed table: interpolate */
     else {
 
@@ -1995,9 +1995,9 @@ int fourier_indices(
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++){
       class_alloc(pfo->k_nl[index_pk],pfo->tau_size*sizeof(double),pfo->error_message);
       class_alloc(pfo->nl_corr_density[index_pk],pfo->tau_size*pfo->k_size*sizeof(double),pfo->error_message);
-      class_alloc(pfo->ln_pk_nl[index_pk],pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ln_pk_nl[index_pk],pfo->ln_tau_size*pfo->k_size*sizeof(double),pfo->error_message);
       if (pfo->ln_tau_size > 1)
-        class_alloc(pfo->ddln_pk_nl[index_pk],pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
+        class_alloc(pfo->ddln_pk_nl[index_pk],pfo->ln_tau_size*pfo->k_size*sizeof(double),pfo->error_message);
     }
 
   }
