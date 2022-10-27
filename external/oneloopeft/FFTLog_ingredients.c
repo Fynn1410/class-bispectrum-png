@@ -245,8 +245,20 @@ void FFT_compute_coeff(struct background * pba,
       //       fprintf(stderr, "kmax_g = %12.6e \n", kmax_fft);
       // }
 
-      fftw_complex *biased_etam = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
-      fftw_complex *cmsym       = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
+      // changed by JL to avoid a double allocation
+      //fftw_complex *biased_etam = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
+      //fftw_complex *cmsym       = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
+      fftw_complex *biased_etam;
+      fftw_complex *cmsym;
+      // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
+      if(hm_switch == MATTER){
+            biased_etam = fft_input->etam_m;
+            cmsym = fft_input->cmsym_m;
+      }
+      else{
+            biased_etam = fft_input->etam_g;
+            cmsym = fft_input->cmsym_g;
+      }
 
       for(int n=0;n<Nmax;n++){
             k[n] = kmin_fft * exp(Delta * n);
@@ -309,7 +321,9 @@ void FFT_compute_coeff(struct background * pba,
       cmsym[0]    = cmsym[0]/2.;
       cmsym[Nmax] = cmsym[Nmax]/2.;
 
+      // supressed by JL since this was done before
       // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
+      /*
       if(hm_switch == MATTER){
             fft_input->etam_m  = biased_etam;
             fft_input->cmsym_m = cmsym;
@@ -318,6 +332,7 @@ void FFT_compute_coeff(struct background * pba,
             fft_input->etam_g  = biased_etam;
             fft_input->cmsym_g = cmsym;
       }
+      */
 
       fftw_destroy_plan(my_plan);
       fftw_free(input);
@@ -775,7 +790,7 @@ int FFTLog_rsd_free(struct fourier *pfo) {
     free(pfo -> pk_halo_rsd_nl[idx]);
   }
   free(pfo -> pk_halo_rsd_nl);
-  
+
   for(int idx = lin; idx <= real_ir; idx++){
     free(pfo -> fft_ws -> fft_input[idx]);
   }
@@ -788,7 +803,7 @@ int FFTLog_rsd_free(struct fourier *pfo) {
   free(pfo -> pk_matter_real_nl -> I2200);
   free(pfo -> pk_matter_real_nl -> I1300);
   free(pfo -> pk_matter_real_nl);
-  
+
   free(pfo -> pk_halo_real_nl -> Plin_IR);
   free(pfo -> pk_halo_real_nl -> P_mm);
   free(pfo -> pk_halo_real_nl -> I2200);
@@ -801,6 +816,6 @@ int FFTLog_rsd_free(struct fourier *pfo) {
   free(pfo -> pk_halo_real_nl -> FG200);
   free(pfo -> pk_halo_real_nl -> P_hh);
   free(pfo -> pk_halo_real_nl);
- 
+
   return _FALSE_;
 }
