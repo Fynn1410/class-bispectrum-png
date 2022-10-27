@@ -55,8 +55,9 @@ void P_mm_FFTLog(struct fourier *pfo, int index_k, double Plin)
       // non-propagator calculations
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2200_mat, vec_m, Nmax+1, &np[0]);
 
-      // JL change
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
+
+      free(vec_m);
 
       // adding factored out k and mu dependencies
       pfo -> pk_matter_real_nl -> I2200[index_k] = pow(k, 3.) * np[0];
@@ -97,6 +98,10 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
 
       double Idelta2delta200_const;
       c_nonprop(vec_h_min, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
+
+      free(vec_m);
+      free(vec_h);
+      free(vec_h_min);
 
       // propagator calculations
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
