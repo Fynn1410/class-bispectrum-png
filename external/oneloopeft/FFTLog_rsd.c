@@ -1,25 +1,25 @@
-/** @file FFTLog_galaxy_real.c Documented FFT-Log based 1loop integrals of galaxy/halo cpow spectrum in perturbation theory 
- * 
+/** @file FFTLog_galaxy_real.c Documented FFT-Log based 1loop integrals of galaxy/halo cpow spectrum in perturbation theory
+ *
  * Azadeh Moradinezhad Dizgah, June 16th 2021
  *
  * This module performs fast computation of the integrals appearing in the expression of 1loop galaxy/halo cpow sprtcurm.
- * The computation can be performed either in real or redshift-space. IR-resummation and EFT counter terms are included. 
+ * The computation can be performed either in real or redshift-space. IR-resummation and EFT counter terms are included.
  * The integrals are computed uccccsing FFTLog techniques.
  *
- * The algorithm closely follows Ref. arXiv:1708.08130 by Simonovic et al. After computing the FFT coefficents of matter cpow spectrum, 
- * sampled in logarithmic scale, the algorithm involves re-casting the integrals into a form that is analytically calculable (Matrices M_ij, 
- * which can be written in terms of ratios of Gamma functions) and finally performing vactor-matrix-vector or matrix-vector multiplications. 
+ * The algorithm closely follows Ref. arXiv:1708.08130 by Simonovic et al. After computing the FFT coefficents of matter cpow spectrum,
+ * sampled in logarithmic scale, the algorithm involves re-casting the integrals into a form that is analytically calculable (Matrices M_ij,
+ * which can be written in terms of ratios of Gamma functions) and finally performing vactor-matrix-vector or matrix-vector multiplications.
  *
  * An imporccctant feauture of fast computation of loop integrals is that all the ccosmology-dependance of the loop integrals is captured by the FFT coeffcients
- * which have ~NlogN complexity. The matrices involving the Gamma functions, are computed only once, and at each of MCMC varying ccosmological parmaters, 
+ * which have ~NlogN complexity. The matrices involving the Gamma functions, are computed only once, and at each of MCMC varying ccosmological parmaters,
  * these coeffcients are evaluated for all k-values at once and then vector-matrix-vector multiplication are computed.
  *
  * The FFT coeffcients are computed uccccsing FFTW package, while the vector-matrix-vector computations are performed uccccsing blas library implemented in gsl.
- * The analytic formulas for M_ij matrices are computed in Mathematica uccccsing a modified version of the publicaly available notebook by Simpnovic. 
- * 
- * The choice of number of points for FFT decomposition of the cpow spectrum is very imporccctant, in terms of accuracy and execusion time. 
+ * The analytic formulas for M_ij matrices are computed in Mathematica uccccsing a modified version of the publicaly available notebook by Simpnovic.
+ *
+ * The choice of number of points for FFT decomposition of the cpow spectrum is very imporccctant, in terms of accuracy and execusion time.
  * For halo loops, if chooccccsing 512 points *which takes ~ 0.45 seconds, I do get subpercent descrepencies between direct numeric integration of the loops.
- * The best value seem to be around 600 points, which takes ~ 0.6 seconds and is in exquisit agreement with direct integration. 
+ * The best value seem to be around 600 points, which takes ~ 0.6 seconds and is in exquisit agreement with direct integration.
  *
  * In summary, the following functions can be called from other modules:
  * -# pgloops_nonpropag()
@@ -40,13 +40,13 @@
 
 /**
  * Compute the non-propagator type loop contribution to non-linear galaxy cpow spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
- * 
+ *
  * @param fft_input    Input: structure containing fft coefficents and params
- * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param k             Input: wavenumber in unit of h/Mpc.
  * @param z             Input: redshift
  * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_M_PIpeline
  * @param pg_loops      Output: an array containing the values of galaxy loop corrections
- * @return void           
+ * @return void
  */
 
 void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
@@ -56,7 +56,7 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
       double *np = make_1Darray(6);
       double *p  = make_1Darray(2);
-      
+
       // Linear cpow Spectrum vector for halos
       double complex *vec_h = make_1D_c_array(Nmax+1);
       vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, HALO, vec_h);
@@ -67,7 +67,7 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       // Linear cpow Spectrum vector for matter
       double complex *vec_m = make_1D_c_array(Nmax+1);
       vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
-      
+
       // non-propagator calculations
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2200_mat,           vec_m, Nmax+1, &np[0]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta200_mat,       vec_h, Nmax+1, &np[1]);
@@ -75,14 +75,18 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat, vec_h, Nmax+1, &np[3]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> IG2G200_mat,         vec_h, Nmax+1, &np[4]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta2G200_mat,     vec_h, Nmax+1, &np[5]);
-      
+
       double Idelta2delta200_const;
       c_nonprop(vec_h_min, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
 
       // propagator calculations
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> FG200_mat, Nmax+1, &p[1]);
-           
+
+      free(vec_m);
+      free(vec_h);
+      free(vec_h_min);
+
       // adding factored out k and mu dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I2200[index_k]           = pow(k, 3.) * np[0];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta200[index_k]       = pow(k, 3.) * np[1];
@@ -105,13 +109,13 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
 /**
  * Compute the non-propagator type loop contribution to non-linear galaxy power spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
- * 
+ *
  * @param fft_input    Input: structure containing fft coefficents and params
- * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param k             Input: wavenumber in unit of h/Mpc.
  * @param z             Input: redshift
  * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_M_PIpeline
  * @param pg_loops      Output: an array containing the values of galaxy loop corrections
- * @return void           
+ * @return void
  */
 
 void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
@@ -128,7 +132,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
       double complex *vec_m = make_1D_c_array(Nmax+1);
       vec_fill(pfo -> fft_ws -> fft_input[rsd_idx], k, MATTER, vec_m);
-      
+
       // non-propagator calculations
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> I2201_mat,     vec_m, Nmax+1, &np[0]);
       c_nonprop(vec_h, pfo -> fft_ws -> fft_matrix -> Idelta201_mat, vec_h, Nmax+1, &np[1]);
@@ -141,6 +145,9 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> FG201_mat, Nmax+1, &p[0]);
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1301p3101_mat,  Nmax+1, &p[1]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12101_mat, Nmax+1, &p[2]);
+
+      free(vec_m);
+      free(vec_h);
 
       // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k]     = pow(k, 3.) * np[0];
@@ -156,7 +163,7 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
 
-      
+
       double mu = 1.;
 
       double I2201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k];
@@ -183,13 +190,13 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
 /**
  * Compute the non-propagator type loop contribution to non-linear galaxy cpow spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
- * 
+ *
  * @param fft_input    Input: structure containing fft coefficents and params
- * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param k             Input: wavenumber in unit of h/Mpc.
  * @param z             Input: redshift
  * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_M_PIpeline
  * @param pg_loops      Output: an array containing the values of galaxy loop corrections
- * @return void           
+ * @return void
  */
 
 void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
@@ -225,8 +232,11 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1311_mat,   Nmax+1, &p[2]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12111_mat,  Nmax+1, &p[3]);
 
+      free(vec_m);
+      free(vec_h);
+
       // adding factored out k dependencies
-      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k]    = pow(k, 3.) * np[0] / pow(k, 2.); 
+      pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102x[index_k]    = pow(k, 3.) * np[0] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21102y[index_k]    = pow(k, 3.) * np[1] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202x[index_k] = pow(k, 3.) * np[2] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta202y[index_k] = pow(k, 3.) * np[3] / pow(k, 2.);
@@ -254,13 +264,13 @@ void rsd_2_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
 /**
  * Compute the non-propagator type loop contribution to non-linear galaxy cpow spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
- * 
+ *
  * @param fft_input    Input: structure containing fft coefficents and params
- * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param k             Input: wavenumber in unit of h/Mpc.
  * @param z             Input: redshift
  * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_M_PIpeline
  * @param pg_loops      Output: an array containing the values of galaxy loop corrections
- * @return void           
+ * @return void
  */
 
 void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
@@ -288,6 +298,9 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12112x_mat, Nmax+1, &p[0]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> J12112y_mat, Nmax+1, &p[1]);
 
+      free(vec_m);
+      free(vec_h);
+
       // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112x[index_k] = pow(k, 3.) * np[0] / pow(k, 2.);
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J21112y[index_k] = pow(k, 3.) * np[1] / pow(k, 2.);
@@ -308,13 +321,13 @@ void rsd_3_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
 /**
  * Compute the non-propagator type loop contribution to non-linear galaxy cpow spectrum given the FFTLog coefficents and frequencies (Eq. 2.38, 2.39, 2.41, 2.42, 2.43 of Simonovic 2017)
- * 
+ *
  * @param fft_input    Input: structure containing fft coefficents and params
- * @param k             Input: wavenumber in unit of h/Mpc. 
+ * @param k             Input: wavenumber in unit of h/Mpc.
  * @param z             Input: redshift
  * @param cleanup       Input: switch whether to free the M_ij matrix. Only freed at the end of the M_M_M_PIpeline
  * @param pg_loops      Output: an array containing the values of galaxy loop corrections
- * @return void           
+ * @return void
  */
 
 void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
@@ -333,6 +346,8 @@ void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N22y_mat, vec_m, Nmax+1, &np[1]);
       c_nonprop(vec_m, pfo -> fft_ws -> fft_matrix -> N22z_mat, vec_m, Nmax+1, &np[2]);
 
+      free(vec_m);
+
       // adding factored out k dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22x[index_k] = pow(k, 3.) / pow(k, 4.) * np[0];
       pfo -> pk_halo_rsd_nl[rsd_idx] -> N22y[index_k] = pow(k, 3.) / pow(k, 4.) * np[1];
@@ -347,7 +362,7 @@ void rsd_4_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
 double complex I2200(double complex n1, double complex n2)
 {
-      double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(58. + 98.*cpow(n1,3.)*n2 + (3. - 91.*n2)*n2 + 
+      double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(58. + 98.*cpow(n1,3.)*n2 + (3. - 91.*n2)*n2 +
        7.*cpow(n1,2.)*(-13. - 2.*n2 + 28.*cpow(n2,2)) + n1*(3. + 2.*n2*(-73. + 7.*n2*(-1. + 7.*n2)))));
       double complex denominator = (392.*n1*(1. + n1)*(-1. + 2.*n1)*n2*(1. + n2)*(-1. + 2.*n2));
       double complex out         = numerator/denominator * J(n1, n2);
@@ -422,13 +437,13 @@ double complex FG200(double complex n1)
 
 double complex I2201(double complex n1, double complex n2)
 {
-      double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(46. + 98.*cpow(n1,3.)*n2 + (13. - 63.*n2)*n2 + 
+      double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(46. + 98.*cpow(n1,3.)*n2 + (13. - 63.*n2)*n2 +
        7.*cpow(n1,2.)*(-9. + 2.*n2*(-5. + 14.*n2)) + n1*(13. + 2.*n2*(-69. + 7.*n2*(-5. + 7.*n2)))));
       double complex denominator = (392.*n1*(1. + n1)*(-1. + 2.*n1)*n2*(1. + n2)*(-1. + 2.*n2));
       double complex out         = numerator/denominator * J(n1, n2);
 
       return out;
-} 
+}
 
 double complex I1301p3101(double complex n1)
 {
@@ -437,7 +452,7 @@ double complex I1301p3101(double complex n1)
       double complex out         = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex Idelta201(double complex n1, double complex n2)
 {
@@ -446,7 +461,7 @@ double complex Idelta201(double complex n1, double complex n2)
       double complex out         = numerator/denominator * J(n1, n2);
 
       return out;
-} 
+}
 
 double complex IG201(double complex n1, double complex n2)
 {
@@ -455,7 +470,7 @@ double complex IG201(double complex n1, double complex n2)
       double complex out         = numerator/denominator * J(n1, n2);
 
       return out;
-} 
+}
 
 double complex FG201(double complex n1)
 {
@@ -465,7 +480,7 @@ double complex FG201(double complex n1)
       double complex out         = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J12101(double complex n1)
 {
@@ -474,7 +489,7 @@ double complex J12101(double complex n1)
       double complex out         = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J21101(double complex n1, double complex n2)
 {
@@ -483,7 +498,7 @@ double complex J21101(double complex n1, double complex n2)
       double complex out         = numerator/denominator * M1(n1, n2);
 
       return out;
-} 
+}
 
 double complex Jdelta201(double complex n1, double complex n2)
 {
@@ -492,7 +507,7 @@ double complex Jdelta201(double complex n1, double complex n2)
       double complex out         = numerator/denominator * M1(n1, n2);
 
       return out;
-} 
+}
 
 double complex JG201(double complex n1, double complex n2)
 {
@@ -501,7 +516,7 @@ double complex JG201(double complex n1, double complex n2)
       double complex out         = numerator/denominator * M1(n1, n2);
 
       return out;
-} 
+}
 
 /*
       _________________ 2-nd Moment _______________________
@@ -514,7 +529,7 @@ double complex J12102x(double complex n1)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J12102y(double complex n1)
 {
@@ -523,7 +538,7 @@ double complex J12102y(double complex n1)
       double complex out = summand1 + summand2;
 
       return out;
-} 
+}
 
 double complex J21102x(double complex n1, double complex n2)
 {
@@ -533,18 +548,18 @@ double complex J21102x(double complex n1, double complex n2)
       double complex out = - numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J21102y(double complex n1, double complex n2)
 {
-      double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(34. + n1 + n2 + 56.*cpow(n1,3.)*n2 - 54.*cpow(n2,2.) + 
+      double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(34. + n1 + n2 + 56.*cpow(n1,3.)*n2 - 54.*cpow(n2,2.) +
        2.*cpow(n1,2.)*(-27. - 2.*n2 + 56.*cpow(n2,2.)) + 4.*n1*n2*(-21. + n2*(-1. + 14.*n2)))*Gamma(-2.*n1)*Gamma(-2.*n2)*
        Gamma(2.*(-2. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
       double complex denominator = (28.*(1. + n1)*(1. + n2)*cpow(M_PI,3.));
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex Jdelta202x(double complex n1, double complex n2)
 {
@@ -553,7 +568,7 @@ double complex Jdelta202x(double complex n1, double complex n2)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex Jdelta202y(double complex n1, double complex n2)
 {
@@ -562,7 +577,7 @@ double complex Jdelta202y(double complex n1, double complex n2)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex JG202x(double complex n1, double complex n2)
 {
@@ -571,7 +586,7 @@ double complex JG202x(double complex n1, double complex n2)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex JG202y(double complex n1, double complex n2)
 {
@@ -580,17 +595,17 @@ double complex JG202y(double complex n1, double complex n2)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex I2211(double complex n1, double complex n2)
 {
-      double complex numerator   =((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(50. + 98.*cpow(n1,3.)*n2 - n2*(9. + 35.*n2) + 
+      double complex numerator   =((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(50. + 98.*cpow(n1,3.)*n2 - n2*(9. + 35.*n2) +
        7.*cpow(n1,2.)*(-5. + 2.*n2*(-9. + 14.*n2)) + n1*(-9. + 2.*n2*(-33. + 7.*n2*(-9. + 7.*n2)))));
       double complex denominator = (392.*n1*(1. + n1)*(-1. + 2.*n1)*n2*(1. + n2)*(-1. + 2.*n2));
       double complex out = numerator/denominator * J(n1,n2);
 
       return out;
-} 
+}
 
 double complex I1311(double complex n1)
 {
@@ -599,7 +614,7 @@ double complex I1311(double complex n1)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J12111(double complex n1)
 {
@@ -608,7 +623,7 @@ double complex J12111(double complex n1)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J21111(double complex n1, double complex n2)
 {
@@ -617,7 +632,7 @@ double complex J21111(double complex n1, double complex n2)
       double complex out = numerator/denominator * M1(n1,n2);
 
       return out;
-} 
+}
 
 double complex N11x(double complex n1, double complex n2)
 {
@@ -627,23 +642,23 @@ double complex N11x(double complex n1, double complex n2)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex N11y(double complex n1, double complex n2)
 {
       double complex numerator   = ((-1. + 2.*n1 + 2.*n2)*(((-3. + n1 + n2)*cpow(-2. + n1 + n2,2.)*(-3. + 2.*n1 + 2.*n2)*cpow(M_PI,1.5)*
-          ((Gamma(2.5 - n1)*Gamma(1.5 - n2)*Gamma(-2.5 + n1 + n2))/(Gamma(-1. + n1)*Gamma(4. - n1 - n2)*Gamma(n2)) + 
-            (Gamma(1.5 - n1)*(-((Gamma(2.5 - n2)*Gamma(-2.5 + n1 + n2))/(Gamma(4. - n1 - n2)*Gamma(-1. + n2))) + 
+          ((Gamma(2.5 - n1)*Gamma(1.5 - n2)*Gamma(-2.5 + n1 + n2))/(Gamma(-1. + n1)*Gamma(4. - n1 - n2)*Gamma(n2)) +
+            (Gamma(1.5 - n1)*(-((Gamma(2.5 - n2)*Gamma(-2.5 + n1 + n2))/(Gamma(4. - n1 - n2)*Gamma(-1. + n2))) +
                  (Gamma(1.5 - n2)*Gamma(-1.5 + n1 + n2))/(Gamma(3. - n1 - n2)*Gamma(n2))))/Gamma(n1)))/
         (n1*(-3. + 2.*n1)*n2*(-1. + 2.*n2)) + (2.*(-3. + 2.*n1)*Gamma(2. - 2.*n1)*Gamma(1. - 2.*n2)*Gamma(2.*(-1. + n1 + n2))*
-          csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI))/(n1*n2) + 
+          csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI))/(n1*n2) +
        (4.*(-1. + 2.*n1)*Gamma(-2.*n1)*Gamma(2. - 2.*n2)*Gamma(2.*(-1. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI))/
         (1. + n1)));
       double complex denominator = (16.*(-2. + n1 + n2)*cpow(M_PI,3.));
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 
 /*
@@ -658,18 +673,18 @@ double complex J21112x(double complex n1, double complex n2)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J21112y(double complex n1, double complex n2)
 {
-      double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(26. + 56.*cpow(n1,3.)*n2 + (9. - 38.*n2)*n2 + 
+      double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(26. + 56.*cpow(n1,3.)*n2 + (9. - 38.*n2)*n2 +
        2.*cpow(n1,2.)*(-19. + 2.*n2*(-9. + 28.*n2)) + n1*(9. + 4.*n2*(-21. + n2*(-9. + 14.*n2))))*Gamma(-2.*n1)*Gamma(-2.*n2)*
        Gamma(2.*(-2. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
       double complex denominator = (28.*(1. + n1)*(1. + n2)*cpow(M_PI,3));
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J12112x(double complex n1)
 {
@@ -678,7 +693,7 @@ double complex J12112x(double complex n1)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 double complex J12112y(double complex n1)
 {
@@ -687,24 +702,24 @@ double complex J12112y(double complex n1)
       double complex out = numerator/denominator;
 
       return out;
-} 
+}
 
 
 double complex N12x(double complex n1, double complex n2)
 {
       double complex numerator1   = (3.*(-1. + 2.*n1 + 2.*n2)*Gamma(2. - 2.*n1)*Gamma(-2.*n2)*Gamma(2.*(-1. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
       double complex denominator1 = (8.*n1*(1. + n1)*(-2. + n1 + n2)*cpow(M_PI,3.));
-      
+
       double complex numerator2   = -(3.*n2*(-1. + 2.*n1 + 2.*n2)*Gamma(2. - 2.*n1)*Gamma(-2.*n2)*Gamma(2.*(-1. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
       double complex denominator2 = (4.*n1*(1. + n1)*(-2. + n1 + n2)*cpow(M_PI,3.));
-      
+
       double complex numerator3   = (Gamma(-2.*n1)*Gamma(2. - 2.*n2)*Gamma(2.*(n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
       double complex denominator3 = (8.*(1. + n1)*n2*(-1. + n1 + n2)*cpow(M_PI,3.));
 
       double complex out = numerator1/denominator1 + numerator2/denominator2 + numerator3/denominator3;
 
       return out;
-} 
+}
 
 double complex N12y(double complex n1, double complex n2)
 {
@@ -734,7 +749,7 @@ double complex N22x(double complex n1, double complex n2)
       double complex out = numerator1/denominator1 + numerator2/denominator2;
 
       return out;
-} 
+}
 
 double complex N22y(double complex n1, double complex n2)
 {
@@ -760,7 +775,7 @@ double complex N22y(double complex n1, double complex n2)
       double complex out = numerator1/denominator1 + numerator2/denominator2 + numerator3/denominator3 + numerator4/denominator4 + numerator5/denominator5;
 
       return out;
-} 
+}
 
 double complex N22z(double complex n1, double complex n2)
 {
@@ -779,4 +794,4 @@ double complex N22z(double complex n1, double complex n2)
       double complex out = numerator1/denominator1 + numerator2/denominator2 + numerator3/denominator3;
 
       return out;
-} 
+}

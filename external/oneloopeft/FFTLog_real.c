@@ -99,13 +99,13 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
       double Idelta2delta200_const;
       c_nonprop(vec_h_min, pfo -> fft_ws -> fft_matrix -> Idelta2delta200_mat, vec_h_min, Nmax+1, &Idelta2delta200_const);
 
-      free(vec_m);
-      free(vec_h);
-      free(vec_h_min);
-
       // propagator calculations
       c_dot(vec_m, pfo -> fft_ws -> fft_matrix -> I1300_mat, Nmax+1, &p[0]);
       c_dot(vec_h, pfo -> fft_ws -> fft_matrix -> FG200_mat, Nmax+1, &p[1]);
+
+      free(vec_m);
+      free(vec_h);
+      free(vec_h_min);
 
       // adding factored out k and mu dependencies
       pfo -> pk_halo_real_nl -> I2200[index_k]           = pow(k, 3.) * np[0];
