@@ -152,10 +152,14 @@ int output_init(
 
     if (pfo->method != nl_none) {
 
-      class_call(output_pk(pba,ppt,pfo,pop,pk_nonlinear),
-                 pop->error_message,
-                 pop->error_message);
-
+      if (pfo->method == nl_oneloopPT) {
+        fprintf(stdout,"[Warning:] with the oneloop method, we didn't impelemented yet the writting of P_NL in an output file (but you can still get it from the python wrapper).");
+      }
+      else {
+        class_call(output_pk(pba,ppt,pfo,pop,pk_nonlinear),
+                   pop->error_message,
+                   pop->error_message);
+      }
     }
   }
 
@@ -647,7 +651,7 @@ int output_pk(
   int index_z;
   int index_pk;
   int k_size;
-  
+
   FileName file_name;
 
   char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
@@ -660,17 +664,21 @@ int output_pk(
   if ((pk_output == pk_linear) && (pfo->ic_size > 1))
     do_ic = _TRUE_;
 
+  class_test((pk_output == pk_nonlinear) && (pfo->method == nl_oneloopPT),
+             pfo->error_message,
+             "This function is not yet compatible with the oneloop method - this is no problem as long as you wish to get P_NL from the python wrapper, but it may have to be implemented for writting P_NL in output file \n");
+
   /** - allocate arrays to store the P(k) */
 
   switch (pk_output) {
   case pk_linear:
     k_size = pfo->k_size_extra;
     break;
-  case pk_nonlinear:  
+  case pk_nonlinear:
     k_size = pfo->k_size;
     break;
   }
-  
+
   class_alloc(ln_pk,
               k_size*sizeof(double),
               pop->error_message);
@@ -860,11 +868,11 @@ int output_pk(
                    pop->error_message,
                    pop->error_message);
       }
-      
+
       if (do_ic == _TRUE_) {
 
 	for (index_k=0; index_k<pfo->k_size; index_k++) {
-	  
+
           for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
 
             if (pfo->is_non_zero[index_ic1_ic2] == _TRUE_) {

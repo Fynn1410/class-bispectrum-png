@@ -210,14 +210,16 @@ void FFT_compute_coeff(struct background * pba,
       if(hm_switch == MATTER){
             fft_bias = fft_input->fft_bias_m;
             kmin_fft = fft_input->kmin_fft_m;
-            kmax_fft = 1.287508e+02; // Model 2 parameters for Model 1 testing
+            kmax_fft = 1.e3; // Azadeh's suggested value
+            // kmax_fft = 1.287508e+02; // Model 2 parameters for Model 1 testing
             // kmax_fft = 1.282917e+02; // Model 1 parameters for Model 2 testing
             // kmax_fft = 1.4e+02; // Misaligning
       }
       else{
             fft_bias = fft_input->fft_bias_g;
             kmin_fft = fft_input->kmin_fft_g;
-            kmax_fft = 1.027477e+04; // Model 2 parameters for Model 1 testing
+            kmax_fft = 4.e3; // Azadeh's suggested value
+            // kmax_fft = 1.027477e+04; // Model 2 parameters for Model 1 testing
             // kmax_fft = 9.879399e+03; // Model 1 parameters for Model 2 testing
             // kmax_fft = 1.1e+04 ; // Misaligning
       }
@@ -542,8 +544,10 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
       /* FFTLog parameters */
       int    N_FFTLog   = 256; // fast -> 128, precise -> 256
-      double kmin_fft_m = 1.e-8;
-      double kmin_fft_g = 1.e-4;
+      double kmin_fft_m = 1.e-6;
+      double kmin_fft_g = 1.e-6;
+      // double kmin_fft_m = 1.e-8;
+      // double kmin_fft_g = 1.e-4;
 
 
       /* Setting the FFTLog parameters and calculating the etam and cmsym */
@@ -551,7 +555,8 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
             pfo -> fft_ws -> fft_input[idx] -> nfft = N_FFTLog;
             pfo -> fft_ws -> fft_input[idx] -> fft_bias_m = - 0.3;
             pfo -> fft_ws -> fft_input[idx] -> kmin_fft_m = kmin_fft_m;
-            pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = - 1.6;
+            pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = -1.55;
+            // pfo -> fft_ws -> fft_input[idx] -> fft_bias_g = - 1.6;
             pfo -> fft_ws -> fft_input[idx] -> kmin_fft_g = kmin_fft_g;
 
             pfo -> fft_ws -> fft_input[idx] -> etam_m  = make_1D_c_array(N_FFTLog + 1);

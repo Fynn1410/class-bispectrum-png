@@ -169,8 +169,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         FG200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> FG200[index_k];
 
         Moment_0[idx] = + (pow(b1,2.)*(2.*I2200[idx] + 6.*I1300[idx]) + 2.*b1*b2*Idelta200[idx] + 4.*b1*bG2*IG200[idx] \
-                        + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*b1*(bG2 + 0.4*btd)*FG200[idx]) *D4 \
-                        - 2.*c00*pow(k,2.)*Plin[idx] *D2;
+                           + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*b1*(bG2 + 0.4*btd)*FG200[idx]) *D4;
+        //- 2.*c00*pow(k,2.)*Plin[idx] *D2;
 
         //1-st moment
         I2201[idx]      = pfo -> pk_halo_rsd_nl[idx] -> I2201[index_k];
@@ -185,8 +185,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         J11201[idx]     = pfo -> pk_halo_rsd_nl[idx] -> J11201[index_k] * mu;
 
         Moment_1[idx] =   2. * (f*mu/k) * (2.*b1*I2201[idx] + 3.*b1*I1301p3101[idx] + b2*Idelta201[idx] + 2.*bG2*IG201[idx] + 4.*(bG2 + 0.4*btd)*FG201[idx]) *D4\
-                        + 2. * (2.*f)    * (pow(b1,2.)*(J12101[idx] + J11201[idx] + J21101[idx]) + 0.5*b1*b2*Jdelta201[idx] + b1*bG2*JG201[idx]) *D4\
-                        + c10*f*mu*k*Plin[idx] *D2;
+          + 2. * (2.*f)    * (pow(b1,2.)*(J12101[idx] + J11201[idx] + J21101[idx]) + 0.5*b1*b2*Jdelta201[idx] + b1*bG2*JG201[idx]) *D4;
+        //+ c10*f*mu*k*Plin[idx] *D2;
 
         //2-nd moment
         J21102x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> J21102x[index_k];
@@ -213,8 +213,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         Moment_2[idx] = + 2. * pow(f*mu/k,2.) * (2.*I2211[idx] + 6.*I1311[idx]) *D4\
                         + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[idx] + J11211[idx] + J21111[idx])) *D4\
                         + 2. * pow(f,2.) * (pow(b1,2.)*N11[idx]) *D4\
-                        + 2. * pow(f,2.) * (4.*b1*J12102[idx] + 2.*b1*J21102[idx] + b2*Jdelta202[idx] + 2.*bG2*JG202[idx] - pow(b1,2.)*Plin[idx]*sigma_v2) *D4\
-                        - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[idx] *D2;
+          + 2. * pow(f,2.) * (4.*b1*J12102[idx] + 2.*b1*J21102[idx] + b2*Jdelta202[idx] + 2.*bG2*JG202[idx] - pow(b1,2.)*Plin[idx]*sigma_v2) *D4;
+        //- 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[idx] *D2;
 
         //3-rd moment
         J21112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112x[index_k];
@@ -230,8 +230,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         Moment_3[idx] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[idx]*sigma_v2 *D4\
                         + 12.* pow(f,3.)*(mu/k) * (J21112[idx] + 2.*J12112[idx]) *D4\
                         - 6. * pow(f,3.)*(mu/k) * b1*Plin[idx]*sigma_v2 *D4\
-                        + 12.* pow(f,3.) * b1*N12[idx] *D4\
-                        + 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[idx] *D2;
+          + 12.* pow(f,3.) * b1*N12[idx] *D4;
+        //+ 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[idx] *D2;
 
         //4-th moment
         N22x[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22x[index_k];
@@ -240,12 +240,14 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         N22[idx]  = (N22x[idx] + N22y[idx] * pow(mu,2.) + N22z[idx] * pow(mu,4.));
 
         Moment_4[idx] = -24. * pow(f,4.)*pow(mu/k,2.) * Plin[idx]*sigma_v2 *D4\
-                        +12. * pow(f,4.) * N22[idx] *D4\
-                        +24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[idx] *D2;
+          +12. * pow(f,4.) * N22[idx] *D4;
+        //+24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[idx] *D2;
 
         //RSD expansion
         RSD[idx] = Moment_0[idx] + k*mu * Moment_1[idx] + (1./2.) * pow(k*mu,2.) * Moment_2[idx] \
-                 + (1./6.) * pow(k*mu,3.) * Moment_3[idx] + (1./24.) * pow(k*mu,4.) * Moment_4[idx];
+          + (1./6.) * pow(k*mu,3.) * Moment_3[idx] + (1./24.) * pow(k*mu,4.) * Moment_4[idx] \
+          + (c00 + c10*f*pow(mu,2) + c22*pow(f,2)*pow(mu,4) + c32*pow(f,3)*pow(mu,6.))*pow(k,2)*Plin[idx]*D2;
+
     }
 
     double P_wiggle = Plin[lin] - Plin[no_wiggle];

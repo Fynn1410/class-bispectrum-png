@@ -1259,7 +1259,8 @@ cdef class Class:
             I1300[:]           = loops['I1300'][:,index_k]
             FG200[:]           = loops['FG200'][:,index_k]
 
-            Moment_0[:] = (pow(b1,2.)*(2.*I2200[:] + 6.*I1300[:]) + 2.*b1*b2*Idelta200[:] + 4.*b1*bG2*IG200[:] + 0.5*pow(b2,2.)*Idelta2delta200[:] + 2.*pow(bG2,2.)*IG2G200[:] + 8.*b1*(bG2 + 0.4*btd)*FG200[:]) *D4 - 2.*c00*pow(k,2.)*Plin[:] *D2;
+            Moment_0[:] = (pow(b1,2.)*(2.*I2200[:] + 6.*I1300[:]) + 2.*b1*b2*Idelta200[:] + 4.*b1*bG2*IG200[:] + 0.5*pow(b2,2.)*Idelta2delta200[:] + 2.*pow(bG2,2.)*IG2G200[:] + 8.*b1*(bG2 + 0.4*btd)*FG200[:]) *D4
+            # - 2.*c00*pow(k,2.)*Plin[:] *D2;
 
             # 1-st moment
 
@@ -1274,7 +1275,8 @@ cdef class Class:
             J12101[:]     = loops['J12101'][:,index_k] * mu;
             J11201[:]     = loops['J11201'][:,index_k] * mu;
 
-            Moment_1[:] =   2. * (f*mu/k) * (2.*b1*I2201[:] + 3.*b1*I1301p3101[:] + b2*Idelta201[:] + 2.*bG2*IG201[:] + 4.*(bG2 + 0.4*btd)*FG201[:]) *D4 + 2. * (2.*f)    * (pow(b1,2.)*(J12101[:] + J11201[:] + J21101[:]) + 0.5*b1*b2*Jdelta201[:] + b1*bG2*JG201[:]) *D4 + c10*f*mu*k*Plin[:] *D2;
+            Moment_1[:] =   2. * (f*mu/k) * (2.*b1*I2201[:] + 3.*b1*I1301p3101[:] + b2*Idelta201[:] + 2.*bG2*IG201[:] + 4.*(bG2 + 0.4*btd)*FG201[:]) *D4 + 2. * (2.*f)    * (pow(b1,2.)*(J12101[:] + J11201[:] + J21101[:]) + 0.5*b1*b2*Jdelta201[:] + b1*bG2*JG201[:]) *D4
+            # + c10*f*mu*k*Plin[:] *D2
 
             # 2-nd moment
 
@@ -1299,7 +1301,8 @@ cdef class Class:
             J12111[:]     = loops['J12111'][:,index_k] * mu;
             J11211[:]     = loops['J11211'][:,index_k] * mu;
 
-            Moment_2[:] = 2. * pow(f*mu/k,2.) * (2.*I2211[:] + 6.*I1311[:]) *D4 + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[:] + J11211[:] + J21111[:])) *D4 + 2. * pow(f,2.) * (pow(b1,2.)*N11[:]) *D4 + 2. * pow(f,2.) * (4.*b1*J12102[:] + 2.*b1*J21102[:] + b2*Jdelta202[:] + 2.*bG2*JG202[:] - pow(b1,2.)*Plin[:]*sigma_v2) *D4 - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[:] *D2;
+            Moment_2[:] = 2. * pow(f*mu/k,2.) * (2.*I2211[:] + 6.*I1311[:]) *D4 + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[:] + J11211[:] + J21111[:])) *D4 + 2. * pow(f,2.) * (pow(b1,2.)*N11[:]) *D4 + 2. * pow(f,2.) * (4.*b1*J12102[:] + 2.*b1*J21102[:] + b2*Jdelta202[:] + 2.*bG2*JG202[:] - pow(b1,2.)*Plin[:]*sigma_v2) *D4
+            # - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[:] *D2
 
             # 3-rd moment
 
@@ -1313,18 +1316,20 @@ cdef class Class:
             J12112y[:] = loops['J12112y'][:,index_k]
             J12112[:]  = (J12112x[:] + J12112y[:] * pow(mu,2.));
 
-            Moment_3[:] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.)*(mu/k) * (J21112[:] + 2.*J12112[:]) *D4 - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.) * b1*N12[:] *D4 + 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[:] *D2;
+            Moment_3[:] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.)*(mu/k) * (J21112[:] + 2.*J12112[:]) *D4 - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.) * b1*N12[:] *D4
+            # + 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[:] *D2
 
             # 4-th moment
 
             N22x[:] = loops['N22x'][:,index_k]
             N22y[:] = loops['N22y'][:,index_k]
             N22z[:] = loops['N22z'][:,index_k]
-            N22[:]  = (N22x[:] + N22y[:] * pow(mu,2.) + N22z[:] * pow(mu,4.));
+            N22[:]  = (N22x[:] + N22y[:] * pow(mu,2.) + N22z[:] * pow(mu,4.))
 
-            Moment_4[:] = - 24. * pow(f,4.)*pow(mu/k,2.) * Plin[:]*sigma_v2 *D4 + 12. * pow(f,4.) * N22[:] *D4 + 24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[:] *D2;
+            Moment_4[:] = - 24. * pow(f,4.)*pow(mu/k,2.) * Plin[:]*sigma_v2 *D4 + 12. * pow(f,4.) * N22[:] *D4
+            # + 24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[:] *D2
 
-            RSD[:] = Moment_0[:] + k*mu * Moment_1[:] + (1./2.) * pow(k*mu,2.) * Moment_2[:] + (1./6.) * pow(k*mu,3.) * Moment_3[:] + (1./24.) * pow(k*mu,4.) * Moment_4[:]
+            RSD[:] = Moment_0[:] + k*mu * Moment_1[:] + (1./2.) * pow(k*mu,2.) * Moment_2[:] + (1./6.) * pow(k*mu,3.) * Moment_3[:] + (1./24.) * pow(k*mu,4.) * Moment_4[:] + (c00 + c10*f*mu*mu + c22*f*f*mu*mu*mu*mu + c32*f*f*f*pow(mu,6.))*pow(k,2)*Plin[:]*D2
 
             P_wiggle = Plin[wiggle] - Plin[no_wiggle]
 

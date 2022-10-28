@@ -87,6 +87,10 @@ int fourier_pk_at_z(
   if ((pk_output == pk_linear) && (pfo->ic_size > 1) && (out_pk_ic != NULL))
     do_ic = _TRUE_;
 
+  class_test((pk_output == pk_nonlinear) && (pfo->method == nl_oneloopPT),
+             pfo->error_message,
+             "This function is not yet compatible with the oneloop method - this is no problem as long as you wish to get P_NL from the python wrapper, but it may have to be implemented for writting P_NL in output file \n");
+
   /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
 
