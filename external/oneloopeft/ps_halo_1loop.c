@@ -45,7 +45,7 @@ int PS_hh_G(
                double z,
                short has_loop,
                short has_ir,
-               long SPLIT, 
+               long SPLIT,
                double * pk_nl)
 {
       int cleanup = 0;
@@ -208,13 +208,14 @@ int PS_mm_G(
       // fprintf(stderr,"%e %e %e %e %e %e\n",k, pm_lin, pm_13, pm_22, pm_ct, ph_tot);
     }
     else {
+      //fprintf(stderr,"pm_nowiggle called from PS_mm_G with k=%e\n",k);
       double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, 0., 0, SPLIT);
       double p_wiggle   = pm_lin - p_nowiggle;
       double sigma2     = IR_Sigma2(pba, ppm, pfo, z, 0., SPLIT);
       double sup        = exp(-k * k * sigma2);
 
       pm_lin_IR   = pm_IR_LO(pba, ppm, pfo, k, z, SPLIT);
-      pm_1loop_IR = p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_22 + pm_13; 
+      pm_1loop_IR = p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_22 + pm_13;
       pm_ct       = - 2. * cs2 * pow(k, 2.) *  pm_lin_IR; // pow(k, 2.)/(1.+pow(k/khat,2.))
       ph_tot      = pm_1loop_IR + pm_ct;
 
@@ -878,7 +879,7 @@ static int G1_loop_integrands(
         ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI  * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * G2_s(q, k, cos);
         ff[3] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI  * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * S2_s(q, k, cos) * G2_s(q, k, cos);
         ff[4] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI  * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_k   * S2_s(q, k, cos) * F2(q, k, -cos);
-      
+
         ff[5] = 1./pow(2.*M_PI,3.) * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q *   LoS1(q,k,cos,mu) * G2(q,k,-cos);
         ff[6] = 1./pow(2.*M_PI,3.) * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q *   LoS2(q,k,cos,mu) * F2(q,k,-cos);
         ff[7] = 1./pow(2.*M_PI,3.) * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * LoS2(q,k,cos,mu) * F2_s(q, k, cos);
@@ -959,7 +960,7 @@ int Compute_2_loops(
       //         border, maxchisq, mindeviation,
       //         ngiven, ldxgiven, NULL, nextra, NULL,
       //        NULL, NULL, &nregions, &neval, fail, result, error, prob);
-      
+
       int ndim = 2,  nvec = 1, verbose = 0, last = 4, mineval = 0, maxeval = 1e6;
       int nregions, neval;
 
@@ -1243,7 +1244,7 @@ static int G3_loop_integrands(
         // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI  * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * (k-q*cos)/(kmq2) * (q*cos)/(pow(q,2.)) * G2_s(q, k, cos);
         // ff[1] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI  * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q   * (k-q*cos)/(kmq2) * (q*cos)/(pow(q,2.)) * G2(q, k, -cos);
         // ff[2] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI  * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * (k-q*cos)/(kmq2) * pow((q*cos)/(pow(q,2.)),2.);
-      
+
         // ff[0] = 1./pow(2.*M_PI,3.) * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * (pow(k,2)*M_PI*(7*k*cos - q*(1 + 6*pow(cos,2)))*(q*(-1 + pow(cos,2)) + (q + 2*k*cos - 3*q*pow(cos,2))*pow(mu,2)))/(14.*pow(q,2)*pow(kmq2,2));
         // ff[1] = 1./pow(2.*M_PI,3.) * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_k * plin_IR_q   * -1/14*(M_PI*(-6*k*q + 7*(pow(k,2) + pow(q,2))*cos - 8*k*q*pow(cos,2))*(q*(-1 + pow(cos,2)) + (q + 2*k*cos - 3*q*pow(cos,2))*pow(mu,2)))/(k*pow(q,2)*(kmq2));
         // ff[2] = 1./pow(2.*M_PI,3.) * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * (-(M_PI*(k - 3*q*cos)*(-1 + pow(cos,2))*mu) + M_PI*(q*cos*(3 - 5*pow(cos,2)) + k*(-1 + 3*pow(cos,2)))*pow(mu,3))/(pow(q,2)*(kmq2));
@@ -1401,11 +1402,11 @@ static int G4_loop_integrands(
         double kmq2 = pow(k,2.)+pow(q,2.)-2.*cos*k*q;
 
         // ff[0] = 1./pow(2.*M_PI,3.) * 2. * 2. * M_PI  * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * pow((k-q*cos)/(kmq2) * (q*cos)/(pow(q,2.)),2.);
-        
+
         // ff[0] = 1./pow(2.*M_PI,3.) * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * (M_PI*(3*pow(q,2)*pow(-1 + pow(cos,2),2) - 2*(-1 + pow(cos,2))*(2*pow(k,2) - 12*k*q*cos + 3*pow(q,2)*(-1 + 5*pow(cos,2)))*pow(mu,2) + (8*k*q*cos*(3 - 5*pow(cos,2)) + 4*pow(k,2)*(-1 + 3*pow(cos,2)) + pow(q,2)*(3 - 30*pow(cos,2) + 35*pow(cos,4)))*pow(mu,4)))/(4.*pow(kmq2,2));
-        
+
         ff[0] = 1./pow(2.*M_PI,3.) * 2. * (logqmax - logqmin) * pow(q, 3.) * plin_IR_q * plin_IR_kmq * LoS6(q,k,cos,mu);
-      
+
       }
       else{
         for(int i =0;i <nn; i++)

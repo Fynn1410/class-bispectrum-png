@@ -1,5 +1,5 @@
-/** @file pspec_FFTLog_real.c Documented FFT-Log based 1loop matter and galaxy power spectrum 
- * 
+/** @file pspec_FFTLog_real.c Documented FFT-Log based 1loop matter and galaxy power spectrum
+ *
  * Dennis Linde, September 19th 2022
  * credits to: Azadeh Moradinezhad Dizgah
  *
@@ -10,7 +10,7 @@
  * -# Real_Galaxy_IR_Resummed()
  *
  */
- 
+
 #include "header.h"
 
 
@@ -22,7 +22,7 @@
  * @param config_in    Input: cosmosis configuration structure constructed from the .ini file
  * @param ptrs         Input: pointers to interpolatir ibjects for nw power spectrum
  * @param fft_struct   Input: structure containing fft coefficents and params
- * @param k            Input: wavenumber 
+ * @param k            Input: wavenumber
  * @param z            Input: redshift of the pk_m
 * @return value of 1loop pk_m
  */
@@ -33,6 +33,8 @@ int Real_Oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct f
     double k = pfo->k[index_k];
 
     // Storing IR-resummed Plin in pfo
+
+    //fprintf(stderr,"Calling pm_IR_LO from Real_Oneloop_FFTLog  with k=%e\n",k);
     double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, 0., SPLIT); // Power Spectrum at redshift z=0., loops get scaled individually
 
     // Calculation of the Loop-Integrals for the real-space IR-Resummed linear power spectrum
@@ -55,6 +57,7 @@ int Real_Matter_IR_Resummed(struct background *pba, struct primordial *ppm, stru
 
     double pm_lin_IR  = pfo -> pk_matter_real_nl -> Plin_IR[index_k]; // Power Spectrum at redshift z=0., loops get scaled individually
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, 0., LPOWER);
+    //fprintf(stderr,"pm_nowiggle called from Real_Matter_IR_Resummed with k=%e\n",k);
     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, 0., 1.e-4, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
     double sigma2     = pfo -> fft_ws -> sigma_2_IR * D2;
@@ -65,11 +68,11 @@ int Real_Matter_IR_Resummed(struct background *pba, struct primordial *ppm, stru
     double P22  = 2. * pfo -> pk_matter_real_nl -> I2200[index_k];
     double P13  = 6. * pfo -> pk_matter_real_nl -> I1300[index_k];
 
-    /* 
+    /*
      * Compute the EFT counter-term contribution
      */
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
-    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_ct)*D2 + (P22 + P13)*D4; 
+    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_ct)*D2 + (P22 + P13)*D4;
 
     *pk = pfo -> pk_matter_real_nl -> P_mm[index_k];
 
@@ -85,7 +88,7 @@ int Real_Matter_IR_Resummed(struct background *pba, struct primordial *ppm, stru
  * @param config_in    Input: cosmosis configuration structure constructed from the .ini file
  * @param ptrs         Input: pointers to interpolatir ibjects for nw power spectrum
  * @param fft_struct   Input: structure containing fft coefficents and params
- * @param k            Input: wavenumber 
+ * @param k            Input: wavenumber
  * @param z            Input: redshift of the pk_m
  * @return value of 1loop pk_g
  */
@@ -93,14 +96,14 @@ int Real_Matter_IR_Resummed(struct background *pba, struct primordial *ppm, stru
 int Real_Galaxy_IR_Resummed(struct background *pba, struct primordial *ppm, struct fourier *pfo,
                     int index_k, double z, long SPLIT, double *pk)
 
-{ 
+{
     double k = pfo->k[index_k];
 
     double b1  = pfo->b1;
-    double b2  = pfo->b2; 
+    double b2  = pfo->b2;
     double bG2 = pfo->bG2;
-    double btd = pfo->btd; 
-    double R2  = pfo->R2; 
+    double btd = pfo->btd;
+    double R2  = pfo->R2;
     double cs2 = pfo->cs2;
 
     double D  = growth_D(pba, z);
@@ -109,6 +112,8 @@ int Real_Galaxy_IR_Resummed(struct background *pba, struct primordial *ppm, stru
 
     double pm_lin_IR  = pfo -> pk_halo_real_nl -> Plin_IR[index_k]; // Power Spectrum at redshift z=0., loops get scaled individually
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, 0., LPOWER);
+
+    //fprintf(stderr,"pm_nowiggle called from Real_Galaxy_IR_Resummed with k=%e\n",k);
     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, 0., 1.e-4, 0, SPLIT);
     double p_wiggle   = plin - p_nowiggle;
     double sigma2     = pfo -> fft_ws -> sigma_2_IR *D2;
@@ -118,7 +123,7 @@ int Real_Galaxy_IR_Resummed(struct background *pba, struct primordial *ppm, stru
 
     double P22  = 2. * pfo -> pk_halo_real_nl -> I2200[index_k];
     double P13  = 6. * pfo -> pk_halo_real_nl -> I1300[index_k];
-    double P_mm = pow(b1,2.) * ((p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2))*D2 + (P22 + P13)*D4); 
+    double P_mm = pow(b1,2.) * ((p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2))*D2 + (P22 + P13)*D4);
     pfo -> pk_halo_real_nl -> P_mm[index_k] = P_mm/pow(b1,2.);
 
     double p_r2     = -2. * pow(k,2.) * (b1 * R2 + pow(b1,2.) *cs2) * pm_lin_IR;
@@ -136,4 +141,3 @@ int Real_Galaxy_IR_Resummed(struct background *pba, struct primordial *ppm, stru
 
     return _SUCCESS_;
 }
-

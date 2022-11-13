@@ -18,6 +18,7 @@ int RSD_Oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct fo
 
     double pm_lin = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     pfo -> pk_halo_rsd_nl[linear]    -> Plin[index_k] = pm_lin;
+    //fprintf(stderr,"pm_nowiggle called from RSD_Oneloop_FFTLog with k=%e\n",k);
     double pm_lin_nw = pm_nowiggle(pba, ppm, pfo, k, z, 1.e-4, 0, SPLIT);
     pfo -> pk_halo_rsd_nl[no_wiggle] -> Plin[index_k] = pm_lin_nw;
 
@@ -69,7 +70,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
 
     double D = growth_D(pba, z);
     double f = growth_f(pba, z);
-    // fprintf(stderr, "RSD at z = %g, D(z) = %g, f(z) = %g\n",z,D,f);
+    //fprintf(stdout, "RSD at z = %g, D(z) = %g, f(z) = %g\n",z,D,f);
 
     double D2 = pow(D,2.);
     double D4 = pow(D,4.);

@@ -273,9 +273,12 @@ void FFT_compute_coeff(struct background * pba,
                   pk_bin[i] = Pk_dlnPk(pba, ppm, pfo, k[i], z, LPOWER);
             }
             else if(rsd_ir_switch == no_wiggle){
+              //fprintf(stderr,"pm_nowiggle called from FFT_compute_coeff with k=%e\n",k[i]);
+
                   pk_bin[i] = pm_nowiggle(pba, ppm, pfo, k[i], z, 1.e-5, 0, SPLIT);
             }
             else{
+              //fprintf(stderr,"Calling pm_IR_LO from FFT_compute_coeff with k=%e\n",k[i]);
                   pk_bin[i] = pm_IR_LO(pba, ppm, pfo, k[i], z, SPLIT);
             }
             // printf("all pk %12.6e %12.6e \n", k[i],pk_bin[i]);

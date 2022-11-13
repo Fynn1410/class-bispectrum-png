@@ -1765,6 +1765,7 @@ int fourier_init(
       //   = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
 
       // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);
+
     }
 
 #ifdef _OPENMP
@@ -1772,7 +1773,9 @@ int fourier_init(
 
     tspent += tstop-tstart;
 #endif
-	}
+        }
+        /* end of parallel zone */
+
 #ifdef _OPENMP
 	if (pfo->fourier_verbose>2) {
 	  printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
@@ -1784,12 +1787,16 @@ int fourier_init(
     if (pfo->fourier_verbose>2) {
       fprintf(stderr,"%d Loop_integrals(): %g sec.\n", pfo->k_size, (t2.tv_sec-t1.tv_sec) + (t2.tv_usec-t1.tv_usec)/(1.e6));
     }
-   /* end of parallel zone */
 
     if (abort == _TRUE_) return _FAILURE_;
 
-  }
+    // JL: one more call with random k=1, z=1 to cleanup gsl
+    // nowiggle interpolator (temporary fix)
+    class_call_parallel(pm_nowiggle_gfilter(pba, ppm, pfo, 1., 1., 1),
+                        pfo->error_message,
+                        pfo->error_message);
 
+  }
 
   /** - if the nl_method could not be identified */
   else {
@@ -1799,6 +1806,7 @@ int fourier_init(
 
   return _SUCCESS_;
 }
+
 /**
  * Free all memory space allocated by fourier_init().
  *

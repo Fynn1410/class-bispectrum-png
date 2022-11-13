@@ -1335,7 +1335,24 @@ cdef class Class:
 
             pk_arr[index_k] = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot)) *D2 + RSD[no_wiggle] + suppression * (RSD[wiggle] - RSD[no_wiggle]);
 
-        return k_arr,pk_arr
+            # JL debugging
+            #if index_k == 0:
+            #    log = {}
+            #    log['z'] = z
+            #    log['k'] = k
+            #    log['mu'] = mu
+            #    log['D'] = D
+            #    log['f'] = f
+            #    log['pk'] = pk_arr[index_k]
+            #    log['pk_lin_ww'] = Plin[wiggle]
+            #    log['pk_lin_nw'] = Plin[no_wiggle]
+            #    log['P_lin_w'] = P_wiggle
+            #    log['suppression'] = suppression
+            #    log['sigma_tot'] = sigma_tot
+            #    log['rsd_nw'] = RSD[no_wiggle]
+            #    log['rsd_w'] = RSD[wiggle]
+
+        return k_arr,pk_arr #,log
 
     # Gives the total matter pk for a given (k,z)
     def pk_lin(self,double k,double z):

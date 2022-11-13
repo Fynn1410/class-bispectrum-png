@@ -1,10 +1,10 @@
 
-/** @file IR_res.c Documented IR_res module 
- * 
+/** @file IR_res.c Documented IR_res module
+ *
  * Azadeh Moradinezhad Dizgah, November 4th 2021
  *
  * This module is computes the leading and next-to-leading IR-resummed matter power spectrum
- * The wiggle-nowiggle seperation is performed in wnw_split.c module. 
+ * The wiggle-nowiggle seperation is performed in wnw_split.c module.
  *
  * In summary, the following functions can be called from other modules:
  * -# pm_IR_LO()
@@ -21,19 +21,19 @@
 
 /**
  * Compute the leading-order IR-resummed matter power spectrum, ala Ivanovic et al
- * 
- * @param Cx           Input: pointer to cosmology structure 
- * @param k            Input: wavenumber in unit of 1/Mpc. 
+ *
+ * @param Cx           Input: pointer to cosmology structure
+ * @param k            Input: wavenumber in unit of 1/Mpc.
  * @param z            Input: redshift
  * @param SPLIT        Input: switch to set the method of wiggle-nowiggle split
- * 
- * @return value of leading IR-ressumed power spectrum           
+ *
+ * @return value of leading IR-ressumed power spectrum
  */
 double pm_IR_LO(struct background * pba,
                 struct primordial * ppm,
-                struct fourier * pfo,  
-                double k, 
-                double z, 
+                struct fourier * pfo,
+                double k,
+                double z,
                 long SPLIT)
 {
     double kf0 = 1.e-4;
@@ -44,6 +44,7 @@ double pm_IR_LO(struct background * pba,
     if(sig2_LO == - 1.){
           sig2_LO = IR_Sigma2(pba, ppm, pfo, z, kf0, SPLIT);
     }
+    //fprintf(stderr,"Call pm_nowiggle from pm_IR_LO with k=%e, z=%e, cleanup=%d\n",k,z,cleanup);
     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, kf0, 0, SPLIT);
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
     double p_wiggle   = plin - p_nowiggle;
@@ -69,19 +70,19 @@ double pm_IR_LO(struct background * pba,
 
 /**
  * Compute the next-to-leading-order IR-resummed matter power spectrum, ala Ivanovic et al
- * 
- * @param Cx           Input: pointer to cosmology structure 
- * @param k            Input: wavenumber in unit of 1/Mpc. 
+ *
+ * @param Cx           Input: pointer to cosmology structure
+ * @param k            Input: wavenumber in unit of 1/Mpc.
  * @param z            Input: redshift
  * @param SPLIT        Input: switch to set the method of wiggle-nowiggle split
- * 
- * @return value of NL IR-ressumed power spectrum           
+ *
+ * @return value of NL IR-ressumed power spectrum
  */
 // double pm_IR_NLO(struct background * pba,
 //                 struct primordial * ppm,
-//                 struct fourier * pfo, 
-//                 double k,  
-//                 double z, 
+//                 struct fourier * pfo,
+//                 double k,
+//                 double z,
 //                 long SPLIT)
 // {
 //     extern struct globals gb;
@@ -103,7 +104,7 @@ double pm_IR_LO(struct background * pba,
 //     double p13_IR = pm_loops[1];
 //     free(pm_loops);
 
-//     double pm_LO = p_nowiggle + sup * p_wiggle; 
+//     double pm_LO = p_nowiggle + sup * p_wiggle;
 //     double f     = p_nowiggle + sup * p_wiggle * (1. + k * k * sig2_NLO) + p22_IR + p13_IR ;
 //     //fprintf(stderr, "%e %e ",p22_IR, p13_IR);
 //     return f;
@@ -112,17 +113,17 @@ double pm_IR_LO(struct background * pba,
 
 
 /**
- * Integrand to compute the suppression factor IR_sigma2 
- * 
+ * Integrand to compute the suppression factor IR_sigma2
+ *
  * @param x            Input: integration variable, k-values
  * @param par          Input: integration parameters
- * 
- * @return integrand to be used in IR_sigma2() function         
+ *
+ * @return integrand to be used in IR_sigma2() function
  */
 double IR_Sigma2_integrand(double x, void *par)
 {
     double result = 0;
-    
+
     struct integrand_parameters2 pij;
     pij = *((struct integrand_parameters2 *)par);
     struct background *pba = pij.pba;
@@ -130,38 +131,39 @@ double IR_Sigma2_integrand(double x, void *par)
     struct fourier *pfo    = pij.pfo;
     double bao_scale       = pij.p4;
     double z               = pij.p5;
-    double kf0             = pij.p6; 
+    double kf0             = pij.p6;
     long   SPLIT           = pij.p13;
 
     double k_osc = 1./bao_scale;  /// BAO_scale = 110. Mpc/h.
+    //fprintf(stderr,"Call pm_nowiggle from IR_Sigma2_integrand with x=%e\n",x);
     result = 1./(6.*M_PI*M_PI)*pm_nowiggle(pba, ppm, pfo, x, z, kf0, 0, SPLIT)* (1. - gsl_sf_bessel_j0(x/k_osc) + 2. * gsl_sf_bessel_j2(x/k_osc));;
     return result;
 
-} 
+}
 
 
 /**
  * Compute the suppression factor IR_sigma2 in real space
- * 
- * @param Cx           Input: pointer to cosmology structure 
+ *
+ * @param Cx           Input: pointer to cosmology structure
  * @param z            Input: redshift
  * @param kf0          Input: first element of the k-array, used in normalization of EH no-wiggle spectrum
  * @param SPLIT        Input: switch to set the method of wiggle-nowiggle split
- * 
- * @return value of IR resummation suppression factor          
+ *
+ * @return value of IR resummation suppression factor
  */
 double IR_Sigma2(struct background * pba,
                 struct primordial * ppm,
-                struct fourier * pfo, 
-                double z, 
-                double kf0, 
+                struct fourier * pfo,
+                double z,
+                double kf0,
                 long SPLIT)
 {
     //extern struct globals gb;
     double result=0., error=0.;
     gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000000);
 
-    struct integrand_parameters2 par; 
+    struct integrand_parameters2 par;
 
     double kmin = 1.e-6;
     double kmax = 0.2;
@@ -185,16 +187,16 @@ double IR_Sigma2(struct background * pba,
 
 /**
  * Integrand to compute the suppression factor delta_IR_sigma2 for RSD
- * 
+ *
  * @param x            Input: integration variable, k-values
  * @param par          Input: integration parameters
- * 
- * @return integrand to be used in IR_sigma2() function         
+ *
+ * @return integrand to be used in IR_sigma2() function
  */
 double IR_del_Sigma2_integrand(double x, void *par)
 {
     double result = 0;
-    
+
     struct integrand_parameters2 pij;
     pij = *((struct integrand_parameters2 *)par);
     struct background *pba = pij.pba;
@@ -202,37 +204,38 @@ double IR_del_Sigma2_integrand(double x, void *par)
     struct fourier *pfo    = pij.pfo;
     double bao_scale       = pij.p4;
     double z               = pij.p5;
-    double kf0             = pij.p6; 
+    double kf0             = pij.p6;
     long   SPLIT           = pij.p13;
 
     double k_osc = 1./bao_scale;  /// BAO_scale = 110. Mpc/h.
+    //fprintf(stderr,"Call pm_nowiggle from IR_del_Sigma2_integrand with x=%e\n",x);
     result = 1./(2.*M_PI*M_PI)*pm_nowiggle(pba, ppm, pfo, x, z, kf0, 0, SPLIT) * gsl_sf_bessel_j2(x/k_osc);
     return result;
 
-} 
+}
 
 /**
  * Compute the suppression factor IR_sigma2 in redshift space (CLASS-PT: 2004.106007v2 p. 15)
- * 
- * @param Cx           Input: pointer to cosmology structure 
+ *
+ * @param Cx           Input: pointer to cosmology structure
  * @param z            Input: redshift
  * @param kf0          Input: first element of the k-array, used in normalization of EH no-wiggle spectrum
  * @param SPLIT        Input: switch to set the method of wiggle-nowiggle split
- * 
- * @return value of IR resummation suppression factor          
+ *
+ * @return value of IR resummation suppression factor
  */
 double IR_del_Sigma2(struct background * pba,
                 struct primordial * ppm,
-                struct fourier * pfo, 
-                double z, 
-                double kf0, 
+                struct fourier * pfo,
+                double z,
+                double kf0,
                 long SPLIT)
 {
     //extern struct globals gb;
     double del_sigma_2=0., error=0. ;
     gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000000);
 
-    struct integrand_parameters2 par; 
+    struct integrand_parameters2 par;
 
     double kmin = 1.e-6;
     double kmax = 0.2;
@@ -262,23 +265,23 @@ double IR_del_Sigma2(struct background * pba,
 
 /**
  * Compute the no-wiggle componenet of the matter power spectrum
- * 
- * @param Cx           Input: pointer to cosmology structure 
- * @param k            Input: wavenumber in unit of h/Mpc. 
+ *
+ * @param Cx           Input: pointer to cosmology structure
+ * @param k            Input: wavenumber in unit of h/Mpc.
  * @param z            Input: redshift
  * @param kf0          Input: first element of the k-array, used in normalization of EH no-wiggle spectrum
  * @param cleanup      Input: switch to set whether to free the memory allocated to no-wiggle interpolators
  * @param SPLIT        Input: switch to set the method of wiggle-nowiggle split
- * 
- * @return double value of no-wiggle power spectrum         
+ *
+ * @return double value of no-wiggle power spectrum
  */
 double pm_nowiggle(struct background * pba,
                 struct primordial * ppm,
-                struct fourier * pfo, 
-                double k, 
-                double z, 
-                double kf0, 
-                int cleanup, 
+                struct fourier * pfo,
+                double k,
+                double z,
+                double kf0,
+                int cleanup,
                 long SPLIT)
 {
   double pm_nw = 0.;
@@ -297,19 +300,19 @@ double pm_nowiggle(struct background * pba,
 
 /**
  * Compute the no-wiggle componenet of the matter power spectrum, reading in and interpolating the output of apython code which computed the broadband by fitting families of Bsplines (see Vlah et al 2015)
- * 
- * @param Cx           Input: pointer to cosmology structure 
- * @param k            Input: wavenumber in unit of h/Mpc. 
+ *
+ * @param Cx           Input: pointer to cosmology structure
+ * @param k            Input: wavenumber in unit of h/Mpc.
  * @param z            Input: redshift
  * @param cleanup      Input: switch to set whether to free the memory allocated to no-wiggle interpolators
- * 
- * @return double value of no-wiggle power spectrum         
+ *
+ * @return double value of no-wiggle power spectrum
  */
 double pm_nowiggle_bspline(struct background * pba,
                            struct primordial * ppm,
-                           struct fourier * pfo, 
-                           double k, 
-                           double z, 
+                           struct fourier * pfo,
+                           double k,
+                           double z,
                            int cleanup)
 {
 
@@ -332,7 +335,7 @@ double pm_nowiggle_bspline(struct background * pba,
     log_k    = make_1Darray(nlines);
     pk_nw    = make_1Darray(nlines);
     log_pknw = make_1Darray(nlines);
-    
+
     pksplit_file = fopen(pksplit_filename,"r");
 
     if(pksplit_file==NULL){
@@ -343,12 +346,12 @@ double pm_nowiggle_bspline(struct background * pba,
     char line[MAXL];
     int err;
     while(fgets(line, sizeof line, pksplit_file) != NULL )
-    { 
-        if(*line == '#')  continue; 
+    {
+        if(*line == '#')  continue;
           for(i=0;i<nlines;i++){
-            err         = fscanf(pksplit_file,"%lg %lg \n",&k_in[i],&pk_nw[i]); 
+            err         = fscanf(pksplit_file,"%lg %lg \n",&k_in[i],&pk_nw[i]);
             log_k[i]    = log(k_in[i]);
-            log_pknw[i] = log(pk_nw[i]/pow(2.*M_PI,3.)); 
+            log_pknw[i] = log(pk_nw[i]/pow(2.*M_PI,3.));
           }
     }
     fclose(pksplit_file);
@@ -365,11 +368,11 @@ double pm_nowiggle_bspline(struct background * pba,
     free(log_k);
     free(pk_nw);
     free(log_pknw);
-    
-    first = 0;
-  }   
 
- 
+    first = 0;
+  }
+
+
   double pknw, logpknw, logk;
 
   if(k<kmin || k >kmax) {
@@ -382,8 +385,8 @@ double pm_nowiggle_bspline(struct background * pba,
   }
 
 
-  
-  double growth2 = pow(growth_D(pba, z),2.);  
+
+  double growth2 = pow(growth_D(pba, z),2.);
   double pknw_z = growth2 * pknw;
 
 
@@ -392,20 +395,19 @@ double pm_nowiggle_bspline(struct background * pba,
         gsl_spline_free(pknw_spline_ptr);
   }
 
-  
-  return pknw_z;     
-}
 
+  return pknw_z;
+}
 
 /**
  * Compute the no-wiggle componenet of the matter power spectrum, using Gaussian filter (see Vlah et al 2015)
- * 
- * @param Cx           Input: pointer to cosmology structure 
- * @param k            Input: wavenumber in unit of h/Mpc. 
+ *
+ * @param Cx           Input: pointer to cosmology structure
+ * @param k            Input: wavenumber in unit of h/Mpc.
  * @param z            Input: redshift
  * @param cleanup      Input: switch to set whether to free the memory allocated to no-wiggle interpolators
- * 
- * @return double value of no-wiggle power spectrum         
+ *
+ * @return double value of no-wiggle power spectrum
  */
 double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k, double z, int cleanup)
 {
@@ -417,8 +419,9 @@ double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struc
   int i,j;
   static double kmin=0., kmax=0.;
   static int first = 1;
-  if(first == 1){
 
+  if(first == 1){
+    //fprintf(stderr,"Initialises nowiggle interpolator with first=%d\n",first);
     int nlines       = 600;
     double *k_in     = loginit_1Darray(nlines, 1.e-4, 20.);
     double *log_k    = make_1Darray(nlines);
@@ -445,9 +448,9 @@ double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struc
     free(log_k);
     free(pk_nw);
     free(log_pknw);
-    
+
     first = 0;
-  }   
+  }
 
   double pknw, logpknw, logk;
 
@@ -459,37 +462,38 @@ double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struc
       logpknw = gsl_spline_eval(pknw_spline_ptr,logk,pknw_accel_ptr);
       pknw    = exp(logpknw);
   }
-  
+
 
   double growth2 = pow(growth_D(pba, z),2.);
   double pknw_z = growth2 * pknw;
 
-
   if (cleanup == 1){
+    //fprintf(stderr,"Cleaning nowiggle interpolator with cleanup=1\n");
         gsl_interp_accel_free(pknw_accel_ptr);
         gsl_spline_free(pknw_spline_ptr);
+        first = 1;
   }
 
 
-  return pknw_z;   
+  return pknw_z;
 }
 
 
 /**
  * Compute the no-wiggle componenet of the matter power spectrum, reading in and interpolating the output of apython code which computed the broadband by discrete sin-transform, See Hamann et al 2010.
- * 
- * @param Cx           Input: pointer to cosmology structure 
- * @param k            Input: wavenumber in unit of h/Mpc. 
+ *
+ * @param Cx           Input: pointer to cosmology structure
+ * @param k            Input: wavenumber in unit of h/Mpc.
  * @param z            Input: redshift
  * @param cleanup      Input: switch to set whether to free the memory allocated to no-wiggle interpolators
- * 
- * @return double value of no-wiggle power spectrum         
+ *
+ * @return double value of no-wiggle power spectrum
  */
 double pm_nowiggle_dst(struct background * pba,
                        struct primordial * ppm,
-                       struct fourier * pfo, 
-                       double k, 
-                       double z, 
+                       struct fourier * pfo,
+                       double k,
+                       double z,
                        int cleanup)
 {
   double pm_nw = 0.;
@@ -512,7 +516,7 @@ double pm_nowiggle_dst(struct background * pba,
     log_k    = make_1Darray(nlines);
     pk_nw    = make_1Darray(nlines);
     log_pknw = make_1Darray(nlines);
-    
+
     pksplit_file = fopen(pksplit_filename,"r");
 
     if(pksplit_file==NULL){
@@ -523,12 +527,12 @@ double pm_nowiggle_dst(struct background * pba,
     char line[MAXL];
     int err;
     while(fgets(line, sizeof line, pksplit_file) != NULL )
-    { 
-        if(*line == '#')  continue; 
+    {
+        if(*line == '#')  continue;
           for(i=0;i<nlines;i++){
-            err         = fscanf(pksplit_file,"%lg %lg \n",&k_in[i],&pk_nw[i]); 
+            err         = fscanf(pksplit_file,"%lg %lg \n",&k_in[i],&pk_nw[i]);
             log_k[i]    = log(k_in[i]);
-            log_pknw[i] = log(pk_nw[i]/pow(2.*M_PI,3.)); 
+            log_pknw[i] = log(pk_nw[i]/pow(2.*M_PI,3.));
             //printf("%12.6e %12.6e \n",log_k[i], log_pknw[i]);
           }
     }
@@ -546,11 +550,11 @@ double pm_nowiggle_dst(struct background * pba,
     free(log_k);
     free(pk_nw);
     free(log_pknw);
-    
-    first = 0;
-  }   
 
- 
+    first = 0;
+  }
+
+
   double pknw, logpknw, logk;
 
   if(k<kmin || k >kmax) {
@@ -561,18 +565,18 @@ double pm_nowiggle_dst(struct background * pba,
       logpknw = gsl_spline_eval(pknw_spline_ptr,logk,pknw_accel_ptr);
       pknw    = exp(logpknw);
   }
-  
 
 
-  double growth2 = pow(growth_D(pba, z),2.);  
+
+  double growth2 = pow(growth_D(pba, z),2.);
   double pknw_z = growth2 * pknw;
 
   if (cleanup == 1){
         gsl_interp_accel_free(pknw_accel_ptr);
         gsl_spline_free(pknw_spline_ptr);
   }
-    
-  return pknw_z;    
+
+  return pknw_z;
 }
 
       /**
@@ -594,7 +598,7 @@ double sigman2_integrand(double x, void *p)
   long 	 n 		           = pij.p14;
   long   SPLIT           = pij.p15;
   double window  = 1;
-  
+
   double pm = Pk_dlnPk(pba, ppm, pfo, q, z, LPOWER);
   // double pm = pm_IR_LO(pba, ppm, pfo, q, z, SPLIT);
 
