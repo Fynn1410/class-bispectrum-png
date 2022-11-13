@@ -93,18 +93,32 @@ int Real_Matter_IR_Resummed(struct background *pba, struct primordial *ppm, stru
  * @return value of 1loop pk_g
  */
 
-int Real_Galaxy_IR_Resummed(struct background *pba, struct primordial *ppm, struct fourier *pfo,
+int Real_Galaxy_IR_Resummed_default(struct fourier *pfo, struct background *pba, struct primordial *ppm,
                     int index_k, double z, long SPLIT, double *pk)
-
 {
-    double k = pfo->k[index_k];
-
     double b1  = pfo->b1;
     double b2  = pfo->b2;
     double bG2 = pfo->bG2;
     double btd = pfo->btd;
     double R2  = pfo->R2;
     double cs2 = pfo->cs2;
+
+    class_call(Real_Galaxy_IR_Resummed(pfo, pba, ppm, index_k, z, b1, b2, bG2, btd, R2, cs2, SPLIT, pk),
+                pfo->error_message,
+                pfo->error_message);
+
+    return _SUCCESS_;
+}
+
+
+int Real_Galaxy_IR_Resummed(struct fourier *pfo, struct background *pba, struct primordial *ppm,
+                    int index_k, double z,
+                    double b1, double b2, double bG2, double btd, double R2,
+                    double cs2,
+                    long SPLIT,
+                    double *pk)
+{
+    double k = pfo->k[index_k];
 
     double D  = growth_D(pba, z);
     double D2 = pow(D,2.);

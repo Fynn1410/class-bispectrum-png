@@ -548,12 +548,23 @@ cdef extern from "class.h":
         long SPLIT, 
         double *pk)
 
-    int Real_Galaxy_IR_Resummed(
+    int Real_Galaxy_IR_Resummed_default(
+        void* pfo, 
         void* pba, 
-        void* ppm, 
-        void* pfo,
+        void* ppm,
         int index_k, 
         double z, 
+        long SPLIT, 
+        double *pk)
+
+    int Real_Galaxy_IR_Resummed(
+        void* pfo, 
+        void* pba, 
+        void* ppm,
+        int index_k, 
+        double z, 
+        double b1, double b2, double bG2, double btd, double R2,
+        double cs2,
         long SPLIT, 
         double *pk)
 
