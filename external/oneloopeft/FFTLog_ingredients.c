@@ -250,8 +250,8 @@ void FFT_compute_coeff(struct background * pba,
       // changed by JL to avoid a double allocation
       //fftw_complex *biased_etam = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
       //fftw_complex *cmsym       = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
-      fftw_complex *biased_etam;
-      fftw_complex *cmsym;
+      double complex *biased_etam;
+      double complex *cmsym;
       // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
       if(hm_switch == MATTER){
             biased_etam = fft_input->etam_m;
@@ -289,8 +289,12 @@ void FFT_compute_coeff(struct background * pba,
        * Now perform fftw to compute the Fourier coeffcients
        */
 
-      fftw_complex *input   = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*Nmax);
-      fftw_complex *output  = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*Nmax);
+      fftw_complex *input;
+      fftw_complex *output;
+      fftw_plan my_plan;
+      
+      input   = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*Nmax);
+      output  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*Nmax);
 
       /*
       * etam = m * 2 pi/(Nmax Delta) with m= -N/2, -N/2+1, ...,N/2, N/2+1
@@ -308,7 +312,7 @@ void FFT_compute_coeff(struct background * pba,
       for (index_kd = 0; index_kd < Nmax; index_kd++)
          input[index_kd] = pk_bin[index_kd] * exp(- (double)index_kd * fft_bias * Delta);
 
-      fftw_plan my_plan = fftw_plan_dft_1d(Nmax, input, output, FFTW_FORWARD, FFTW_ESTIMATE);
+      my_plan = fftw_plan_dft_1d(Nmax, input, output, FFTW_FORWARD, FFTW_ESTIMATE);
       fftw_execute(my_plan);
       /*
        * construct the rescaled fourier coeeficents
@@ -342,6 +346,12 @@ void FFT_compute_coeff(struct background * pba,
       fftw_destroy_plan(my_plan);
       fftw_free(input);
       fftw_free(output);
+
+      /* JL: fftw_clean up is optional. If we don't do it, fftw will accumulate
+	 wisdom from previous plans. Clean up added on 13.11.2022 for safety
+	 (to be sure to avoid memory bias). Should be tested again
+	 without the cleanup. */
+      fftw_cleanup();
 
       free(k);
       free(pkz);
