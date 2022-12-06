@@ -170,7 +170,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         FG200[idx]           = pfo -> pk_halo_rsd_nl[idx] -> FG200[index_k];
 
         Moment_0[idx] = + (pow(b1,2.)*(2.*I2200[idx] + 6.*I1300[idx]) + 2.*b1*b2*Idelta200[idx] + 4.*b1*bG2*IG200[idx] \
-                           + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 8.*b1*(bG2 + 0.4*btd)*FG200[idx]) *D4;
+                           + 0.5*pow(b2,2.)*Idelta2delta200[idx] + 2.*pow(bG2,2.)*IG2G200[idx] + 2.*b2*bG2*Idelta2G200[idx] + 8.*b1*(bG2 + 0.4*btd)*FG200[idx]) *D4;
         //- 2.*c00*pow(k,2.)*Plin[idx] *D2;
 
         //1-st moment
