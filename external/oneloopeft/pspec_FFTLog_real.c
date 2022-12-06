@@ -36,6 +36,11 @@ int Real_Oneloop_FFTLog(struct background *pba, struct primordial *ppm, struct f
 
     //fprintf(stderr,"Calling pm_IR_LO from Real_Oneloop_FFTLog  with k=%e\n",k);
     double pm_lin_IR  = pm_IR_LO(pba, ppm, pfo, k, 0., SPLIT); // Power Spectrum at redshift z=0., loops get scaled individually
+    double pm_NL_IR = pm_IR_NLO(pba, ppm, pfo, k, 0., SPLIT); // Linear Power spectrum accounting for the double-counting at oneloop order
+    pfo -> pk_matter_real_nl -> Plin_IR[index_k] = pm_lin_IR;
+    pfo -> pk_matter_real_nl -> Plin_NL_IR[index_k] = pm_NL_IR;
+    pfo -> pk_halo_real_nl -> Plin_IR[index_k] = pm_lin_IR;
+    pfo -> pk_halo_real_nl -> Plin_NL_IR[index_k] = pm_NL_IR;
 
     // Calculation of the Loop-Integrals for the real-space IR-Resummed linear power spectrum
     P_mm_FFTLog(pfo, index_k, pm_lin_IR);
@@ -55,15 +60,9 @@ int Real_Matter_IR_Resummed(struct background *pba, struct primordial *ppm, stru
     double D2 = pow(D,2.);
     double D4 = pow(D,4.);
 
-    double pm_lin_IR  = pfo -> pk_matter_real_nl -> Plin_IR[index_k]; // Power Spectrum at redshift z=0., loops get scaled individually
-    double plin       = Pk_dlnPk(pba, ppm, pfo, k, 0., LPOWER);
-    //fprintf(stderr,"pm_nowiggle called from Real_Matter_IR_Resummed with k=%e\n",k);
-    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, 0., 1.e-4, 0, SPLIT);
-    double p_wiggle   = plin - p_nowiggle;
-    double sigma2     = pfo -> fft_ws -> sigma_2_IR * D2;
-    double sup        = exp(-k * k * sigma2);
-
-    double sigmav2    = pfo -> fft_ws -> sigma_v2;
+    double plin          = Pk_dlnPk(pba, ppm, pfo, k, 0., LPOWER);
+    double pm_lin_IR     = pfo -> pk_matter_real_nl -> Plin_IR[index_k]; // Power Spectrum at redshift z=0., loops get scaled individually
+    double pm_lin_NL_IR  = pfo -> pk_matter_real_nl -> Plin_NL_IR[index_k]; // Double-Counting Power Spectrum at redshift z=0., loops get scaled individually
 
     double P22  = 2. * pfo -> pk_matter_real_nl -> I2200[index_k];
     double P13  = 6. * pfo -> pk_matter_real_nl -> I1300[index_k];
@@ -72,7 +71,7 @@ int Real_Matter_IR_Resummed(struct background *pba, struct primordial *ppm, stru
      * Compute the EFT counter-term contribution
      */
     double pm_ct   = - 2. * cs2 * pow(k, 2.) * pm_lin_IR;
-    pfo -> pk_matter_real_nl -> P_mm[index_k] = (p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2) + pm_ct)*D2 + (P22 + P13)*D4;
+    pfo -> pk_matter_real_nl -> P_mm[index_k] = (pm_lin_NL_IR + pm_ct)*D2 + (P22 + P13)*D4;
 
     *pk = pfo -> pk_matter_real_nl -> P_mm[index_k];
 
@@ -126,18 +125,13 @@ int Real_Galaxy_IR_Resummed(struct fourier *pfo, struct background *pba, struct 
 
     double pm_lin_IR  = pfo -> pk_halo_real_nl -> Plin_IR[index_k]; // Power Spectrum at redshift z=0., loops get scaled individually
     double plin       = Pk_dlnPk(pba, ppm, pfo, k, 0., LPOWER);
-
-    //fprintf(stderr,"pm_nowiggle called from Real_Galaxy_IR_Resummed with k=%e\n",k);
-    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, 0., 1.e-4, 0, SPLIT);
-    double p_wiggle   = plin - p_nowiggle;
-    double sigma2     = pfo -> fft_ws -> sigma_2_IR *D2;
-    double sup        = exp(-k * k * sigma2);
+    double pm_lin_NL_IR  = pfo -> pk_matter_real_nl -> Plin_NL_IR[index_k]; // Double-Counting Power Spectrum at redshift z=0., loops get scaled individually
 
     double sigmav2    = pfo -> fft_ws -> sigma_v2;
 
     double P22  = 2. * pfo -> pk_halo_real_nl -> I2200[index_k];
     double P13  = 6. * pfo -> pk_halo_real_nl -> I1300[index_k];
-    double P_mm = pow(b1,2.) * ((p_nowiggle + sup * p_wiggle * (1. + k * k * sigma2))*D2 + (P22 + P13)*D4);
+    double P_mm = pow(b1,2.) * (pm_lin_NL_IR*D2 + (P22 + P13)*D4);
     pfo -> pk_halo_real_nl -> P_mm[index_k] = P_mm/pow(b1,2.);
 
     double p_r2     = -2. * pow(k,2.) * (b1 * R2 + pow(b1,2.) *cs2) * pm_lin_IR;
