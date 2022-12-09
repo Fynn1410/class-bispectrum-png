@@ -51,12 +51,14 @@ double pm_IR_LO(struct background * pba,
     double sup        = exp(-k * k * sig2_LO);
     double f;
 
-    if (k < kmax && k > kmin){
-      f = p_nowiggle + sup * p_wiggle;
-    }
-    else{
-      f = p_nowiggle + p_wiggle;
-    }
+    // if (k < kmax && k > kmin){
+    //   f = p_nowiggle + sup * p_wiggle;
+    // }
+    // else{
+    //   f = p_nowiggle + p_wiggle;
+    // }
+
+    f = p_nowiggle + sup * p_wiggle;
 
     // FILE *fpa;
     // char file_name[50];
@@ -416,8 +418,8 @@ double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struc
 
   if(first == 1){
     //fprintf(stderr,"Initialises nowiggle interpolator with first=%d\n",first);
-    int nlines       = 600;
-    double *k_in     = loginit_1Darray(nlines, 1.e-4, 20.);
+    int nlines       = 400;
+    double *k_in     = loginit_1Darray(nlines, 1.e-6, 40.);
     double *log_k    = make_1Darray(nlines);
     double *pk_nw    = make_1Darray(nlines);
     double *log_pknw = make_1Darray(nlines);
