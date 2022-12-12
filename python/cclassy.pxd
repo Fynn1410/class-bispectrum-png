@@ -302,12 +302,14 @@ cdef extern from "class.h":
 
     cdef struct oneloop_fftlog_matter_real:
         double * Plin_IR;
+        double * Plin_NL_IR;
         double * P_mm;
         double * I2200;
         double * I1300;
 
     cdef struct oneloop_fftlog_halo_real:
         double * Plin_IR;
+        double * Plin_NL_IR;
         double * P_mm;
         double * I2200;
         double * Idelta200;

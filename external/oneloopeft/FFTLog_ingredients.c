@@ -487,12 +487,14 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
 
       // Solutions for the matter real-space IR-Resummed linear power spectrum
       pfo -> pk_matter_real_nl -> Plin_IR = make_1Darray(pfo->k_size);
+      pfo -> pk_matter_real_nl -> Plin_NL_IR = make_1Darray(pfo->k_size);
       pfo -> pk_matter_real_nl -> P_mm = make_1Darray(pfo->k_size);
       pfo -> pk_matter_real_nl -> I2200 = make_1Darray(pfo->k_size);
       pfo -> pk_matter_real_nl -> I1300 = make_1Darray(pfo->k_size);
 
       // Solutions for the halo real-space IR-Resummed linear power spectrum
       pfo -> pk_halo_real_nl -> Plin_IR = make_1Darray(pfo->k_size);
+      pfo -> pk_halo_real_nl -> Plin_NL_IR = make_1Darray(pfo->k_size);
       pfo -> pk_halo_real_nl -> P_mm = make_1Darray(pfo->k_size);
       pfo -> pk_halo_real_nl -> I2200 = make_1Darray(pfo->k_size);
       pfo -> pk_halo_real_nl -> Idelta200 = make_1Darray(pfo->k_size);
@@ -591,8 +593,13 @@ int FFTLog_rsd_init(struct background *pba, struct primordial *ppm, struct fouri
       pfo -> fft_ws -> sigma_2_IR = IR_Sigma2(pba, ppm, pfo, z, 1e-5, 142L); // IR-Ressumation supression exponent
       pfo -> fft_ws -> del_sigma_2_IR = IR_del_Sigma2(pba, ppm, pfo, z, 1e-5, 142L); // IR-Ressumation supression exponent for RSD
 
-      // fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
-      // fprintf(stderr, "sigma_2_IR = %e\ndel_sigma_2_IR = %e\n", pfo -> fft_ws -> sigma_2_IR, pfo -> fft_ws -> del_sigma_2_IR);
+      fprintf(stderr, "sigma_v0 = %e\nsigma_v2 = %e\n", pfo -> fft_ws -> sigma_v0, pfo -> fft_ws -> sigma_v2);
+      fprintf(stderr, "sigma_2_IR = %e\ndel_sigma_2_IR = %e\n", pfo -> fft_ws -> sigma_2_IR, pfo -> fft_ws -> del_sigma_2_IR);
+
+      // pfo -> fft_ws -> sigma_v0 = 0.;
+      // pfo -> fft_ws -> sigma_v2 = 6.864358e+01;
+      // pfo -> fft_ws -> sigma_2_IR = 57.582663;
+      // pfo -> fft_ws -> del_sigma_2_IR = 16.230511;
 
       /* Filling the matrices needed for the RSD.
       Since the eta_m are representing the spacing of the power spectra, which is the same for spectra, we choose one of them to fill the matrices

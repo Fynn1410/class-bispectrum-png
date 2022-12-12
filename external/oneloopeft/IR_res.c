@@ -38,7 +38,7 @@ double pm_IR_LO(struct background * pba,
 {
     double kf0 = 1.e-4;
     double kmin = 2.e-4;
-    double kmax = 15; // ??
+    double kmax = 15.; // ??
     static double sig2_LO = - 1.;
 
     if(sig2_LO == - 1.){
@@ -54,12 +54,14 @@ double pm_IR_LO(struct background * pba,
     //fprintf(stderr, "%.15e  %.15e  %.15e \n", kmin, kmax, sig2_LO);
     //fprintf(stderr, "%.15e  %.15e \n", k, p_nowiggle);
 
-    if (k < kmax && k > kmin){
-      f = p_nowiggle + sup * p_wiggle;
-    }
-    else{
-      f = p_nowiggle + p_wiggle;
-    }
+    // if (k < kmax && k > kmin){
+    //   f = p_nowiggle + sup * p_wiggle;
+    // }
+    // else{
+    //   f = p_nowiggle + p_wiggle;
+    // }
+
+    f = p_nowiggle + sup * p_wiggle;
 
     // FILE *fpa;
     // char file_name[50];
@@ -81,37 +83,31 @@ double pm_IR_LO(struct background * pba,
  *
  * @return value of NL IR-ressumed power spectrum
  */
-// double pm_IR_NLO(struct background * pba,
-//                 struct primordial * ppm,
-//                 struct fourier * pfo,
-//                 double k,
-//                 double z,
-//                 long SPLIT)
-// {
-//     extern struct globals gb;
-//     static double sig2_NLO = - 1.;
-//     double kf0 = 1.e-5;
+double pm_IR_NLO(struct background * pba,
+                struct primordial * ppm,
+                struct fourier * pfo,
+                double k,
+                double z,
+                long SPLIT)
+{
+    double kf0 = 1.e-4;
+    double kmin = 2.e-4;
+    double kmax = 15.;
+    static double sig2_LO = - 1.;
 
-//     if(sig2_NLO == - 1.){
-//       sig2_NLO = IR_Sigma2(pba, ppm, pfo,z, kf0, SPLIT);
-//     }
+    if(sig2_LO == - 1.){
+          sig2_LO = IR_Sigma2(pba, ppm, pfo, z, kf0, SPLIT);
+    }
+    //fprintf(stderr,"Call pm_nowiggle from pm_IR_LO with k=%e, z=%e, cleanup=%d\n",k,z,cleanup);
+    double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, kf0, 0, SPLIT);
+    double plin       = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER);
+    double p_wiggle   = plin - p_nowiggle;
+    double sup        = exp(-k * k * sig2_LO);
 
-//     double p_nowiggle = pm_nowiggle(pba, ppm, pfo, k, z, kf0, 0, SPLIT);
-//     double p_wiggle   = Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER) - p_nowiggle;
-//     double sup        = exp(-k * k * sig2_NLO);
-
-//     double *pm_loops  =  make_1Darray(2);
-//     Compute_G_loops(pba, ppm, pfo, k, z, WIR, MATTER, SPLIT,pm_loops);
-
-//     double p22_IR = pm_loops[0];
-//     double p13_IR = pm_loops[1];
-//     free(pm_loops);
-
-//     double pm_LO = p_nowiggle + sup * p_wiggle;
-//     double f     = p_nowiggle + sup * p_wiggle * (1. + k * k * sig2_NLO) + p22_IR + p13_IR ;
-//     //fprintf(stderr, "%e %e ",p22_IR, p13_IR);
-//     return f;
-// }
+    double f     = p_nowiggle + sup * p_wiggle * (1. + k * k * sig2_LO);
+    //fprintf(stderr, "%e %e ",p22_IR, p13_IR);
+    return f;
+}
 
 
 
@@ -430,8 +426,8 @@ double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struc
 
   if(first == 1){
     //fprintf(stderr,"Initialises nowiggle interpolator with first=%d\n",first);
-    int nlines       = 600;
-    double *k_in     = loginit_1Darray(nlines, 1.e-4, 20.);
+    int nlines       = 400;
+    double *k_in     = loginit_1Darray(nlines, 1.e-6, 40.);
     double *log_k    = make_1Darray(nlines);
     double *pk_nw    = make_1Darray(nlines);
     double *log_pknw = make_1Darray(nlines);
