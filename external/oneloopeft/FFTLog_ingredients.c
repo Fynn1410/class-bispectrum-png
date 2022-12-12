@@ -187,6 +187,7 @@ double complex M4(double complex nu1, double complex nu2, double mu)
  * @param biased_etam  Output: biased_etam = b + i etam output from fft decomposition of pk_m
  * @param cmsym        Output: fourier coeeficents of pk_m
  * @return void
+ * deprecated documentation !!
  */
 
 void FFT_compute_coeff(struct background * pba,
@@ -253,6 +254,7 @@ void FFT_compute_coeff(struct background * pba,
       double complex *biased_etam;
       double complex *cmsym;
       // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
+      // fft_input->etam_../cmsym_.. is empty, still this block is needed to avoid segfault ? => Pointer assignment, maybe unnecessary
       if(hm_switch == MATTER){
             biased_etam = fft_input->etam_m;
             cmsym = fft_input->cmsym_m;
@@ -268,7 +270,7 @@ void FFT_compute_coeff(struct background * pba,
             // window[n] = FFT_window(k[n], kmin_fft, kmax_fft, kleft, kright);
       }
 
-      for(int i=0;i<Nmax;i++){
+      for(int i=0;i<Nmax;i++){      // TODO: interchange loop and if
             if(rsd_ir_switch == lin){
                   pk_bin[i] = Pk_dlnPk(pba, ppm, pfo, k[i], z, LPOWER);
             }
@@ -309,20 +311,21 @@ void FFT_compute_coeff(struct background * pba,
          etam[index_c]        = 2. * M_PI *  js[index_c] / (Nmaxd * Delta);
          biased_etam[index_c] = fft_bias + _Complex_I * etam[index_c];
       }
-      for (index_kd = 0; index_kd < Nmax; index_kd++)
+      for (index_kd = 0; index_kd < Nmax; index_kd++) {
          input[index_kd] = pk_bin[index_kd] * exp(- (double)index_kd * fft_bias * Delta);
+      }
 
       my_plan = fftw_plan_dft_1d(Nmax, input, output, FFTW_FORWARD, FFTW_ESTIMATE);
       fftw_execute(my_plan);
       /*
-       * construct the rescaled fourier coeeficents
+       * construct the rescaled fourier coefficents
        */
 
       for (index_c=0; index_c < Nmax+1; index_c++){
-         if (index_c < Nmax/2) {
+         if (index_c < Nmax/2) { // ... * conj(output[..]) since fftw_complex = double complex
              cmsym[index_c]= window[index_c] * cpow(kmin_fft,-biased_etam[index_c]) *(creal(output[Nmax/2 - index_c]) - _Complex_I * cimag(output[Nmax/2 - index_c]))/Nmaxd;
          }
-         else{
+         else{    // ... * output[..]
              cmsym[index_c]= window[index_c] * cpow(kmin_fft,-biased_etam[index_c]) *(creal(output[index_c - Nmax/2]) + _Complex_I * cimag(output[index_c - Nmax/2]))/Nmaxd;
          }
       }
@@ -360,7 +363,7 @@ void FFT_compute_coeff(struct background * pba,
 
       // printf("suceessfully computed FFT coeffcients\n");
 
-      return ;
+      return ;    // Missing return
 }
 
 /**

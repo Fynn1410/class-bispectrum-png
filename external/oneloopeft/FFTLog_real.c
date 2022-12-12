@@ -121,6 +121,7 @@ void P_gg_FFTLog(struct fourier *pfo, int index_k, double Plin)
 
       pfo -> pk_halo_real_nl -> Plin_IR[index_k] = Plin;
 
+      // Pointless declarations ?
       double I2200 = pfo -> pk_halo_real_nl -> I2200[index_k];
       double Idelta200 = pfo -> pk_halo_real_nl -> Idelta200[index_k];
       double IG200 = pfo -> pk_halo_real_nl -> IG200[index_k];

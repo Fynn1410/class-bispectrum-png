@@ -38,7 +38,7 @@ double pm_IR_LO(struct background * pba,
 {
     double kf0 = 1.e-4;
     double kmin = 2.e-4;
-    double kmax = 15;
+    double kmax = 15; // ??
     static double sig2_LO = - 1.;
 
     if(sig2_LO == - 1.){
@@ -50,6 +50,9 @@ double pm_IR_LO(struct background * pba,
     double p_wiggle   = plin - p_nowiggle;
     double sup        = exp(-k * k * sig2_LO);
     double f;
+
+    //fprintf(stderr, "%.15e  %.15e  %.15e \n", kmin, kmax, sig2_LO);
+    //fprintf(stderr, "%.15e  %.15e \n", k, p_nowiggle);
 
     if (k < kmax && k > kmin){
       f = p_nowiggle + sup * p_wiggle;
@@ -134,9 +137,12 @@ double IR_Sigma2_integrand(double x, void *par)
     double kf0             = pij.p6;
     long   SPLIT           = pij.p13;
 
-    double k_osc = 1./bao_scale;  /// BAO_scale = 110. Mpc/h.
+    double q_osc = x * bao_scale;  // = q/k_osc , BAO_scale = 110. Mpc/h.
     //fprintf(stderr,"Call pm_nowiggle from IR_Sigma2_integrand with x=%e\n",x);
-    result = 1./(6.*M_PI*M_PI)*pm_nowiggle(pba, ppm, pfo, x, z, kf0, 0, SPLIT)* (1. - gsl_sf_bessel_j0(x/k_osc) + 2. * gsl_sf_bessel_j2(x/k_osc));;
+    result = 1./(6.*M_PI*M_PI) * pm_nowiggle(pba, ppm, pfo, x, z, kf0, 0, SPLIT) 
+            * (1. - sin(q_osc) / q_osc 
+                + 2. * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) ) );
+              // 1 - j_0(q/k_osc) + 2 j_2(q/k_osc)
     return result;
 
 }
@@ -207,9 +213,11 @@ double IR_del_Sigma2_integrand(double x, void *par)
     double kf0             = pij.p6;
     long   SPLIT           = pij.p13;
 
-    double k_osc = 1./bao_scale;  /// BAO_scale = 110. Mpc/h.
+    double q_osc = x * bao_scale;  // = q/k_osc , BAO_scale = 110. Mpc/h.
     //fprintf(stderr,"Call pm_nowiggle from IR_del_Sigma2_integrand with x=%e\n",x);
-    result = 1./(2.*M_PI*M_PI)*pm_nowiggle(pba, ppm, pfo, x, z, kf0, 0, SPLIT) * gsl_sf_bessel_j2(x/k_osc);
+    result = 1./(2.*M_PI*M_PI) * pm_nowiggle(pba, ppm, pfo, x, z, kf0, 0, SPLIT) 
+            * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) );
+            // j_2(q/k_osc)
     return result;
 
 }

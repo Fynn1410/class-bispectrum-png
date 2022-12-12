@@ -210,7 +210,7 @@ double T(struct background *pba, struct primordial *ppm, struct fourier *pfo, do
     double betab  = 0.5 + ombh2/om0h2 + (3.-2.*ombh2/om0h2) * sqrt(pow(17.2*om0h2,2.)+1.); 
     double f      = 1./(1.+pow(k*s/5.4, 4.));
 
-    double Tb = (Tt0(pba,ppm,pfo,k,1.,1.)/(1.+pow(k*s/5.2,2.)) + alphab/(1.+pow(betab/(k*s),3.)) * exp(-pow(k/k_silk,1.4)))* gsl_sf_bessel_j0(k*st); ///Eq. 21 of EH ref.
+    double Tb = (Tt0(pba,ppm,pfo,k,1.,1.)/(1.+pow(k*s/5.2,2.)) + alphab/(1.+pow(betab/(k*s),3.)) * exp(-pow(k/k_silk,1.4)))* sin(k*st) / (k*st); ///Eq. 21 of EH ref.
     double Tc = f*Tt0(pba,ppm,pfo,k,1.,betac) + (1.-f) *Tt0(pba,ppm,pfo,k,alphac,betac);       ///Eq. 17 of EH ref                                    
 
     double out = ombh2/om0h2 * Tb + omch2/om0h2 * Tc;
