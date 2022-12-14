@@ -1285,24 +1285,23 @@ int fourier_init(
 
   /** - get the linear power spectrum at each time */
 
-  for (index_tau=0; index_tau<pfo->ln_tau_size;index_tau++) {
+  /** --> loop over required pk types (_m, _cb) */
+  for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
 
-    /* If the user only wants z=0, then pfo->ln_tau_size=1 and we go
-       only through index_tau=0. However we must pick up the last
-       value of the source, index_tau_sources = ppt->tau_size-1. If
-       the user wants several values of z, they correspond to the last
-       ppt->ln_tau_size values of the sources (those that were also
-       part of the array ppt->late_sources in the perturbation
-       module). In all cases, the following formula gives the
-       correspondance between index_tau in the current array and in
-       the sources array:
-    */
+    for (index_tau=0; index_tau<pfo->ln_tau_size;index_tau++) {
 
-    index_tau_sources = ppt->tau_size-ppt->ln_tau_size+index_tau;
+      /* If the user only wants z=0, then pfo->ln_tau_size=1 and we go
+        only through index_tau=0. However we must pick up the last
+        value of the source, index_tau_sources = ppt->tau_size-1. If
+        the user wants several values of z, they correspond to the last
+        ppt->ln_tau_size values of the sources (those that were also
+        part of the array ppt->late_sources in the perturbation
+        module). In all cases, the following formula gives the
+        correspondance between index_tau in the current array and in
+        the sources array:
+      */
 
-    /** --> loop over required pk types (_m, _cb) */
-
-    for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
+      index_tau_sources = ppt->tau_size-ppt->ln_tau_size+index_tau;
 
       /** --> get the linear power spectrum for this time and this type */
 
@@ -1339,44 +1338,51 @@ int fourier_init(
                                    ),
                  pfo->error_message,
                  pfo->error_message);
+    }
 
+    /** --> if interpolation of \f$P(k,\tau)\f$ will be needed (as a
+   function of tau), compute array of second derivatives in view of
+    spline interpolation */
 
-      /** --> if interpolation of \f$P(k,\tau)\f$ will be needed (as a
-     function of tau), compute array of second derivatives in view of
-     spline interpolation */
+    if (pfo->ln_tau_size > 1) {
 
-      if (pfo->ln_tau_size > 1) {
+      class_call(array_spline_table_lines(pfo->ln_tau,
+                                          pfo->ln_tau_size,
+                                          pfo->ln_pk_l[index_pk],
+                                          pfo->k_size,
+                                          pfo->ddln_pk_l[index_pk],
+                                          _SPLINE_EST_DERIV_,
+                                          pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
 
-        class_call(array_spline_table_lines(pfo->ln_tau,
-                                            pfo->ln_tau_size,
-                                            pfo->ln_pk_l[index_pk],
-                                            pfo->k_size,
-                                            pfo->ddln_pk_l[index_pk],
-                                            _SPLINE_EST_DERIV_,
-                                            pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
+      class_call(array_spline_table_lines(pfo->ln_tau,
+                                          pfo->ln_tau_size,
+                                          pfo->ln_pk_ic_l[index_pk],
+                                          pfo->k_size*pfo->ic_ic_size,
+                                          pfo->ddln_pk_ic_l[index_pk],
+                                          _SPLINE_EST_DERIV_,
+                                          pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
 
-        class_call(array_spline_table_lines(pfo->ln_tau,
-                                            pfo->ln_tau_size,
-                                            pfo->ln_pk_ic_l[index_pk],
-                                            pfo->k_size*pfo->ic_ic_size,
-                                            pfo->ddln_pk_ic_l[index_pk],
-                                            _SPLINE_EST_DERIV_,
-                                            pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
+      class_call(array_spline_table_lines(pfo->ln_tau,
+                                          pfo->ln_tau_size,
+                                          pfo->ln_pk_l_extra[index_pk],
+                                          pfo->k_size_extra,
+                                          pfo->ddln_pk_l_extra[index_pk],
+                                          _SPLINE_EST_DERIV_,
+                                          pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
+    }
+  }
 
-        class_call(array_spline_table_lines(pfo->ln_tau,
-                                            pfo->ln_tau_size,
-                                            pfo->ln_pk_l_extra[index_pk],
-                                            pfo->k_size_extra,
-                                            pfo->ddln_pk_l_extra[index_pk],
-                                            _SPLINE_EST_DERIV_,
-                                            pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-      }
+  /** - get the dewiggled power spectrum at each time in ln_tau */
+  if (pfo->method == nl_oneloopPT) {
+
+    for (index_tau=0; index_tau<pfo->ln_tau_size;index_tau++) {
+      // TODO
     }
   }
 
@@ -1678,7 +1684,7 @@ int fourier_init(
 
   else if (pfo->method == nl_oneloopPT) {
 
-    if ((pfo->fourier_verbose > 0) && (pfo->method == nl_oneloopPT))
+    if (pfo->fourier_verbose > 0)
       printf("Computing one-loop power spectrum including EFT terms (proper credits to Azadeh et al. will have to be added here)\n");
 
     // Calculations are typically done at redshift z=0 and then the EdS approximation is used
@@ -1878,6 +1884,12 @@ int fourier_free(
     free(pfo->pk_eq_ddw_and_ddOmega);
   }
 
+  if (pfo->method == nl_oneloopPT) {
+    free(pfo->ln_pk_l_nw_extra);
+    if (pfo->ln_tau_size > 1)
+      free(pfo->ddln_pk_l_nw_extra);
+  }
+
   return _SUCCESS_;
 }
 
@@ -2012,6 +2024,17 @@ int fourier_indices(
         class_alloc(pfo->ddln_pk_nl[index_pk],pfo->ln_tau_size*pfo->k_size*sizeof(double),pfo->error_message);
     }
 
+  }
+
+  /** - Oneloop EFT will require the dewiggled linear power spectrum.
+   *    allocate arrays for P_nw(k,z) and its splines in log(tau)
+  */
+
+  if (pfo->method == nl_oneloopPT) {
+    class_alloc(pfo->ln_pk_l_nw_extra, pfo->ln_tau_size*pfo->k_size_extra*sizeof(double), pfo->error_message);
+    
+    if (pfo->ln_tau_size > 1)
+      class_alloc(pfo->ddln_pk_l_nw_extra, pfo->ln_tau_size*pfo->k_size_extra*sizeof(double), pfo->error_message);
   }
 
   return _SUCCESS_;

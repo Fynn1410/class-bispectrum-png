@@ -390,6 +390,18 @@ struct fourier {
 
   //@}
 
+  /** @name - arrays for the dewiggled power spectrum P_nw(k,z=0) */
+
+  //@{
+
+  double * ln_pk_l_nw_extra; /**< No-wiggle linear power spectrum today.
+                            Computed from ln_pk_l_extra[index_pk_cb] or ln_pk_l_extra[index_pk_m] in this priority. 
+                            ln_pk_l_nw_extra[index_tau * pfo->k_size_extra + index_k]   */
+  
+  double * ddln_pk_l_nw_extra; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
+  //@}
+
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
 
   //@{
@@ -426,7 +438,7 @@ struct fourier {
 
   // FFTLog solutions for the Linear Power Spectrum / no-wiggle Linear Power Spectrum -> index coming from enum rsd_ir_type
 
-    struct oneloop_fftlog_matter_real * pk_matter_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
+  struct oneloop_fftlog_matter_real * pk_matter_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
                           Only depends on indices index_k:
                           ln_pk[index_k]
                        */
