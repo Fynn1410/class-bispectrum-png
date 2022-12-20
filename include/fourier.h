@@ -390,11 +390,11 @@ struct fourier {
 
   //@}
 
-  /** @name - arrays for the dewiggled power spectrum P_nw(k,z=0) */
+  /** @name - arrays for the dewiggled power spectrum P_nw(k,z) */
 
   //@{
 
-  double * ln_pk_l_nw_extra; /**< No-wiggle linear power spectrum today.
+  double * ln_pk_l_nw_extra; /**< No-wiggle linear power spectrum.
                             Computed from ln_pk_l_extra[index_pk_cb] or ln_pk_l_extra[index_pk_m] in this priority. 
                             ln_pk_l_nw_extra[index_tau * pfo->k_size_extra + index_k]   */
   
@@ -575,6 +575,14 @@ extern "C" {
                                      double * out_pk,
                                      double * out_pk_cb
                                      );
+
+  int fourier_pk_nw_at_z(
+                          struct background * pba,
+                          struct fourier * pfo,
+                          enum linear_or_logarithmic mode,
+                          double z,
+                          double * out_pk
+                          );
 
   int fourier_sigmas_at_z(
                             struct precision * ppr,

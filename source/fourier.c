@@ -60,7 +60,6 @@
  * @param out_pk_ic   Output:  P_ic(k) returned as  out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
-
 int fourier_pk_at_z(
                     struct background * pba,
                     struct fourier *pfo,
@@ -297,7 +296,6 @@ int fourier_pk_at_z(
  * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pfo->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
-
 int fourier_pks_at_z(
                      struct background * pba,
                      struct fourier * pfo,
@@ -384,7 +382,6 @@ int fourier_pks_at_z(
  * @param out_pk_ic   Ouput:  P_ic returned as out_pk_ic_l[index_ic1_ic2]
  * @return the error status
  */
-
 int fourier_pk_at_k_and_z(
                           struct background * pba,
                           struct primordial * ppm,
@@ -682,7 +679,6 @@ int fourier_pk_at_k_and_z(
  * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pfo->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
-
 int fourier_pks_at_k_and_z(
                            struct background * pba,
                            struct primordial * ppm,
@@ -754,7 +750,6 @@ int fourier_pks_at_k_and_z(
  * @param out_pk_cb      Output: P_cb(k_i,z_j) for cdm+baryons (if available) in Mpc**3
  * @return the error status
  */
-
 int fourier_pks_at_kvec_and_zvec(
                                  struct background * pba,
                                  struct fourier * pfo,
@@ -962,7 +957,6 @@ int fourier_pks_at_kvec_and_zvec(
  * @param pk_tilt     Output: logarithmic slope of P(k,z)
  * @return the error status
  */
-
 int fourier_pk_tilt_at_k_and_z(
                                struct background * pba,
                                struct primordial * ppm,
@@ -1036,7 +1030,6 @@ int fourier_pk_tilt_at_k_and_z(
  * @param result       Output: result
  * @return the error status
  */
-
 int fourier_sigmas_at_z(
                         struct precision * ppr,
                         struct background * pba,
@@ -1112,7 +1105,6 @@ int fourier_sigmas_at_z(
  * @param k_nl_cb Ouput: k_nl value of the cdm+baryon part only, if there is ncdm
  * @return the error status
  */
-
 int fourier_k_nl_at_z(
                       struct background *pba,
                       struct fourier * pfo,
@@ -1198,7 +1190,6 @@ int fourier_k_nl_at_z(
  * @param pfo Input/Output: pointer to initialized fourier structure
  * @return the error status
  */
-
 int fourier_init(
                  struct precision *ppr,
                  struct background *pba,
@@ -1381,10 +1372,57 @@ int fourier_init(
   /** - get the dewiggled power spectrum at each time in ln_tau */
   if (pfo->method == nl_oneloopPT) {
 
-    for (index_tau=0; index_tau<pfo->ln_tau_size;index_tau++) {
-      // TODO
+    double ln_k0 = log( pow(10., -4.) );  // TODO: use input parameter
+    double ln_k_nw_min = log( 5.*pow(10., -5.) );
+    double ln_k_nw_max = log( pow(10., 4.) );
+    index_pk = pfo->index_pk_cb;  //TODO: switch
+
+    /** - find indeices of k0, k_nw_min, k_nw_max in pfo->ln_k */
+    int index_k0 = 0, index_k_min = 0, index_k_max = 0;
+    class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
+                                    ln_k0, &index_k0, pfo->error_message),
+                pfo->error_message,
+                pfo->error_message);
+    class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
+                                    ln_k_nw_min, &index_k_min, pfo->error_message),
+                pfo->error_message,
+                pfo->error_message);
+    class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
+                                    ln_k_nw_max, &index_k_max, pfo->error_message),
+                pfo->error_message,
+                pfo->error_message);
+    
+    int k_nw_size = index_k_max - index_k_min + 1;
+
+    /** - fill the nowiggle array with the original linear spectrum 
+     * and overwrite only values between index_kmin and index_kmax*/
+    memcpy(pfo->ln_pk_l_nw_extra, pfo->ln_pk_l_extra[index_pk], 
+            pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
+
+    /** - compute the nowiggle spectrum using gaussian filter */
+    class_call(eft_ln_pk_nw_gfilter(pba, ppm, pfo,
+                                  index_pk,
+                                  index_k0,
+                                  index_k_min,
+                                  k_nw_size,
+                                  pfo->ln_pk_l_nw_extra),
+                pfo->error_message,
+                pfo->error_message);
+
+    if (pfo->ln_tau_size > 1) {
+      /** - spline the nowiggle spectrum */
+      class_call(array_spline_table_lines(pfo->ln_tau,
+                                            pfo->ln_tau_size,
+                                            pfo->ln_pk_l_nw_extra,
+                                            pfo->k_size_extra,
+                                            pfo->ddln_pk_l_nw_extra,
+                                            _SPLINE_EST_DERIV_, // TODO: what happens if 1 < ln_tau_size < 3, this will not work
+                                            pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
     }
   }
+
 
   /** - compute and store sigma8 (variance of density fluctuations in
         spheres of radius 8/h Mpc at z=0, always computed by
@@ -1820,7 +1858,6 @@ int fourier_init(
  * @param pfo Input: pointer to fourier structure (to be freed)
  * @return the error status
  */
-
 int fourier_free(
                  struct fourier *pfo
                  ) {
@@ -1904,7 +1941,6 @@ int fourier_free(
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
 */
-
 int fourier_indices(
                     struct precision *ppr,
                     struct background *pba,
@@ -2050,7 +2086,6 @@ int fourier_indices(
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
 */
-
 int fourier_get_k_list(
                        struct precision *ppr,
                        struct perturbations * ppt,
@@ -2111,7 +2146,6 @@ int fourier_get_k_list(
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
 */
-
 int fourier_get_tau_list(
                          struct perturbations * ppt,
                          struct fourier * pfo
@@ -2119,7 +2153,7 @@ int fourier_get_tau_list(
 
   int index_tau;
 
-  /** -> for linear calculations: only late times are considered, given the value z_max_pk inferred from the ionput */
+  /** -> for linear calculations: only late times are considered, given the value z_max_pk inferred from the input */
   pfo->ln_tau_size = ppt->ln_tau_size;
 
   if (ppt->ln_tau_size > 1) {
@@ -2161,7 +2195,6 @@ int fourier_get_tau_list(
  * @param source          Output: desired value of source
  * @return the error status
  */
-
 int fourier_get_source(
                        struct background * pba,
                        struct perturbations * ppt,
@@ -2314,7 +2347,6 @@ int fourier_get_source(
  * @param lnpk_ic      Output: log of matter power spectrum for given type/time, for all wavenumbers and initial conditions
  * @return the error status
  */
-
 int fourier_pk_linear(
                       struct background *pba,
                       struct perturbations *ppt,
@@ -2485,7 +2517,6 @@ int fourier_pk_linear(
  * @param result       Output: result
  * @return the error status
  */
-
 int fourier_sigmas(
                    struct fourier * pfo,
                    double R,
@@ -2661,7 +2692,6 @@ int fourier_sigmas(
  * @param result       Output: result
  * @return the error status
  */
-
 int fourier_sigma_at_z(
                        struct background * pba,
                        struct fourier * pfo,
@@ -2750,7 +2780,6 @@ int fourier_sigma_at_z(
  * @param nl_corr_not_computable_at_this_k Ouput: flag concerning the status of the calculation (_TRUE_ if not possible)
  * @return the error status
  */
-
 int fourier_halofit(
                     struct precision *ppr,
                     struct background *pba,
@@ -3216,7 +3245,6 @@ int fourier_halofit(
  * @param sum             Output: result of the integral
  * @return the error status
  */
-
 int fourier_halofit_integrate(
                               struct fourier *pfo,
                               double * integrand_array,
@@ -3294,7 +3322,6 @@ int fourier_halofit_integrate(
  * @param pnw        Input/Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode(
                    struct precision *ppr,
                    struct background *pba,
@@ -3795,7 +3822,6 @@ int fourier_hmcode(
  * @param pnw         Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode_workspace_init(
                                   struct precision *ppr,
                                   struct background *pba,
@@ -3886,7 +3912,6 @@ int fourier_hmcode_workspace_free(
  * @param pnw         Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode_dark_energy_correction(
                                           struct precision *ppr,
                                           struct background *pba,
@@ -3949,7 +3974,6 @@ int fourier_hmcode_dark_energy_correction(
  * @param pfo   Output: pointer to fourier structure
  * @return the error status
  */
-
 int fourier_hmcode_baryonic_feedback(
                                      struct fourier *pfo
                                      ) {
@@ -4017,7 +4041,6 @@ int fourier_hmcode_baryonic_feedback(
  * @param pnw Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode_fill_sigtab(
                                struct precision * ppr,
                                struct background * pba,
@@ -4110,7 +4133,6 @@ int fourier_hmcode_fill_sigtab(
  * @param pnw Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode_fill_growtab(
                                 struct precision * ppr,
                                 struct background * pba,
@@ -4172,7 +4194,6 @@ int fourier_hmcode_fill_growtab(
  * @param growth Output: scale independent growth factor at a
  * @return the error status
  */
-
 int fourier_hmcode_growint(
                            struct precision * ppr,
                            struct background * pba,
@@ -4279,7 +4300,6 @@ int fourier_hmcode_growint(
  * @param window_nfw Output: Window Function of the NFW profile
  * @return the error status
  */
-
 int fourier_hmcode_window_nfw(
                               struct fourier * pfo,
                               double k,
@@ -4337,7 +4357,6 @@ int fourier_hmcode_window_nfw(
  * @param hmf  Output: Value of the halo mass function at this \f$ \nu \f$
  * @return the error status
  */
-
 int fourier_hmcode_halomassfunction(
                                     double nu,
                                     double * hmf
@@ -4365,7 +4384,6 @@ int fourier_hmcode_halomassfunction(
  * @param pnw        Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode_sigma8_at_z(
                                struct background *pba,
                                struct fourier * pfo,
@@ -4443,7 +4461,6 @@ int fourier_hmcode_sigma8_at_z(
  * @param pnw           Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode_sigmadisp_at_z(
                                   struct background *pba,
                                   struct fourier * pfo,
@@ -4520,7 +4537,6 @@ int fourier_hmcode_sigmadisp_at_z(
  * @param pnw           Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode_sigmadisp100_at_z(
                                      struct background *pba,
                                      struct fourier * pfo,
@@ -4596,7 +4612,6 @@ int fourier_hmcode_sigmadisp100_at_z(
  * @param pnw            Output: pointer to nonlinear workspace
  * @return the error status
  */
-
 int fourier_hmcode_sigmaprime_at_z(
                                    struct background *pba,
                                    struct fourier * pfo,
@@ -4657,6 +4672,118 @@ int fourier_hmcode_sigmaprime_at_z(
     *sigma_prime_cb = *sigma_prime;
   }
 
+
+  return _SUCCESS_;
+}
+
+/**
+ * Return the linear nowiggle spectrum P_nw(k,z) for a given redshift z 
+ *
+ * Output format:
+ *
+ * 1. if mode = logarithmic (most straightforward for the code):
+ *     out_pk = ln(P_nw(k))
+ *
+ * 2. if mode = linear (a conversion is done internally in this function)
+ *     out_pk = P_nw(k)
+ *
+ * @param pba         Input: pointer to background structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param mode        Input: linear or logarithmic
+ * @param z           Input: redshift
+ * @param out_pk      Output: P_nw(k) returned as out_pk_l[index_k]
+ * @return the error status
+ */
+int fourier_pk_nw_at_z(
+                        struct background * pba,
+                        struct fourier * pfo,
+                        enum linear_or_logarithmic mode,
+                        double z,
+                        double * out_pk
+                        ) {
+
+  double tau;
+  double ln_tau;
+  int index_k;
+  int last_index;
+
+  /** - case z=0 requiring no interpolation in z */
+  if (fabs(rint(z) - z) < _EPSILON_) {
+    memcpy(out_pk, pfo->ln_pk_l_nw_extra + (pfo->ln_tau_size-1)*pfo->k_size_extra,
+            pfo->k_size_extra * sizeof(double));
+  }
+
+  /** - interpolation in z */
+  else {
+    class_test(pfo->ln_tau_size == 1,
+                pfo->error_message,
+                "You are asking for the matter power spectrum at z=%e but the code was asked to store it only at z=0. You probably forgot to pass the input parameter z_max_pk (see explanatory.ini)",z);
+
+    /** --> get value of contormal time tau */
+    class_call(background_tau_of_z(pba,
+                                    z,
+                                    &tau),
+                pba->error_message,
+                pfo->error_message);
+
+    ln_tau = log(tau);
+    last_index = pfo->ln_tau_size-1;
+
+    /** -> check that tau is in pre-computed table */
+
+    if (ln_tau <= pfo->ln_tau[0]) {
+
+      /** --> if ln(tau) much too small, raise an error */
+      class_test(ln_tau<pfo->ln_tau[0]-_EPSILON_,
+                  pfo->error_message,
+                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pfo->ln_tau[0]);
+
+      /** --> if ln(tau) too small but within tolerance, round it and get right values without interpolating */
+      ln_tau = pfo->ln_tau[0];
+      memcpy(out_pk, pfo->ln_pk_l_nw_extra, pfo->k_size_extra * sizeof(double));
+    }
+
+    else if (ln_tau >= pfo->ln_tau[pfo->ln_tau_size-1]) {
+
+      /** --> if ln(tau) much too large, raise an error */
+      class_test(ln_tau>pfo->ln_tau[pfo->ln_tau_size-1]+_EPSILON_,
+                  pfo->error_message,
+                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Max %.10e) ",ln_tau,pfo->ln_tau[pfo->ln_tau_size-1]);
+
+      /** --> if ln(tau) too large but within tolerance, round it and get right values without interpolating */
+      ln_tau = pfo->ln_tau[pfo->ln_tau_size-1];
+      memcpy(out_pk, pfo->ln_pk_l_nw_extra + (pfo->ln_tau_size-1)*pfo->k_size_extra,
+              pfo->k_size_extra * sizeof(double));
+    }
+
+    /** -> tau is in pre-computed table: interpolate */
+    else {
+
+      /** --> interpolate P_nw(k) at tau from pre-computed array */
+      class_call(array_interpolate_spline(pfo->ln_tau,
+                                          pfo->ln_tau_size,
+                                          pfo->ln_pk_l_nw_extra,
+                                          pfo->ddln_pk_l_nw_extra,
+                                          pfo->k_size_extra,
+                                          ln_tau,
+                                          &last_index,
+                                          out_pk,
+                                          pfo->k_size_extra,
+                                          pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
+    }
+  }
+
+  /** - so far, all output stored in logarithmic format. Eventually, convert to linear one. */
+  if (mode == linear) {
+
+    /** --> loop over k */
+    for (index_k=0; index_k < pfo->k_size_extra; index_k++) {
+      /** --> convert total spectrum */
+      out_pk[index_k] = exp(out_pk[index_k]);
+    }
+  }
 
   return _SUCCESS_;
 }
