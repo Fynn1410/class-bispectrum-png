@@ -584,6 +584,26 @@ extern "C" {
                           double * out_pk
                           );
 
+  int fourier_pk_nw_at_k_and_z(
+                                struct background * pba,
+                                struct primordial * ppm,
+                                struct fourier *pfo,
+                                enum linear_or_logarithmic mode,
+                                double k,
+                                double z,
+                                double * out_pk
+                                );
+
+  int fourier_pk_nw_at_kvec_and_z(
+                                    struct background * pba,
+                                    struct fourier * pfo,
+                                    enum linear_or_logarithmic mode,
+                                    double * ln_kvec,
+                                    int kvec_size,
+                                    double z,
+                                    double * out_pk
+                                    );
+
   int fourier_sigmas_at_z(
                             struct precision * ppr,
                             struct background * pba,
