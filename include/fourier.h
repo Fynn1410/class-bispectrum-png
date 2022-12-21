@@ -596,6 +596,7 @@ extern "C" {
 
   int fourier_pk_nw_at_kvec_and_z(
                                     struct background * pba,
+                                    struct primordial * ppm,
                                     struct fourier * pfo,
                                     enum linear_or_logarithmic mode,
                                     double * ln_kvec,

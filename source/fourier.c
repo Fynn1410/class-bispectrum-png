@@ -4816,8 +4816,8 @@ int fourier_pk_nw_at_k_and_z(
   double * ddout_pk_at_z;
   int last_index;
   double kmin;
-  double * pk_primordial_k;
-  double * pk_primordial_kmin;
+  double * ln_pk_primordial_k;
+  double * ln_pk_primordial_kmin;
 
 
   /** - first step: check that k is in valid range [0:kmax]
@@ -4894,11 +4894,6 @@ int fourier_pk_nw_at_k_and_z(
                   pfo->error_message,
                   pfo->error_message);
     */
-
-    if (mode == linear) {
-      /** --> convert from logarithmic to linear format */
-      *out_pk = exp(*out_pk);
-    }
   }
 
   /** --> deal with case 0 < k < kmin that requires extrapolation
@@ -4916,11 +4911,11 @@ int fourier_pk_nw_at_k_and_z(
 
   else {
 
-    /** --> First, get P(k) at the right z (in linear format) */
+    /** --> First, get ln P(k) at the right z */
 
     class_call(fourier_pk_nw_at_z(pba,
                                   pfo,
-                                  linear,
+                                  logarithmic,
                                   z,
                                   out_pk_at_z
                                   ),
@@ -4930,45 +4925,50 @@ int fourier_pk_nw_at_k_and_z(
     /* get P(kmin) / first element in pk_l_extra */
     *out_pk = out_pk_at_z[0];
 
-    /* compute P_primordial(k) */
+    /* compute ln P_primordial(k) */
 
-    class_alloc(pk_primordial_k,
+    class_alloc(ln_pk_primordial_k,
                 pfo->ic_ic_size*sizeof(double),
                 pfo->error_message);
 
     class_call(primordial_spectrum_at_k(ppm,
                                         pfo->index_md_scalars,
-                                        linear,
+                                        logarithmic,
                                         k,
-                                        pk_primordial_k),
+                                        ln_pk_primordial_k),
                 ppm->error_message,
                 pfo->error_message);
 
-    /* compute P_primordial(kmin) */
+    /* compute ln P_primordial(kmin) */
 
     kmin = exp(pfo->ln_k[0]);
 
-    class_alloc(pk_primordial_kmin,
+    class_alloc(ln_pk_primordial_kmin,
                 sizeof(double)*pfo->ic_ic_size,
                 pfo->error_message);
 
     class_call(primordial_spectrum_at_k(ppm,
                                         pfo->index_md_scalars,
-                                        linear,
+                                        logarithmic,
                                         kmin,
-                                        pk_primordial_kmin),
+                                        ln_pk_primordial_kmin),
                 ppm->error_message,
                 pfo->error_message);
 
-    /* finally, infer P(k) */
+    /* finally, infer ln P(k) */
 
-    *out_pk *= (k*pk_primordial_k[0]/(kmin*pk_primordial_kmin[0]));
+    *out_pk += log(k) - pfo->ln_k[0] + ln_pk_primordial_k[0] - ln_pk_primordial_kmin[0];
 
-    free(pk_primordial_k);
-    free(pk_primordial_kmin);
+    free(ln_pk_primordial_k);
+    free(ln_pk_primordial_kmin);
   }
 
   free(out_pk_at_z);
+
+  if (mode == linear) {
+    /** --> convert from logarithmic to linear format */
+    *out_pk = exp(*out_pk);
+  }
 
   return _SUCCESS_;
 }
@@ -4994,6 +4994,7 @@ int fourier_pk_nw_at_k_and_z(
  */
 int fourier_pk_nw_at_kvec_and_z(
                                 struct background * pba,
+                                struct primordial * ppm,
                                 struct fourier * pfo,
                                 enum linear_or_logarithmic mode,
                                 double * ln_kvec, // log(kvec[index_kvec])
@@ -5001,9 +5002,11 @@ int fourier_pk_nw_at_kvec_and_z(
                                 double z,
                                 double * out_pk) {
 
-  int index_k, index_kvec, last_index;
+  int index_k, index_kvec, last_index = 0;
   double * out_pk_at_z;
   double * ddout_pk_at_z;
+  double * ln_pk_primordial;
+  double extrapol_const;
 
 
   class_alloc(ln_kvec, kvec_size*sizeof(double),
@@ -5038,16 +5041,36 @@ int fourier_pk_nw_at_kvec_and_z(
                                       pfo->error_message),
               pfo->error_message,
               pfo->error_message);
+              
+
+  /** - Loop over first k values. If k<kmin, extrapolate using the primordial spectrum. */
+  if (ln_kvec[0] < pfo->ln_k[0]) {
+    class_alloc(ln_pk_primordial, pfo->ic_ic_size * sizeof(double), pfo->error_message);
+    class_call(primordial_spectrum_at_k(ppm,
+                                        pfo->index_md_scalars,
+                                        logarithmic,
+                                        kmin,
+                                        ln_pk_primordial),
+                  ppm->error_message,
+                  pfo->error_message);
+    extrapol_const = out_pk_at_z[0] - pfo->ln_k[0] - ln_pk_primordial[0];
+  }
+
+  for(index_kvec = 0; index_kvec < kvec_size && ln_kvec[index_kvec] < pfo->ln_k[0]; index_kvec++) {
+    /** - get the primordial spectrum at k */
+    class_call(primordial_spectrum_at_k(ppm,
+                                        pfo->index_md_scalars,
+                                        logarithmic,
+                                        exp(ln_kvec[index_kvec]),
+                                        ln_pk_primordial),
+                  ppm->error_message,
+                  pfo->error_message);
     
+    /** - write to output: P(k) = P(kmin) * (k*P_R(k) / kmin*P_R(kmin)) */
+    out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
+  }
 
-  /** - Loop over first k values. If k<kmin, fill output with zeros. If not, go to next step. */
-  for(index_kvec = 0; index_kvec < kvec_size; index_kvec++){
-    /* - check whether k_i is out of range (k_i < k_min) */
-    if ((ln_kvec[index_kvec] < pfo->ln_k[0]) || (ln_kvec[index_kvec] > pfo->ln_k[pfo->k_size_extra-1])) {
-      out_pk[index_kvec] = 0.;
-      continue;
-    }
-
+  for (index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
     /** - Deal with case kmin<=k<=kmax */
     class_call(array_interpolate_spline_growing_closeby(pfo->ln_k,
                                                         pfo->k_size_extra,
@@ -5063,6 +5086,11 @@ int fourier_pk_nw_at_kvec_and_z(
                   pfo->error_message);
   }
   
+  for (index_kvec; index_kvec < kvec_size; index_kvec++) {
+    /** - for k higher than kmax in pfo->ln_k, write zero to output */
+    out_pk[index_kvec] = 0.;
+  }
+
   free(out_pk_at_z);
   free(ddout_pk_at_z);
 
