@@ -1,9 +1,10 @@
 
-/** @file wnw_split.c Documented wiggle-nowiggle split based on 3d Gaussian filter in linear k, 
- * and using the Eisentein-Hu wiggle-no wiggle template arXiv:astro-ph/9709112 
+/** @file wnw_split.c Documented wiggle-nowiggle split based on 1d Gaussian filter in logarithmic k, 
+ * and using the Eisentein-Hu wiggle-nowiggle template arXiv:astro-ph/9709112 
  * 
  * Azadeh Moradinezhad Dizgah, June 16th 2021
- *
+ * Christian Radermacher, December 2022
+ * 
  * The algorithm closely follows Ref. arXiv:1509.02120 by Vlah et al. (described in Appendix A)
  *
  * The following function will be called from other modules:

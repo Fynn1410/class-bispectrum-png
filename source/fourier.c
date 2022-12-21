@@ -4707,7 +4707,7 @@ int fourier_pk_nw_at_z(
   int last_index;
 
   /** - case z=0 requiring no interpolation in z */
-  if (fabs(rint(z) - z) < _EPSILON_) {
+  if (fabs(z) < _EPSILON_) {
     memcpy(out_pk, pfo->ln_pk_l_nw_extra + (pfo->ln_tau_size-1)*pfo->k_size_extra,
             pfo->k_size_extra * sizeof(double));
   }
@@ -5045,7 +5045,7 @@ int fourier_pk_nw_at_kvec_and_z(
     /* - check whether k_i is out of range (k_i < k_min) */
     if ((ln_kvec[index_kvec] < pfo->ln_k[0]) || (ln_kvec[index_kvec] > pfo->ln_k[pfo->k_size_extra-1])) {
       out_pk[index_kvec] = 0.;
-      break;
+      continue;
     }
 
     /** - Deal with case kmin<=k<=kmax */

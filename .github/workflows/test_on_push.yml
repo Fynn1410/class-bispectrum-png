@@ -14,7 +14,7 @@ jobs:
     - name: make
       run: cd main_class && make -j class
     - name: run class
-      run: cd main_class && ./class explanatory.ini
+      run: cd main_class && mkdir output && ./class explanatory.ini
 
   nose_tests_lvl1:
     runs-on: [self-hosted]
