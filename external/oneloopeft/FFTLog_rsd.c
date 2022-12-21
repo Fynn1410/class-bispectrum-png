@@ -487,7 +487,8 @@ double complex FG201(double complex n1)
 double complex J12101(double complex n1)
 {
       double complex numerator   = (9.*ctan(n1*M_PI));
-      double complex denominator = (224.*n1*(-6. + 11.*n1 - 6.*cpow(n1,2) + cpow(n1,3))*M_PI);
+      //double complex denominator = (224.*n1*(-6. + 11.*n1 - 6.*cpow(n1,2) + cpow(n1,3))*M_PI);
+      double complex denominator = 224.*n1*(n1-1.)*(n1-2.)*(n1-3.)*M_PI;
       double complex out         = numerator/denominator;
 
       return out;
@@ -536,7 +537,8 @@ double complex J12102x(double complex n1)
 double complex J12102y(double complex n1)
 {
       double complex summand1   = (3.*(3. + 2.*(-2. + n1)*n1)*ctan(n1*M_PI))/(224.*(-3. + n1)*(-2. + n1)*(-1. + n1)*n1*(1. + n1)*M_PI);
-      double complex summand2 = (3.*(1. - 2.*n1)*ctan(n1*M_PI))/(224.*n1*(2. - n1 - 2.*cpow(n1,2.) + cpow(n1,3.))*M_PI);
+      //double complex summand2 = (3.*(1. - 2.*n1)*ctan(n1*M_PI))/(224.*n1*(2. - n1 - 2.*cpow(n1,2.) + cpow(n1,3.))*M_PI);
+      double complex summand2 = (3.*(1. - 2.*n1)*ctan(n1*M_PI))/(224.*n1*(n1+1.)*(n1-1.)*(n1-2.)*M_PI);
       double complex out = summand1 + summand2;
 
       return out;
@@ -545,7 +547,7 @@ double complex J12102y(double complex n1)
 double complex J21102x(double complex n1, double complex n2)
 {
       double complex numerator   = ((-1. + 2.*n1)*(-1. + 2.*n2)*(-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(6. + 7.*n1 + 7.*n2)*Gamma(-2.*n1)*
-      Gamma(-2.*n2)*Gamma(2.*(-2. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
+                                    Gamma(-2.*n2)*Gamma(2.*(-2. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
       double complex denominator = (28.*(1. + n1)*(1. + n2)*cpow(M_PI,3.));
       double complex out = - numerator/denominator;
 
@@ -555,8 +557,8 @@ double complex J21102x(double complex n1, double complex n2)
 double complex J21102y(double complex n1, double complex n2)
 {
       double complex numerator   = ((-3. + 2.*n1 + 2.*n2)*(-1. + 2.*n1 + 2.*n2)*(34. + n1 + n2 + 56.*cpow(n1,3.)*n2 - 54.*cpow(n2,2.) +
-       2.*cpow(n1,2.)*(-27. - 2.*n2 + 56.*cpow(n2,2.)) + 4.*n1*n2*(-21. + n2*(-1. + 14.*n2)))*Gamma(-2.*n1)*Gamma(-2.*n2)*
-       Gamma(2.*(-2. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
+                                    2.*cpow(n1,2.)*(-27. - 2.*n2 + 56.*cpow(n2,2.)) + 4.*n1*n2*(-21. + n2*(-1. + 14.*n2)))*Gamma(-2.*n1)*Gamma(-2.*n2)*
+                                    Gamma(2.*(-2. + n1 + n2))*csin(n1*M_PI)*csin(n2*M_PI)*csin((n1 + n2)*M_PI));
       double complex denominator = (28.*(1. + n1)*(1. + n2)*cpow(M_PI,3.));
       double complex out = numerator/denominator;
 
