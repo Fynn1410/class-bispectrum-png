@@ -269,7 +269,7 @@ int array_integrate_spline_table_line_to_line(
     h = (x_array[i+1]-x_array[i]);
 
     *(array+(i+1)*n_columns+index_inty) = *(array+i*n_columns+index_inty) +
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
@@ -1474,7 +1474,7 @@ int array_integrate_all_spline(
     h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
 
     *result +=
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. - //TODO: check with JL
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
@@ -1502,7 +1502,7 @@ int array_integrate_all_spline_table_line_to_line(
     h = (x_array[i+1]-x_array[i]);
 
     *result +=
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
@@ -1549,7 +1549,7 @@ int array_integrate_all_trapzd_or_spline(
     h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
 
     *result +=
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2.+
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
