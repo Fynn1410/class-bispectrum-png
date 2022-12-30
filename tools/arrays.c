@@ -1482,6 +1482,52 @@ int array_integrate_all_spline(
   return _SUCCESS_;
 }
 
+int array_integrate_all_spline_gaussian_window(
+          double * array,
+          int n_columns,
+          int n_lines,
+          int index_x,   /** from 0 to (n_columns-1) */
+          int index_y,
+          int index_ddy,
+          double mean,
+          double stddev,
+          double * result,
+          ErrorMsg errmsg) {
+
+  int i;
+  double h;               /**< distance between control points */
+  double a, b, g, d;      /**< alpha, beta, gamma, delta for our representation */
+  double c_sq, c_lin, c_const;  /**< coefficients of the quadratic, linear and constant term */
+  double M_diff;          /**< 2nd derivative difference at control points: M[i] - M[i+1] */
+
+  *result = 0;
+
+  for (i=0; i < n_lines-1; i++) {
+
+    h = array[(i+1)*n_columns+index_x] - array[i*n_columns+index_x];
+    a = (array[i*n_columns+index_x] - mean) / (_SQRT2_ * stddev);
+    b = (array[(i+1)*n_columns+index_x] - mean) / (_SQRT2_ * stddev);
+    g = (a + b)/2;
+    d = (b - a)/2;
+    c_sq = stddev*stddev / (6. * d);
+    c_lin = _SQRT2_ * stddev * ((array[(i+1)*n_columns+index_y] - array[i*n_columns+index_y])/h \
+                                - h/6. * (array[(i+1)*n_columns+index_ddy] - array[i*n_columns+index_ddy]));
+    c_const = array[i*n_columns+index_y] - h*h/6. * array[i*n_columns+index_ddy];
+    M_diff = array[i*n_columns+index_ddy] - array[(i+1)*n_columns+index_ddy];
+
+    *result +=
+      (erf(b) - erf(a))/2. * (c_sq*( g*(g*g + 3*d*d + 1.5)*M_diff + d*(3*g*g + d*d + 1.5)*(array[i*n_columns+index_ddy] + array[(i+1)*n_columns+index_ddy]) ) \
+                              -c_lin * a + c_const) \
+     +exp(-(g*g + d*d))/(2.*_SQRT_PI_) * ( exp(2.*g*d)*(-c_sq*( (g*g + 1.)*M_diff + d*(2.*g*(2.*array[i*n_columns+index_ddy] + array[(i+1)*n_columns+index_ddy]) \
+                                                          + d*(7.*array[i*n_columns+index_ddy] - array[(i+1)*n_columns+index_ddy])) ) + c_lin) \
+                                          +exp(-2.*g*d)*(c_sq*( (g*g + 1.)*M_diff + d*(2.*g*(2.*array[(i+1)*n_columns+index_ddy] + array[i*n_columns+index_ddy]) \
+                                                          - d*(7.*array[(i+1)*n_columns+index_ddy] - array[i*n_columns+index_ddy])) ) - c_lin) );
+
+  }
+
+  return _SUCCESS_;
+}
+
 int array_integrate_all_spline_table_line_to_line(
                   double * x_array,
                   int n_lines,
