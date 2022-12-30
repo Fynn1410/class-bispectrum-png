@@ -1495,11 +1495,9 @@ int array_integrate_all_spline_gaussian_window(
           ErrorMsg errmsg) {
 
   int i;
-  double h;               /**< distance between control points */
-  double a, b, g, d;      /**< alpha, beta, gamma, delta for our representation */
-  double c_sq, c_lin, c_const;  /**< coefficients of the quadratic, linear and constant term */
-  double M_diff;          /**< 2nd derivative difference at control points: M[i] - M[i+1] */
-
+  double h;                          /**< distance between control points */
+  double a, b, g, d, Ms, dM, ys, dy; /**< alpha, beta, gamma, delta, sum/difference of y and y'' */
+  
   *result = 0;
 
   for (i=0; i < n_lines-1; i++) {
@@ -1508,20 +1506,17 @@ int array_integrate_all_spline_gaussian_window(
     a = (array[i*n_columns+index_x] - mean) / (_SQRT2_ * stddev);
     b = (array[(i+1)*n_columns+index_x] - mean) / (_SQRT2_ * stddev);
     g = (a + b)/2;
-    d = (b - a)/2;
-    c_sq = stddev*stddev / (6. * d);
-    c_lin = _SQRT2_ * stddev * ((array[(i+1)*n_columns+index_y] - array[i*n_columns+index_y])/h \
-                                - h/6. * (array[(i+1)*n_columns+index_ddy] - array[i*n_columns+index_ddy]));
-    c_const = array[i*n_columns+index_y] - h*h/6. * array[i*n_columns+index_ddy];
-    M_diff = array[i*n_columns+index_ddy] - array[(i+1)*n_columns+index_ddy];
+    d = h / (2.*_SQRT2_* stddev);
+    Ms = array[i*n_columns+index_ddy] + array[(i+1)*n_columns+index_ddy];
+    dM = array[i*n_columns+index_ddy] - array[(i+1)*n_columns+index_ddy];
+    ys = array[i*n_columns+index_y] + array[(i+1)*n_columns+index_y];
+    dy = array[i*n_columns+index_y] - array[(i+1)*n_columns+index_y];
 
-    *result +=
-      (erf(b) - erf(a))/2. * (c_sq*( g*(g*g + 3*d*d + 1.5)*M_diff + d*(3*g*g + d*d + 1.5)*(array[i*n_columns+index_ddy] + array[(i+1)*n_columns+index_ddy]) ) \
-                              -c_lin * a + c_const) \
-     +exp(-(g*g + d*d))/(2.*_SQRT_PI_) * ( exp(2.*g*d)*(-c_sq*( (g*g + 1.)*M_diff + d*(2.*g*(2.*array[i*n_columns+index_ddy] + array[(i+1)*n_columns+index_ddy]) \
-                                                          + d*(7.*array[i*n_columns+index_ddy] - array[(i+1)*n_columns+index_ddy])) ) + c_lin) \
-                                          +exp(-2.*g*d)*(c_sq*( (g*g + 1.)*M_diff + d*(2.*g*(2.*array[(i+1)*n_columns+index_ddy] + array[i*n_columns+index_ddy]) \
-                                                          - d*(7.*array[(i+1)*n_columns+index_ddy] - array[i*n_columns+index_ddy])) ) - c_lin) );
+    *result += 1./(2.*d) * (
+      (erf(b) - erf(a))/2. * ( dy*g + ys*d + stddev*stddev/3. * (3.*Ms*d*(g*g - d*d + 0.5) + dM*g*(g*g - d*d + 1.5)) ) \
+     -exp(-(g*g + d*d))/_SQRT_PI_ * ( sinh(2.*g*d)*( dy + stddev*stddev/3. * (3.*Ms*g*d + dM*(g*g + 1.)) ) \
+                                     +cosh(2.*g*d)*( stddev*stddev/3. * (3.*Ms*d*d + dM*g*d) ) ) \
+                            );
 
   }
 
