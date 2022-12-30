@@ -1454,6 +1454,20 @@ int array_logspline_table_one_column(
   return _SUCCESS_;
 }
 
+/**
+ * @brief Computes the spline integral.
+ *        dI = dx S(x)
+ * @param array       Input: contains x, y and y'' values retrieved from splining
+ * @param n_columns   Input: number of columns in array, indexed by index_x/y/ddy
+ * @param n_lines     Input: number of used control points
+ * @param index_x     Input: index for x-values (->class_define_index)
+ * @param index_y     Input: index for y-values (->class_define_index)
+ * @param index_ddy   Input: index for y''-values (->class_define_index)
+ * @param result      Output: integration result I
+ * @param errmsg
+ * 
+ * @return the error status
+ */
 int array_integrate_all_spline(
 		   double * array,
 		   int n_columns,
@@ -1482,6 +1496,22 @@ int array_integrate_all_spline(
   return _SUCCESS_;
 }
 
+/**
+ * @brief Computes the spline integral with a specified gaussian window exactly.
+ *        dI(m, s) = dx S(x) * exp(-(x-m)^2/(2 s^2)) / (sqrt(2 pi) s)
+ * @param array       Input: contains x, y and y'' values retrieved from splining
+ * @param n_columns   Input: number of columns in array, indexed by index_x/y/ddy
+ * @param n_lines     Input: number of used control points
+ * @param index_x     Input: index for x-values (->class_define_index)
+ * @param index_y     Input: index for y-values (->class_define_index)
+ * @param index_ddy   Input: index for y''-values (->class_define_index)
+ * @param mean        Input: mean of the gaussian distribution
+ * @param stddev      Input: standard deviation
+ * @param result      Output: integration result I(m, s)
+ * @param errmsg
+ * 
+ * @return the error status
+ */
 int array_integrate_all_spline_gaussian_window(
           double * array,
           int n_columns,
@@ -1523,6 +1553,20 @@ int array_integrate_all_spline_gaussian_window(
   return _SUCCESS_;
 }
 
+/**
+ * @brief Computes the spline integral with separate x-array.
+ *        dI = dx S(x)
+ * @param x_array     Input: contains x values
+ * @param n_lines     Input: number of used control points
+ * @param array       Input: contains y and y'' values retrieved from splining
+ * @param n_columns   Input: number of columns in array, indexed by index_y/ddy
+ * @param index_y     Input: index for y-values (->class_define_index)
+ * @param index_ddy   Input: index for y''-values (->class_define_index)
+ * @param result      Output: integration result I
+ * @param errmsg
+ * 
+ * @return the error status
+ */
 int array_integrate_all_spline_table_line_to_line(
                   double * x_array,
                   int n_lines,
@@ -1551,16 +1595,31 @@ int array_integrate_all_spline_table_line_to_line(
   return _SUCCESS_;
 }
 
+/**
+ * @brief Computes the integral using trapezoidal and spline integration.
+ *        dI = dx y or dI = dx S(x)
+ * @param array       Input: contains x, y and y'' values retrieved from splining
+ * @param n_columns   Input: number of columns in array, indexed by index_x/y/ddy
+ * @param n_lines     Input: number of used control points
+ * @param index_start_spline  Input: use spline integration from this index onwards
+ * @param index_x     Input: index for x-values (->class_define_index)
+ * @param index_y     Input: index for y-values (->class_define_index)
+ * @param index_ddy   Input: index for y''-values (->class_define_index)
+ * @param result      Output: integration result I
+ * @param errmsg
+ * 
+ * @return the error status
+ */
 int array_integrate_all_trapzd_or_spline(
-		   double * array,
-		   int n_columns,
-		   int n_lines,
-           int index_start_spline,
-		   int index_x,   /** from 0 to (n_columns-1) */
-		   int index_y,
-		   int index_ddy,
-		   double * result,
-		   ErrorMsg errmsg) {
+        double * array,
+        int n_columns,
+        int n_lines,
+        int index_start_spline,
+        int index_x,   /** from 0 to (n_columns-1) */
+        int index_y,
+        int index_ddy,
+        double * result,
+        ErrorMsg errmsg) {
 
   int i;
   double h;
@@ -1599,7 +1658,17 @@ int array_integrate_all_trapzd_or_spline(
 }
 
  /**
- * Not called.
+ * @brief Computes the integral using trapezoidal rule.
+ *        dI = dx y
+ * @param array       Input: contains x, y and I
+ * @param n_columns   Input: number of columns in array, indexed by index_x/y/int_y_dx
+ * @param n_lines     Input: number of used control points
+ * @param index_x     Input: index for x-values (->class_define_index)
+ * @param index_y     Input: index for y-values (->class_define_index)
+ * @param index_int_y_dx  Input: index for integration result
+ * @param errmsg
+ * 
+ * @return the error status
  */
 int array_integrate(
 		   double * array,
@@ -1634,7 +1703,19 @@ int array_integrate(
 }
 
  /**
- * Called by thermodynamics_init().
+ * @brief Computes the integral of a ratio using trapezoidal rule.
+ *        dI = dx y1/y2
+ *        Called by thermodynamics_init()
+ * @param array       Input: contains x, y1, y2 and I
+ * @param n_columns   Input: number of columns in array, indexed by index_x/y1/y2/int_y1_over_y2_dx
+ * @param n_lines     Input: number of used control points
+ * @param index_x     Input: index for x-values (->class_define_index)
+ * @param index_y1    Input: index for y1-values (->class_define_index)
+ * @param index_y2    Input: index for y2-values (->class_define_index)
+ * @param index_int_y1_over_y2_dx  Input: index for integration result
+ * @param errmsg
+ * 
+ * @return the error status
  */
 int array_integrate_ratio(
 		   double * array,
