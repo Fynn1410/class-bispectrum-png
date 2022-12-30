@@ -37,9 +37,10 @@ int eft_ln_pk_nw_gfilter(
                       const int k_size,
                       double *ln_pknw_array) {
   
-  const double smoothing_scale = 0.25 * log(10); // lambda * (1 Mpc)
+  //double a = 0.3 * exp(-0.7 * pow(log10(k)+1.5, 2.)) + 0.03;
+  //const double smoothing_scale = 0.25 * log(10); // lambda * (1 Mpc)
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, last_index;
-  double pk0_z, k0;
+  double ln_pk0_z, k0, smoothing_scale;
   double *pk_approx_f, *intg_splines, *intg_result;
 
   /** - define indices for the spline array */
@@ -55,58 +56,61 @@ int eft_ln_pk_nw_gfilter(
   k0 = pfo->k[index_k0];
 
   /** - compute the Eisenstein-Hu approximation to the nowiggle power spectrum */
-  for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
-  {
+  for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
     pk_approx_f[it_q] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_q], k0);
+    
+    /** - also write the array of x-values for splining */
+    intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
   }
+
   
-  /** - compute the gaussian integral at every tau */
+  /** - compute the gaussian window integral at every tau */
   for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++)
   {
     /** - power spectrum at fixing scale at tau */
-    pk0_z = pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + index_k0];
+    ln_pk0_z = pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + index_k0];
 
-    /** Prepare the integrand for every ln(k) */
-    for (it_k = 0; it_k < k_size; it_k++)
-    {
-      for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
-      {
-        
-        intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
-        intg_splines[it_q*index_num + index_y] = exp( pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + it_q] \
-                                                      - pow((pfo->ln_k[index_kmin + it_k] - pfo->ln_k[it_q])/smoothing_scale, 2.)/2. ) \
-                                                  / (pk0_z * pk_approx_f[it_q]);
-      }
+    /** - compute the integrand at the control points once */
+    for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
+      intg_splines[it_q*index_num + index_y] = exp( pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + it_q] - ln_pk0_z) \
+                                                  / pk_approx_f[it_q];
 
-      /** - spline the integrand function */
-      class_call(array_spline(intg_splines,
+    /** - spline the integrand function without exponential once */
+    class_call(array_spline(intg_splines,
                               index_num,
                               pfo->k_size_extra,
                               index_x,
                               index_y,
                               index_ddy,
-                              _SPLINE_NATURAL_,
+                              _SPLINE_EST_DERIV_,
                               pfo->error_message),
                   pfo->error_message,
                   pfo->error_message);
 
+    /** - integrate the same function with different windows */
+    for (it_k = 0; it_k < k_size; it_k++)
+    {
+      /** - compute the running smoothing scale */
+      smoothing_scale = 0.691 * exp(-0.132 * pow(pfo->ln_k[index_kmin + it_k] + 3.454, 2.)) + 0.0691;
+
       /** - integrate the spline */
-      class_call(array_integrate_all_spline(intg_splines,
-                                            index_num,
-                                            pfo->k_size_extra,
-                                            index_x,
-                                            index_y,
-                                            index_ddy,
-                                            intg_result + it_k,
-                                            pfo->error_message),
+      class_call(array_integrate_all_spline_gaussian_window(intg_splines,
+                                                            index_num,
+                                                            pfo->k_size_extra,
+                                                            index_x,
+                                                            index_y,
+                                                            index_ddy,
+                                                            pfo->ln_k[index_kmin + it_k],
+                                                            smoothing_scale,
+                                                            intg_result + it_k,
+                                                            pfo->error_message),
                   pfo->error_message,
                   pfo->error_message);
 
+      //fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num + index_ddy], intg_result[it_k]);
+
       /** - multiply with prefactors and take log */
-      intg_result[it_k] = log( pk0_z * pk_approx_f[index_kmin + it_k] * intg_result[it_k] \
-                                / (sqrt(2*_PI_) * smoothing_scale) );
-      
-      fprintf(stderr, "%.15e  %.15e \n", pfo->k[index_kmin + it_k], exp(intg_result[it_k]));
+      intg_result[it_k] = log( pk_approx_f[index_kmin + it_k] * intg_result[it_k] ) + ln_pk0_z;
     }
 
     /** - write to output array */
@@ -338,7 +342,7 @@ double pk_Gfilter_nw(struct background *pba, struct primordial *ppm, struct four
     par.p4  = k;
     par.p5  = k0;
 
-    double a       = 0.25; 
+    double a       = 0.3 * exp(-0.7 * pow(log10(k) + 1.5, 2.)) + 0.03; 
     double logqmin =  log10(k) - 4.* a;
     double logqmax =  log10(k) + 4.* a;
 
@@ -383,7 +387,7 @@ double pk_nw_integrand(double x, void *par)  ///integration variable x = logq
     double logq  = x;
     double q     = pow(10.,logq);
     double logk  = log10(k);
-    double a     = 0.25; 
+    double a     = 0.3 * exp(-0.7 * pow(logk + 1.5, 2.)) + 0.03; 
     double pkf0  = Pk_dlnPk(pba, ppm, pfo, kf0, 0., LPOWER);
     double ratio = Pk_dlnPk(pba, ppm, pfo, q, 0., LPOWER)/EH_PS_nw(pba, ppm, pfo, q, kf0, pkf0);  
     double out   = ratio * exp(-1./(2.*pow(a,2.))*pow(logk-logq,2.));
@@ -451,7 +455,6 @@ double EH_PS_nw(struct background *pba, struct primordial *ppm, struct fourier *
  * @param k           Input: wavenumber in unit of 1/Mpc
  * @return value of nor-baryon transfer fit
  */
-
 double T0(
           struct background *pba, 
           struct primordial *ppm, 
@@ -485,7 +488,6 @@ double T0(
  * @param k       Input: wavenumber in units of 1/Mpc
  * @return value of baryon+cdm transfer function
  */
-
 double T(
           struct background *pba, 
           struct primordial *ppm, 
@@ -546,7 +548,6 @@ double T(
  * @param x2      Input: beta_c
  * @return value of the function
  */
-
 double Tt0(
             struct background *pba, 
             struct primordial *ppm, 

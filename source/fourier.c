@@ -1416,10 +1416,58 @@ int fourier_init(
                                             pfo->ln_pk_l_nw_extra,
                                             pfo->k_size_extra,
                                             pfo->ddln_pk_l_nw_extra,
-                                            _SPLINE_EST_DERIV_, // TODO: what happens if 1 < ln_tau_size < 3, this will not work
+                                            _SPLINE_EST_DERIV_, // TODO: what happens if 1 < ln_tau_size < 3 -> this will not work
                                             pfo->error_message),
                   pfo->error_message,
                   pfo->error_message);
+    }
+
+    /** TODO: test splines -> done -> to be removed */
+    // #define NSPLINE 9
+    // double x[NSPLINE] = {-4., -3., -2., -1., 0., 1., 2., 3., 4.};
+    // double y[NSPLINE] = {16., 9., 4., 1., 0., 1., 4., 9., 16.};
+    // double ddy[NSPLINE];
+    // double array[3*NSPLINE];
+    // double result;
+    // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   array[3*i] = x[i];
+    //   array[3*i+1] = y[i];
+    //   array[3*i+2] = ddy[i];
+    // }
+    // array_integrate_all_spline(array, 3, NSPLINE, 0, 1, 2, &result, pfo->error_message);
+
+    // #define NSPLINE 9
+    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE]; 
+    // double array[3*NSPLINE];
+    // double result;
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   x[i] = -1. + (3. - (-1.)) * i / (NSPLINE-1);
+    //   y[i] = pow(x[i], 3.);
+    // }
+    // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   array[3*i] = x[i];
+    //   array[3*i+1] = y[i];
+    //   array[3*i+2] = ddy[i];
+    // }
+    // array_integrate_all_spline_gaussian_window(array, 3, NSPLINE, 0, 1, 2, 1., 2., &result, pfo->error_message);
+
+    /** - debug output */
+    if (pfo->fourier_verbose > 2) {
+      FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
+
+      fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
+      fprintf(fpknw, "# for k=%.5e to %.3f h?/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
+      fprintf(fpknw, "# # number of wavenumbers equal to 137 \n");
+      fprintf(fpknw, "#    1:k (h/Mpc)              2:P (Mpc/h)^3 \n");
+      for (int i = 0; i < pfo->k_size_extra; i++)
+        fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
+                exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]), 
+                exp(pfo->ln_pk_l_extra[pfo->index_pk_cb][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]), 
+                pm_nowiggle_gfilter(pba, ppm, pfo, exp(pfo->ln_k[i]), 0., 0));
+
+      fclose(fpknw);
     }
   }
 
@@ -5049,7 +5097,7 @@ int fourier_pk_nw_at_kvec_and_z(
     class_call(primordial_spectrum_at_k(ppm,
                                         pfo->index_md_scalars,
                                         logarithmic,
-                                        kmin,
+                                        exp(pfo->ln_k[0]),
                                         ln_pk_primordial),
                   ppm->error_message,
                   pfo->error_message);
@@ -5063,8 +5111,8 @@ int fourier_pk_nw_at_kvec_and_z(
                                         logarithmic,
                                         exp(ln_kvec[index_kvec]),
                                         ln_pk_primordial),
-                  ppm->error_message,
-                  pfo->error_message);
+                ppm->error_message,
+                pfo->error_message);
     
     /** - write to output: P(k) = P(kmin) * (k*P_R(k) / kmin*P_R(kmin)) */
     out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
