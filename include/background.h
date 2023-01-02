@@ -379,7 +379,7 @@ extern "C" {
 
   int background_at_z(
                       struct background *pba,
-                      double a_rel,
+                      double z,
                       enum vecback_format return_format,
                       enum interpolation_method inter_mode,
                       int * last_index,
