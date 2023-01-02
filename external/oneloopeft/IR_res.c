@@ -20,6 +20,541 @@
 
 
 /**
+ * @brief Compute the suppression factor Sigma^2(z) in real space
+ *        d(Sigma^2(z)) = 1/(6 pi^2) dln(q) q P_nw(z, q) (1 - j_0(q/k_bao) + 2 j_2(q/k_bao))
+ * @param pba       Input: pointer to background structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pfo       Input: pointer to fourier structure
+ * @param z         Input: redshift
+ * @param k_split   Input: long/short mode separating scale (end of integration region)
+ * @param k_bao     Input: wavenumber of BAO scale (default 1/(110. Mpc))
+ *
+ * @return value of IR resummation suppression factor at z
+ */
+double eft_ir_sigma2(
+              struct background * pba,
+              struct primordial * ppm,
+              struct fourier * pfo, 
+              const double z, 
+              const double k_split,
+              const double k_bao) {
+
+  int split_index = 0, index_y, index_ddy, index_num = 0, it_q;
+  double q, q_osc, result;
+  double *ln_q, *intg_splines, *pk_nw;
+
+  /** - search for k_split in pfo->ln_k */
+  class_call(array_hunt_ascending(pfo->ln_k,
+                                  pfo->k_size,
+                                  log(k_split),
+                                  &split_index,
+                                  pfo->error_message),
+            pfo->error_message,
+            pfo->error_message);
+  
+  class_define_index(index_y, _TRUE_, index_num, 1);
+  class_define_index(index_ddy, _TRUE_, index_num, 1);
+
+  class_alloc(ln_q, (split_index+1)*sizeof(double),
+              pfo->error_message);
+  class_alloc(pk_nw, (split_index+1)*sizeof(double),
+              pfo->error_message);
+  class_alloc(intg_splines, 2*(split_index+1)*sizeof(double),
+              pfo->error_message);
+
+  /** - copy pfo->ln_k to ln_q and overwrite the last value with ln(k_split) */
+  memcpy(ln_q, pfo->ln_k, split_index*sizeof(double));
+  ln_q[split_index] = log(k_split);
+
+  /** - get the nowiggle spectrum at ln_q and z */
+  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
+                                        linear,
+                                        ln_q,
+                                        split_index+1,
+                                        z,
+                                        pk_nw),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - prepare the integrand */
+  for (it_q = 0; it_q < split_index+1; it_q++)
+  {
+    q = exp(ln_q[it_q]);
+    q_osc = q / k_bao;
+    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q]  \
+                                * (1. - sin(q_osc) / q_osc  \
+                                  + 2. * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) ) );
+                                /** q * P_nw(z, q) * (1 - j_0(q/k_BAO) + 2 j_2(q/k_bao)) */
+  }
+
+  /** - spline the integrand */
+  class_call(array_spline_table_line_to_line(ln_q,
+                                            split_index+1,
+                                            intg_splines,
+                                            index_num,
+                                            index_y,
+                                            index_ddy,
+                                            _SPLINE_EST_DERIV_,
+                                            pfo->error_message),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - integrate the spline */
+  class_call(array_integrate_all_spline_table_line_to_line(ln_q,
+                                                          split_index+1,
+                                                          intg_splines,
+                                                          index_num,
+                                                          index_y,
+                                                          index_ddy,
+                                                          &result,
+                                                          pfo->error_message),
+            pfo->error_message,
+            pfo->error_message);
+
+  // for (it_q = 0; it_q < split_index+1; it_q++)
+  //   fprintf(stderr, "%.15e  %.15e  %.15e \n", exp(ln_q[it_q]), intg_splines[it_q*index_num + index_y], intg_splines[it_q*index_num + index_ddy]);
+
+
+  /** - multiply with prefactor */
+  result *= 1./(6.*_PI_*_PI_);
+
+  free(intg_splines);
+  free(ln_q);
+  free(pk_nw);
+
+  return result;
+}
+
+
+/**
+ * @brief Compute the suppression factor IR_sigma2 in redshift space (CLASS-PT: 2004.106007v2 p. 15)
+ *        d(DSigma^2(z)) = 1/(2 pi^2) dln(q) q P_nw(z, q) j_2(q/k_bao)
+ *
+ * @param pba       Input: pointer to background structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pfo       Input: pointer to fourier structure
+ * @param z         Input: redshift
+ * @param k_split   Input: long/short mode separating scale (end of integration region)
+ * @param k_bao     Input: wavenumber of BAO scale (default 1/(110. Mpc))
+ *
+ * @return value of IR resummation suppression factor at z
+ */
+double eft_ir_dsigma2(
+              struct background * pba,
+              struct primordial * ppm,
+              struct fourier * pfo, 
+              const double z, 
+              const double k_split,
+              const double k_bao) {
+
+  int split_index = 0, index_y, index_ddy, index_num = 0, it_q;
+  double q, q_osc, result;
+  double *ln_q, *intg_splines, *pk_nw;
+
+  /** - search for k_split in pfo->ln_k */
+  class_call(array_hunt_ascending(pfo->ln_k,
+                                  pfo->k_size,
+                                  log(k_split),
+                                  &split_index,
+                                  pfo->error_message),
+            pfo->error_message,
+            pfo->error_message);
+  
+  class_define_index(index_y, _TRUE_, index_num, 1);
+  class_define_index(index_ddy, _TRUE_, index_num, 1);
+
+  class_alloc(ln_q, (split_index+1)*sizeof(double),
+              pfo->error_message);
+  class_alloc(pk_nw, (split_index+1)*sizeof(double),
+              pfo->error_message);
+  class_alloc(intg_splines, 2*(split_index+1)*sizeof(double),
+              pfo->error_message);
+
+  /** - copy pfo->ln_k to ln_q and overwrite the last value with ln(k_split) */
+  memcpy(ln_q, pfo->ln_k, split_index*sizeof(double));
+  ln_q[split_index] = log(k_split);
+
+  /** - get the nowiggle spectrum at ln_q and z */
+  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
+                                        linear,
+                                        ln_q,
+                                        split_index+1,
+                                        z,
+                                        pk_nw),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - prepare the integrand */
+  for (it_q = 0; it_q < split_index+1; it_q++)
+  {
+    q = exp(ln_q[it_q]);
+    q_osc = q / k_bao;
+    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q]  \
+                                * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) );
+                                /** q * P_nw(z, q) * j_2(q/k_bao) */
+  }
+
+  /** - spline the integrand */
+  class_call(array_spline_table_line_to_line(ln_q,
+                                            split_index+1,
+                                            intg_splines,
+                                            index_num,
+                                            index_y,
+                                            index_ddy,
+                                            _SPLINE_EST_DERIV_,
+                                            pfo->error_message),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - integrate the spline */
+  class_call(array_integrate_all_spline_table_line_to_line(ln_q,
+                                                          split_index+1,
+                                                          intg_splines,
+                                                          index_num,
+                                                          index_y,
+                                                          index_ddy,
+                                                          &result,
+                                                          pfo->error_message),
+            pfo->error_message,
+            pfo->error_message);
+
+  for (it_q = 0; it_q < split_index+1; it_q++)
+    fprintf(stderr, "%.15e  %.15e  %.15e \n", exp(ln_q[it_q]), intg_splines[it_q*index_num + index_y], intg_splines[it_q*index_num + index_ddy]);
+
+  /** - multiply with prefactor */
+  result *= 1./(2.*_PI_*_PI_);
+
+  free(intg_splines);
+  free(ln_q);
+  free(pk_nw);
+
+  return result;
+}
+
+
+/**
+ * @brief Compute the leading-order IR-resummed matter power spectrum, ala Ivanovic et al.
+ *
+ * @param pba       Input: pointer to background structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pfo       Input: pointer to fourier structure
+ * @param mode      Input: linear or logarithmic
+ * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
+ * @param kvec_size Input: size of array of wavenumbers
+ * @param z         Input: redshift
+ * @param k_split   Input: long/short mode separating scale (end of integration region)
+ * @param k_bao     Input: wavenumber of BAO scale (default 1/(110. Mpc))
+ * @param out_pk    Output: the leading-order IR resummed power spectrum
+ *
+ * @return the error status
+ */
+int eft_ir_pk_lo(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            enum linear_or_logarithmic mode,
+            double * ln_kvec,
+            const int kvec_size,
+            const double z,
+            const double k_split,
+            const double k_bao,
+            double * out_pk) {
+  
+  int it_k;
+  double sigma2, pk_w, k;
+  double *kvec, *pk_lin, *pk_nw;
+
+  class_alloc(kvec,   kvec_size*sizeof(double), pfo->error_message);
+  class_alloc(pk_lin, kvec_size*sizeof(double), pfo->error_message);
+  class_alloc(pk_nw,  kvec_size*sizeof(double), pfo->error_message);
+
+  for (it_k = 0; it_k < kvec_size; it_k++)
+    kvec[it_k] = exp( ln_kvec[it_k] );
+
+  /** - get the linear power spectrum at z */
+  class_call(fourier_pks_at_kvec_and_zvec(pba, pfo,
+                                          pk_linear,
+                                          kvec,
+                                          kvec_size,
+                                          &z,
+                                          1,
+                                          pk_nw,  /**< will be overwritten */
+                                          pk_lin),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - if pk_cb is not available, use pk_m */
+  if (!pfo->has_pk_cb) {
+    memcpy(pk_lin, pk_nw, kvec_size*sizeof(double));
+  }
+
+  /** - get the nowiggle power spectrum at z */
+  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
+                                        linear,
+                                        ln_kvec,
+                                        kvec_size,
+                                        z,
+                                        pk_nw),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - get the suppression factor */
+  sigma2 = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);
+
+  for (it_k = 0; it_k < kvec_size; it_k++)
+  {
+    /** - compute the IR resummed spectrum */
+    k = kvec[it_k];
+    pk_w = pk_lin[it_k] - pk_nw[it_k];
+    out_pk[it_k] = pk_nw[it_k] + exp(-k*k * sigma2) * pk_w;
+  }
+
+  free(kvec);
+  free(pk_lin);
+  free(pk_nw);
+
+  /** - convert to logarithmic output if needed */
+  if (mode == logarithmic) {
+    for (it_k = 0; it_k < kvec_size; it_k++)
+      out_pk[it_k] = log( out_pk[it_k] );
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * @brief Compute the next-to-leading-order IR-resummed matter power spectrum, ala Ivanovic et al.
+ *
+ * @param pba       Input: pointer to background structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pfo       Input: pointer to fourier structure
+ * @param mode      Input: linear or logarithmic
+ * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
+ * @param kvec_size Input: size of array of wavenumbers
+ * @param z         Input: redshift
+ * @param k_split   Input: long/short mode separating scale (end of integration region)
+ * @param k_bao     Input: wavenumber of BAO scale (default 1/(110. Mpc))
+ * @param out_pk    Output: the leading-order IR resummed power spectrum
+ *
+ * @return the error status
+ */
+int eft_ir_pk_nlo(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            enum linear_or_logarithmic mode,
+            double * ln_kvec,
+            const int kvec_size,
+            const double z,
+            const double k_split,
+            const double k_bao,
+            double * out_pk) {
+  
+  int it_k;
+  double sigma2, pk_w, k;
+  double *kvec, *pk_lin, *pk_nw;
+
+  class_alloc(kvec,   kvec_size*sizeof(double), pfo->error_message);
+  class_alloc(pk_lin, kvec_size*sizeof(double), pfo->error_message);
+  class_alloc(pk_nw,  kvec_size*sizeof(double), pfo->error_message);
+
+  for (it_k = 0; it_k < kvec_size; it_k++)
+    kvec[it_k] = exp( ln_kvec[it_k] );
+
+  /** - get the linear power spectrum at z */
+  class_call(fourier_pks_at_kvec_and_zvec(pba, pfo,
+                                          pk_linear,
+                                          kvec,
+                                          kvec_size,
+                                          &z,
+                                          1,
+                                          pk_nw,  /**< will be overwritten */
+                                          pk_lin),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - if pk_cb is not available, use pk_m */
+  if (!pfo->has_pk_cb) {
+    memcpy(pk_lin, pk_nw, kvec_size*sizeof(double));
+  }
+
+  /** - get the nowiggle power spectrum at z */
+  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
+                                        linear,
+                                        ln_kvec,
+                                        kvec_size,
+                                        z,
+                                        pk_nw),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - get the suppression factor */
+  sigma2 = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);
+
+  for (it_k = 0; it_k < kvec_size; it_k++)
+  {
+    /** - compute the IR resummed spectrum */
+    k = kvec[it_k];
+    pk_w = pk_lin[it_k] - pk_nw[it_k];
+    out_pk[it_k] = pk_nw[it_k] + exp(-k*k * sigma2) * pk_w * (1. + k*k * sigma2);
+  }
+
+  free(kvec);
+  free(pk_lin);
+  free(pk_nw);
+
+  /** - convert to logarithmic output if needed */
+  if (mode == logarithmic) {
+    for (it_k = 0; it_k < kvec_size; it_k++)
+      out_pk[it_k] = log( out_pk[it_k] );
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * @brief Compute moments of the different power spectra as
+ *        d(s_n^2(z)) = 1/(2 pi^2) dln(q) q^(2(n+1)+1) P_xx(q)
+ *
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param n           Input: integer specifying the moment
+ * @param z           Input: redshift
+ * @param use_pk_type Input: sets the type of linear power spectrum {pk_lin, pk_nowiggle, pk_ir_resummed_lo/nlo}
+ * @param k_split     Input: [only needed for pk_ir_resummed*] long/short mode separating scale (end of integration region)
+ * @param k_bao       Input: [only needed for pk_ir_resummed*] wavenumber of BAO scale (default 1/(110. Mpc))
+ *
+ * @return value of the requested moment at z
+ */
+double eft_pk_moment(
+              struct background * pba,
+              struct primordial * ppm,
+              struct fourier * pfo, 
+              const int n,
+              const double z, 
+              enum pk_type use_pk_type,
+              const double k_split,
+              const double k_bao) {
+
+  int index_y, index_ddy, index_num = 0, it_q;
+  double q, result;
+  double *intg_splines, *pk;
+  
+  class_define_index(index_y, _TRUE_, index_num, 1);
+  class_define_index(index_ddy, _TRUE_, index_num, 1);
+
+  class_alloc(pk, pfo->k_size_extra*sizeof(double),
+              pfo->error_message);
+  class_alloc(intg_splines, 2*pfo->k_size_extra*sizeof(double),
+              pfo->error_message);
+
+  /** - get the chosen spectrum at ln_q and z */
+  switch (use_pk_type)
+  {
+  case pk_linear:
+    class_call(fourier_pk_at_z(pba, pfo,
+                              linear,
+                              pk_lin,
+                              z,
+                              pfo->index_pk_cluster,
+                              pk,
+                              NULL),
+              pfo->error_message,
+              pfo->error_message);
+    break;
+  
+  case pk_nowiggle:
+    class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
+                                          linear,
+                                          pfo->ln_k,
+                                          pfo->k_size_extra,
+                                          z,
+                                          pk),
+              pfo->error_message,
+              pfo->error_message);
+    break;
+
+  case pk_ir_resummed_lo:
+    class_call(eft_ir_pk_lo(pba, ppm, pfo,
+                            linear,
+                            pfo->ln_k,
+                            pfo->k_size_extra,
+                            z,
+                            k_split,
+                            k_bao,
+                            pk),
+              pfo->error_message,
+              pfo->error_message);
+    break;
+
+  case pk_ir_resummed_nlo:
+    class_call(eft_ir_pk_nlo(pba, ppm, pfo,
+                            linear,
+                            pfo->ln_k,
+                            pfo->k_size_extra,
+                            z,
+                            k_split,
+                            k_bao,
+                            pk),
+              pfo->error_message,
+              pfo->error_message);
+    break;
+
+  default:
+    free(intg_splines);
+    free(pk);
+    class_stop(pfo->error_message, "Instructed to use pk_type = %d which is not known", use_pk_type);
+    break;
+  }
+
+  /** - prepare the integrand */
+  for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
+  {
+    q = exp(pfo->ln_k[it_q]);
+    intg_splines[it_q*index_num + index_y] = pow(q, 2.*((double)n + 1.) + 1.) * pk[it_q];
+  }
+
+  /** - spline the integrand */
+  class_call(array_spline_table_line_to_line(pfo->ln_k,
+                                            pfo->k_size_extra,
+                                            intg_splines,
+                                            index_num,
+                                            index_y,
+                                            index_ddy,
+                                            _SPLINE_EST_DERIV_,
+                                            pfo->error_message),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - integrte the spline */
+  class_call(array_integrate_all_spline_table_line_to_line(pfo->ln_k,
+                                                          pfo->k_size_extra,
+                                                          intg_splines,
+                                                          index_num,
+                                                          index_y,
+                                                          index_ddy,
+                                                          &result,
+                                                          pfo->error_message),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - multiply with prefactor */
+  result *= 1./(2.*_PI_*_PI_);
+
+  free(intg_splines);
+  free(pk);
+
+  return result;
+}
+
+
+
+
+
+/**
  * Compute the leading-order IR-resummed matter power spectrum, ala Ivanovic et al
  *
  * @param Cx           Input: pointer to cosmology structure
@@ -284,7 +819,7 @@ double pm_nowiggle(struct background * pba,
                 struct fourier * pfo,
                 double k,
                 double z,
-                double kf0,
+                double kf0, //TODO: unused
                 int cleanup,
                 long SPLIT)
 {

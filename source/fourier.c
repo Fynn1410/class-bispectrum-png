@@ -1375,9 +1375,9 @@ int fourier_init(
     double ln_k0 = log( pow(10., -4.) );  // TODO: use input parameter
     double ln_k_nw_min = log( 5.*pow(10., -5.) );
     double ln_k_nw_max = log( pow(10., 4.) );
-    index_pk = pfo->index_pk_cb;  //TODO: switch
+    index_pk = pfo->index_pk_cluster;  /**< equals index_pk_cb if it exists, otherwise index_pk_m */
 
-    /** - find indeices of k0, k_nw_min, k_nw_max in pfo->ln_k */
+    /** - find indices of k0, k_nw_min, k_nw_max in pfo->ln_k */
     int index_k0 = 0, index_k_min = 0, index_k_max = 0;
     class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
                                     ln_k0, &index_k0, pfo->error_message),
@@ -1458,9 +1458,9 @@ int fourier_init(
       FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
 
       fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
-      fprintf(fpknw, "# for k=%.5e to %.3f h?/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
-      fprintf(fpknw, "# # number of wavenumbers equal to 137 \n");
-      fprintf(fpknw, "#    1:k (h/Mpc)              2:P (Mpc/h)^3 \n");
+      fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
+      fprintf(fpknw, "# number of wavenumbers equal to 137 \n");
+      fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
       for (int i = 0; i < pfo->k_size_extra; i++)
         fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
                 exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]), 
@@ -1468,6 +1468,49 @@ int fourier_init(
                 pm_nowiggle_gfilter(pba, ppm, pfo, exp(pfo->ln_k[i]), 0., 0));
 
       fclose(fpknw);
+
+      /** - kmin at different z */
+      // double z = 1.;
+      // int last_index = 0;
+      // double * vecback = malloc(pba->bg_size_short * sizeof(double));
+      // background_at_z(pba, 0., short_info, inter_normal, &last_index, vecback);
+      // fprintf(stderr, "H(z=%.4f) = %.8e\n", z, vecback[pba->index_bg_H]);
+      // free(vecback);
+
+
+      /** Test the interface functions */
+      // #define NTEST 1000
+      // double lnk[NTEST], singleNW[NTEST], vectorNW[NTEST];
+      // for (int i = 0; i < NTEST; i++) {
+      //   lnk[i] = -16.1 + (16.1 - (-16.1)) * i/(NTEST-1);
+      //   if (fourier_pk_nw_at_k_and_z(pba, ppm, pfo, linear, exp(lnk[i]), z, singleNW+i) == _FAILURE_)
+      //     fprintf(stderr, "k=%.5e is out of bounds\n", exp(lnk[i]));
+      // }
+      // fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo, linear, lnk, NTEST, z, vectorNW);
+
+
+      // fpknw = fopen("output/nowiggle_pk_interface.dat", "w");
+
+      // fprintf(fpknw, "# Nowiggle power spectrum at z=%.3f \n", z);
+      // fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(lnk[0]), exp(lnk[NTEST-1]));
+      // fprintf(fpknw, "# number of wavenumbers equal to %d \n", NTEST);
+      // fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
+      // for (int i = 0; i < NTEST; i++)
+      //   fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
+      //           exp(lnk[i]), singleNW[i], vectorNW[i], 
+      //           pm_nowiggle_gfilter(pba, ppm, pfo, exp(lnk[i]), z, 0));
+
+      // fclose(fpknw);
+
+      /** test the moments */
+      double z = 0.;
+      double ir_sigma2_new = eft_ir_sigma2(pba, ppm, pfo, z, 0.2, 1./110.);
+      double ir_sigma2_old = IR_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
+      fprintf(stderr, "# Sigma2(z) = %.8e (quad), %.8e (spline) \n", ir_sigma2_old, ir_sigma2_new);
+
+      double ir_dsigma2_new = eft_ir_dsigma2(pba, ppm, pfo, z, 0.2, 1./110.);
+      double ir_dsigma2_old = IR_del_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
+      fprintf(stderr, "# dSigma2(z) = %.8e (quad), %.8e (spline) \n", ir_dsigma2_old, ir_dsigma2_new);
     }
   }
 
@@ -4746,7 +4789,7 @@ int fourier_pk_nw_at_z(
                         struct background * pba,
                         struct fourier * pfo,
                         enum linear_or_logarithmic mode,
-                        double z,
+                        const double z,
                         double * out_pk) {
 
   double tau;
@@ -4854,10 +4897,10 @@ int fourier_pk_nw_at_z(
 int fourier_pk_nw_at_k_and_z(
                               struct background * pba,
                               struct primordial * ppm,
-                              struct fourier *pfo,
+                              struct fourier * pfo,
                               enum linear_or_logarithmic mode,
-                              double k,
-                              double z,
+                              const double k,
+                              const double z,
                               double * out_pk) {
 
   double * out_pk_at_z;
@@ -4989,7 +5032,7 @@ int fourier_pk_nw_at_k_and_z(
 
     /* compute ln P_primordial(kmin) */
 
-    kmin = exp(pfo->ln_k[0]);
+    kmin = exp(pfo->ln_k[0]); /**< much less than H0 ~ 2e-4 1/Mpc */
 
     class_alloc(ln_pk_primordial_kmin,
                 sizeof(double)*pfo->ic_ic_size,
@@ -5046,8 +5089,8 @@ int fourier_pk_nw_at_kvec_and_z(
                                 struct fourier * pfo,
                                 enum linear_or_logarithmic mode,
                                 double * ln_kvec, // log(kvec[index_kvec])
-                                int kvec_size,
-                                double z,
+                                const int kvec_size,
+                                const double z,
                                 double * out_pk) {
 
   int index_k, index_kvec, last_index = 0;
@@ -5056,9 +5099,6 @@ int fourier_pk_nw_at_kvec_and_z(
   double * ln_pk_primordial;
   double extrapol_const;
 
-
-  class_alloc(ln_kvec, kvec_size*sizeof(double),
-              pfo->error_message);
 
   class_alloc(out_pk_at_z, pfo->k_size_extra*sizeof(double),
               pfo->error_message);
@@ -5143,7 +5183,8 @@ int fourier_pk_nw_at_kvec_and_z(
   free(ddout_pk_at_z);
 
   /** - convert to linear output if needed */
-  if (mode == linear) {
+  if (mode == linear) 
+  {
     for (index_kvec = 0; index_kvec < kvec_size; index_kvec++) 
       out_pk[index_kvec] = exp(out_pk[index_kvec]);
   }

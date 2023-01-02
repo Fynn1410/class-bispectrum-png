@@ -1,3 +1,60 @@
+enum pk_type {pk_lin, pk_nowiggle, pk_ir_resummed_lo, pk_ir_resummed_nlo};
+
+double eft_ir_sigma2(
+              struct background * pba,
+              struct primordial * ppm,
+              struct fourier * pfo, 
+              const double z, 
+              const double k_split,
+              const double k_bao
+              );
+
+double eft_ir_dsigma2(
+              struct background * pba,
+              struct primordial * ppm,
+              struct fourier * pfo, 
+              const double z, 
+              const double k_split,
+              const double k_bao
+              );
+
+int eft_ir_pk_lo(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            enum linear_or_logarithmic mode,
+            double * ln_kvec,
+            const int kvec_size,
+            const double z,
+            const double k_split,
+            const double k_bao,
+            double * out_pk
+            );
+
+int eft_ir_pk_nlo(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            enum linear_or_logarithmic mode,
+            double * ln_kvec,
+            const int kvec_size,
+            const double z,
+            const double k_split,
+            const double k_bao,
+            double * out_pk
+            );
+
+double eft_pk_moment(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo, 
+            const int n,
+            const double z, 
+            enum pk_type use_pk_type,
+            const double k_split,
+            const double k_bao
+            );
+
 
 double pm_nowiggle_dst(struct background * pba, struct primordial * ppm, struct fourier * pfo, double k,double z, int mode);
 double pm_nowiggle_gfilter(struct background * pba, struct primordial * ppm, struct fourier * pfo, double k, double z, int mode);

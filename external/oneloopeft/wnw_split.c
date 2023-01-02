@@ -37,8 +37,6 @@ int eft_ln_pk_nw_gfilter(
                       const int k_size,
                       double *ln_pknw_array) {
   
-  //double a = 0.3 * exp(-0.7 * pow(log10(k)+1.5, 2.)) + 0.03;
-  //const double smoothing_scale = 0.25 * log(10); // lambda * (1 Mpc)
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, last_index;
   double ln_pk0_z, k0, smoothing_scale;
   double *pk_approx_f, *intg_splines, *intg_result;
@@ -91,9 +89,9 @@ int eft_ln_pk_nw_gfilter(
     for (it_k = 0; it_k < k_size; it_k++)
     {
       /** - compute the running smoothing scale */
-      smoothing_scale = 0.691 * exp(-0.132 * pow(pfo->ln_k[index_kmin + it_k] + 3.454, 2.)) + 0.0691;
+      smoothing_scale = 0.6907755279 * exp(-0.1320281879 * pow(pfo->ln_k[index_kmin + it_k] + 3.4538776395, 2.)) + 0.06907755279;
 
-      /** - integrate the spline */
+      /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
       class_call(array_integrate_all_spline_gaussian_window(intg_splines,
                                                             index_num,
                                                             pfo->k_size_extra,
@@ -121,6 +119,7 @@ int eft_ln_pk_nw_gfilter(
 
   free(pk_approx_f);
   free(intg_splines);
+  free(intg_result);
 
   return _SUCCESS_;
 }
@@ -204,7 +203,7 @@ int eft_ln_pk_nw_gfilter(
 //  *                            in units of (Mpc)^3 [size = pfo->k_size_extra]
 //  * @return the error status
 //  */
-// int eft_ln+_pk_nw_gfilter_time_indep(
+// int eft_ln_pk_nw_gfilter_time_indep(
 //                                 struct background *pba, 
 //                                 struct primordial *ppm, 
 //                                 struct fourier *pfo, 

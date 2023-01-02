@@ -580,7 +580,7 @@ extern "C" {
                           struct background * pba,
                           struct fourier * pfo,
                           enum linear_or_logarithmic mode,
-                          double z,
+                          const double z,
                           double * out_pk
                           );
 
@@ -589,8 +589,8 @@ extern "C" {
                                 struct primordial * ppm,
                                 struct fourier *pfo,
                                 enum linear_or_logarithmic mode,
-                                double k,
-                                double z,
+                                const double k,
+                                const double z,
                                 double * out_pk
                                 );
 
@@ -600,8 +600,8 @@ extern "C" {
                                     struct fourier * pfo,
                                     enum linear_or_logarithmic mode,
                                     double * ln_kvec,
-                                    int kvec_size,
-                                    double z,
+                                    const int kvec_size,
+                                    const double z,
                                     double * out_pk
                                     );
 
