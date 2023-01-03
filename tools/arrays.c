@@ -1497,6 +1497,53 @@ int array_integrate_all_spline(
 }
 
 /**
+ * @brief Computes the spline integral.
+ *        dI = dx S(x)
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param result      Output: integration result I with elements[index_y]
+ * 
+ * @return the error status
+ */
+int array_integrate_all_spline_table_lines(
+		      double * x, 
+			    int x_size,
+			    double * y_array, 
+			    int y_size,
+			    double * ddy_array,
+			    double * result,
+          ErrorMsg errmsg) {
+
+  int index_x, index_y;
+  double h;
+  
+  /** - initialize the result vector */
+  for (index_y = 0; index_y < y_size; index_y++)
+    *(result + index_y) = 0.;
+
+  /** - integrate over index_x in every column indexed by index_y */
+  for (index_x = 0; index_x < x_size-1; index_x++)
+  {
+    for (index_y = 0; index_y < y_size; index_y++)
+    {
+      h = (x[(index_x+1)*y_size + index_y]-x[index_x*y_size + index_y]);
+
+      *(result + index_y) +=
+        (y_array[index_x*y_size + index_y]+y_array[(index_x+1)*y_size + index_y])*h/2. - 
+        (ddy_array[index_x*y_size + index_y]+ddy_array[(index_x+1)*y_size + index_y])*h*h*h/24.;
+
+    }
+  }
+
+  return _SUCCESS_;
+}
+
+/**
  * @brief Computes the spline integral with a specified gaussian window exactly.
  *        dI(m, s) = dx S(x) * exp(-(x-m)^2/(2 s^2)) / (sqrt(2 pi) s)
  * @param array       Input: contains x, y and y'' values retrieved from splining

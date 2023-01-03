@@ -172,6 +172,16 @@ extern "C" {
 				 ErrorMsg errmsg
 				 );
 
+  int array_integrate_all_spline_table_lines(
+            double * x, 
+            int x_size,
+            double * y_array, 
+            int y_size,
+            double * ddy_array,
+            double * result,
+            ErrorMsg errmsg
+            );
+
   int array_integrate_all_spline_gaussian_window(
             double * array,
             int n_columns,
