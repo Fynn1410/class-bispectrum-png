@@ -1511,6 +1511,10 @@ int fourier_init(
       double ir_dsigma2_new = eft_ir_dsigma2(pba, ppm, pfo, z, 0.2, 1./110.);
       double ir_dsigma2_old = IR_del_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
       fprintf(stderr, "# dSigma2(z) = %.8e (quad), %.8e (spline) \n", ir_dsigma2_old, ir_dsigma2_new);
+
+
+      /** smallest allowed variation */
+      fprintf(stderr, "# Smalles allowed variation: %.3e", ppr->smallest_allowed_variation);
     }
   }
 
@@ -5096,7 +5100,7 @@ int fourier_pk_nw_at_kvec_and_z(
   int index_k, index_kvec, last_index = 0;
   double * out_pk_at_z;
   double * ddout_pk_at_z;
-  double * ln_pk_primordial;
+  double * ln_pk_primordial = NULL;
   double extrapol_const;
 
 
@@ -5157,6 +5161,8 @@ int fourier_pk_nw_at_kvec_and_z(
     /** - write to output: P(k) = P(kmin) * (k*P_R(k) / kmin*P_R(kmin)) */
     out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
   }
+
+  if (ln_pk_primordial) free(ln_pk_primordial);
 
   for (index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
     /** - Deal with case kmin<=k<=kmax */

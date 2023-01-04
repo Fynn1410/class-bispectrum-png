@@ -3,6 +3,16 @@
 //JL#include <math.h>
 //JL#include <string.h>
 
+#define _ERR_ARG_OUT_OF_RANGE_ 1
+#define _ERR_RES_OUT_OF_RANGE_ 2
+extern int _errno_util;
+extern double complex _err_last_arg;
+
+double complex cGamma(double complex z);
+double rGamma(double z);
+
+
+
 	int *make_1D_int_array(long size);
 	double 	*make_1Darray(long size);
 	double complex 	*make_1D_c_array(long size);

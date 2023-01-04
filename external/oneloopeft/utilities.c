@@ -23,6 +23,103 @@
 // #include <math.h>
 // #include <stdlib.h>
 
+
+int _errno_util = 0;
+double complex _err_last_arg = 0. + 0.*I;
+
+#define LANCZOS_GAMMA_N 13
+/**
+ * @brief Complex Gamma function approximated using the
+ *        Lanczos method with g ~ 6 and N = 13.
+ * 
+ * @param z     Input: Complex argument
+ * @return      value of Gamma(z) / NaN at a singularity
+*/
+double complex cGamma(double complex z)
+{
+  const double g = 6.0246800407767295;
+  const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
+      589.5106040667278, -888.0253935502019,
+      395.8387847487511, -53.21395931507683, 
+      1.277182848200161, -4.046172558017667e-4, 
+      -7.347584327845915e-6, 8.208805790146655e-6, 
+      -5.159543403041225e-6, 2.319631454949221e-6, 
+      -6.671246136975432e-7, 9.060393467651553e-8};
+  register double complex Lg;
+  double complex t;
+  double r;
+  
+  r = creal(z);
+  if (r < 0.5)
+  {
+    /** - check the distance to the singularity */
+    if (cabs(z - rint(r)) < _EPSILON_) {
+      _errno_util |= _ERR_RES_OUT_OF_RANGE_;
+      _err_last_arg = z;
+      #ifdef NAN
+      return nan("") + nan("") * I;   /** Gamma(z) is undefined */
+      #else
+      return 0. + 0. * I;
+      #endif
+    }
+    /** - use mirror identity */
+    return _PI_ / (csin(_PI_ * z) * cGamma(1 - z));
+  }
+
+  Lg = co[0];
+  for (int k = 1; k < LANCZOS_GAMMA_N; k++)
+  { Lg += co[k] / (z + k - 1); }  /** Partial fraction sum */
+  t = z + g - 0.5;
+  return cpow(t, z - 0.5) * cexp(-t) * Lg;
+} 
+
+
+/**
+ * @brief Real Gamma function approximated using the
+ *        Lanczos method with g ~ 6 and N = 13.
+ * 
+ * @param x     Input: Real argument
+ * @return      value of Gamma(x) / NaN at a singularity
+*/
+double rGamma(double x)
+{
+  const double g = 6.0246800407767295;
+  const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
+      589.5106040667278, -888.0253935502019,
+      395.8387847487511, -53.21395931507683, 
+      1.277182848200161, -4.046172558017667e-4, 
+      -7.347584327845915e-6, 8.208805790146655e-6, 
+      -5.159543403041225e-6, 2.319631454949221e-6, 
+      -6.671246136975432e-7, 9.060393467651553e-8};
+  register double Lg;
+  double t;
+
+  if (x < 0.5)
+  {
+    /** - check the distance to the singularity */
+    if ((fabs(x - rint(x)) < _EPSILON_)) {
+      _errno_util = _ERR_RES_OUT_OF_RANGE_;
+      _err_last_arg = x;
+      #ifdef NAN
+      return nan("") + nan("") * I;   /** Gamma(z) is undefined */
+      #else
+      return 0.;
+      #endif
+    }
+    /** - use mirror identity */
+    return _PI_ / (sin(_PI_ * x) * rGamma(1 - x));
+  }
+
+  Lg = co[0];
+  for (int k = 1; k < LANCZOS_GAMMA_N; k++)
+  { Lg += co[k] / (x + k - 1); }  /** Partial fraction sum */
+  t = x + g - 0.5;
+  return pow(t, x - 0.5) * exp(-t) * Lg;
+} 
+
+
+
+
 /**
  * Allocate memory to a 1d array of type double and length size
  *
