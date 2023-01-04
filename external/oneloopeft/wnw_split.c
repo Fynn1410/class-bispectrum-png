@@ -334,14 +334,17 @@ double eft_pk_w_eisenstein_hu_factor(
  */
 double pk_Gfilter_nw(struct background *pba, struct primordial *ppm, struct fourier *pfo, double k, double k0, double z)    
 { 
+
+    double a = 0.3 * exp(-0.7 * pow(log10(k)+1.5, 2.)) + 0.03;
+
     struct integrand_parameters2 par; 
     par.ppm = ppm;
     par.pba = pba;
     par.pfo = pfo;
     par.p4  = k;
     par.p5  = k0;
+    par.p6  = a;
 
-    double a       = 0.3 * exp(-0.7 * pow(log10(k) + 1.5, 2.)) + 0.03; 
     double logqmin =  log10(k) - 4.* a;
     double logqmax =  log10(k) + 4.* a;
 
@@ -356,7 +359,7 @@ double pk_Gfilter_nw(struct background *pba, struct primordial *ppm, struct four
    
     double pk0     = Pk_dlnPk(pba, ppm, pfo, k0, z, LPOWER);
     double ratio   = 1./(sqrt(2.*M_PI)* a) * result; 
-    double out     =  EH_PS_nw(pba, ppm, pfo, k, k0, pk0) * ratio;
+    double out     = EH_PS_nw(pba, ppm, pfo, k, k0, pk0) * ratio;
 
     // printf("%12.6e %12.6e %12.6e \n", k, out, Pk_dlnPk(pba, ppm, pfo, k, z, LPOWER));
 
@@ -382,11 +385,11 @@ double pk_nw_integrand(double x, void *par)  ///integration variable x = logq
     struct fourier *pfo    = pij.pfo;
     double k               = pij.p4;
     double kf0             = pij.p5;
+    double a               = pij.p6;
 
     double logq  = x;
     double q     = pow(10.,logq);
     double logk  = log10(k);
-    double a     = 0.3 * exp(-0.7 * pow(logk + 1.5, 2.)) + 0.03; 
     double pkf0  = Pk_dlnPk(pba, ppm, pfo, kf0, 0., LPOWER);
     double ratio = Pk_dlnPk(pba, ppm, pfo, q, 0., LPOWER)/EH_PS_nw(pba, ppm, pfo, q, kf0, pkf0);  
     double out   = ratio * exp(-1./(2.*pow(a,2.))*pow(logk-logq,2.));

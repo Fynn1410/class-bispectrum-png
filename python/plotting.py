@@ -2,9 +2,18 @@ from email.header import Header
 from pickle import FALSE, TRUE
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.cm as cmx
 import csv
 import numpy as np
 from random import randint
+
+def shape(a):
+    if not (type(a) == list or type(a) == np.ndarray):
+        return []
+    return [len(a)] + shape(a[0])
+
+def dim(a):
+    return len(shape(a))
 
 def read_bib(path, skip_rows = 0, columns = None, idx0 = 0, idx1 = -1):
     head = []
@@ -170,29 +179,62 @@ def plot_data_bib(path, x_key, columns = None, y_meta = None, title = "", idx0 =
     plt.show()
 
 
-def plot_comparison(x, y1, y2, label1, label2, title, save = False, path = ""):
+def plot_comparison(x, y1, y2, label1, label2, title = None, plot_meta = {"x-label": "k [h/Mpc]", "y-label": "P [$h^{-3}$$Mpc^3$]", "x_scale": "log", "y_scale": "log", "x_lim": [], "y_lim": [], "y_lim_res": []}, save = False, path = ""):
     fig = plt.figure(figsize=(10, 12))
     sub = fig.add_axes([0.15,0.35,0.75,0.55])
-    negate_plot(sub, x, y1, label = label1, color = "b")
-    negate_plot(sub, x, y2, label = label2, color = "r")
-    sub.set_xscale("log")
-    sub.set_yscale("log")
+    sub_res = fig.add_axes([0.15,0.15,0.75,0.2])
+    if(dim(y1) == 1):
+        negate_plot(sub, x, y1, label = label1, color = "b")
+        negate_plot(sub, x, y2, label = label2, color = "r")
+        sub_res.plot(x, np.subtract(np.divide(y2,y1)*100., 100.), label = "({y2}/{y1})-1".format(y2=label2, y1=label1), color = "b", linestyle = "-")  
+    elif(dim(y1) == 2):
+        cmp = plt.get_cmap("jet")
+        cNorm = mcolors.Normalize(vmin = 0, vmax = 2*shape(y1)[0])
+        scalarMap = cmx.ScalarMappable(norm = cNorm, cmap = cmp)
+        for i in range(shape(y1)[0]):
+            negate_plot(sub, x, y1[i], label = label1[i], color = scalarMap.to_rgba(2*i))
+            negate_plot(sub, x, y2[i], label = label2[i], color = scalarMap.to_rgba(2*i+1))
+            sub_res.plot(x, np.subtract(np.divide(y2[i],y1[i])*100., 100.), label = "({y2}/{y1})-1".format(y2=label2[i], y1=label1[i]), color = scalarMap.to_rgba(2*i+1), linestyle = "-")  
+    if "x_scale" in plot_meta:
+        sub.set_xscale(plot_meta["x_scale"])
+        sub_res.set_xscale(plot_meta["x_scale"])
+    else:
+        sub.set_xscale("log")
+        sub_res.set_xscale("log")
+    if "y_scale" in plot_meta:
+        sub.set_yscale(plot_meta["y_scale"])
+    else:
+        sub.set_yscale("log")
+    if "x_lim" in plot_meta:
+        if plot_meta["x_lim"]: 
+            sub.set_xlim(plot_meta["x_lim"])
+            sub_res.set_xlim(plot_meta["x_lim"])
+    if "y_lim" in plot_meta:
+        if plot_meta["y_lim"]: 
+            sub.set_ylim(plot_meta["y_lim"])
+    if "y_lim_res" in plot_meta:
+        if plot_meta["y_lim_res"]: 
+            sub_res.set_ylim(plot_meta["y_lim_res"])      
     sub.set_xticks([])
-    sub.set_title(title, fontsize = 16)
-    sub.set_ylabel("P [$h^{-3}$$Mpc^3$]", fontsize = 14)
-    sub.set_xlabel("k [h/Mpc]", fontsize = 14)
+    if(title != None):
+        sub.set_title(title, fontsize = 16)
+    if "x-label" in plot_meta:
+        sub.set_xlabel(plot_meta["x-label"], fontsize = 14)
+        sub_res.set_xlabel(plot_meta["x-label"], fontsize = 14)
+    else:
+        sub.set_xlabel("k [h/Mpc]", fontsize = 14) 
+        sub_res.set_xlabel("k [h/Mpc]", fontsize = 14) 
+    if "y-label" in plot_meta:
+        sub.set_ylabel(plot_meta["y-label"], fontsize = 14)
+    else:
+        sub.set_ylabel("P [$h^{-3}$$Mpc^3$]", fontsize = 14) 
     sub.legend()
     sub.grid()
-
-    sub_res= fig.add_axes([0.15,0.15,0.75,0.2])
-    sub_res.plot(x, np.subtract(np.divide(y2,y1)*100., 100.), label = "({y2}/{y1})-1".format(y2=label2, y1=label1), color = "b", linestyle = "-")  
-    sub_res.set_xscale("log")
     sub_res.set_ylabel("rel. Deviation [%]", fontsize = 14)
-    sub_res.set_xlabel("k [h/Mpc]", fontsize = 14)
     sub_res.legend(fontsize = 14)
     sub_res.grid()
     if(save): 
-        plt.savefig(path+".pdf")
+        plt.savefig(path, facecolor = "white")
     plt.show()
     plt.close()
 
@@ -285,25 +327,12 @@ def moment_comparison(x_key, y1_data, y2_data, y_meta, y1_label, y2_label, title
     plt.close()
 
 if __name__ == "__main__":
-    y_0_meta = {#"Plin": {"label" : "$P_{lin}$", "color": "k"}, \
-          "P_mm": {"label" : "$P_{matter}$", "color": "b"}, \
-          "P_ct": {"label" : "$P_{ct}$", "color": "grey"}, \
-        #   "I2200": {"label" : "$P_{22}$", "color": "gold"}, \
-        #   "I1300": {"label" : "$P_{13}$", "color": "darkgreen"}, \
-          "Idelta200": {"label" : "$I^{\delta ^2}_{00}$", "color": "y"}, \
-          "IG200": {"label" : "$I^{G_2}_{00}$", "color": "g"}, \
-          "Idelta2delta200": {"label" : "$I^{\delta ^2 \delta ^2}_{00}$", "color": "c"}, \
-          "IG2G200": {"label" : "$I^{G_2 G_2}_{00}$", "color": "indigo"}, \
-          "Idelta2G200": {"label" : "$I^{\delta ^2 G_2}_{00}$", "color": "m"}, \
-          "FG200": {"label" : "$F^{G_2}_{00}$", "color": "violet"}, \
-          #"Ploops": {"label" : "Ploops", "color": "darkgreen"},\
-          "RSD0": {"label" : "RSD_0", "color": "r"}
-          }
+    out_oneloop = "/home/dennis/Software/class/python/W_NW_OL.txt"
+    wnw_oneloop = read_bib(out_oneloop)
 
-    out = "/home/dennis/Software/class/data/pg_DI.txt"
-    mom_0_DI = read_bib(out)
+    out_pt = "/home/dennis/Software/CLASS-PT/python/CLASS-PT.txt"
+    wnw_pt = read_bib(out_pt)
 
-    out = "/home/dennis/Software/class/data/pg_FFT.txt"
-    mom_0_FFT = read_bib(out)
+    plot_meta = {"x-label": "1/Mpc", "x_lim": [1e-3, 1e-1], "y_lim": [1e2, 1e5]}
+    plot_comparison(wnw_oneloop["k"], [wnw_oneloop["Plin"], wnw_oneloop["Pnw"]], [wnw_pt["Plin"],wnw_pt["Pnw"]], ["Oneloop Plin", "Oneloop Pnw"], ["PT Plin", "PT Pnw"], plot_meta = plot_meta, save = False)
 
-    plot_comparison_bib("k", mom_0_DI, mom_0_FFT, y_0_meta, "DI", "FFT", save = False)

@@ -225,7 +225,7 @@ void FFT_compute_coeff(struct background * pba,
             // kmax_fft = 1.1e+04 ; // Misaligning
       }
       // double kmax_fft = FFT_kmax_Brent_solver(pba, ppm, pfo, z, kmin_fft, fft_bias);
-      double Delta   = log(kmax_fft/kmin_fft)/(Nmaxd-1);
+      double Delta   = log(kmax_fft/kmin_fft)/(Nmaxd-1.);
       double *k      = make_1Darray(Nmax);
       double *pkz    = make_1Darray(Nmax);
       double *pk_bin = make_1Darray(Nmax);
@@ -248,9 +248,7 @@ void FFT_compute_coeff(struct background * pba,
       //       fprintf(stderr, "kmax_g = %12.6e \n", kmax_fft);
       // }
 
-      // changed by JL to avoid a double allocation
-      //fftw_complex *biased_etam = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
-      //fftw_complex *cmsym       = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(Nmax+1));
+      
       double complex *biased_etam;
       double complex *cmsym;
       // saving results in fft_struct for a giving Matter or Galaxy/Halo calculation
@@ -827,12 +825,14 @@ int FFTLog_rsd_free(struct fourier *pfo) {
   free(pfo -> fft_ws);
 
   free(pfo -> pk_matter_real_nl -> Plin_IR);
+  free(pfo -> pk_matter_real_nl -> Plin_NL_IR);
   free(pfo -> pk_matter_real_nl -> P_mm);
   free(pfo -> pk_matter_real_nl -> I2200);
   free(pfo -> pk_matter_real_nl -> I1300);
   free(pfo -> pk_matter_real_nl);
 
   free(pfo -> pk_halo_real_nl -> Plin_IR);
+  free(pfo -> pk_matter_real_nl -> Plin_NL_IR);
   free(pfo -> pk_halo_real_nl -> P_mm);
   free(pfo -> pk_halo_real_nl -> I2200);
   free(pfo -> pk_halo_real_nl -> Idelta200);

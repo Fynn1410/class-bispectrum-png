@@ -87,7 +87,7 @@ void rsd_0_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
 
       free(vec_m);
       free(vec_h);
-      //free(vec_h_min);
+      free(vec_h_min);
 
       // adding factored out k and mu dependencies
       pfo -> pk_halo_rsd_nl[rsd_idx] -> I2200[index_k]           = pow(k, 3.) * np[0];
@@ -164,23 +164,6 @@ void rsd_1_FFTLog(struct fourier *pfo, int rsd_idx, int index_k, double Plin)
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] = pow(k, 3.) * Plin * p[2] / k + 0.5 * pfo->fft_ws->sigma_v0 * Plin / (3. * k);
 
       pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] = -0.5 * k * Plin * (pfo->fft_ws->sigma_v2 + pfo->fft_ws->sigma_v0 / (3. * pow(k, 2.)));
-
-
-      double mu = 1.;
-
-      double I2201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> I2201[index_k];
-      double I1301p3101 = pfo -> pk_halo_rsd_nl[rsd_idx] -> I1301p3101[index_k];
-      double Idelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Idelta201[index_k];
-      double IG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> IG201[index_k];
-      double FG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> FG201[index_k];
-      double ph_loops  = I2201 + I1301p3101 + Idelta201 + IG201 + FG201;
-
-      double J12101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J12101[index_k] * mu;
-      double J11201    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J11201[index_k] * mu;
-      double J21101    = pfo -> pk_halo_rsd_nl[rsd_idx] -> J21101[index_k] * mu;
-      double Jdelta201 = pfo -> pk_halo_rsd_nl[rsd_idx] -> Jdelta201[index_k] * mu;
-      double JG201     = pfo -> pk_halo_rsd_nl[rsd_idx] -> JG201[index_k] * mu;
-      double plos_loops  = J12101 + J11201 + J21101 + Jdelta201 + JG201;
 
       free(np);
       free(p);

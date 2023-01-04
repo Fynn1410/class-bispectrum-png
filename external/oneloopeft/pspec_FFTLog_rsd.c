@@ -221,17 +221,21 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         J21112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112x[index_k];
         J21112y[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112y[index_k];
         J21112[idx]  = (J21112x[idx] + J21112y[idx] * pow(mu,2.));
+        // J21112[idx]  = (J21112x[idx]);
         N12x[idx]    = pfo -> pk_halo_rsd_nl[idx] -> N12x[index_k];
         N12y[idx]    = pfo -> pk_halo_rsd_nl[idx] -> N12y[index_k];
         N12[idx]     = (N12x[idx] * mu + N12y[idx] * pow(mu,3.));
         J12112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J12112x[index_k];
         J12112y[idx] = pfo -> pk_halo_rsd_nl[idx] -> J12112y[index_k];
         J12112[idx]  = (J12112x[idx] + J12112y[idx] * pow(mu,2.));
+        // J12112[idx]  = (J12112x[idx]);
 
         Moment_3[idx] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[idx]*sigma_v2 *D4\
                         + 12.* pow(f,3.)*(mu/k) * (J21112[idx] + 2.*J12112[idx]) *D4\
                         - 6. * pow(f,3.)*(mu/k) * b1*Plin[idx]*sigma_v2 *D4\
           + 12.* pow(f,3.) * b1*N12[idx] *D4;
+
+        // Moment_3[idx] = 12.* pow(f,3.)*(mu/k) * (2.*J12112[idx])*D4;// + 2.*J12112[idx]) *D4;
         //+ 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[idx] *D2;
 
         //4-th moment
@@ -240,7 +244,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
         N22z[idx] = pfo -> pk_halo_rsd_nl[idx] -> N22z[index_k];
         N22[idx]  = (N22x[idx] + N22y[idx] * pow(mu,2.) + N22z[idx] * pow(mu,4.));
 
-        Moment_4[idx] = -24. * pow(f,4.)*pow(mu/k,2.) * Plin[idx]*sigma_v2 *D4\
+        Moment_4[idx] = -24. * pow(f,4.)*pow(mu/k,2.) * Plin[idx]*sigma_v2 *D4 \
           +12. * pow(f,4.) * N22[idx] *D4;
         //+24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[idx] *D2;
 
@@ -249,12 +253,15 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
           + (1./6.) * pow(k*mu,3.) * Moment_3[idx] + (1./24.) * pow(k*mu,4.) * Moment_4[idx] \
           + (c00 + c10*f*pow(mu,2) + c22*pow(f,2)*pow(mu,4) + c32*pow(f,3)*pow(mu,6.))*pow(k,2)*Plin[idx]*D2;
 
+        // RSD[idx] = (1./6.) * pow(k*mu,3.) * Moment_3[idx];
     }
 
     double P_wiggle = Plin[lin] - Plin[no_wiggle];
 
+    // double RSD_IR_Ressummed = RSD[no_wiggle] + pow(b1 + f*pow(mu,2.), 2.) * Plin[no_wiggle];
     double RSD_IR_Ressummed = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot)) *D2\
                             + RSD[no_wiggle] + suppression * (RSD[lin] - RSD[no_wiggle]);
+    // double RSD_IR_Ressummed = RSD[no_wiggle];
 
     *result = RSD_IR_Ressummed;
 
@@ -301,6 +308,10 @@ int RSD_Multipole(struct fourier *pfo, struct background *pba, int index_k, doub
 
     double mu_min = -1.;
     double mu_max =  1.;
+
+    double D = growth_D(pba, z);
+    double f = growth_f(pba, z);
+    // fprintf(stdout, "RSD at z = %g, D(z) = %g, f(z) = %g\n",z,D,f);
 
     gsl_function F;
     F.function = &RSD_Multipole_integrand;

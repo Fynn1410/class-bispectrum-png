@@ -616,7 +616,7 @@ double pm_IR_LO(struct background * pba,
  * @param z            Input: redshift
  * @param SPLIT        Input: switch to set the method of wiggle-nowiggle split
  *
- * @return value of NL IR-ressumed power spectrum
+ * @return value of Tree IR-ressumed power spectrum
  */
 double pm_IR_NLO(struct background * pba,
                 struct primordial * ppm,
@@ -712,7 +712,7 @@ double IR_Sigma2(struct background * pba,
     par.ppm = ppm;
     par.pba = pba;
     par.pfo = pfo;
-    par.p4  = 110.;
+    par.p4  = 110. / pba->h;
     par.p5  = z;
     par.p6  = kf0;
     par.p13 = SPLIT;
@@ -788,7 +788,7 @@ double IR_del_Sigma2(struct background * pba,
     par.ppm = ppm;
     par.pba = pba;
     par.pfo = pfo;
-    par.p4  = 110.;
+    par.p4  = 110. / pba->h;
     par.p5  = z;
     par.p6  = kf0;
     par.p13 = SPLIT;
@@ -962,7 +962,7 @@ double pm_nowiggle_gfilter(struct background *pba, struct primordial *ppm, struc
   if(first == 1){
     //fprintf(stderr,"Initialises nowiggle interpolator with first=%d\n",first);
     int nlines       = 400;
-    double *k_in     = loginit_1Darray(nlines, 1.e-6, 40.);
+    double *k_in     = loginit_1Darray(nlines, 1.e-6, 21.); // was 40.
     double *log_k    = make_1Darray(nlines);
     double *pk_nw    = make_1Darray(nlines);
     double *log_pknw = make_1Darray(nlines);
