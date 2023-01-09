@@ -1400,7 +1400,7 @@ int fourier_init(
             pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
 
     /** - compute the nowiggle spectrum using gaussian filter */
-    class_call(eft_ln_pk_nw_gfilter(pba, ppm, pfo,
+    class_call(eft_ln_pk_nw_gfilter_3d(pba, ppm, pfo,
                                   index_pk,
                                   index_k0,
                                   index_k_min,
@@ -1459,7 +1459,7 @@ int fourier_init(
 
       fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
       fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
-      fprintf(fpknw, "# number of wavenumbers equal to 137 \n");
+      fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
       fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
       for (int i = 0; i < pfo->k_size_extra; i++)
         fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
@@ -1502,19 +1502,34 @@ int fourier_init(
 
       // fclose(fpknw);
 
+      /** compare the power spectra */
+      fpknw = fopen("output/nowiggle_pk_comparison.dat", "w");
+
+      fprintf(fpknw, "# Nowiggle power spectrum at z=%.3f divided by Eisenstein-Hu \n", z);
+      fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
+      fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
+      fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
+      for (int it_k = 0; it_k < pfo->k_size_extra; it_k++)
+        fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
+                exp(pfo->ln_k[it_k]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]), 
+                exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]), 
+                pm_nowiggle_gfilter(pba, ppm, pfo, pfo->k[it_k], 0., 0) / exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]));
+
+      fclose(fpknw);
+
       /** test the moments */
       double z = 0.;
-      double ir_sigma2_new = eft_ir_sigma2(pba, ppm, pfo, z, 0.2, 1./110.);
+      double ir_sigma2_new = eft_ir_sigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
       double ir_sigma2_old = IR_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
       fprintf(stderr, "# Sigma2(z) = %.8e (quad), %.8e (spline) \n", ir_sigma2_old, ir_sigma2_new);
 
-      double ir_dsigma2_new = eft_ir_dsigma2(pba, ppm, pfo, z, 0.2, 1./110.);
+      double ir_dsigma2_new = eft_ir_dsigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
       double ir_dsigma2_old = IR_del_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
       fprintf(stderr, "# dSigma2(z) = %.8e (quad), %.8e (spline) \n", ir_dsigma2_old, ir_dsigma2_new);
 
 
       /** smallest allowed variation */
-      fprintf(stderr, "# Smalles allowed variation: %.3e", ppr->smallest_allowed_variation);
+      fprintf(stderr, "# Smallest allowed variation: %.3e", ppr->smallest_allowed_variation);
     }
   }
 

@@ -27,7 +27,7 @@
  * @param pfo       Input: pointer to fourier structure
  * @param z         Input: redshift
  * @param k_split   Input: long/short mode separating scale (end of integration region)
- * @param k_bao     Input: wavenumber of BAO scale (default 1/(110. Mpc))
+ * @param k_bao     Input: wavenumber of BAO scale (default h/(110. Mpc))
  *
  * @return value of IR resummation suppression factor at z
  */
@@ -135,7 +135,7 @@ double eft_ir_sigma2(
  * @param pfo       Input: pointer to fourier structure
  * @param z         Input: redshift
  * @param k_split   Input: long/short mode separating scale (end of integration region)
- * @param k_bao     Input: wavenumber of BAO scale (default 1/(110. Mpc))
+ * @param k_bao     Input: wavenumber of BAO scale (default h/(110. Mpc))
  *
  * @return value of IR resummation suppression factor at z
  */
@@ -218,8 +218,8 @@ double eft_ir_dsigma2(
             pfo->error_message,
             pfo->error_message);
 
-  for (it_q = 0; it_q < split_index+1; it_q++)
-    fprintf(stderr, "%.15e  %.15e  %.15e \n", exp(ln_q[it_q]), intg_splines[it_q*index_num + index_y], intg_splines[it_q*index_num + index_ddy]);
+  // for (it_q = 0; it_q < split_index+1; it_q++)
+  //   fprintf(stderr, "%.15e  %.15e  %.15e \n", exp(ln_q[it_q]), intg_splines[it_q*index_num + index_y], intg_splines[it_q*index_num + index_ddy]);
 
   /** - multiply with prefactor */
   result *= 1./(2.*_PI_*_PI_);
@@ -243,7 +243,7 @@ double eft_ir_dsigma2(
  * @param kvec_size Input: size of array of wavenumbers
  * @param z         Input: redshift
  * @param k_split   Input: long/short mode separating scale (end of integration region)
- * @param k_bao     Input: wavenumber of BAO scale (default 1/(110. Mpc))
+ * @param k_bao     Input: wavenumber of BAO scale (default h/(110. Mpc))
  * @param out_pk    Output: the leading-order IR resummed power spectrum
  *
  * @return the error status
@@ -334,7 +334,7 @@ int eft_ir_pk_lo(
  * @param kvec_size Input: size of array of wavenumbers
  * @param z         Input: redshift
  * @param k_split   Input: long/short mode separating scale (end of integration region)
- * @param k_bao     Input: wavenumber of BAO scale (default 1/(110. Mpc))
+ * @param k_bao     Input: wavenumber of BAO scale (default h/(110. Mpc))
  * @param out_pk    Output: the leading-order IR resummed power spectrum
  *
  * @return the error status
@@ -425,7 +425,7 @@ int eft_ir_pk_nlo(
  * @param z           Input: redshift
  * @param use_pk_type Input: sets the type of linear power spectrum {pk_lin, pk_nowiggle, pk_ir_resummed_lo/nlo}
  * @param k_split     Input: [only needed for pk_ir_resummed*] long/short mode separating scale (end of integration region)
- * @param k_bao       Input: [only needed for pk_ir_resummed*] wavenumber of BAO scale (default 1/(110. Mpc))
+ * @param k_bao       Input: [only needed for pk_ir_resummed*] wavenumber of BAO scale (default h/(110. Mpc))
  *
  * @return value of the requested moment at z
  */
