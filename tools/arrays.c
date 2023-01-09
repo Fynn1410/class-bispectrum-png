@@ -1591,8 +1591,8 @@ int array_integrate_all_spline_gaussian_window(
 
     *result += 1./(2.*d) * (
       (erf(b) - erf(a))/2. * ( dy*g + ys*d + stddev*stddev/3. * (3.*Ms*d*(g*g - d*d + 0.5) + dM*g*(g*g - d*d + 1.5)) ) \
-     -exp(-(g*g + d*d))/_SQRT_PI_ * ( sinh(2.*g*d)*( dy + stddev*stddev/3. * (3.*Ms*g*d + dM*(g*g + 1.)) ) \
-                                     +cosh(2.*g*d)*( stddev*stddev/3. * (3.*Ms*d*d + dM*g*d) ) ) \
+     -1./(2.*_SQRT_PI_) * ( exp(-(g-d)*(g-d))*( dy + stddev*stddev/3. * (3.*Ms*d*(g+d) + dM*(g*(g+d) + 1.)) ) \
+                           -exp(-(g+d)*(g+d))*( dy + stddev*stddev/3. * (3.*Ms*d*(g-d) + dM*(g*(g-d) + 1.)) ) ) \
                             );
 
   }
