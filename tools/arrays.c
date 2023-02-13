@@ -1507,6 +1507,7 @@ int array_integrate_all_spline(
  * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
  *                            ddy_array[index_x*y_size + index_y]
  * @param result      Output: integration result I with elements[index_y]
+ * @param errmsg
  * 
  * @return the error status
  */
@@ -1599,6 +1600,282 @@ int array_integrate_all_spline_gaussian_window(
 
   return _SUCCESS_;
 }
+
+
+/**
+ * @brief Computes the value of a power series with coefficients pcoeff, starting from x^(min_pow)
+ *        with coeff_size terms
+ * @param pcoeff      Input: Coefficients of the power series
+ * @param coeff_size  Input: Number of terms in the sum
+ * @param min_pow     Input: Minimal exponent
+ * @param x           Input: function argument
+ * 
+ * @return function value at x
+ */
+inline double array_polynomial(const double * pcoeff,
+                        const int coeff_size,
+                        const int min_pow,
+                        const double x) {
+  int j;
+  const double x_min_pow = pow(x, min_pow);
+  register double x_pow = 1., sum;
+
+  sum = pcoeff[0];
+  for (j = 1; j < coeff_size; j++) {
+    x_pow *= x;
+    sum += pcoeff[j] * x_pow;
+  }
+
+  return x_min_pow * sum;
+}
+
+/**
+ * @brief Returns the function value in the trigonometric ring corresponding to index n.
+ *        n = 0 is set to the sine function.
+ * @param x   Input: function argument
+ * @param n   Input: index in the ring
+ * 
+ * @return function value at x
+ */
+inline double array_trigonometric_ring(double x, 
+                                        const int n) {
+  const int m = (((n % 4) + 4) % 4);
+  switch (m)
+  {
+  case 0:
+    return sin(x); break;
+  case 1:
+    return cos(x); break;
+  case 2:
+    return -sin(x);break;
+  case 3:
+    return -cos(x);break;
+
+  default:  /* can never happen */
+    return 0.;break;
+  }
+}
+
+int array_bessel_series_expansion_integral(
+          const double * pcoeff,
+          const int n,
+          const double x,
+          double * result,
+          ErrorMsg errmsg) {
+  
+  int m, k, ksup;
+  double prefactor = 1., x_pow = 1., term, sum, polysum;
+  double x2_half = x*x/2;
+
+  /** - compute the prefactor to the series */
+  for (m = 0; m <= n; m++) {
+    prefactor *= x/(2*m+1.);
+  }
+
+  /** - compute the series expansion of the integral */
+  m = 0;
+  term = sum = 1.;
+  for (k = 1; fabs(term) > __DBL_EPSILON__; k++) {
+    term *= -x2_half / (k * (2*k + 2*n + 1.));
+    sum += (n+m+1.)/(n+2*k+m+1.) * term;
+  }
+  polysum = pcoeff[0] / (n+m+1.) * sum;
+  ksup = k;
+  /** m > 0 with the same number of terms */
+  for (m = 1; m <= 3; m++) {
+    term = sum = 1.;
+    x_pow *= x;
+    for (k = 1; k < ksup; k++) {
+      term *= -x2_half / (k * (2*k + 2*n + 1.));
+      sum += (n+m+1.)/(n+2*k+m+1.) * term;
+    }
+    polysum += pcoeff[m] / (n+m+1.) * sum * x_pow;
+  }
+
+  *result = prefactor * polysum;
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the spline integral with a specified spherical Bessel function J_n(x) exactly.
+ *        dI(n, c, s) = dx S(x) * j_n( c(x - s) )
+ * @param array       Input: contains x, y and y'' values retrieved from splining
+ * @param n_columns   Input: number of columns in array, indexed by index_x/y/ddy
+ * @param n_lines     Input: number of used control points
+ * @param index_x     Input: index for x-values (->class_define_index)
+ * @param index_y     Input: index for y-values (->class_define_index)
+ * @param index_ddy   Input: index for y''-values (->class_define_index)
+ * @param n           Input: Bessel function order
+ * @param coeff       Input: Coefficient c in the Bessel function
+ * @param shift       Input: shift variable s in the Bessel function
+ * @param result      Output: Integration result I(n, c, s)
+ * @param errmsg
+ * 
+ * @return the error status
+ */
+int array_integrate_all_spline_spherical_bessel_J(
+          double * array,
+          int n_columns,
+          int n_lines,
+          int index_x,   /** from 0 to (n_columns-1) */
+          int index_y,
+          int index_ddy,
+          const int n,
+          double coeff,
+          double shift,
+          double * result,
+          ErrorMsg errmsg) {
+
+  int i, j, k, m, min_pow, factor;
+  double h;                          /**< distance between control points */
+  double a, b, Ms, dM, ys, dy;
+  double prt_res, prt_sum, apow, bpow, pcoeff[4], bessel_j_a[n+1], bessel_j_b[n+1];
+  double intg_func_b, intg_func_a;
+  const double coeff_border_ab[4] = {9.9123380e-1, 2.1567720e-2, -3.1745158e-5, -3.6693021e-8};
+  const double border = array_polynomial(coeff_border_ab, 4, 0, (double)n);
+  ErrorMsg internal_error;
+
+  class_test( coeff * (array[0*n_columns+index_x] - shift) < 0.,
+              errmsg, 
+              "%s(L:%d) First shifted abscissa is too close to zero for this integration method: %.5e", 
+              __func__, __LINE__, coeff * (array[0*n_columns+index_x] - shift));
+
+
+  for (i = 0; i < n_lines-1; i++) {
+    h = array[(i+1)*n_columns+index_x] - array[i*n_columns+index_x];
+    a = coeff * (array[i*n_columns+index_x] - shift);
+    b = coeff * (array[(i+1)*n_columns+index_x] - shift);
+    Ms = array[i*n_columns+index_ddy] + array[(i+1)*n_columns+index_ddy];
+    dM = array[i*n_columns+index_ddy] - array[(i+1)*n_columns+index_ddy];
+    ys = array[i*n_columns+index_y] + array[(i+1)*n_columns+index_y];
+    dy = array[i*n_columns+index_y] - array[(i+1)*n_columns+index_y];
+    
+    min_pow = 0;
+    /** - pcoeff initially contains f_{n}(x) */
+    pcoeff[0] = array[i*n_columns+index_y] + a/coeff * (dy/h + h*(3.*Ms + dM)/12.)
+                  +(2.*a*a*a*dM + 3.*a*a*coeff*h*(Ms + dM)) / (12.*coeff*coeff*coeff*h);
+    pcoeff[1] = -1./coeff * (dy/h + h*(3.*Ms + dM)/12.)
+                  -(a*a*dM + a*coeff*h*(Ms + dM)) / (2.*coeff*coeff*coeff*h);
+    pcoeff[2] = array[i*n_columns+index_ddy] / (2.*coeff*coeff)
+                  + a*dM / (2.*coeff*coeff*coeff*h);
+    pcoeff[3] = -dM / (6.*coeff*coeff*coeff*h);
+
+    if (log(b) < border) {
+      /** - use the series expansion */
+      class_call(array_bessel_series_expansion_integral(pcoeff, n, a, &intg_func_a, internal_error),
+                  internal_error, errmsg);
+      class_call(array_bessel_series_expansion_integral(pcoeff, n, b, &intg_func_b, internal_error),
+                  internal_error, errmsg);
+
+      prt_sum = intg_func_b - intg_func_a;
+      *result += prt_sum / coeff;
+    }
+    else {
+      /** - compute the bessel functions at a and b up to order n-1 */
+      class_call(spherical_bessel_j(n, a, bessel_j_a, internal_error), 
+                  internal_error, errmsg);
+      class_call(spherical_bessel_j(n, b, bessel_j_b, internal_error),
+                  internal_error, errmsg);
+
+      prt_sum = 0.;
+      prt_res = 0.;
+      for (j = 0; j < n; j++) {
+        /** - compute boundary terms from partial integration */
+        prt_res += array_polynomial(pcoeff, 4, min_pow, a) * bessel_j_a[n-j-1]
+                  -array_polynomial(pcoeff, 4, min_pow, b) * bessel_j_b[n-j-1];
+        /** - compute f_{n-j-1}(x) = f'_{n-j}(x) + (n-j-1)*f_{n-j}(x)/x */
+        min_pow--;
+        for (k = -(j+1); k < 3-j; k++) {
+          pcoeff[k+j+1] *= (n-j+k);
+        }
+      }
+      prt_sum = prt_res;
+
+      /** - pcoeff now contains f_{0}(x)
+       *    for which we compute the integral dI0 =  dx f_{0}(x) * j_{0}(x) = dx f_{0}(x)/x * sin(x) */
+      min_pow--; /** < makes pcoeff hold f_{0}(x)/x */
+      for (j = min_pow; j < min_pow + 4 && j < 0; j++) {
+        /** - negative powers: use partial integration to reduce to Sine/CosineIntegral function */
+        factor = -1;
+        apow = pow(a, j);
+        bpow = pow(b, j);
+        prt_res = 0.;
+        for (k = 1; k <= -(j+1); k++) {
+          apow *= a; bpow *= b;
+          factor *= -(j+k);
+          prt_res += ( bpow * array_trigonometric_ring(b, k-1)
+                      -apow * array_trigonometric_ring(a, k-1)) / (double)factor;
+        }
+        /* k = -(j+1) => k+j = -1 */
+        factor *= -1;
+        m = (((-(j+1) % 4) + 4) % 4);
+        switch (m)
+        {
+        case 0:
+          class_call(sine_integral(a, &intg_func_a, internal_error),
+                      internal_error, errmsg);
+          class_call(sine_integral(b, &intg_func_b, internal_error),
+                      internal_error, errmsg);
+          break;
+        case 1:
+          class_call(cosine_integral(a, &intg_func_a, internal_error),
+                      internal_error, errmsg);
+          class_call(cosine_integral(b, &intg_func_b, internal_error),
+                      internal_error, errmsg);
+          break;
+        case 2:
+          class_call(sine_integral(a, &intg_func_a, internal_error),
+                      internal_error, errmsg);
+          class_call(sine_integral(b, &intg_func_b, internal_error),
+                      internal_error, errmsg);
+          factor *= -1;
+          break;
+        case 3:
+          class_call(cosine_integral(a, &intg_func_a, internal_error),
+                      internal_error, errmsg);
+          class_call(cosine_integral(b, &intg_func_b, internal_error),
+                      internal_error, errmsg);
+          factor *= -1;
+          break;
+        default: /** can never happen */
+          break;
+        }
+        prt_res += (intg_func_b - intg_func_a) / (double)factor;
+        prt_sum += pcoeff[j-min_pow] * prt_res;
+
+      }
+      if (j < min_pow + 4) {
+        /** - constant term */
+        prt_res = cos(a) - cos(b);
+        prt_sum += pcoeff[j-min_pow] * prt_res;
+      }
+      j++;
+      for (j; j < min_pow + 4; j++) {
+        /** - positive powers: use partial integration -> sequence terminates automatically 
+         *                                                (result consists only of boundary terms) */
+        factor = 1;
+        apow = pow(a, j);
+        bpow = pow(b, j);
+        prt_res =  bpow * array_trigonometric_ring(b, -1) 
+                  -apow * array_trigonometric_ring(a, -1);
+        for (k = 1; k <= j; k++) {
+          apow *= 1/a; bpow *= 1/b;
+          factor *= -(j-k+1);
+          prt_res += (double)factor * ( bpow * array_trigonometric_ring(b, -(k+1))
+                              -apow * array_trigonometric_ring(a, -(k+1)) );
+        }
+
+        prt_sum += pcoeff[j-min_pow] * prt_res;
+      }
+
+      *result += prt_sum / coeff;
+    }
+  }
+
+  return _SUCCESS_;
+}
+
 
 /**
  * @brief Computes the spline integral with separate x-array.
@@ -2824,6 +3101,122 @@ int array_interpolate_spline_growing_hunt(
       b * *(array+sup*n_columns+i) +
       ((a*a*a-a)* *(array_splined+inf*n_columns+i) +
        (b*b*b-b)* *(array_splined+sup*n_columns+i))*h*h/6.;
+
+  return _SUCCESS_;
+}
+
+
+#define COEFF_MIN 1e-20
+/**
+ * @brief Solves the equation S(x) - y = 0 for distinct non-multiple roots.
+ *        There needs to be at least one control point higher and one lower than y.
+ * @param x_array     Input: contains x-values
+ * @param x_size      Input: number of used control points
+ * @param y_array     Input: contains y-values indexed as y_array[index_x] with size x_size
+ * @param ddy_array   Input: contains y''-values retrieved from splining with size x_size
+ * @param y           Input: y-value for which to find a solution x
+ * @param x           In/Output: solution x (> or <) x0, should be initialised to a starting value x0 
+ * @param ascending   Input: if _TRUE_, search in ascending x-direction, else descending
+ * @param last        Output: index of the start of the spline segment with y_{i} <= y <= y_{i+1}
+ * @param errmsg 
+ * 
+ * @return the error status
+ */
+int array_spline_solve_table_lines(
+                      double * x_array,
+                      const int x_size,
+                      double * y_array, 
+                      double * ddy_array, 
+                      const double y,
+                      double * x,
+                      const int ascending,
+                      int * last,
+                      ErrorMsg errmsg) {
+
+  int index_y_inf, index_x_inf = 0, k;
+  double h, a, b, c, d, sol;
+  ErrorMsg err_hunt;
+
+  /** - get the index of x0 in x_array */
+  class_call(array_hunt_ascending(x_array, x_size, *x, &index_x_inf, err_hunt),
+              err_hunt, errmsg);
+
+  /** - get the index of y in y_array */
+  if (ascending) {
+    index_y_inf = index_x_inf;
+    /** - find the sign change ascending from x0 */
+    while ((y_array[index_y_inf] - y)*(y_array[index_y_inf+1] - y) > 0) {
+      index_y_inf++;
+      if (index_y_inf > x_size-2) {
+        sprintf(errmsg, "%s(L:%d) no sign change in spline segments with x > %.4e detected",__func__,__LINE__, x_array[index_x_inf]);
+        return _FAILURE_;
+      }
+    }
+  } else {
+    index_y_inf = index_x_inf + 1;
+    /** - find the sign change descending from x0 */
+    while ((y_array[index_y_inf] - y)*(y_array[index_y_inf+1] - y) > 0) {
+      index_y_inf--;
+      if (index_y_inf < 0) {
+        sprintf(errmsg, "%s(L:%d) no sign change in spline segments with x < %.4e detected",__func__,__LINE__, x_array[index_x_inf+1]);
+        return _FAILURE_;
+      }
+    }
+  }
+
+  /** - compute coefficients of the polynomial */
+  h = x_array[index_y_inf+1] - x_array[index_y_inf];
+  a = h*h/6. * (ddy_array[index_y_inf+1] - ddy_array[index_y_inf]);
+  b = h*h/2. * ddy_array[index_y_inf];
+  c = y_array[index_y_inf+1] - y_array[index_y_inf] - h*h/6. * (ddy_array[index_y_inf+1] + 2.*ddy_array[index_y_inf]);
+  d = y_array[index_y_inf] - y;
+  
+  if (fabs(a) > COEFF_MIN) {
+    /** - cubic polynomial transform to depressed form t^3 + pt + q = 0 */
+    double p = (3.*a*c - b*b) / (3.*a*a);
+    double q = (2.*b*b*b - 9.*a*b*c + 27.*a*a*d) / (27.*a*a*a);
+    double delta = p*p*p/27. + q*q/4.; /**< discriminant */
+    double rootp = sqrt(abs(p)/3.);
+
+    if (delta <= 0) {
+      /** - trigonometric root solutions */
+      double arccos = acos(3.*q/(2.*p*rootp))/3.;
+      for (k = 0; k < 3; k++) {
+        sol = 2.*rootp * cos(arccos - 2.*_PI_*k/3.) - b/(3.*a);
+        if ((sol >= 0) && (sol <= 1)) {
+          break;
+        }
+      }
+    }
+    else {
+      /** - hyperbolic root solutions */
+      if (p < 0) {
+        sol = -2. * ((q>0.) - (q<0.)) * rootp * cosh( acosh(-3.*abs(q)/(2.*p*rootp))/3. ) - b/(3.*a);
+      }
+      else {
+        sol = -2.*rootp * sinh( asinh(3.*q/(2.*p*rootp))/3. ) - b/(3.*a);
+      }
+    }
+  }
+  else if (fabs(b) > COEFF_MIN) {
+    /** - quadratic polynomial */
+    sol = -(c + ((c>=0.) - (c<0.)) * sqrt(c*c - 4.*b*d))/(2.*b);
+    if ((sol < 0) || (sol > 1)) {
+      if (fabs(d) > COEFF_MIN) {
+        sol = d / (b*sol);  /**< Vietas formula */
+      }
+      else {
+        sol = 0.; /**< second root is zero for bx^2 + c*x = 0 */
+      }
+    }
+  }
+  else {
+    /** - linear solution */
+    sol = -d/c;
+  }
+  *x = x_array[index_y_inf] + sol * h;
+  *last = index_y_inf;
+
 
   return _SUCCESS_;
 }

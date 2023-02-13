@@ -29,6 +29,29 @@
 #include "header.h"
 
 
+double eft_real_polynomial_divergences(struct eft * peft,
+                                    enum eft_pk_type pk_type,
+                                    int index_moment,
+                                    double fft_bias,
+                                    int index_k) {
+  //TODO
+
+  if (index_moment == peft->index_I2200) {
+    if (fft_bias > 0.5) {  /**< UV threshold */ 
+      return 1.*peft->pk_l[pk_type][index_k];
+    }
+    else if (fft_bias < -1.) {  /**< IR threshold */
+      return 0.;
+    }
+    
+  }
+  else if (index_moment == peft->index_I1300) {
+
+  }
+}
+
+
+
 /**
  * Compute the P22 contribution to non-linear matter power spectrum given the FFTLog coefficents and frequencies
  *

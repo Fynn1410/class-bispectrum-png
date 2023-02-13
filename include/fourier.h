@@ -250,7 +250,7 @@ struct fourier {
 
   //@{
 
-  enum non_linear_method method; /**< method for computing non-linear corrections (none, Halogit, etc.) */
+  enum non_linear_method method; /**< method for computing non-linear corrections (none, Halofit, etc.) */
 
   enum source_extrapolation extrapolation_method; /**< method for analytical extrapolation of sources beyond pre-computed range */
 
@@ -474,7 +474,6 @@ struct fourier {
  * Structure containing variables used only internally in fourier module by various functions.
  *
  */
-
 struct fourier_workspace {
 
   /** @name - quantitites used by HMcode */

@@ -6,7 +6,6 @@
 #ifndef HEADER_H_
 #define HEADER_H_
 
-#define _GNU_SOURCE
 
 #include "../../include/common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
 #include "../../include/background.h"
@@ -119,6 +118,9 @@
 
 #define MAXL 2000
 
+enum eft_pk_type {pk_lin, pk_nowiggle, pk_ir_resummed_lo, pk_ir_resummed_nlo, pk_index_num};
+enum sym_type {vec, mat_none, mat_symmetric};
+
 /**
  * List of limHaloPT header files
  */
@@ -129,11 +131,95 @@
 
 
 
-/**
- * Function declarations of main.c module
- */
-void  initialize();
-void 	cleanup();
+struct eft
+{
+  double z0;
+  double * ln_k;
+  double ** pk_l;
+
+  double ** spectra_contributions;
+
+  double sigma_v0;
+  double sigma_v2;
+  double Sigma2_ir;
+  double dSigma2_ir;
+
+
+  /** @name - indices of spectra contributions (guaranteed to be consecutive in {0,..., index_num}) */
+  //@{
+
+  int index_num;
+
+  /** - Matter terms */
+  int index_I2200;
+  int index_I1300;
+
+  /** - Halo terms / 0-th moment of RSD expansion */
+  int index_Idelta200;
+  int index_IG200;
+  int index_Idelta2delta200;
+  int index_IG2G200;
+  int index_Idelta2G200;
+  int index_FG200;
+
+  short has_rsd; /**< if set, all moments will be allocated */
+
+  /** - 1-st moment of RSD expansion */
+  int index_I2201;
+  int index_Idelta201;
+  int index_IG201;
+  int index_J21101;
+  int index_Jdelta201;
+  int index_JG201;
+  int index_FG201;
+  int index_I1301p3101;
+  int index_J12101;
+
+  /** - 2-nd moment of RSD expansion */
+  int index_J21102x;
+  int index_J21102y;
+  int index_Jdelta202x;
+  int index_Jdelta202y;
+  int index_JG202x;
+  int index_JG202y;
+  int index_I2211;
+  int index_J21111;
+  int index_N11x;
+  int index_N11y;
+  int index_J12102x;
+  int index_J12102y;
+  int index_I1311;
+  int index_J12111p11211;
+  //int index_J11211;
+
+  /** - 3-rd moment of RSD expansion */
+  int index_J21112x;
+  int index_J21112y;
+  int index_N12x;
+  int index_N12y;
+  int index_J12112x;
+  int index_J12112y;
+
+  /** - 4-th moment of RSD expansion */
+  int index_N22x;
+  int index_N22y;
+  int index_N22z;
+
+  //@}
+  
+  double fft_bias_matter;
+  double fft_bias_halo;
+  double * ln_k_matter_fft;
+  double * ln_k_halo_fft;
+  int k_size_fft;
+  double complex ** fft_matrices;
+  short * symmetry;
+  int * fft_matrices_size;
+  double complex ** fft_coeff;
+  double * fft_frequencies;
+
+  ErrorMsg error_message;
+};
 
 
 /**

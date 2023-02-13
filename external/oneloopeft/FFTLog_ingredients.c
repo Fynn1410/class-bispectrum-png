@@ -30,14 +30,15 @@
 
 
 /**
- * Analytic expression of the integrals of the form
- * J(nu1,nu2) = k^(-3 + 2 nu12) * int_q 1/(q^(2 nu1) kmq^(2 nu2) =
+ * @brief Analytic expression of the integrals of the form
+ *        J(nu1,nu2) = k^(-3 + 2 nu12) * int_q  1/( q^(2 nu1) |k - q|^(2 nu2) ).
+ *        Expression is symmetric
  *
  * @param nu1         Input: power of q
- * @param nu2         Input: power of kmq
+ * @param nu2         Input: power of |k - q|
+ * 
  * @return value of I(nu1,nu2)
  */
-
 double complex J(double complex nu1, double complex nu2)
 {
       double complex nu12 = nu1 + nu2;
@@ -68,17 +69,17 @@ double complex Gamma(double complex z)
 }
 
 /**
- * Analytic expression of the integrals of the form
- * M1(nu1,nu2) = k^(-3 + 2 nu12) * int_q q|| /(q^(2 nu1) kmq^(2 nu2)
+ * @brief Analytic expression of the integrals of the form
+ *        M1(nu1,nu2) = k^(-3 + 2 nu12) * int_q  q|| /( q^(2 nu1) |k-q|^(2 nu2) ).
  *
- * @param nu1         Input: power of q
- * @param nu2         Input: power of kmq
- * @return value of I(nu1,nu2)
+ * @param nu1         Input: power of q^2
+ * @param nu2         Input: power of |k - q|^2
+ * 
+ * @return value of M1(nu1,nu2)
  */
-
-double complex M1(double complex nu1, double complex nu2)
+double complex M1(const double complex nu1, const double complex nu2)
 {
-      double complex out = (J(-1 + nu1,nu2) - J(nu1,-1 + nu2) + J(nu1,nu2))/2.;
+      double complex out = (J(-1. + nu1,nu2) - J(nu1,-1. + nu2) + J(nu1,nu2))/2.;
 
       return out;
 }
@@ -87,12 +88,13 @@ double complex M1(double complex nu1, double complex nu2)
  * Analytic expression of the integrals of the form
  * M2 = k^(-3 + 2 nu12) * int_q q|| q|| /(q^(2 nu1) kmq^(2 nu2)
  *
- * @param nu1         Input: power of q
- * @param nu2         Input: power of kmq
- * @return value of I(nu1,nu2)
+ * @param nu1   Input: power of q^2
+ * @param nu2   Input: power of |k - q|^2
+ * @param mu    Input: cos( angle between k and z )
+ * 
+ * @return value of M2(nu1,nu2,mu)
  */
-
-double complex M2(double complex nu1, double complex nu2, double mu)
+double complex M2(const double complex nu1, const double complex nu2, const double mu)
 {
       double complex A2 = (-J(-2 + nu1,nu2) + 2*J(-1 + nu1,-1 + nu2) +
      2*J(-1 + nu1,nu2) - J(nu1,-2 + nu2) + 2*J(nu1,-1 + nu2) -
@@ -110,12 +112,13 @@ double complex M2(double complex nu1, double complex nu2, double mu)
  * Analytic expression of the integrals of the form
  * M3 = k^(-3 + 2 nu12) * int_q q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2)
  *
- * @param nu1         Input: power of q
- * @param nu2         Input: power of kmq
- * @return value of I(nu1,nu2)
+ * @param nu1   Input: power of q^2
+ * @param nu2   Input: power of |k - q|^2
+ * @param mu    Input: cos( angle between k and z )
+ * 
+ * @return value of M3(nu1,nu2,mu)
  */
-
-double complex M3(double complex nu1, double complex nu2, double mu)
+double complex M3(const double complex nu1, const double complex nu2, const double mu)
 {
       double complex A3 = (-3*(J(-3 + nu1,nu2) - 3*J(-2 + nu1,-1 + nu2) -
        J(-2 + nu1,nu2) + 3*J(-1 + nu1,-2 + nu2) -
@@ -137,12 +140,13 @@ double complex M3(double complex nu1, double complex nu2, double mu)
  * Analytic expression of the integrals of the form
  * M4 = k^(-3 + 2 nu12) * int_q q|| q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2)
  *
- * @param nu1         Input: power of q
- * @param nu2         Input: power of kmq
- * @return value of I(nu1,nu2)
+ * @param nu1   Input: power of q^2
+ * @param nu2   Input: power of |k - q|^2
+ * @param mu    Input: cos( angle between k and z )
+ * 
+ * @return value of M4(nu1,nu2,mu)
  */
-
-double complex M4(double complex nu1, double complex nu2, double mu)
+double complex M4(const double complex nu1, const double complex nu2, const double mu)
 {
 
       double complex A4 = (3*(J(-4 + nu1,nu2) - 4*J(-3 + nu1,-1 + nu2) - 4*J(-3 + nu1,nu2) +
@@ -313,6 +317,7 @@ void FFT_compute_coeff(struct background * pba,
          input[index_kd] = pk_bin[index_kd] * exp(- (double)index_kd * fft_bias * Delta);
       }
 
+      // input is real!!!
       my_plan = fftw_plan_dft_1d(Nmax, input, output, FFTW_FORWARD, FFTW_ESTIMATE);
       fftw_execute(my_plan);
       /*
@@ -832,7 +837,7 @@ int FFTLog_rsd_free(struct fourier *pfo) {
   free(pfo -> pk_matter_real_nl);
 
   free(pfo -> pk_halo_real_nl -> Plin_IR);
-  free(pfo -> pk_matter_real_nl -> Plin_NL_IR);
+  free(pfo -> pk_halo_real_nl -> Plin_NL_IR);
   free(pfo -> pk_halo_real_nl -> P_mm);
   free(pfo -> pk_halo_real_nl -> I2200);
   free(pfo -> pk_halo_real_nl -> Idelta200);

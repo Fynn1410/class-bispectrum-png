@@ -6,6 +6,7 @@
 #define __ARRAYS__
 
 #include "common.h"
+#include "trigonometric_integrals.h"
 
 #define _SPLINE_NATURAL_ 0 /**< natural spline: ddy0=ddyn=0 */
 #define _SPLINE_EST_DERIV_ 1 /**< spline with estimation of first derivative on both edges */
@@ -195,6 +196,20 @@ extern "C" {
             ErrorMsg errmsg
             );
 
+  int array_integrate_all_spline_spherical_bessel_J(
+            double * array,
+            int n_columns,
+            int n_lines,
+            int index_x,   /** from 0 to (n_columns-1) */
+            int index_y,
+            int index_ddy,
+            const int n,
+            double coeff,
+            double shift,
+            double * result,
+            ErrorMsg errmsg
+            );
+
   int array_integrate_all_spline_table_line_to_line(
                     double * x_array,
                     int n_lines,
@@ -360,6 +375,16 @@ extern "C" {
                         double* b,
                         ErrorMsg errmsg);
 
+  int array_spline_solve_table_lines(double * x_array,
+                                    const int x_size,
+                                    double * y_array, 
+                                    double * ddy_array, 
+                                    const double y,
+                                    double * x,
+                                    const int ascending,
+                                    int * last,
+                                    ErrorMsg errmsg);
+
   int array_interpolate_two(
 			    double * array_x,
 			    int n_columns_x,
@@ -523,6 +548,13 @@ extern "C" {
                            double value,
                            int * index,
                            ErrorMsg errmsg);
+
+  extern double array_polynomial(
+                        const double * pcoeff,
+                        const int coeff_size,
+                        const int min_pow,
+                        const double x
+                        );
 
 #ifdef __cplusplus
 }

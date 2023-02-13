@@ -1,4 +1,3 @@
-enum pk_type {pk_lin, pk_nowiggle, pk_ir_resummed_lo, pk_ir_resummed_nlo};
 
 double eft_ir_sigma2(
               struct background * pba,
@@ -50,7 +49,7 @@ double eft_pk_moment(
             struct fourier * pfo, 
             const int n,
             const double z, 
-            enum pk_type use_pk_type,
+            enum eft_pk_type use_pk_type,
             const double k_split,
             const double k_bao
             );
