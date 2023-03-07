@@ -1488,7 +1488,7 @@ int array_integrate_all_spline(
     h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
 
     *result +=
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. - //TODO: check with JL
+      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
       (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
 
   }
@@ -1597,6 +1597,75 @@ int array_integrate_all_spline_gaussian_window(
                             );
 
   }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the spline integral with a specified (complex) Exponential window exactly.
+ *        Useful for computing Fourier coefficients.
+ *        dI(p) = dx S(x) * exp(-p*x)
+ * @param array       Input: contains x, y and y'' values retrieved from splining
+ * @param n_columns   Input: number of columns in array, indexed by index_x/y/ddy
+ * @param n_lines     Input: number of used control points
+ * @param index_x     Input: index for x-values (->class_define_index)
+ * @param index_y     Input: index for y-values (->class_define_index)
+ * @param index_ddy   Input: index for y''-values (->class_define_index)
+ * @param phase       Input: phase factor p which may be complex
+ * @param result      Output: complex integration result I(p)
+ * @param errmsg
+ * 
+ * @return the error status
+ */
+int array_integrate_all_spline_exponential(
+          double * array,
+          int n_columns,
+          int n_lines,
+          int index_x,   /** from 0 to (n_columns-1) */
+          int index_y,
+          int index_ddy,
+          double complex phase,
+          double complex * result,
+          ErrorMsg errmsg) {
+
+  int i;
+  double h1, h2;                     /**< distance between control points i & (i-1) and (i+1) & i respectively */
+  double complex[4] phase_invpow;    /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
+  register double complex sum;
+
+  class_test(n_lines<3,
+             errmsg,
+             "no possible spline with less than three lines");
+
+  for (i = 0; i < 4; i++) phase_invpow[i] = cpow(phase, -(i+1));
+
+  h1 = array[1*n_columns + index_x] - array[0*n_columns + index_x];
+  h2 = array[(n_lines-1)*n_columns + index_x] - array[(n_lines-2)*n_columns + index_x];
+
+  *result = ( phase_invpow[0] * array[0*n_columns + index_y]
+            + phase_invpow[1] * ((array[1*n_columns + index_y] - array[0*n_columns + index_y])/h1 
+                                  - h1/6.*(2*array[0*n_columns + index_ddy] + array[1*n_columns + index_ddy]))
+            + phase_invpow[2] * array[0*n_columns + index_ddy]
+            + phase_invpow[3] * (array[1*n_columns + index_ddy] - array[0*n_columns + index_ddy])/h1    \
+            ) * cexp(-phase * array[0*n_columns + index_x]);
+  *result -=( phase_invpow[0] * array[(n_lines-1)*n_columns + index_y]
+            + phase_invpow[1] * ((array[(n_lines-1)*n_columns + index_y] - array[(n_lines-2)*n_columns + index_y])/h2
+                                  + h2/6.*(2*array[(n_lines-1)*n_columns + index_ddy] + array[(n_lines-2)*n_columns + index_ddy]))
+            + phase_invpow[2] * array[(n_lines-1)*n_columns + index_ddy]
+            + phase_invpow[3] * (array[(n_lines-1)*n_columns + index_ddy] - array[(n_lines-2)*n_columns + index_ddy])/h2    \
+            ) * cexp(-phase * array[(n_lines-1)*n_columns + index_x]);
+  
+  sum = 0.;
+  for (i = 1; i < n_lines-2; i++) {
+    h1 = array[i*n_columns + index_x] - array[(i-1)*n_columns + index_x];
+    h2 = array[(i+1)*n_columns + index_x] - array[i*n_columns + index_x];
+
+    sum += ( (array[(i+1)*n_columns + index_ddy] - array[i*n_columns + index_ddy]) / h2
+            -(array[i*n_columns + index_ddy] - array[(i-1)*n_columns + index_ddy]) / h1       \
+            ) * cexp(-phase * array[i*n_columns + index_x]);
+  }
+
+  *result += phase_invpow[3] * sum;
 
   return _SUCCESS_;
 }

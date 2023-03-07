@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "trigonometric_integrals.h"
+// #include <complex.h>
 
 #define _SPLINE_NATURAL_ 0 /**< natural spline: ddy0=ddyn=0 */
 #define _SPLINE_EST_DERIV_ 1 /**< spline with estimation of first derivative on both edges */
@@ -193,6 +194,18 @@ extern "C" {
             double mean,
             double stddev,
             double * result,
+            ErrorMsg errmsg
+            );
+
+  int array_integrate_all_spline_exponential(
+            double * array,
+            int n_columns,
+            int n_lines,
+            int index_x,   /** from 0 to (n_columns-1) */
+            int index_y,
+            int index_ddy,
+            double complex phase,
+            double complex * result,
             ErrorMsg errmsg
             );
 
@@ -474,7 +487,7 @@ extern "C" {
 				    double dx,
 				    double *yarray,
 				    int Nx,
-				  double x,
+				    double x,
 				    double * result,
 				    ErrorMsg errmsg);
 
