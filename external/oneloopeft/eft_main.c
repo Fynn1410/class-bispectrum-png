@@ -6,13 +6,20 @@ int eft_init(struct background * pba,
             double z,
             short compute_rsd_spectrum,
             double k_min,
-            int fft_k_points) {
+            int num_coefficients) {
 
   peft->z0 = z;
   peft->has_rsd = compute_rsd_spectrum;
-  peft->k_size_fft = fft_k_points;
+  peft->fourier_coeff_size = num_coefficients;
+  
+  
 
   class_call(eft_indices(peft), peft->error_message, peft->error_message);
+
+  /* Retrieve the power spectra */
+  
+
+  /* Compute the Fourier coefficients of the power spectra */
 
   return _SUCCESS_;
 }
@@ -81,8 +88,8 @@ int eft_indices(struct eft * peft) {
   /** - store symmetry information */
   class_alloc(peft->symmetry, peft->index_num*sizeof(short), peft->error_message);
 
-  peft->symmetry[peft->index_P22] = mat_symmetric;
-  peft->symmetry[peft->index_P13] = vec;
+  peft->symmetry[peft->index_I2200] = mat_symmetric;
+  peft->symmetry[peft->index_I1300] = vec;
 
   peft->symmetry[peft->index_Idelta200]       = mat_symmetric;
   peft->symmetry[peft->index_IG200]           = mat_symmetric;
@@ -130,9 +137,9 @@ int eft_indices(struct eft * peft) {
 
 
   /** - allocate TODO */
-  class_alloc(peft->spectra_contributions, index_num*sizeof(double *), peft->error_message);
-  class_alloc(peft->fft_matrices, index_num*sizeof(double complex *), peft->error_message);
-  class_alloc(peft->fft_matrices_size, index_num*sizeof(int), peft->error_message);
+  class_alloc(peft->spectra_contributions, peft->index_num*sizeof(double *), peft->error_message);
+  class_alloc(peft->loop_matrices, peft->index_num*sizeof(double complex *), peft->error_message);
+  class_alloc(peft->loop_matrices_size, peft->index_num*sizeof(int), peft->error_message);
 
 
   for (i = 0; i < peft->index_num; i++) {
@@ -140,16 +147,16 @@ int eft_indices(struct eft * peft) {
 
     switch (peft->symmetry[i]) {
     case vec:
-      peft->fft_matrices_size[i] = peft->k_size_fft; break;
+      peft->loop_matrices_size[i] = peft->fourier_coeff_size; break;
     case mat_none:
-      peft->fft_matrices_size[i] = peft->k_size_fft * peft->k_size_fft; break;
+      peft->loop_matrices_size[i] = peft->fourier_coeff_size * peft->fourier_coeff_size; break;
     case mat_symmetric:
-      peft->fft_matrices_size[i] = peft->k_size_fft * (peft->k_size_fft + 1) / 2; break;
+      peft->loop_matrices_size[i] = peft->fourier_coeff_size * (peft->fourier_coeff_size + 1) / 2; break;
     default:
-      peft->fft_matrices_size[i] = 0; break;
+      peft->loop_matrices_size[i] = 0; break;
     }
 
-    class_alloc(peft->fft_matrices[i], peft->fft_matrices_size[i]*sizeof(double complex), peft->error_message);
+    class_alloc(peft->loop_matrices[i], peft->loop_matrices_size[i]*sizeof(double complex), peft->error_message);
   }
 
   /** - allocate arrays for different P_lin types, pk_index_num is the last entry in enum eft_pk_type */

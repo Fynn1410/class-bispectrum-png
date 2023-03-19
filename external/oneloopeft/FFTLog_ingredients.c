@@ -293,12 +293,12 @@ void FFT_compute_coeff(struct background * pba,
        * Now perform fftw to compute the Fourier coeffcients
        */
 
-      fftw_complex *input;
-      fftw_complex *output;
+      double complex *input;
+      double complex *output;
       fftw_plan my_plan;
       
-      input   = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*Nmax);
-      output  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*Nmax);
+      input   = (double complex*) fftw_malloc(sizeof(double complex)*Nmax);
+      output  = (double complex*) fftw_malloc(sizeof(double complex)*Nmax);
 
       /*
       * etam = m * 2 pi/(Nmax Delta) with m= -N/2, -N/2+1, ...,N/2, N/2+1

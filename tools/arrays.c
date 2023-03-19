@@ -571,30 +571,14 @@ int array_spline_table_lines(
   double dy_first;
   double dy_last;
 
-  u = malloc((x_size-1) * y_size * sizeof(double));
-  p = malloc(y_size * sizeof(double));
-  qn = malloc(y_size * sizeof(double));
-  un = malloc(y_size * sizeof(double));
-
-  if (u == NULL) {
-    sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  if (p == NULL) {
-    sprintf(errmsg,"%s(L:%d) Cannot allocate p",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  if (qn == NULL) {
-    sprintf(errmsg,"%s(L:%d) Cannot allocate qn",__func__,__LINE__);
-    return _FAILURE_;
-  }
-  if (un == NULL) {
-    sprintf(errmsg,"%s(L:%d) Cannot allocate un",__func__,__LINE__);
-    return _FAILURE_;
-  }
+  class_alloc(u, (x_size-1) * y_size * sizeof(double), errmsg);
+  class_alloc(p, y_size * sizeof(double), errmsg);
+  class_alloc(qn, y_size * sizeof(double), errmsg);
+  class_alloc(un, y_size * sizeof(double), errmsg);
 
   if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
 
+  /** - set boundary conditions at x0 */
   index_x=0;
 
   if (spline_mode == _SPLINE_NATURAL_) {
@@ -602,34 +586,32 @@ int array_spline_table_lines(
       ddy_array[index_x*y_size+index_y] = u[index_x*y_size+index_y] = 0.0;
     }
   }
-  else {
-    if (spline_mode == _SPLINE_EST_DERIV_) {
+  else if (spline_mode == _SPLINE_EST_DERIV_) {
 
-      for (index_y=0; index_y < y_size; index_y++) {
+    for (index_y=0; index_y < y_size; index_y++) {
 
-	dy_first =
-	  ((x[2]-x[0])*(x[2]-x[0])*
-	   (y_array[1*y_size+index_y]-y_array[0*y_size+index_y])-
-	   (x[1]-x[0])*(x[1]-x[0])*
-	   (y_array[2*y_size+index_y]-y_array[0*y_size+index_y]))/
-	  ((x[2]-x[0])*(x[1]-x[0])*(x[2]-x[1]));
+      dy_first =
+        ((x[2]-x[0])*(x[2]-x[0])*
+        (y_array[1*y_size+index_y]-y_array[0*y_size+index_y])-
+        (x[1]-x[0])*(x[1]-x[0])*
+        (y_array[2*y_size+index_y]-y_array[0*y_size+index_y]))/
+        ((x[2]-x[0])*(x[1]-x[0])*(x[2]-x[1]));
 
-	ddy_array[index_x*y_size+index_y] = -0.5;
+      ddy_array[index_x*y_size+index_y] = -0.5;
 
-	u[index_x*y_size+index_y] =
-	  (3./(x[1] -  x[0]))*
-	  ((y_array[1*y_size+index_y]-y_array[0*y_size+index_y])/
-	   (x[1] - x[0])-dy_first);
+      u[index_x*y_size+index_y] =
+        (3./(x[1] -  x[0]))*
+        ((y_array[1*y_size+index_y]-y_array[0*y_size+index_y])/
+        (x[1] - x[0])-dy_first);
 
-      }
-    }
-    else {
-      sprintf(errmsg,"%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
-      return _FAILURE_;
     }
   }
+  else {
+    sprintf(errmsg,"%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
+    return _FAILURE_;
+  }
 
-
+  /** - Thomas algorithm forward sweep */
   for (index_x=1; index_x < x_size-1; index_x++) {
 
     sig = (x[index_x] - x[index_x-1])/(x[index_x+1] - x[index_x-1]);
@@ -641,18 +623,19 @@ int array_spline_table_lines(
       ddy_array[index_x*y_size+index_y] = (sig-1.0)/p[index_y];
 
       u[index_x*y_size+index_y] =
-	(y_array[(index_x+1)*y_size+index_y] - y_array[index_x*y_size+index_y])
-	/ (x[index_x+1] - x[index_x])
-	- (y_array[index_x*y_size+index_y] - y_array[(index_x-1)*y_size+index_y])
-	/ (x[index_x] - x[index_x-1]);
+        (y_array[(index_x+1)*y_size+index_y] - y_array[index_x*y_size+index_y])
+        / (x[index_x+1] - x[index_x])
+        - (y_array[index_x*y_size+index_y] - y_array[(index_x-1)*y_size+index_y])
+        / (x[index_x] - x[index_x-1]);
 
       u[index_x*y_size+index_y] = (6.0 * u[index_x*y_size+index_y] /
-				   (x[index_x+1] - x[index_x-1])
-				   - sig * u[(index_x-1)*y_size+index_y]) / p[index_y];
+        (x[index_x+1] - x[index_x-1])
+        - sig * u[(index_x-1)*y_size+index_y]) / p[index_y];
     }
 
   }
 
+  /** - set boundary conditions at xn */
   if (spline_mode == _SPLINE_NATURAL_) {
 
     for (index_y=0; index_y < y_size; index_y++) {
@@ -660,35 +643,33 @@ int array_spline_table_lines(
     }
 
   }
+  else if (spline_mode == _SPLINE_EST_DERIV_) {
+
+    for (index_y=0; index_y < y_size; index_y++) {
+
+      dy_last =
+        ((x[x_size-3]-x[x_size-1])*(x[x_size-3]-x[x_size-1])*
+        (y_array[(x_size-2)*y_size+index_y]-y_array[(x_size-1)*y_size+index_y])-
+        (x[x_size-2]-x[x_size-1])*(x[x_size-2]-x[x_size-1])*
+        (y_array[(x_size-3)*y_size+index_y]-y_array[(x_size-1)*y_size+index_y]))/
+        ((x[x_size-3]-x[x_size-1])*(x[x_size-2]-x[x_size-1])*(x[x_size-3]-x[x_size-2]));
+
+      qn[index_y]=0.5;
+
+      un[index_y]=
+        (3./(x[x_size-1] - x[x_size-2]))*
+        (dy_last-(y_array[(x_size-1)*y_size+index_y] - y_array[(x_size-2)*y_size+index_y])/
+        (x[x_size-1] - x[x_size-2]));
+
+    }
+  }
   else {
-    if (spline_mode == _SPLINE_EST_DERIV_) {
-
-      for (index_y=0; index_y < y_size; index_y++) {
-
-	dy_last =
-	  ((x[x_size-3]-x[x_size-1])*(x[x_size-3]-x[x_size-1])*
-	   (y_array[(x_size-2)*y_size+index_y]-y_array[(x_size-1)*y_size+index_y])-
-	   (x[x_size-2]-x[x_size-1])*(x[x_size-2]-x[x_size-1])*
-	   (y_array[(x_size-3)*y_size+index_y]-y_array[(x_size-1)*y_size+index_y]))/
-	  ((x[x_size-3]-x[x_size-1])*(x[x_size-2]-x[x_size-1])*(x[x_size-3]-x[x_size-2]));
-
-	qn[index_y]=0.5;
-
-	un[index_y]=
-	  (3./(x[x_size-1] - x[x_size-2]))*
-	  (dy_last-(y_array[(x_size-1)*y_size+index_y] - y_array[(x_size-2)*y_size+index_y])/
-	   (x[x_size-1] - x[x_size-2]));
-
-      }
-    }
-    else {
-      sprintf(errmsg,"%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
-      return _FAILURE_;
-    }
+    sprintf(errmsg,"%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
+    return _FAILURE_;
   }
 
   index_x=x_size-1;
-
+  /** - Thomas algorithm backward substitution */
   for (index_y=0; index_y < y_size; index_y++) {
     ddy_array[index_x*y_size+index_y] =
       (un[index_y] - qn[index_y] * u[(index_x-1)*y_size+index_y]) /
@@ -698,8 +679,8 @@ int array_spline_table_lines(
   for (index_x=x_size-2; index_x >= 0; index_x--) {
     for (index_y=0; index_y < y_size; index_y++) {
 
-      ddy_array[index_x*y_size+index_y] = ddy_array[index_x*y_size+index_y] *
-	ddy_array[(index_x+1)*y_size+index_y] + u[index_x*y_size+index_y];
+      ddy_array[index_x*y_size+index_y] = ddy_array[index_x*y_size+index_y]
+	        * ddy_array[(index_x+1)*y_size+index_y] + u[index_x*y_size+index_y];
 
     }
   }
@@ -1630,12 +1611,12 @@ int array_integrate_all_spline_exponential(
 
   int i;
   double h1, h2;                     /**< distance between control points i & (i-1) and (i+1) & i respectively */
-  double complex[4] phase_invpow;    /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
+  double complex phase_invpow[4];    /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
   register double complex sum;
 
-  class_test(n_lines<3,
+  class_test(n_lines<2,
              errmsg,
-             "no possible spline with less than three lines");
+             "integral is zero with less than one spline segment");
 
   for (i = 0; i < 4; i++) phase_invpow[i] = cpow(phase, -(i+1));
 
@@ -1670,6 +1651,216 @@ int array_integrate_all_spline_exponential(
   return _SUCCESS_;
 }
 
+/**
+ * @brief Computes the spline integral with a specified (complex) Exponential window exactly.
+ *        Useful for computing Fourier coefficients.
+ *        dI(p) = dx S(x) * exp(-p*x)
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param phase       Input: phase factor p which may be complex
+ * @param result      Output: complex integration result I(p)
+ * @param errmsg
+ * 
+ * @return the error status
+ */
+int array_integrate_all_spline_table_lines_exponential(
+          double * x,
+		      int x_size,
+		      double * y_array,
+		      int y_size,
+		      double * ddy_array,
+          double complex phase,
+          double complex * result,
+          ErrorMsg errmsg) {
+
+  int i, index_x, index_y;
+  double h1, h2;                     /**< distance between control points i & (i-1) and (i+1) & i respectively */
+  double complex phase_invpow[4];    /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
+  register double complex sum;
+
+  class_test(x_size<2,
+             errmsg,
+             "integral is zero with less than one spline segment");
+
+  for (i = 0; i < 4; i++) phase_invpow[i] = cpow(phase, -(i+1));
+
+  for (index_y = 0; index_y < y_size; index_y++) {
+    h1 = x[1] - x[0];
+    h2 = x[x_size-1] - x[x_size-2];
+
+    *(result + index_y) = ( phase_invpow[0] * y_array[0*y_size + index_y]
+                          + phase_invpow[1] * ((y_array[1*y_size + index_y] - y_array[0*y_size + index_y])/h1 
+                                              - h1/6.*(2*ddy_array[0*y_size + index_y] + ddy_array[0*y_size + index_y]))
+                          + phase_invpow[2] * ddy_array[0*y_size + index_y]
+                          + phase_invpow[3] * (ddy_array[1*y_size + index_y] - ddy_array[0*y_size + index_y])/h1    \
+                          ) * cexp(-phase * x[0]);
+    *(result + index_y) -=( phase_invpow[0] * y_array[(x_size-1)*y_size + index_y]
+                          + phase_invpow[1] * ((y_array[(x_size-1)*y_size + index_y] - y_array[(x_size-2)*y_size + index_y])/h2
+                                              + h2/6.*(2*ddy_array[(x_size-1)*y_size + index_y] + ddy_array[(x_size-2)*y_size + index_y]))
+                          + phase_invpow[2] * ddy_array[(x_size-1)*y_size + index_y]
+                          + phase_invpow[3] * (ddy_array[(x_size-1)*y_size + index_y] - ddy_array[(x_size-2)*y_size + index_y])/h2    \
+                          ) * cexp(-phase * x[x_size-1]);
+    
+    sum = 0.;
+    for (index_x = 1; index_x < x_size-2; index_x++) {
+      h1 = x[index_x] - x[index_x-1];
+      h2 = x[index_x+1] - x[index_x];
+
+      sum += ( (ddy_array[(index_x+1)*y_size + index_y] - ddy_array[index_x*y_size + index_y]) / h2
+              -(ddy_array[index_x*y_size + index_y] - ddy_array[(index_x-1)*y_size + index_y]) / h1       \
+              ) * cexp(-phase * x[index_x]);
+    }
+
+    *(result + index_y) += phase_invpow[3] * sum;
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the spline integral with a specified exponential phase factor exactly.
+ *        Useful for computing Fourier coefficients.
+ *        dI(p) = dx S(x) * exp(-i p*x)
+ * @param array       Input: contains x, y and y'' values retrieved from splining
+ * @param n_columns   Input: number of columns in array, indexed by index_x/y/ddy
+ * @param n_lines     Input: number of used control points
+ * @param index_x     Input: index for x-values (->class_define_index)
+ * @param index_y     Input: index for y-values (->class_define_index)
+ * @param index_ddy   Input: index for y''-values (->class_define_index)
+ * @param phase       Input: phase factor p
+ * @param result      Output: complex integration result I(p)
+ * @param errmsg
+ * 
+ * @return the error status
+ */
+int array_integrate_all_spline_fourier(
+          double * array,
+          int n_columns,
+          int n_lines,
+          int index_x,   /** from 0 to (n_columns-1) */
+          int index_y,
+          int index_ddy,
+          double phase,
+          double complex * result,
+          ErrorMsg errmsg) {
+
+  int i;
+  double h1, h2;            /**< distance between control points i & (i-1) and (i+1) & i respectively */
+  double phase_invpow[4];   /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
+  register double complex sum;
+
+  class_test(n_lines<2,
+             errmsg,
+             "integral is zero with less than one spline segment");
+
+  for (i = 0; i < 4; i++) phase_invpow[i] = pow(phase, -(i+1));
+
+  h1 = array[1*n_columns + index_x] - array[0*n_columns + index_x];
+  h2 = array[(n_lines-1)*n_columns + index_x] - array[(n_lines-2)*n_columns + index_x];
+
+  *result = CMPLX(- phase_invpow[1] * ((array[1*n_columns + index_y] - array[0*n_columns + index_y])/h1            \
+                                      - h1/6.*(2*array[0*n_columns + index_ddy] + array[1*n_columns + index_ddy])) \
+                  + phase_invpow[3] * (array[1*n_columns + index_ddy] - array[0*n_columns + index_ddy])/h1 ,       \
+                  - phase_invpow[0] * array[0*n_columns + index_y]      \
+                  + phase_invpow[2] * array[0*n_columns + index_ddy] )  \
+            * CMPLX( cos(phase * array[0*n_columns + index_x]), -sin(phase * array[0*n_columns + index_x]) );
+  *result -=CMPLX(- phase_invpow[1] * ((array[(n_lines-1)*n_columns + index_y] - array[(n_lines-2)*n_columns + index_y])/h2             \
+                                      + h2/6.*(2*array[(n_lines-1)*n_columns + index_ddy] + array[(n_lines-2)*n_columns + index_ddy]))  \
+                  + phase_invpow[3] * (array[(n_lines-1)*n_columns + index_ddy] - array[(n_lines-2)*n_columns + index_ddy])/h2 ,        \
+                  - phase_invpow[0] * array[(n_lines-1)*n_columns + index_y]      \
+                  + phase_invpow[2] * array[(n_lines-1)*n_columns + index_ddy] )  \
+            * CMPLX( cos(phase * array[(n_lines-1)*n_columns + index_x]), -sin(phase * array[(n_lines-1)*n_columns + index_x]) );
+  
+  sum = 0.;
+  for (i = 1; i < n_lines-2; i++) {
+    h1 = array[i*n_columns + index_x] - array[(i-1)*n_columns + index_x];
+    h2 = array[(i+1)*n_columns + index_x] - array[i*n_columns + index_x];
+
+    sum += ( (array[(i+1)*n_columns + index_ddy] - array[i*n_columns + index_ddy]) / h2       \
+            -(array[i*n_columns + index_ddy] - array[(i-1)*n_columns + index_ddy]) / h1       \
+            ) * CMPLX( cos(phase * array[i*n_columns + index_x]), -sin(phase * array[i*n_columns + index_x]) );
+  }
+
+  *result += phase_invpow[3] * sum;
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the spline integral with a specified (complex) Exponential window exactly.
+ *        Useful for computing Fourier coefficients.
+ *        dI(p) = dx S(x) * exp(-p*x)
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param phase       Input: phase factor p which may be complex
+ * @param result      Output: complex integration result I(p)
+ * @param errmsg
+ * 
+ * @return the error status
+ */
+int array_integrate_all_spline_table_lines_fourier(
+          double * x,
+		      int x_size,
+		      double * y_array,
+		      int y_size,
+		      double * ddy_array,
+          double complex phase,
+          double complex * result,
+          ErrorMsg errmsg) {
+
+  int i, index_x, index_y;
+  double h1, h2;              /**< distance between control points i & (i-1) and (i+1) & i respectively */
+  double phase_invpow[4];     /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
+  register double complex sum;
+
+  class_test(x_size<2,
+             errmsg,
+             "integral is zero with less than one spline segment");
+
+  for (i = 0; i < 4; i++) phase_invpow[i] = pow(phase, -(i+1));
+
+  for (index_y = 0; index_y < y_size; index_y++) {
+    h1 = x[1] - x[0];
+    h2 = x[x_size-1] - x[x_size-2];
+
+    *(result + index_y) = CMPLX(- phase_invpow[1] * ((y_array[1*y_size + index_y] - y_array[0*y_size + index_y])/h1             \
+                                                    - h1/6.*(2*ddy_array[0*y_size + index_y] + ddy_array[0*y_size + index_y]))  \
+                                + phase_invpow[3] * (ddy_array[1*y_size + index_y] - ddy_array[0*y_size + index_y])/h1 ,        \
+                                - phase_invpow[0] * y_array[0*y_size + index_y]       \
+                                + phase_invpow[2] * ddy_array[0*y_size + index_y] )   \
+                          * CMPLX( cos(phase * x[0]), -sin(phase * x[0]) );
+    *(result + index_y) -=CMPLX(- phase_invpow[1] * ((y_array[(x_size-1)*y_size + index_y] - y_array[(x_size-2)*y_size + index_y])/h2             \
+                                                    + h2/6.*(2*ddy_array[(x_size-1)*y_size + index_y] + ddy_array[(x_size-2)*y_size + index_y]))  \
+                                + phase_invpow[3] * (ddy_array[(x_size-1)*y_size + index_y] - ddy_array[(x_size-2)*y_size + index_y])/h2 ,        \
+                                - phase_invpow[0] * y_array[(x_size-1)*y_size + index_y]      \
+                                + phase_invpow[2] * ddy_array[(x_size-1)*y_size + index_y] )  \
+                          * CMPLX( cos(phase * x[x_size-1]), -sin(phase * x[x_size-1]) );
+    
+    sum = 0.;
+    for (index_x = 1; index_x < x_size-2; index_x++) {
+      h1 = x[index_x] - x[index_x-1];
+      h2 = x[index_x+1] - x[index_x];
+
+      sum += ( (ddy_array[(index_x+1)*y_size + index_y] - ddy_array[index_x*y_size + index_y]) / h2       \
+              -(ddy_array[index_x*y_size + index_y] - ddy_array[(index_x-1)*y_size + index_y]) / h1       \
+              ) * CMPLX( cos(phase * x[index_x]), -sin(phase * x[index_x]) );
+    }
+
+    *(result + index_y) += phase_invpow[3] * sum;
+  }
+
+  return _SUCCESS_;
+}
 
 /**
  * @brief Computes the value of a power series with coefficients pcoeff, starting from x^(min_pow)

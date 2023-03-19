@@ -25,7 +25,7 @@
 
 
 int _errno_util = 0;
-double complex _err_last_arg = 0. + 0.*I;
+double complex _err_last_arg = CMPLX(0., 0.);
 
 #define LANCZOS_GAMMA_N 13
 /**
@@ -57,9 +57,9 @@ double complex cGamma(double complex z)
       _errno_util |= _ERR_RES_OUT_OF_RANGE_;
       _err_last_arg = z;
       #ifdef NAN
-      return nan("") + nan("") * I;   /** Gamma(z) is undefined */
+      return CMPLX(nan(""), nan(""));   /** Gamma(z) is undefined */
       #else
-      return 0. + 0. * I;
+      return CMPLX(0., 0.);
       #endif
     }
     /** - use mirror identity */
@@ -101,7 +101,7 @@ double rGamma(double x)
       _errno_util = _ERR_RES_OUT_OF_RANGE_;
       _err_last_arg = x;
       #ifdef NAN
-      return nan("") + nan("") * I;   /** Gamma(z) is undefined */
+      return nan("");   /** Gamma(z) is undefined */
       #else
       return 0.;
       #endif

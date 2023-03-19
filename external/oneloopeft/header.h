@@ -135,6 +135,7 @@ struct eft
 {
   double z0;
   double * ln_k;
+  int k_size;
   double ** pk_l;
 
   double ** spectra_contributions;
@@ -207,19 +208,34 @@ struct eft
 
   //@}
   
-  double fft_bias_matter;
-  double fft_bias_halo;
-  double * ln_k_matter_fft;
-  double * ln_k_halo_fft;
-  int k_size_fft;
-  double complex ** fft_matrices;
+  double bias_matter;
+  double bias_halo;
+  double * ln_k_matter_fourier;
+  double * ln_k_halo_fourier;
+  int k_size_fourier;
+  double ** pk_l_biased;
+  double ** ddpk_l_biased;
+
+  int * loop_matrices_size;
+  double complex ** loop_matrices;
   short * symmetry;
-  int * fft_matrices_size;
-  double complex ** fft_coeff;
-  double * fft_frequencies;
+  int fourier_coeff_size;
+  double complex ** fourier_coeff;
+  double * fourier_frequencies;
 
   ErrorMsg error_message;
 };
+
+
+int eft_init(struct background * pba,
+            struct fourier * pfo,
+            struct eft * peft,
+            double z,
+            short compute_rsd_spectrum,
+            double k_min,
+            int fft_k_points);
+
+int eft_indices(struct eft * peft);
 
 
 /**

@@ -1437,30 +1437,32 @@ int fourier_init(
     // }
     // array_integrate_all_spline(array, 3, NSPLINE, 0, 1, 2, &result, pfo->error_message);
 
-    #define NSPLINE 31
-    double x[NSPLINE], y[NSPLINE], ddy[NSPLINE]; 
-    double array[3*NSPLINE];
-    double result;
-    for (int i = 0; i < NSPLINE; i++) {
-      x[i] = 90. + (110. - (90.)) * i / (NSPLINE-1);
-      y[i] = x[i]*x[i] + 1.;
-    }
-    array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
-    for (int i = 0; i < NSPLINE; i++) {
-      array[3*i] = x[i];
-      array[3*i+1] = y[i];
-      array[3*i+2] = ddy[i];
-    }
+    // #define NSPLINE 31
+    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE]; 
+    // double array[3*NSPLINE];
+    // double complex result, result2;
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   x[i] = 90. + (110. - (90.)) * i / (NSPLINE-1);
+    //   y[i] = x[i]*x[i] + 1.;
+    // }
+    // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   array[3*i] = x[i];
+    //   array[3*i+1] = y[i];
+    //   array[3*i+2] = 2.;//ddy[i];
+    // }
     // array_integrate_all_spline_gaussian_window(array, 3, NSPLINE, 0, 1, 2, 1., 2., &result, pfo->error_message);
     
     // double x_sol = 1.;
     // int last_ind = 0;
     // array_spline_solve_table_lines(x, NSPLINE, y, ddy, 0., &x_sol, _TRUE_, &last_ind, pfo->error_message);
 
+    // double jntest[101];
+    // spherical_bessel_j(100, 100., jntest, pfo->error_message);
+    // array_integrate_all_spline_spherical_bessel_J(array, 3, NSPLINE, 0, 1, 2, 100, 2., 1., &result, pfo->error_message);
 
-    double jntest[101];
-    spherical_bessel_j(100, 100., jntest, pfo->error_message);
-    array_integrate_all_spline_spherical_bessel_J(array, 3, NSPLINE, 0, 1, 2, 100, 2., 1., &result, pfo->error_message);
+    // array_integrate_all_spline_exponential(array, 3, NSPLINE, 0, 1, 2, CMPLX(0.001, 1.), &result, pfo->error_message);
+    // array_integrate_all_spline_table_lines_exponential(x, NSPLINE, y, 1, ddy, CMPLX(0.001, 1.), &result2, pfo->error_message);
 
     /** - debug output */
     if (pfo->fourier_verbose > 2) {

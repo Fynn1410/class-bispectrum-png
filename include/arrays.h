@@ -7,10 +7,12 @@
 
 #include "common.h"
 #include "trigonometric_integrals.h"
-// #include <complex.h>
+#include <complex.h>
+#undef I
 
-#define _SPLINE_NATURAL_ 0 /**< natural spline: ddy0=ddyn=0 */
-#define _SPLINE_EST_DERIV_ 1 /**< spline with estimation of first derivative on both edges */
+#define _SPLINE_NATURAL_ 0    /**< natural spline: ddy0=ddyn=0 */
+#define _SPLINE_EST_DERIV_ 1  /**< spline with estimation of first derivative on both edges */
+#define _SPLINE_PERIODIC_ 2   /**< periodic spline: S'(x0)=S'(xn), S''(x0)=S''(xn) */
 #define array_spline_eval(y,ddy,inf,sup,h,a,b) ((a)*(y)[inf]+(b)*(y)[sup] + (((a)*(a)*(a)-(a))* (ddy)[inf] + ((b)*(b)*(b)-(b))* (ddy)[sup])*(h)*(h)/6.)
 
 /**
@@ -204,6 +206,17 @@ extern "C" {
             int index_x,   /** from 0 to (n_columns-1) */
             int index_y,
             int index_ddy,
+            double complex phase,
+            double complex * result,
+            ErrorMsg errmsg
+            );
+
+  int array_integrate_all_spline_table_lines_exponential(
+            double * x,
+		        int x_size,
+		        double * y_array,
+		        int y_size,
+		        double * ddy_array,
             double complex phase,
             double complex * result,
             ErrorMsg errmsg
