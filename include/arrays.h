@@ -111,7 +111,7 @@ extern "C" {
 		       short spline_mode,
 		       ErrorMsg errmsg);
 
-  int array_spline_table_columns2(
+  int array_spline_table_columns_parallel(
 		       double * x,
 		       int x_size,
 		       double * y_array,
@@ -121,6 +121,16 @@ extern "C" {
 		       ErrorMsg errmsg);
 
   int array_spline_table_lines(
+		       double * x,
+		       int x_size,
+		       double * y_array,
+		       int y_size,
+		       double * ddy_array,
+		       short spline_mode,
+		       ErrorMsg errmsg
+		       );
+
+  int array_spline_table_lines_parallel(
 		       double * x,
 		       int x_size,
 		       double * y_array,
@@ -222,19 +232,42 @@ extern "C" {
             ErrorMsg errmsg
             );
 
-  int array_integrate_all_spline_spherical_bessel_J(
+  int array_integrate_all_spline_fourier(
             double * array,
             int n_columns,
             int n_lines,
             int index_x,   /** from 0 to (n_columns-1) */
             int index_y,
             int index_ddy,
-            const int n,
-            double coeff,
-            double shift,
-            double * result,
+            double phase,
+            double complex * result,
             ErrorMsg errmsg
             );
+
+  int array_integrate_all_spline_table_lines_fourier(
+            double * x,
+            int x_size,
+            double * y_array,
+            int y_size,
+            double * ddy_array,
+            double phase,
+            double complex * result,
+            ErrorMsg errmsg
+            );
+
+  // int array_integrate_all_spline_spherical_bessel_J(
+  //           double * array,
+  //           int n_columns,
+  //           int n_lines,
+  //           int index_x,   /** from 0 to (n_columns-1) */
+  //           int index_y,
+  //           int index_ddy,
+  //           const int n,
+  //           double coeff,
+  //           double shift,
+  //           double * result,
+  //           ErrorMsg errmsg
+  //           );
 
   int array_integrate_all_spline_table_line_to_line(
                     double * x_array,
@@ -575,12 +608,13 @@ extern "C" {
                            int * index,
                            ErrorMsg errmsg);
 
-  extern double array_polynomial(
-                        const double * pcoeff,
-                        const int coeff_size,
-                        const int min_pow,
-                        const double x
-                        );
+  // extern double array_polynomial(
+  //                       const double * pcoeff,
+  //                       const int coeff_size,
+  //                       const int min_pow,
+  //                       const double x
+  //                       );
+
 
 #ifdef __cplusplus
 }

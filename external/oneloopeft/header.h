@@ -220,6 +220,7 @@ struct eft
   double complex ** loop_matrices;
   short * symmetry;
   int fourier_coeff_size;
+  double period;
   double complex ** fourier_coeff;
   double * fourier_frequencies;
 
@@ -229,13 +230,19 @@ struct eft
 
 int eft_init(struct background * pba,
             struct fourier * pfo,
+            struct primordial * ppm,
             struct eft * peft,
             double z,
             short compute_rsd_spectrum,
             double k_min,
-            int fft_k_points);
+            double fourier_period,
+            int num_positive_coefficients,
+            int num_sample_points);
 
-int eft_indices(struct eft * peft);
+int eft_get_fourier_frequencies(
+                  const double period,
+                  const int num_frequencies,
+                  double * frequencies);
 
 
 /**

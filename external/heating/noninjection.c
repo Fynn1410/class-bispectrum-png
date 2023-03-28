@@ -211,13 +211,13 @@ int noninjection_init(struct precision* ppr,
   }
 
   /** - Spline coarse z table in view of interpolation */
-  class_call(array_spline_table_columns2(pni->z_table_coarse,
-                                         pni->z_size_coarse,
-                                         pni->noninjection_table,
-                                         1,
-                                         pni->ddnoninjection_table,
-                                         _SPLINE_EST_DERIV_,
-                                         pni->error_message),
+  class_call(array_spline_table_columns(pni->z_table_coarse,
+                                        pni->z_size_coarse,
+                                        pni->noninjection_table,
+                                        1,
+                                        pni->ddnoninjection_table,
+                                        _SPLINE_EST_DERIV_,
+                                        pni->error_message),
              pni->error_message,
              pni->error_message);
 

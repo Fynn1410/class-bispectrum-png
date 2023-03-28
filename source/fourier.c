@@ -727,6 +727,138 @@ int fourier_pks_at_k_and_z(
 }
 
 /**
+ * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
+ * either linear or logarithmic.
+ *
+ * The main goal of this routine is speed. If the input k_i 
+ * falls outside the pre-computed range [kmin,kmax],
+ * the power spectrum is extrapolated from the primordial spectrum.
+ *
+ * @param pba         Input: pointer to background structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param mode        Input: linear or logarithmic
+ * @param ln_kvec     Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
+ * @param kvec_size   Input: size of array of wavenumbers
+ * @param z           Input: redshift
+ * @param out_pk      Output: P_nw(k_i,z) for total matter in Mpc^3
+ * @return the error status
+ */
+int fourier_pk_at_kvec_and_z(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct fourier * pfo,
+                    enum linear_or_logarithmic mode,
+                    enum pk_outputs pk_output, 
+                    double * ln_kvec, // log(kvec[index_kvec])
+                    const int kvec_size,
+                    const double z,
+                    const int index_pk,
+                    double * out_pk) {
+
+  int index_k, index_kvec, last_index = 0;
+  double * out_pk_at_z;
+  double * ddout_pk_at_z;
+  double * ln_pk_primordial = NULL;
+  double extrapol_const;
+
+
+  class_alloc(out_pk_at_z, pfo->k_size_extra*sizeof(double),
+              pfo->error_message);
+
+  /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
+
+  class_call(fourier_pk_at_z(pba, 
+                             pfo, 
+                             logarithmic, 
+                             pk_output, 
+                             z, 
+                             index_pk, 
+                             out_pk_at_z, 
+                             NULL),
+              pfo->error_message,
+              pfo->error_message);
+
+  /** --> interpolate total spectrum */
+
+  class_alloc(ddout_pk_at_z,
+              pfo->k_size_extra*sizeof(double),
+              pfo->error_message);
+
+  class_call(array_spline_table_lines(pfo->ln_k,
+                                      pfo->k_size_extra,
+                                      out_pk_at_z,
+                                      1,
+                                      ddout_pk_at_z,
+                                      _SPLINE_NATURAL_,
+                                      pfo->error_message),
+              pfo->error_message,
+              pfo->error_message);
+              
+
+  /** - Loop over first k values. If k<kmin, extrapolate using the primordial spectrum. */
+  if (ln_kvec[0] < pfo->ln_k[0]) {
+    class_alloc(ln_pk_primordial, pfo->ic_ic_size * sizeof(double), pfo->error_message);
+    class_call(primordial_spectrum_at_k(ppm,
+                                        pfo->index_md_scalars,
+                                        logarithmic,
+                                        exp(pfo->ln_k[0]),
+                                        ln_pk_primordial),
+                  ppm->error_message,
+                  pfo->error_message);
+    extrapol_const = out_pk_at_z[0] - pfo->ln_k[0] - ln_pk_primordial[0];
+  }
+
+  for(index_kvec = 0; index_kvec < kvec_size && ln_kvec[index_kvec] < pfo->ln_k[0]; index_kvec++) {
+    /** - get the primordial spectrum at k */
+    class_call(primordial_spectrum_at_k(ppm,
+                                        pfo->index_md_scalars,
+                                        logarithmic,
+                                        exp(ln_kvec[index_kvec]),
+                                        ln_pk_primordial),
+                ppm->error_message,
+                pfo->error_message);
+    
+    /** - write to output: P(k) = P(kmin) * (k*P_R(k) / kmin*P_R(kmin)) */
+    out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
+  }
+
+  if (ln_pk_primordial) free(ln_pk_primordial);
+
+  for (index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
+    /** - Deal with case kmin<=k<=kmax */
+    class_call(array_interpolate_spline_growing_closeby(pfo->ln_k,
+                                                        pfo->k_size_extra,
+                                                        out_pk_at_z,
+                                                        ddout_pk_at_z,
+                                                        1,
+                                                        ln_kvec[index_kvec],
+                                                        &last_index,
+                                                        out_pk + index_kvec,
+                                                        1,
+                                                        pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
+  }
+  
+  for (index_kvec; index_kvec < kvec_size; index_kvec++) {
+    /** - for k higher than kmax in pfo->ln_k, write zero to output */
+    out_pk[index_kvec] = 0.;
+  }
+
+  free(out_pk_at_z);
+  free(ddout_pk_at_z);
+
+  /** - convert to linear output if needed */
+  if (mode == linear) 
+  {
+    for (index_kvec = 0; index_kvec < kvec_size; index_kvec++) 
+      out_pk[index_kvec] = exp(out_pk[index_kvec]);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
  * Return the P(k,z) for a grid of (k_i,z_j) passed in input,
  * for all available pk types (_m, _cb),
  * either linear or nonlinear depending on input.
@@ -830,25 +962,25 @@ int fourier_pks_at_kvec_and_zvec(
 
   if (pfo->has_pk_m == _TRUE_) {
 
-    class_call(array_spline_table_columns2(pfo->ln_k,
-                                           pfo->k_size,
-                                           ln_pk_table,
-                                           zvec_size,
-                                           ddln_pk_table,
-                                           _SPLINE_NATURAL_,
-                                           pfo->error_message),
+    class_call(array_spline_table_columns_parallel(pfo->ln_k,
+                                                   pfo->k_size,
+                                                   ln_pk_table,
+                                                   zvec_size,
+                                                   ddln_pk_table,
+                                                   _SPLINE_NATURAL_,
+                                                   pfo->error_message),
                pfo->error_message,
                pfo->error_message);
   }
   if (pfo->has_pk_cb == _TRUE_) {
 
-    class_call(array_spline_table_columns2(pfo->ln_k,
-                                           pfo->k_size,
-                                           ln_pk_cb_table,
-                                           zvec_size,
-                                           ddln_pk_cb_table,
-                                           _SPLINE_NATURAL_,
-                                           pfo->error_message),
+    class_call(array_spline_table_columns_parallel(pfo->ln_k,
+                                                   pfo->k_size,
+                                                   ln_pk_cb_table,
+                                                   zvec_size,
+                                                   ddln_pk_cb_table,
+                                                   _SPLINE_NATURAL_,
+                                                   pfo->error_message),
                pfo->error_message,
                pfo->error_message);
   }
@@ -1401,23 +1533,23 @@ int fourier_init(
 
     /** - compute the nowiggle spectrum using gaussian filter */
     class_call(eft_ln_pk_nw_gfilter(pba, ppm, pfo,
-                                  index_pk,
-                                  index_k0,
-                                  index_k_min,
-                                  k_nw_size,
-                                  pfo->ln_pk_l_nw_extra),
+                                    index_pk,
+                                    index_k0,
+                                    index_k_min,
+                                    k_nw_size,
+                                    pfo->ln_pk_l_nw_extra),
                 pfo->error_message,
                 pfo->error_message);
 
     if (pfo->ln_tau_size > 1) {
       /** - spline the nowiggle spectrum */
-      class_call(array_spline_table_lines(pfo->ln_tau,
-                                            pfo->ln_tau_size,
-                                            pfo->ln_pk_l_nw_extra,
-                                            pfo->k_size_extra,
-                                            pfo->ddln_pk_l_nw_extra,
-                                            _SPLINE_EST_DERIV_, // TODO: what happens if 1 < ln_tau_size < 3 -> this will not work
-                                            pfo->error_message),
+      class_call(array_spline_table_lines_parallel(pfo->ln_tau,
+                                                   pfo->ln_tau_size,
+                                                   pfo->ln_pk_l_nw_extra,
+                                                   pfo->k_size_extra,
+                                                   pfo->ddln_pk_l_nw_extra,
+                                                   _SPLINE_EST_DERIV_, // TODO: what happens if 1 < ln_tau_size < 3 -> this will not work
+                                                   pfo->error_message),
                   pfo->error_message,
                   pfo->error_message);
     }
@@ -1437,19 +1569,62 @@ int fourier_init(
     // }
     // array_integrate_all_spline(array, 3, NSPLINE, 0, 1, 2, &result, pfo->error_message);
 
-    // #define NSPLINE 31
-    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE]; 
-    // double array[3*NSPLINE];
-    // double complex result, result2;
+    // #define NSPLINE 500
+    // double x[NSPLINE], y[2*NSPLINE], ddy_old[2*NSPLINE], ddy[2*NSPLINE], diffsum; 
+    // int spline_mode = 1;
     // for (int i = 0; i < NSPLINE; i++) {
-    //   x[i] = 90. + (110. - (90.)) * i / (NSPLINE-1);
-    //   y[i] = x[i]*x[i] + 1.;
+    //   x[i] = 0. + (2.*_PI_ - (0.)) * i / (NSPLINE-1);
+    //   y[2*i] = 2. + sin(x[i]);
+    //   y[2*i+1] = 2. + cos(x[i]);
+    // }
+    // array_spline_table_lines(x, NSPLINE, y, 2, ddy_old, spline_mode, pfo->error_message);
+    // array_spline_table_lines_parallel(x, NSPLINE, y, 2, ddy, spline_mode, pfo->error_message);
+
+    // double array[2*NSPLINE], ddy[2*NSPLINE];
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   //array[4*i] = x[i];
+    //   array[i] = y[2*i];
+    //   array[NSPLINE+i] = y[2*i+1];
+    // }
+    // array_logspline_table_lines_new(x, NSPLINE, y, 2, ddy, spline_mode, pfo->error_message);
+
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   ddy[2*i] = array[4*i+2];
+    //   ddy[2*i+1] = array[4*i+3];
+    // }
+    // diffsum = 0.;
+    // for (int i = 0; i < 2*NSPLINE; i++) {
+    //   diffsum += ddy[i] - ddy_old[i];
+    // }
+
+    // double ddy_period[2*NSPLINE];
+    // array_spline_table_lines_parallel(x, NSPLINE, y, 2, ddy_period, 2, pfo->error_message);
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   ddy_period[2*i] = array[4*i+2];
+    //   ddy_period[2*i+1] = array[4*i+3];
+    // }
+
+
+    // double super[NSPLINE-1], constants[NSPLINE-1];
+    // double dy_first=1.;
+    // double dy_last=1.;
+    // array_spline_internal_hermite(x, 1, y, 1, ddy_old, 1, NSPLINE, super, constants, _FALSE_, &dy_first, &dy_last);
+    // double super[NSPLINE-2], constants[NSPLINE-2];
+    // double constants_aux[NSPLINE-2], sol_aux[NSPLINE-1];
+    // array_spline_internal_periodic(x, 1, y, 1, ddy, 1, NSPLINE-1, super, constants, constants_aux, sol_aux);
+
+    // #define NSPLINE 9
+    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE], array[3*NSPLINE];
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   x[i] = 0. + (5. - 0.)*i/(NSPLINE-1);
+    //   y[i] = x[i]*x[i];
+    //   ddy[i] = 2.;//ddy[i];
     // }
     // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
     // for (int i = 0; i < NSPLINE; i++) {
     //   array[3*i] = x[i];
     //   array[3*i+1] = y[i];
-    //   array[3*i+2] = 2.;//ddy[i];
+    //   array[3*i+2] = ddy[i];
     // }
     // array_integrate_all_spline_gaussian_window(array, 3, NSPLINE, 0, 1, 2, 1., 2., &result, pfo->error_message);
     
@@ -1461,8 +1636,9 @@ int fourier_init(
     // spherical_bessel_j(100, 100., jntest, pfo->error_message);
     // array_integrate_all_spline_spherical_bessel_J(array, 3, NSPLINE, 0, 1, 2, 100, 2., 1., &result, pfo->error_message);
 
-    // array_integrate_all_spline_exponential(array, 3, NSPLINE, 0, 1, 2, CMPLX(0.001, 1.), &result, pfo->error_message);
-    // array_integrate_all_spline_table_lines_exponential(x, NSPLINE, y, 1, ddy, CMPLX(0.001, 1.), &result2, pfo->error_message);
+    // double complex result, result2;
+    // array_integrate_all_spline_fourier(array, 3, NSPLINE, 0, 1, 2, 100., &result, pfo->error_message);
+    // array_integrate_all_spline_table_lines_fourier(x, NSPLINE, y, 1, ddy, 100., &result2, pfo->error_message);
 
     /** - debug output */
     if (pfo->fourier_verbose > 2) {
@@ -1591,8 +1767,8 @@ int fourier_init(
     if ((pfo->fourier_verbose > 0) && (pfo->method == nl_halofit))
       printf("Computing non-linear matter power spectrum with Halofit (including update Takahashi et al. 2012 and Bird 2014)\n");
 
-	if ((pfo->fourier_verbose > 0) && (pfo->method == nl_HMcode))
-      printf("Computing non-linear matter power spectrum with HMcode \n");
+    if ((pfo->fourier_verbose > 0) && (pfo->method == nl_HMcode))
+        printf("Computing non-linear matter power spectrum with HMcode \n");
 
     /** --> allocate temporary arrays for spectra at each given time/redshift */
 
@@ -1807,13 +1983,13 @@ int fourier_init(
     if (pfo->ln_tau_size > 1) {
       for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
 
-        class_call(array_spline_table_lines(pfo->ln_tau,
-                                            pfo->ln_tau_size,
-                                            pfo->ln_pk_nl[index_pk],
-                                            pfo->k_size,
-                                            pfo->ddln_pk_nl[index_pk],
-                                            _SPLINE_EST_DERIV_,
-                                            pfo->error_message),
+        class_call(array_spline_table_lines_parallel(pfo->ln_tau,
+                                                     pfo->ln_tau_size,
+                                                     pfo->ln_pk_nl[index_pk],
+                                                     pfo->k_size,
+                                                     pfo->ddln_pk_nl[index_pk],
+                                                     _SPLINE_EST_DERIV_,
+                                                     pfo->error_message),
                    pfo->error_message,
                    pfo->error_message);
       }
@@ -1834,7 +2010,6 @@ int fourier_init(
     /** --> free the nonlinear workspace */
 
     if (pfo->method == nl_HMcode) {
-
       class_call(fourier_hmcode_workspace_free(pfo,pnw),
                  pfo->error_message,
                  pfo->error_message);
@@ -1842,10 +2017,26 @@ int fourier_init(
   }
 
   else if (pfo->method == nl_oneloopPT) {
-
     if (pfo->fourier_verbose > 0)
       printf("Computing one-loop power spectrum including EFT terms (proper credits to Azadeh et al. will have to be added here)\n");
 
+    double z_nl = 0.0;
+    double k_sample_min = 1.e-5;
+    double ln_k_period = log( 1.e6/k_sample_min );
+    class_call(eft_init(pba, pfo, ppm, pfo->peft,
+                        z_nl, pfo->has_rsd, k_sample_min, ln_k_period, 128, 200),
+                pfo->peft->error_message,
+                pfo->error_message);
+
+
+
+
+
+
+
+    /** ------------------------------ OLD CODE -----------------------------*/
+
+    
     // Calculations are typically done at redshift z=0 and then the EdS approximation is used
     double z   = 0.0;
 
@@ -2192,6 +2383,9 @@ int fourier_indices(
     
     if (pfo->ln_tau_size > 1)
       class_alloc(pfo->ddln_pk_l_nw_extra, pfo->ln_tau_size*pfo->k_size_extra*sizeof(double), pfo->error_message);
+
+    // TODO: move to main and disentangle with fourier
+    class_alloc(pfo->peft, sizeof(struct eft), pfo->error_message);
   }
 
   return _SUCCESS_;
@@ -5099,10 +5293,9 @@ int fourier_pk_nw_at_k_and_z(
  * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
  * either linear or logarithmic.
  *
- * The main goal of this routine is speed. Unlike
- * fourier_pk_nw_at_k_and_z(), it performs no extrapolation when an
- * input k_i falls outside the pre-computed range [kmin,kmax]: in that
- * case, it just returns P(k,z)=0 for such a k_i
+ * The main goal of this routine is speed. If the input k_i 
+ * falls outside the pre-computed range [kmin,kmax],
+ * the power spectrum is extrapolated from the primordial spectrum.
  *
  * @param pba         Input: pointer to background structure
  * @param pfo         Input: pointer to fourier structure

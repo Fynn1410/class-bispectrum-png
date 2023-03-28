@@ -305,7 +305,7 @@ struct fourier {
   int index_pk_m;  /**< index of pk for matter (defined only when has_pk_m is TRUE) */
   int index_pk_cb; /**< index of pk for cold dark matter plus baryons (defined only when has_pk_cb is TRUE */
 
-  /* and two redundent but useful indices: */
+  /* and two redundant but useful indices: */
 
   int index_pk_total;      /**< always equal to index_pk_m
                               (always defined, useful e.g. for weak lensing spectrum) */
@@ -436,6 +436,8 @@ struct fourier {
  
   /** @name - parameters for the oneloop FFTLog method */
 
+  struct eft * peft;
+
   // FFTLog solutions for the Linear Power Spectrum / no-wiggle Linear Power Spectrum -> index coming from enum rsd_ir_type
 
   struct oneloop_fftlog_matter_real * pk_matter_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
@@ -562,6 +564,19 @@ extern "C" {
                                double * out_pk_cb,
                                double * out_pk_cb_ic
                                );
+
+  int fourier_pk_at_kvec_and_z(
+                        struct background * pba,
+                        struct primordial * ppm,
+                        struct fourier * pfo,
+                        enum linear_or_logarithmic mode,
+                        enum pk_outputs pk_output, 
+                        double * ln_kvec, // log(kvec[index_kvec])
+                        const int kvec_size,
+                        const double z,
+                        const int index_pk,
+                        double * out_pk
+                        );
 
   int fourier_pks_at_kvec_and_zvec(
                                      struct background * pba,
