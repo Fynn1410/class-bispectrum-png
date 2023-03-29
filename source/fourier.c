@@ -1532,12 +1532,12 @@ int fourier_init(
             pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
 
     /** - compute the nowiggle spectrum using gaussian filter */
-    class_call(eft_ln_pk_nw_gfilter(pba, ppm, pfo,
-                                    index_pk,
-                                    index_k0,
-                                    index_k_min,
-                                    k_nw_size,
-                                    pfo->ln_pk_l_nw_extra),
+    class_call(eft_ln_pk_nw_gfilter_parallel(pba, ppm, pfo,
+                                             index_pk,
+                                             index_k0,
+                                             index_k_min,
+                                             k_nw_size,
+                                             pfo->ln_pk_l_nw_extra),
                 pfo->error_message,
                 pfo->error_message);
 
@@ -2024,7 +2024,7 @@ int fourier_init(
     double k_sample_min = 1.e-5;
     double ln_k_period = log( 1.e6/k_sample_min );
     class_call(eft_init(pba, pfo, ppm, pfo->peft,
-                        z_nl, pfo->has_rsd, k_sample_min, ln_k_period, 128, 200),
+                        z_nl, pfo->has_rsd, k_sample_min, ln_k_period, 128, 300),
                 pfo->peft->error_message,
                 pfo->error_message);
 

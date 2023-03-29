@@ -18,20 +18,49 @@ int eft_spline_sample_points_nonuniform(
   ln_k_feature = log(k_feature);
   tau_min = log(k_min) - ln_k_feature; tau_max = log(k_max) - ln_k_feature;
   sqrt_ampl_1 = sqrt(rel_amplitude - 1.); arctan_sqrt_ampl_1 = atan(sqrt_ampl_1);
-  density_outer = (double)(num_points - 1) / (tau_max - tau_min - 2.*width*sqrt_ampl_1 + 2.*rel_amplitude*width*arctan_sqrt_ampl_1);
-  N_bound1 = (int)ceil(density_outer*(-width*sqrt_ampl_1 - tau_min));
-  N_bound2 = (int)ceil(density_outer*(-width*sqrt_ampl_1 - tau_min + 2.*rel_amplitude*width*arctan_sqrt_ampl_1));
 
-  for (N = 0; N < num_points && N < N_bound1; N++) {
-    ln_k_sample[N] = ln_k_feature + tau_min + (double)N/density_outer;
-  }
-  for (N = N_bound1; N < num_points && N < N_bound2; N++) {
-    ln_k_sample[N] = ln_k_feature + width * tan( (tau_min + width*sqrt_ampl_1 + (double)N/density_outer)/(rel_amplitude*width) - arctan_sqrt_ampl_1 );
-  }
-  for (N = N_bound2; N < num_points; N++) {
-    ln_k_sample[N] = ln_k_feature + tau_min + 2.*width*sqrt_ampl_1 - 2.*rel_amplitude*width*arctan_sqrt_ampl_1 + (double)N/density_outer;
-  }
+  if (tau_min >= -width*sqrt_ampl_1) {
+    /** - left and right border is out of bounds */
+    if (tau_max <= width*sqrt_ampl_1) {
+      density_outer = (double)(num_points - 1) / (rel_amplitude*width*(atan(tau_max/width) - atan(tau_min/width)));
+      for (N = 0; N < num_points; N++)
+        ln_k_sample[N] = ln_k_feature + width * tan( atan(tau_min/width) + (double)N/(density_outer*rel_amplitude*width) );
+    }
+    /** - left border is out of bounds */
+    else {
+      density_outer = (double)(num_points - 1) / (tau_max - width*sqrt_ampl_1 + rel_amplitude*width*(arctan_sqrt_ampl_1 - atan(tau_min/width)));
+      N_bound2 = (int)ceil(density_outer*rel_amplitude*width*(arctan_sqrt_ampl_1 - atan(tau_min/width)));
 
+      for (N = 0; N < num_points && N < N_bound2; N++)
+        ln_k_sample[N] = ln_k_feature + width * tan( atan(tau_min/width) + (double)N/(density_outer*rel_amplitude*width) );
+      for (N; N < num_points; N++)
+        ln_k_sample[N] = ln_k_feature + width*sqrt_ampl_1 + rel_amplitude*width*(atan(tau_min/width) - arctan_sqrt_ampl_1) + (double)N/density_outer;
+    }
+  }
+  /** - right border is out of bounds */
+  else if (tau_max <= width*sqrt_ampl_1) {
+    density_outer = (double)(num_points - 1) / (-tau_min - width*sqrt_ampl_1 + rel_amplitude*width*(atan(tau_max/width) + arctan_sqrt_ampl_1));
+    N_bound1 = (int)ceil(-density_outer*(tau_min + width*sqrt_ampl_1));
+
+    for (N = 0; N < num_points && N < N_bound1; N++)
+      ln_k_sample[N] = ln_k_feature + tau_min + (double)N/density_outer;
+    for (N; N < num_points; N++)
+      ln_k_sample[N] = ln_k_feature + width * tan( (tau_min + width*sqrt_ampl_1 + (double)N/density_outer)/(rel_amplitude*width) - arctan_sqrt_ampl_1 );
+  }
+  /** - both borders are inside the region [k_min, k_max] */
+  else {
+    density_outer = (double)(num_points - 1) / (tau_max - tau_min - 2.*width*sqrt_ampl_1 + 2.*rel_amplitude*width*arctan_sqrt_ampl_1);
+    N_bound1 = (int)ceil(density_outer*(-width*sqrt_ampl_1 - tau_min));
+    N_bound2 = (int)ceil(density_outer*(-width*sqrt_ampl_1 - tau_min + 2.*rel_amplitude*width*arctan_sqrt_ampl_1));
+    
+    for (N = 0; N < num_points && N < N_bound1; N++)
+      ln_k_sample[N] = ln_k_feature + tau_min + (double)N/density_outer;
+    for (N; N < num_points && N < N_bound2; N++)
+      ln_k_sample[N] = ln_k_feature + width * tan( (tau_min + width*sqrt_ampl_1 + (double)N/density_outer)/(rel_amplitude*width) - arctan_sqrt_ampl_1 );
+    for (N; N < num_points; N++)
+      ln_k_sample[N] = ln_k_feature + tau_min + 2.*width*sqrt_ampl_1 - 2.*rel_amplitude*width*arctan_sqrt_ampl_1 + (double)N/density_outer;
+  }
+  
   return _SUCCESS_;
 }
 
@@ -224,7 +253,7 @@ int eft_init(struct background * pba,
   class_call(eft_indices(peft), peft->error_message, peft->error_message);
 
   /* Generate the sampling points in k; the first BAO feature has a wavenumber of 0.07 h/Mpc */
-  eft_spline_sample_points_nonuniform(k_min, 0.07*pba->h, 1.e4, 4., 5., num_sample_points, peft->ln_k_halo_fourier);
+  eft_spline_sample_points_nonuniform(k_min, 0.07*pba->h, 5.e5, 7.5, 5., num_sample_points, peft->ln_k_halo_fourier);
 
   /* Retrieve the power spectra */
   class_call(fourier_pk_at_kvec_and_z(pba, ppm, pfo, linear, pk_linear,
@@ -269,6 +298,7 @@ int eft_init(struct background * pba,
                       peft->error_message),
               peft->error_message,
               peft->error_message);
+  peft->fourier_coeff[pk_lin][0] /= peft->period;
 
   for (it = 1; it < num_positive_coefficients; it++) {
     array_integrate_all_spline_table_lines_fourier(
@@ -280,6 +310,38 @@ int eft_init(struct background * pba,
                       peft->fourier_frequencies[it],
                       peft->fourier_coeff[pk_lin] + it,
                       peft->error_message);
+    
+    peft->fourier_coeff[pk_lin][it] /= peft->period;
+  }
+
+  for (it = 0; it < num_positive_coefficients-1; it++) {
+    peft->fourier_coeff[pk_lin][num_positive_coefficients + it] = conj( peft->fourier_coeff[pk_lin][num_positive_coefficients - 1 - it] );
+  }
+
+  if (pfo->fourier_verbose > 2) {
+    FILE *ffourier = fopen("output/biased_pk_samples.dat", "w");
+
+    fprintf(ffourier, "# Biased samples of the linear power spectrum at z=%.3f \n", peft->z0);
+    fprintf(ffourier, "# for k=%.4e to %.4e \n", exp(peft->ln_k_halo_fourier[0]), exp(peft->ln_k_halo_fourier[peft->k_size_fourier-1]));
+    fprintf(ffourier, "# number of wavenumbers equal to %d \n", peft->k_size_fourier);
+    fprintf(ffourier, "#    1:k (1/Mpc)            2:P_bias (Mpc)^3        3:d^2P_bias/dln(k)^2 (Mpc)^3 \n");
+    for (int i = 0; i < peft->k_size_fourier; i++)
+      fprintf(ffourier, "  %.16e       %.16e       %+.16e \n", \
+              exp(peft->ln_k_halo_fourier[i]), peft->pk_l_biased[pk_lin][i], peft->ddpk_l_biased[pk_lin][i]);
+
+    fclose(ffourier);
+
+    ffourier = fopen("output/fourier_coefficients.dat", "w");
+
+    fprintf(ffourier, "# Fourier coefficients of the linear power spectrum at z=%.3f \n", peft->z0);
+    fprintf(ffourier, "# for omega=%.3f to %.3f \n", exp(peft->fourier_frequencies[num_positive_coefficients]), exp(peft->fourier_frequencies[num_positive_coefficients-1]));
+    fprintf(ffourier, "# number of frequencies equal to %d \n", peft->fourier_coeff_size);
+    fprintf(ffourier, "#    1:omega                  2:c (Mpc)^3 \n");
+    for (int i = 0; i < peft->fourier_coeff_size; i++)
+      fprintf(ffourier, "  %.16e       %+.16e       %+.16e \n", \
+              peft->fourier_frequencies[i], creal(peft->fourier_coeff[pk_lin][i]), cimag(peft->fourier_coeff[pk_lin][i]));
+
+    fclose(ffourier);
   }
 
   return _SUCCESS_;

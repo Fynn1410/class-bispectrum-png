@@ -124,6 +124,134 @@ int eft_ln_pk_nw_gfilter(
   return _SUCCESS_;
 }
 
+/**
+ * @brief Compute the nowiggle component of linear matter power spectrum using 1d logarithmic Gaussian filter.
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param k0          Input: fixing scale k in pfo->k, i.e. the largest usable scale
+ * @param ln_pknw_array  Output: Dewiggled power spectrum for every pfo->k and pfo->tau
+ *                            in units of (Mpc)^3 [size = pfo->k_size_extra * pfo->tau_size].
+ *                            Indexed as ln_pknw_array[index_tau * pfo->k_size_extra + index_k]
+ * @return the error status
+ */
+int eft_ln_pk_nw_gfilter_parallel(
+                      struct background *pba,
+                      struct primordial *ppm,
+                      struct fourier *pfo,
+                      const int index_pk,
+                      const int index_k0,
+                      const int index_kmin,
+                      const int k_size,
+                      double *ln_pknw_array) {
+  
+  int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, abort = _FALSE_;
+  double ln_pk0_z, k0, smoothing_scale;
+  double *pk_approx_f, *intg_splines, *intg_result;
+
+  class_alloc(pk_approx_f, pfo->k_size_extra * sizeof(double), pfo->error_message);
+
+  k0 = pfo->k[index_k0];
+
+  /** - compute the Eisenstein-Hu approximation to the nowiggle power spectrum */
+  for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
+    
+  }
+
+  #pragma omp parallel shared(pk_approx_f, k0, index_pk, index_k0, index_kmin, k_size, ln_pknw_array, pba, ppm, pfo, abort), \
+                       private(it_k, it_q, it_tau, ln_pk0_z, smoothing_scale, intg_splines, intg_result, index_x, index_y, index_ddy, index_num), \
+                       default(none), if(pfo->ln_tau_size > 1)
+  {
+
+  /** - define indices for the spline array */
+  class_define_index(index_x, _TRUE_, it_q, 1);
+  class_define_index(index_y, _TRUE_, it_q, 1);
+  class_define_index(index_ddy, _TRUE_, it_q, 1);
+  index_num = it_q;
+  
+  class_alloc_parallel(intg_splines, pfo->k_size_extra * index_num * sizeof(double), pfo->error_message);
+  class_alloc_parallel(intg_result, k_size * sizeof(double), pfo->error_message);
+  
+  if (!abort) {
+  #pragma omp for schedule(static), nowait
+  for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
+    pk_approx_f[it_q] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_q], k0);
+  }
+  for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
+    /** - also write the array of x-values for splining */
+    intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
+  }
+  #pragma omp barrier
+
+  /** - compute the gaussian window integral at every tau */
+  #pragma omp for schedule(static)
+  for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++)
+  {
+    /** - power spectrum at fixing scale at tau */
+    ln_pk0_z = pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + index_k0];
+
+    /** - compute the integrand at the control points once */
+    for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
+      intg_splines[it_q*index_num + index_y] = exp( pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + it_q] - ln_pk0_z) \
+                                                  / pk_approx_f[it_q];
+
+    /** - spline the integrand function without exponential once */
+    class_call_parallel(array_spline(intg_splines,
+                                     index_num,
+                                     pfo->k_size_extra,
+                                     index_x,
+                                     index_y,
+                                     index_ddy,
+                                     _SPLINE_EST_DERIV_,
+                                     pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
+
+    /** - integrate the same function with different windows */
+    for (it_k = 0; it_k < k_size; it_k++)
+    {
+      /** - compute the running smoothing scale */
+      smoothing_scale = 0.6907755279 * exp(-0.1320281879 * pow(intg_splines[(index_kmin + it_k)*index_num + index_x] + 3.4538776395, 2.)) \
+                          + 0.06907755279;
+
+      /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
+      class_call_parallel(array_integrate_all_spline_gaussian_window(
+                                                intg_splines,
+                                                index_num,
+                                                pfo->k_size_extra,
+                                                index_x,
+                                                index_y,
+                                                index_ddy,
+                                                intg_splines[(index_kmin + it_k)*index_num + index_x],
+                                                smoothing_scale,
+                                                intg_result + it_k,
+                                                pfo->error_message),
+                          pfo->error_message,
+                          pfo->error_message);
+
+      //fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num + index_ddy], intg_result[it_k]);
+
+      /** - multiply with prefactors and take log */
+      intg_result[it_k] = log( pk_approx_f[index_kmin + it_k] * intg_result[it_k] ) + ln_pk0_z;
+    }
+
+    /** - write to output array */
+    memcpy(ln_pknw_array + it_tau*pfo->k_size_extra + index_kmin, 
+            intg_result,
+            k_size * sizeof(double));
+  }
+
+  } /** - end of enclosing if(!abort) */
+  free(intg_splines);
+  free(intg_result);
+
+  } /** - end of parallel region */
+
+  free(pk_approx_f);
+
+  return abort;
+}
+
 
 /**
  * @brief Compute the nowiggle component of linear matter power spectrum using 3d Gaussian filter.
