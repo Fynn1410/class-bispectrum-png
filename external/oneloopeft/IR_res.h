@@ -25,8 +25,7 @@ int eft_ir_pk_lo(
             double * ln_kvec,
             const int kvec_size,
             const double z,
-            const double k_split,
-            const double k_bao,
+            const double sigma2_ir_at_z,
             double * out_pk
             );
 
@@ -38,9 +37,40 @@ int eft_ir_pk_nlo(
             double * ln_kvec,
             const int kvec_size,
             const double z,
-            const double k_split,
-            const double k_bao,
+            const double sigma2_ir_at_z,
             double * out_pk
+            );
+
+int eft_ir_pk_rsd_lo(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            enum linear_or_logarithmic mode,
+            double * ln_kvec,
+            const int kvec_size,
+            const double z,
+            const double f,
+            double * muvec,
+            const int mu_size,
+            const double sigma2_ir_at_z,
+            const double dsigma2_ir_at_z,
+            double ** out_pk
+            );
+
+int eft_ir_pk_rsd_nlo(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            enum linear_or_logarithmic mode,
+            double * ln_kvec,
+            const int kvec_size,
+            const double z,
+            const double f,
+            double * muvec,
+            const int mu_size,
+            const double sigma2_ir_at_z,
+            const double dsigma2_ir_at_z,
+            double ** out_pk
             );
 
 double eft_pk_moment(
@@ -49,9 +79,7 @@ double eft_pk_moment(
             struct fourier * pfo, 
             const int n,
             const double z, 
-            enum eft_pk_type use_pk_type,
-            const double k_split,
-            const double k_bao
+            enum eft_pk_type use_pk_type
             );
 
 

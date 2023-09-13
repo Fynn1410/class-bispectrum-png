@@ -1328,7 +1328,8 @@ int fourier_init(
                  struct thermodynamics *pth,
                  struct perturbations *ppt,
                  struct primordial *ppm,
-                 struct fourier *pfo
+                 struct fourier *pfo,
+                 struct ext_storage *pext
                  ) {
 
   int index_ncdm;
@@ -1532,7 +1533,7 @@ int fourier_init(
             pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
 
     /** - compute the nowiggle spectrum using gaussian filter */
-    class_call(eft_ln_pk_nw_gfilter_parallel(pba, ppm, pfo,
+    class_call(eft_ln_pk_nw_gfilter_parallel(ppr, pba, ppm, pfo,
                                              index_pk,
                                              index_k0,
                                              index_k_min,
@@ -1613,13 +1614,14 @@ int fourier_init(
     // double constants_aux[NSPLINE-2], sol_aux[NSPLINE-1];
     // array_spline_internal_periodic(x, 1, y, 1, ddy, 1, NSPLINE-1, super, constants, constants_aux, sol_aux);
 
-    // #define NSPLINE 9
-    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE], array[3*NSPLINE];
+    // #define NSPLINE 3
+    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE], result_sq;
     // for (int i = 0; i < NSPLINE; i++) {
     //   x[i] = 0. + (5. - 0.)*i/(NSPLINE-1);
     //   y[i] = x[i]*x[i];
     //   ddy[i] = 2.;//ddy[i];
     // }
+    // array_square_integrate_all_spline_table_lines(x, NSPLINE, y, 1, ddy, &result_sq, pfo->error_message);
     // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
     // for (int i = 0; i < NSPLINE; i++) {
     //   array[3*i] = x[i];
@@ -1640,6 +1642,25 @@ int fourier_init(
     // array_integrate_all_spline_fourier(array, 3, NSPLINE, 0, 1, 2, 100., &result, pfo->error_message);
     // array_integrate_all_spline_table_lines_fourier(x, NSPLINE, y, 1, ddy, 100., &result2, pfo->error_message);
 
+    // #define NSPLINE 1000
+    // #define POS_FREQ_NUM 128
+    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE];
+    // for (int i = 0; i < NSPLINE; i++) {
+    //   x[i] = 0. + (2.*_PI_ - (0.))*i/(NSPLINE-1.);
+    //   y[i] = sin(x[i]);
+    //   //ddy[i] = -sin(x[i]);
+    // }
+    // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_PERIODIC_, pfo->error_message);
+    // double complex result[POS_FREQ_NUM], cond_num[POS_FREQ_NUM];
+    // result[0] = 0.;
+    // array_integrate_all_spline_table_lines_compensated(x, NSPLINE, y, 1, ddy, (double *)result, 0., (double *)cond_num, pfo->error_message);
+    // result[0] /= (2.*_PI_);
+    // for (int i = 1; i < POS_FREQ_NUM; i++) {
+    //   array_integrate_all_spline_table_lines_fourier_compensated(x, NSPLINE, y, 1, ddy, (double)i, result + i, 0., cond_num + i, pfo->error_message);
+    //   result[i] /= (2.*_PI_);
+    // }
+    // printf("%.16e        %.16e \n", cimag(result[1]), cimag(cond_num[1]));
+
     /** - debug output */
     if (pfo->fourier_verbose > 2) {
       FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
@@ -1651,8 +1672,8 @@ int fourier_init(
       for (int i = 0; i < pfo->k_size_extra; i++)
         fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
                 exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]), 
-                exp(pfo->ln_pk_l_extra[pfo->index_pk_cb][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]), 
-                pm_nowiggle_gfilter(pba, ppm, pfo, exp(pfo->ln_k[i]), 0., 0));
+                exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]));
+                //pm_nowiggle_gfilter(pba, ppm, pfo, exp(pfo->ln_k[i]), 0., 0));
 
       fclose(fpknw);
 
@@ -2020,15 +2041,76 @@ int fourier_init(
     if (pfo->fourier_verbose > 0)
       printf("Computing one-loop power spectrum including EFT terms (proper credits to Azadeh et al. will have to be added here)\n");
 
-    double z_nl = 0.0;
-    double k_sample_min = 1.e-5;
-    double ln_k_period = log( 1.e6/k_sample_min );
-    class_call(eft_init(pba, pfo, ppm, pfo->peft,
-                        z_nl, pfo->has_rsd, k_sample_min, ln_k_period, 128, 300),
-                pfo->peft->error_message,
+    int index_eft, index_ip, last_index;
+    short eft_role;
+
+    /** - fill in hyperparameters from precision */
+    pfo->eft_hp.fourier_mode = fourier_mode_fft; //ppr->eft_fourier_mode;
+    pfo->eft_hp.k_size_fourier = ppr->eft_num_sample_points + 1;
+    pfo->eft_hp.bao_oversampling = ppr->eft_bao_oversampling;
+    pfo->eft_hp.ln_k_oversampling_width = ppr->k_bao_width;
+    pfo->eft_hp.num_positive_fourier_freq = ppr->eft_num_positive_frequencies;
+    pfo->eft_hp.fourier_coeff_size = 2*pfo->eft_hp.num_positive_fourier_freq + 1;
+    for (int i = 0; i < NUM_MOMENTS; i++) {
+      strncpy(pfo->eft_hp.eft_loop_matrix_files[i], eft_loop_matrix_files_default[i], _FILENAMESIZE_);
+    }
+
+    //pfo->peft->k_size = 10;
+    
+
+    printf("compute_loop_matrices = %d \n", pfo->eft_hp.compute_loop_matrices);
+    printf("compute mu approximation = %d \n", pfo->eft_hp.compute_mu_approximation);
+
+    for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
+      index_ip = ((pfo->z_pk_eft_num == 1) && !(pfo->eft_hp.use_EdS_time_scaling)) ? 0 : index_eft;
+      eft_role = ((index_eft > 0) && pfo->eft_hp.use_time_independent_kernels) ? eft_slave : eft_master;
+
+      /** - if role is eft_slave, copy the master structure and then allocate only the fields that will not be shared */
+      if (eft_role == eft_slave) {
+        class_protect_memcpy(pfo->peft + index_eft, pfo->peft, sizeof(struct eft));
+      }
+
+      //TODO: set the correct k_size
+      pfo->peft[index_eft].k_size = 4;
+
+      class_call(eft_init(ppr, pba, pfo->peft + index_eft, &(pfo->eft_hp), pfo->eft_ip + index_eft, pext, eft_role, index_eft),
+                  pfo->peft[index_eft].error_message,
+                  pfo->error_message);
+    }
+    
+    /** - if we want to use the mu-approximation of the spectra, load the linear and nowiggle spectrum at this point 
+     *    otherwise the IR-resummed spectrum will be loaded on demand from the python interface */
+    if (pfo->eft_hp.compute_mu_approximation) {
+      double pvecback[pba->bg_size];
+      double z_nl;
+
+      for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
+        if (pfo->peft[index_eft].role > eft_master) { continue; }
+
+        z_nl = ((pfo->z_pk_eft_num == 1) && !(pfo->eft_hp.use_EdS_time_scaling)) ? pfo->z_pk_eft[0] : pfo->z_pk_eft[index_eft];
+        last_index = 0;
+        class_call(background_at_z(pba, z_nl,
+                                  long_info,
+                                  inter_normal,
+                                  &last_index,
+                                  &pvecback),
+                    pba->error_message,
+                    pfo->error_message);
+        class_call(eft_load_linear_spectra(ppr, pba, pfo, ppm, pfo->peft + index_eft,
+                                          z_nl,
+                                          pvecback[pba->index_bg_f],
+                                          pvecback[pba->index_bg_D],
+                                          _TRUE_),
+                   pfo->peft[index_eft].error_message,
+                   pfo->error_message);
+      }
+    }
+
+    for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
+      class_call(eft_get_loop_matrices(pfo->peft + index_eft),
+                pfo->peft[index_eft].error_message,
                 pfo->error_message);
-
-
+    }
 
 
 
@@ -2173,10 +2255,14 @@ int fourier_init(
 int fourier_free(
                  struct fourier *pfo
                  ) {
-  int index_pk;
+  int i, index_pk;
 
   if (pfo->method == nl_oneloopPT) {
     FFTLog_rsd_free(pfo);
+    for (i = pfo->eft_size-1; i >= 0; i--) {
+      eft_free(pfo->peft);
+    }
+    free(pfo->peft);
   }
 
   if ((pfo->has_pk_matter == _TRUE_) || (pfo->method > nl_none)) {
@@ -2385,7 +2471,15 @@ int fourier_indices(
       class_alloc(pfo->ddln_pk_l_nw_extra, pfo->ln_tau_size*pfo->k_size_extra*sizeof(double), pfo->error_message);
 
     // TODO: move to main and disentangle with fourier
-    class_alloc(pfo->peft, sizeof(struct eft), pfo->error_message);
+    if (pfo->z_pk_eft_num == 1) {
+      if (pfo->eft_hp.use_EdS_time_scaling) {
+        pfo->eft_size = 1;
+      }
+      else {
+        pfo->eft_size = pfo->tau_size;
+      }
+    }
+    class_alloc(pfo->peft, pfo->eft_size * sizeof(struct eft), pfo->error_message);
   }
 
   return _SUCCESS_;

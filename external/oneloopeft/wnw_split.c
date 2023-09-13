@@ -28,6 +28,7 @@
  * @return the error status
  */
 int eft_ln_pk_nw_gfilter(
+                      struct precision *ppr,
                       struct background *pba,
                       struct primordial *ppm,
                       struct fourier *pfo,
@@ -89,7 +90,7 @@ int eft_ln_pk_nw_gfilter(
     for (it_k = 0; it_k < k_size; it_k++)
     {
       /** - compute the running smoothing scale */
-      smoothing_scale = 0.6907755279 * exp(-0.1320281879 * pow(pfo->ln_k[index_kmin + it_k] + 3.4538776395, 2.)) + 0.06907755279;
+      smoothing_scale = ppr->nw_smooth_amplitude * exp( -pow((pfo->ln_k[index_kmin + it_k] - ppr->nw_smooth_ln_k_center) / ppr->nw_smooth_ln_k_width, 2) ) + ppr->nw_smooth_const;
 
       /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
       class_call(array_integrate_all_spline_gaussian_window(intg_splines,
@@ -136,6 +137,7 @@ int eft_ln_pk_nw_gfilter(
  * @return the error status
  */
 int eft_ln_pk_nw_gfilter_parallel(
+                      struct precision *ppr,
                       struct background *pba,
                       struct primordial *ppm,
                       struct fourier *pfo,
@@ -158,7 +160,7 @@ int eft_ln_pk_nw_gfilter_parallel(
     
   }
 
-  #pragma omp parallel shared(pk_approx_f, k0, index_pk, index_k0, index_kmin, k_size, ln_pknw_array, pba, ppm, pfo, abort), \
+  #pragma omp parallel shared(pk_approx_f, k0, index_pk, index_k0, index_kmin, k_size, ln_pknw_array, ppr, pba, ppm, pfo, abort), \
                        private(it_k, it_q, it_tau, ln_pk0_z, smoothing_scale, intg_splines, intg_result, index_x, index_y, index_ddy, index_num), \
                        default(none), if(pfo->ln_tau_size > 1)
   {
@@ -211,8 +213,7 @@ int eft_ln_pk_nw_gfilter_parallel(
     for (it_k = 0; it_k < k_size; it_k++)
     {
       /** - compute the running smoothing scale */
-      smoothing_scale = 0.6907755279 * exp(-0.1320281879 * pow(intg_splines[(index_kmin + it_k)*index_num + index_x] + 3.4538776395, 2.)) \
-                          + 0.06907755279;
+      smoothing_scale = ppr->nw_smooth_amplitude * exp( -pow((intg_splines[(index_kmin + it_k)*index_num + index_x] - ppr->nw_smooth_ln_k_center) / ppr->nw_smooth_ln_k_width, 2) ) + ppr->nw_smooth_const;
 
       /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
       class_call_parallel(array_integrate_all_spline_gaussian_window(
@@ -265,6 +266,7 @@ int eft_ln_pk_nw_gfilter_parallel(
  * @return the error status
  */
 int eft_ln_pk_nw_gfilter_3d(
+                      struct precision *ppr,
                       struct background *pba,
                       struct primordial *ppm,
                       struct fourier *pfo,

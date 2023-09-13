@@ -33,7 +33,7 @@ AR        = ar rv
 PYTHON ?= python
 
 # your optimization flag
-OPTFLAG = -O3
+OPTFLAG = -Og
 #OPTFLAG = -Ofast -ffast-math #-march=native
 #OPTFLAG = -fast
 
@@ -43,8 +43,8 @@ OMPFLAG   = -fopenmp
 #OMPFLAG   = -openmp
 
 # all other compilation flags
-CCFLAG = -g -fPIC
-LDFLAG = -g -fPIC
+CCFLAG = -ggdb -fPIC
+LDFLAG = -ggdb -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. "external/RecfastCLASS")
@@ -93,12 +93,12 @@ endif
 # append (ps_halo_1loop.o) for OneloopPT Direct integration
 vpath %.c $(ONELOOPEFT)
 INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.1 -I../$(ONELOOPEFT) 
-EXTERNAL += utilities.o cosmology.o IR_res.o wnw_split.o pspec_FFTLog_real.o pspec_FFTLog_rsd.o FFTLog_ingredients.o FFTLog_real.o FFTLog_rsd.o
+EXTERNAL += eft_main.o kernel_matrices.o utilities.o cosmology.o IR_res.o wnw_split.o pspec_FFTLog_real.o pspec_FFTLog_rsd.o FFTLog_ingredients.o FFTLog_real.o FFTLog_rsd.o
 HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)  $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.1/*.h)
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
-TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o
+TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o fft.o common.o trigonometric_integrals.o ext_storage.o
 
 SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o fourier.o transfer.o harmonic.o lensing.o distortions.o
 

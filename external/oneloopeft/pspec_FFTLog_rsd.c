@@ -215,7 +215,7 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
                         + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[idx] + J11211[idx] + J21111[idx])) *D4\
                         + 2. * pow(f,2.) * (pow(b1,2.)*N11[idx]) *D4\
           + 2. * pow(f,2.) * (4.*b1*J12102[idx] + 2.*b1*J21102[idx] + b2*Jdelta202[idx] + 2.*bG2*JG202[idx] - pow(b1,2.)*Plin[idx]*sigma_v2) *D4;
-        //- 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[idx] *D2;
+        //+ 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[idx] *D2;
 
         //3-rd moment
         J21112x[idx] = pfo -> pk_halo_rsd_nl[idx] -> J21112x[index_k];
@@ -234,8 +234,6 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
                         + 12.* pow(f,3.)*(mu/k) * (J21112[idx] + 2.*J12112[idx]) *D4\
                         - 6. * pow(f,3.)*(mu/k) * b1*Plin[idx]*sigma_v2 *D4\
           + 12.* pow(f,3.) * b1*N12[idx] *D4;
-
-        // Moment_3[idx] = 12.* pow(f,3.)*(mu/k) * (2.*J12112[idx])*D4;// + 2.*J12112[idx]) *D4;
         //+ 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[idx] *D2;
 
         //4-th moment
@@ -258,10 +256,8 @@ int RSD_IR_Ressummed(struct fourier *pfo, struct background *pba,
 
     double P_wiggle = Plin[lin] - Plin[no_wiggle];
 
-    // double RSD_IR_Ressummed = RSD[no_wiggle] + pow(b1 + f*pow(mu,2.), 2.) * Plin[no_wiggle];
     double RSD_IR_Ressummed = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot)) *D2\
                             + RSD[no_wiggle] + suppression * (RSD[lin] - RSD[no_wiggle]);
-    // double RSD_IR_Ressummed = RSD[no_wiggle];
 
     *result = RSD_IR_Ressummed;
 

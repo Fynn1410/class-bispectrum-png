@@ -1,15 +1,17 @@
-//JL#include <stdlib.h>
-//JL#include <stdio.h>
-//JL#include <math.h>
-//JL#include <string.h>
+#include <complex.h>
+
+#ifndef __EFT_TOOLS__
+#define __EFT_TOOLS__
+
+extern struct fft_struct;
 
 #define _ERR_ARG_OUT_OF_RANGE_ 1
 #define _ERR_RES_OUT_OF_RANGE_ 2
 extern int _errno_util;
 extern double complex _err_last_arg;
 
-double complex cGamma(double complex z);
-double rGamma(double z);
+double complex cGamma(const double complex z);
+double rGamma(const double z);
 
 
 
@@ -39,3 +41,5 @@ double rGamma(double z);
 	void vecmult(double* arr1, double* arr2, int rows, double *result);
 	void c_dot(double complex* arr1, double complex* arr2, int rows, double * result);
 	void dot(double* arr1, double* arr2, int rows, double *result);
+
+  #endif

@@ -18,6 +18,13 @@
 
 #include "header.h"
 
+/** Integration measure for Sigma^2(z):  1 - j_0(q_osc) + 2 j_2(q_osc) 
+ * error is always below 1e-10
+*/
+inline double ir_sigma2_measure(const double q_osc) {
+  return (q_osc > 0.01) ? (1. - sin(q_osc) / q_osc + 2. * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) ))    \
+                        : (3.*q_osc*q_osc/10. - q_osc*q_osc*q_osc*q_osc/56.);
+}
 
 /**
  * @brief Compute the suppression factor Sigma^2(z) in real space
@@ -81,9 +88,7 @@ double eft_ir_sigma2(
   {
     q = exp(ln_q[it_q]);
     q_osc = q / k_bao;
-    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q]  \
-                                * (1. - sin(q_osc) / q_osc  \
-                                  + 2. * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) ) );
+    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q] * ir_sigma2_measure(q_osc);
                                 /** q * P_nw(z, q) * (1 - j_0(q/k_BAO) + 2 j_2(q/k_bao)) */
   }
 
@@ -125,6 +130,13 @@ double eft_ir_sigma2(
   return result;
 }
 
+/** Integration measure for Sigma^2(z):  j_2(q_osc)
+ * error is always below 1e-10, except at the roots
+*/
+inline double ir_dsigma2_measure(const double q_osc) {
+  return (q_osc > 0.01) ? ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc))    \
+                        : (q_osc*q_osc/15. - q_osc*q_osc*q_osc*q_osc/210.);
+}
 
 /**
  * @brief Compute the suppression factor IR_sigma2 in redshift space (CLASS-PT: 2004.106007v2 p. 15)
@@ -189,9 +201,8 @@ double eft_ir_dsigma2(
   {
     q = exp(ln_q[it_q]);
     q_osc = q / k_bao;
-    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q]  \
-                                * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) );
-                                /** q * P_nw(z, q) * j_2(q/k_bao) */
+    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q] * ir_dsigma2_measure(q_osc);
+                                              /** q * P_nw(z, q) * j_2(q/k_bao) */
   }
 
   /** - spline the integrand */
@@ -242,8 +253,7 @@ double eft_ir_dsigma2(
  * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
  * @param kvec_size Input: size of array of wavenumbers
  * @param z         Input: redshift
- * @param k_split   Input: long/short mode separating scale (end of integration region)
- * @param k_bao     Input: wavenumber of BAO scale (default h/(110. Mpc))
+ * @param sigma2    Input: infrared-suppression factor in the exponent at z
  * @param out_pk    Output: the leading-order IR resummed power spectrum
  *
  * @return the error status
@@ -256,12 +266,11 @@ int eft_ir_pk_lo(
             double * ln_kvec,
             const int kvec_size,
             const double z,
-            const double k_split,
-            const double k_bao,
+            const double sigma2_ir_at_z,
             double * out_pk) {
   
   int it_k;
-  double sigma2, pk_w, k;
+  double pk_w, k;
   double *kvec, *pk_lin, *pk_nw;
 
   class_alloc(kvec,   kvec_size*sizeof(double), pfo->error_message);
@@ -298,15 +307,12 @@ int eft_ir_pk_lo(
             pfo->error_message,
             pfo->error_message);
 
-  /** - get the suppression factor */
-  sigma2 = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);
-
   for (it_k = 0; it_k < kvec_size; it_k++)
   {
     /** - compute the IR resummed spectrum */
     k = kvec[it_k];
     pk_w = pk_lin[it_k] - pk_nw[it_k];
-    out_pk[it_k] = pk_nw[it_k] + exp(-k*k * sigma2) * pk_w;
+    out_pk[it_k] = pk_nw[it_k] + exp(-k*k * sigma2_ir_at_z) * pk_w;
   }
 
   free(kvec);
@@ -333,8 +339,7 @@ int eft_ir_pk_lo(
  * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
  * @param kvec_size Input: size of array of wavenumbers
  * @param z         Input: redshift
- * @param k_split   Input: long/short mode separating scale (end of integration region)
- * @param k_bao     Input: wavenumber of BAO scale (default h/(110. Mpc))
+ * @param sigma2    Input: infrared-suppression factor in the exponent at z
  * @param out_pk    Output: the leading-order IR resummed power spectrum
  *
  * @return the error status
@@ -347,12 +352,11 @@ int eft_ir_pk_nlo(
             double * ln_kvec,
             const int kvec_size,
             const double z,
-            const double k_split,
-            const double k_bao,
+            const double sigma2_ir_at_z,
             double * out_pk) {
   
   int it_k;
-  double sigma2, pk_w, k;
+  double pk_w, k;
   double *kvec, *pk_lin, *pk_nw;
 
   class_alloc(kvec,   kvec_size*sizeof(double), pfo->error_message);
@@ -388,16 +392,13 @@ int eft_ir_pk_nlo(
                                         pk_nw),
             pfo->error_message,
             pfo->error_message);
-
-  /** - get the suppression factor */
-  sigma2 = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);
-
+  
   for (it_k = 0; it_k < kvec_size; it_k++)
   {
     /** - compute the IR resummed spectrum */
     k = kvec[it_k];
     pk_w = pk_lin[it_k] - pk_nw[it_k];
-    out_pk[it_k] = pk_nw[it_k] + exp(-k*k * sigma2) * pk_w * (1. + k*k * sigma2);
+    out_pk[it_k] = pk_nw[it_k] + exp(-k*k * sigma2_ir_at_z) * pk_w * (1. + k*k * sigma2_ir_at_z);
   }
 
   free(kvec);
@@ -415,6 +416,211 @@ int eft_ir_pk_nlo(
 
 
 /**
+ * @brief Compute the leading-order IR-resummed matter power spectrum in RSD space, ala Ivanovic et al.
+ *
+ * @param pba       Input: pointer to background structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pfo       Input: pointer to fourier structure
+ * @param mode      Input: linear or logarithmic
+ * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
+ * @param kvec_size Input: size of array of wavenumbers
+ * @param z         Input: redshift
+ * @param f         Input: growth factor f(z)
+ * @param muvec     Input: array of line-of-sight angles w.r.t. the RSD direction (cos(theta))
+ * @param mu_size   Input: size of array of angles
+ * @param sigma2_ir_at_z    Input: infrared-suppression factor in the exponent at z
+ * @param dsigma2_ir_at_z   Input: next order of infrared-suppression factor
+ * @param out_pk    Output: the leading-order IR-resummed RSD power spectrum
+ *                          indexed as out_pk[index_mu][index_k]
+ *
+ * @return the error status
+ */
+int eft_ir_pk_rsd_lo(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            enum linear_or_logarithmic mode,
+            double * ln_kvec,
+            const int kvec_size,
+            const double z,
+            const double f,
+            double * muvec,
+            const int mu_size,
+            const double sigma2_ir_at_z,
+            const double dsigma2_ir_at_z,
+            double ** out_pk) {
+  
+  int it_k, it_mu;
+  double pk_w, k, mu, sigma2_tot;
+  double *kvec, *pk_lin, *pk_nw;
+
+  class_alloc(kvec,   kvec_size*sizeof(double), pfo->error_message);
+  class_alloc(pk_lin, kvec_size*sizeof(double), pfo->error_message);
+  class_alloc(pk_nw,  kvec_size*sizeof(double), pfo->error_message);
+
+  for (it_k = 0; it_k < kvec_size; it_k++)
+    kvec[it_k] = exp( ln_kvec[it_k] );
+
+  /** - get the linear power spectrum at z */
+  class_call(fourier_pks_at_kvec_and_zvec(pba, pfo,
+                                          pk_linear,
+                                          kvec,
+                                          kvec_size,
+                                          &z,
+                                          1,
+                                          pk_nw,  /**< will be overwritten */
+                                          pk_lin),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - if pk_cb is not available, use pk_m */
+  if (!pfo->has_pk_cb) {
+    memcpy(pk_lin, pk_nw, kvec_size*sizeof(double));
+  }
+
+  /** - get the nowiggle power spectrum at z */
+  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
+                                        linear,
+                                        ln_kvec,
+                                        kvec_size,
+                                        z,
+                                        pk_nw),
+            pfo->error_message,
+            pfo->error_message);
+  
+  for (it_mu = 0; it_mu < mu_size; it_mu++) {
+    /** - compute the total mu-dependent suppression factor */
+    mu = muvec[it_mu];
+    sigma2_tot = (1. + f*mu*mu*(2. + f)) * sigma2_ir_at_z     \
+                + f*f*mu*mu*(mu*mu - 1.) * dsigma2_ir_at_z;
+    for (it_k = 0; it_k < kvec_size; it_k++)
+    {
+      /** - compute the IR resummed spectrum */
+      k = kvec[it_k];
+      pk_w = pk_lin[it_k] - pk_nw[it_k];
+      out_pk[it_mu][it_k] = pk_nw[it_k] + exp(-k*k * sigma2_tot) * pk_w * (1. + k*k * sigma2_tot);
+    }
+  }
+
+  free(kvec);
+  free(pk_lin);
+  free(pk_nw);
+
+  /** - convert to logarithmic output if needed */
+  if (mode == logarithmic) {
+    for (it_mu = 0; it_mu < mu_size; it_mu++) {
+      for (it_k = 0; it_k < kvec_size; it_k++)
+        out_pk[it_mu][it_k] = log( out_pk[it_mu][it_k] );
+    }
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Compute the next-to-leading-order IR-resummed matter power spectrum in RSD space, ala Ivanovic et al.
+ *
+ * @param pba       Input: pointer to background structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pfo       Input: pointer to fourier structure
+ * @param mode      Input: linear or logarithmic
+ * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
+ * @param kvec_size Input: size of array of wavenumbers
+ * @param z         Input: redshift
+ * @param f         Input: growth factor f(z)
+ * @param muvec     Input: array of line-of-sight angles w.r.t. the RSD direction (cos(theta))
+ * @param mu_size   Input: size of array of angles
+ * @param sigma2_ir_at_z    Input: infrared-suppression factor in the exponent at z
+ * @param dsigma2_ir_at_z   Input: next order of infrared-suppression factor
+ * @param out_pk    Output: the next-to-leading-order IR-resummed RSD power spectrum
+ *                          indexed as out_pk[index_mu][index_k]
+ *
+ * @return the error status
+ */
+int eft_ir_pk_rsd_nlo(
+            struct background * pba,
+            struct primordial * ppm,
+            struct fourier * pfo,
+            enum linear_or_logarithmic mode,
+            double * ln_kvec,
+            const int kvec_size,
+            const double z,
+            const double f,
+            double * muvec,
+            const int mu_size,
+            const double sigma2_ir_at_z,
+            const double dsigma2_ir_at_z,
+            double ** out_pk) {
+  
+  int it_k, it_mu;
+  double pk_w, k, mu, sigma2_tot;
+  double *kvec, *pk_lin, *pk_nw;
+
+  class_alloc(kvec,   kvec_size*sizeof(double), pfo->error_message);
+  class_alloc(pk_lin, kvec_size*sizeof(double), pfo->error_message);
+  class_alloc(pk_nw,  kvec_size*sizeof(double), pfo->error_message);
+
+  for (it_k = 0; it_k < kvec_size; it_k++)
+    kvec[it_k] = exp( ln_kvec[it_k] );
+
+  /** - get the linear power spectrum at z */
+  class_call(fourier_pks_at_kvec_and_zvec(pba, pfo,
+                                          pk_linear,
+                                          kvec,
+                                          kvec_size,
+                                          &z,
+                                          1,
+                                          pk_nw,  /**< will be overwritten */
+                                          pk_lin),
+            pfo->error_message,
+            pfo->error_message);
+
+  /** - if pk_cb is not available, use pk_m */
+  if (!pfo->has_pk_cb) {
+    memcpy(pk_lin, pk_nw, kvec_size*sizeof(double));
+  }
+
+  /** - get the nowiggle power spectrum at z */
+  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
+                                        linear,
+                                        ln_kvec,
+                                        kvec_size,
+                                        z,
+                                        pk_nw),
+            pfo->error_message,
+            pfo->error_message);
+  
+  for (it_mu = 0; it_mu < mu_size; it_mu++) {
+    /** - compute the total mu-dependent suppression factor */
+    mu = muvec[it_mu];
+    sigma2_tot = (1. + f*mu*mu*(2. + f)) * sigma2_ir_at_z     \
+                + f*f*mu*mu*(mu*mu - 1.) * dsigma2_ir_at_z;
+    for (it_k = 0; it_k < kvec_size; it_k++)
+    {
+      /** - compute the IR resummed spectrum */
+      k = kvec[it_k];
+      pk_w = pk_lin[it_k] - pk_nw[it_k];
+      out_pk[it_mu][it_k] = pk_nw[it_k] + exp(-k*k * sigma2_tot) * pk_w * (1. + k*k * sigma2_tot);
+    }
+  }
+
+  free(kvec);
+  free(pk_lin);
+  free(pk_nw);
+
+  /** - convert to logarithmic output if needed */
+  if (mode == logarithmic) {
+    for (it_mu = 0; it_mu < mu_size; it_mu++) {
+      for (it_k = 0; it_k < kvec_size; it_k++)
+        out_pk[it_mu][it_k] = log( out_pk[it_mu][it_k] );
+    }
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
  * @brief Compute moments of the different power spectra as
  *        d(s_n^2(z)) = 1/(2 pi^2) dln(q) q^(2(n+1)+1) P_xx(q)
  *
@@ -423,9 +629,7 @@ int eft_ir_pk_nlo(
  * @param pfo         Input: pointer to fourier structure
  * @param n           Input: integer specifying the moment
  * @param z           Input: redshift
- * @param use_pk_type Input: sets the type of linear power spectrum {pk_lin, pk_nowiggle, pk_ir_resummed_lo/nlo}
- * @param k_split     Input: [only needed for pk_ir_resummed*] long/short mode separating scale (end of integration region)
- * @param k_bao       Input: [only needed for pk_ir_resummed*] wavenumber of BAO scale (default h/(110. Mpc))
+ * @param use_pk_type Input: sets the type of linear power spectrum {pk_lin, pk_nowiggle}
  *
  * @return value of the requested moment at z
  */
@@ -435,9 +639,7 @@ double eft_pk_moment(
               struct fourier * pfo, 
               const int n,
               const double z, 
-              enum eft_pk_type use_pk_type,
-              const double k_split,
-              const double k_bao) {
+              enum eft_pk_type use_pk_type) {
 
   int index_y, index_ddy, index_num = 0, it_q;
   double q, result;
@@ -477,31 +679,31 @@ double eft_pk_moment(
               pfo->error_message);
     break;
 
-  case pk_ir_resummed_lo:
-    class_call(eft_ir_pk_lo(pba, ppm, pfo,
-                            linear,
-                            pfo->ln_k,
-                            pfo->k_size_extra,
-                            z,
-                            k_split,
-                            k_bao,
-                            pk),
-              pfo->error_message,
-              pfo->error_message);
-    break;
+  // case pk_ir_resummed_lo:
+  //   class_call(eft_ir_pk_lo(pba, ppm, pfo,
+  //                           linear,
+  //                           pfo->ln_k,
+  //                           pfo->k_size_extra,
+  //                           z,
+  //                           k_split,
+  //                           k_bao,
+  //                           pk),
+  //             pfo->error_message,
+  //             pfo->error_message);
+  //   break;
 
-  case pk_ir_resummed_nlo:
-    class_call(eft_ir_pk_nlo(pba, ppm, pfo,
-                            linear,
-                            pfo->ln_k,
-                            pfo->k_size_extra,
-                            z,
-                            k_split,
-                            k_bao,
-                            pk),
-              pfo->error_message,
-              pfo->error_message);
-    break;
+  // case pk_ir_resummed_nlo:
+  //   class_call(eft_ir_pk_nlo(pba, ppm, pfo,
+  //                           linear,
+  //                           pfo->ln_k,
+  //                           pfo->k_size_extra,
+  //                           z,
+  //                           k_split,
+  //                           k_bao,
+  //                           pk),
+  //             pfo->error_message,
+  //             pfo->error_message);
+  //   break;
 
   default:
     free(intg_splines);

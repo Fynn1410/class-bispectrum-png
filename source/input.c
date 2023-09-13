@@ -1303,7 +1303,8 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 5: nonlinear\n");
     fo.fourier_verbose = 0;
-    class_call_except(fourier_init(&pr,&ba,&th,&pt,&pm,&fo), fo.error_message, errmsg, primordial_free(&pm);perturbations_free(&pt);thermodynamics_free(&th);background_free(&ba));
+    //TODO: use the xternal storage for shooting
+    class_call_except(fourier_init(&pr,&ba,&th,&pt,&pm,&fo,NULL), fo.error_message, errmsg, primordial_free(&pm);perturbations_free(&pt);thermodynamics_free(&th);background_free(&ba));
   }
 
   if (pfzw->required_computation_stage >= cs_transfer){
@@ -3360,8 +3361,9 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
                                     ErrorMsg errmsg){
 
   /** Define local variables */
-  int flag1,flag2,flag3;
+  int flag1,flag2,flag3,size,n;
   double param2,param3;
+  double * plist;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) Non-linearity */
@@ -3453,17 +3455,110 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       class_read_double("z_infinity", pfo->z_infinity);
     }
     else if((strstr(string1,"oneloopPT") != NULL) || (strstr(string1,"1loopPT") != NULL) || (strstr(string1,"OneloopPT") != NULL)) {
-      pfo->method=nl_oneloopPT;
+      pfo->method = nl_oneloopPT;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->nonlinear_min_k_max);
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk, ppr->nonlinear_min_k_max);
 
-      class_call(parser_read_string(pfc,"has_rsd",&string1,&flag1,errmsg),
-            errmsg,
-            errmsg);
+      class_call(parser_read_string(pfc, "has_rsd", &string1, &flag1, errmsg),
+                  errmsg,
+                  errmsg);
+
+      class_read_double("nowiggle_k_split_h/Mpc", pfo->wnw_k_split);
+      class_read_double("nowiggle_k_bao_h/Mpc", pfo->wnw_k_feature);
 
       if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+        //pfo->eft_hp.has_rsd = _TRUE_;
         pfo->has_rsd = _TRUE_;
       }
+
+      class_read_flag("has_rsd", pfo->eft_hp.has_rsd);
+      class_read_flag("eft_use_eds_scaling", pfo->eft_hp.use_EdS_time_scaling);
+      //class_read_flag("eft_time_independent_kernels", pfo->eft_hp.use_time_independent_kernels);
+
+      /** Read list of redshift at which to evaluate nonlinear spectra */
+      class_call(parser_read_list_of_doubles(pfc, "z_pk_eft", &size, &plist, &flag1, errmsg),
+                  errmsg,
+                  errmsg);
+      if (flag1 == _TRUE_) {
+        /** - discrete list of z was given, therefore initialize an appropriate amount of eft structs */
+        pfo->z_pk_eft_num = size;
+        class_alloc(pfo->z_pk_eft, size, errmsg);
+        class_protect_memcpy(pfo->z_pk_eft, plist, size*sizeof(double));
+        free(plist);
+
+        pfo->eft_size = size;
+      }
+      else {
+        pfo->z_pk_eft_num = 1;
+        class_alloc(pfo->z_pk_eft, 1, errmsg);
+        pfo->z_pk_eft[0] = 0.;
+      }
+
+      class_alloc(pfo->eft_ip, pfo->z_pk_eft_num*sizeof(struct eft_input_parameters), errmsg);
+
+      for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].has_rsd = _FALSE_;  /**< RSD counterterm values are given */ }
+
+      class_read_list_of_doubles_or_default("b1",  plist,  1., pfo->z_pk_eft_num);
+      for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].b1 = plist[n]; } free(plist);
+      class_read_list_of_doubles_or_default("b2",  plist,  0., pfo->z_pk_eft_num);
+      for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].b2 = plist[n]; } free(plist);
+      class_read_list_of_doubles_or_default("bG2", plist,  0., pfo->z_pk_eft_num);
+      for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].bG2 = plist[n]; } free(plist);
+      class_read_list_of_doubles_or_default("btd", plist,  0., pfo->z_pk_eft_num);
+      for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].btd = plist[n]; } free(plist);
+      class_read_list_of_doubles_or_default("cs2", plist,  0., pfo->z_pk_eft_num);
+      for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].cs2 = plist[n]; } free(plist);
+      class_read_list_of_doubles_or_default("R2",  plist,  0., pfo->z_pk_eft_num);
+      for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].R2 = plist[n]; } free(plist);
+
+      // class_read_double("b1", pfo->eft_ip.b1);
+      // class_read_double("b2", pfo->eft_ip.b2);
+      // class_read_double("bG2", pfo->eft_ip.bG2);
+      // class_read_double("btd", pfo->eft_ip.btd);
+
+      // class_read_double("cs2", pfo->eft_ip.cs2);
+      // class_read_double("R2", pfo->eft_ip.R2);
+
+      if (pfo->eft_hp.has_rsd == _TRUE_) {
+        class_read_list_of_doubles_or_default("c00",  plist,  0., pfo->z_pk_eft_num);
+        for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].c00 = plist[n]; } free(plist);
+        class_read_list_of_doubles_or_default("c10",  plist,  0., pfo->z_pk_eft_num);
+        for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].c10 = plist[n]; } free(plist);
+        class_read_list_of_doubles_or_default("c20",  plist,  0., pfo->z_pk_eft_num);
+        for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].c20 = plist[n]; } free(plist);
+        class_read_list_of_doubles_or_default("c22",  plist,  0., pfo->z_pk_eft_num);
+        for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].c22 = plist[n]; } free(plist);
+        class_read_list_of_doubles_or_default("c30",  plist,  0., pfo->z_pk_eft_num);
+        for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].c30 = plist[n]; } free(plist);
+        class_read_list_of_doubles_or_default("c32",  plist,  0., pfo->z_pk_eft_num);
+        for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].c32 = plist[n]; } free(plist);
+        class_read_list_of_doubles_or_default("c42",  plist,  0., pfo->z_pk_eft_num);
+        for (n = 0; n < pfo->z_pk_eft_num; n++) { pfo->eft_ip[n].c42 = plist[n]; } free(plist);
+
+        // class_read_double("c00", pfo->eft_ip.c00);
+        // class_read_double("c10", pfo->eft_ip.c10);
+        // class_read_double("c20", pfo->eft_ip.c20);
+        // class_read_double("c22", pfo->eft_ip.c22);
+        // class_read_double("c30", pfo->eft_ip.c30);
+        // class_read_double("c32", pfo->eft_ip.c32);
+        // class_read_double("c42", pfo->eft_ip.c42);
+        for (n = 0; n < pfo->z_pk_eft_num; n++) {
+          if ((pfo->eft_ip[n].c00 != 0.) || (pfo->eft_ip[n].c10 != 0.) || (pfo->eft_ip[n].c20 != 0.) || (pfo->eft_ip[n].c22 != 0.) || (pfo->eft_ip[n].c30 != 0.) || (pfo->eft_ip[n].c32 != 0.) || (pfo->eft_ip[n].c42 != 0.)) {
+            pfo->eft_ip[n].has_rsd = _TRUE_;
+          }
+        }
+      }
+
+      class_read_double("eft_kmin_matter", pfo->eft_hp.kmin_lin[eft_matter]);
+      class_read_double("eft_kmin_halo", pfo->eft_hp.kmin_lin[eft_halo]);
+      class_read_double("eft_kmax_matter", pfo->eft_hp.kmax_lin[eft_matter]);
+      class_read_double("eft_kmax_halo", pfo->eft_hp.kmax_lin[eft_halo]);
+      class_read_double("eft_log_period_matter", pfo->eft_hp.period[eft_matter]);
+      class_read_double("eft_log_period_halo", pfo->eft_hp.period[eft_halo]);
+      class_read_double("eft_bias_matter", pfo->eft_hp.bias[eft_matter]);
+      class_read_double("eft_bias_halo", pfo->eft_hp.bias[eft_halo]);
+      class_read_flag("eft_compute_loop_matrices", pfo->eft_hp.compute_loop_matrices);
+      class_read_flag("eft_enable_mu_approximation", pfo->eft_hp.compute_mu_approximation);
 
       class_read_double("b1", pfo->b1);
       class_read_double("b2", pfo->b2);
@@ -5189,6 +5284,7 @@ int input_read_parameters_output(struct file_content * pfc,
   class_read_int("primordial_verbose",ppm->primordial_verbose);
   class_read_int("harmonic_verbose",phr->harmonic_verbose);
   class_read_int("fourier_verbose",pfo->fourier_verbose);
+  class_read_int("eft_verbose",pfo->eft_hp.eft_verbose);
   class_read_int("lensing_verbose",ple->lensing_verbose);
   class_read_int("distortions_verbose",psd->distortions_verbose);
   class_read_int("output_verbose",pop->output_verbose);
@@ -5610,6 +5706,23 @@ int input_default_params(struct background *pba,
   pfo->c30 =  0.;
   pfo->c32 =  0.;
   pfo->c42 =  0.;
+
+  pfo->wnw_k_split = 0.2; 
+  pfo->wnw_k_feature = 1./110.;
+  
+  pfo->eft_hp.has_rsd = _FALSE_;  /**< RSD moments should be computed */
+  pfo->eft_hp.kmin_lin[eft_matter] = 1.e-6;
+  pfo->eft_hp.kmin_lin[eft_halo]   = 1.e-6;
+  pfo->eft_hp.kmax_lin[eft_matter] = 1.e3;
+  pfo->eft_hp.kmax_lin[eft_halo]   = 4.e3;
+  pfo->eft_hp.period[eft_matter]   = log(2.e9);
+  pfo->eft_hp.period[eft_halo]     = log(8.e9);
+  pfo->eft_hp.bias[eft_matter]     = -0.3;
+  pfo->eft_hp.bias[eft_halo]       = -1.55;
+  pfo->eft_hp.use_EdS_time_scaling = _TRUE_;
+  pfo->eft_hp.use_time_independent_kernels = _TRUE_;
+  pfo->eft_hp.compute_loop_matrices = _TRUE_;
+  pfo->eft_hp.compute_mu_approximation = _TRUE_;
 
   /**
    * Default to input_read_parameters_primordial

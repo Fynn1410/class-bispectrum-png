@@ -2023,7 +2023,7 @@ int perturbations_get_k_list(
 
     /* first value */
     if (pba->sgnK == 0) {
-      /* K<0 (flat)  : start close to zero */
+      /* K=0 (flat)  : start close to zero */
       k_min=ppr->k_min_tau0/pba->conformal_age;
     }
     else if (pba->sgnK == -1) {

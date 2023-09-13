@@ -47,6 +47,7 @@ void FFT_planner_free(struct FFT_plan** planned);
 void DCT_noplan(double* input, double* output, int N);
 void DCT_planned(double* input, double* output, struct DCT_plan* dct_plan);
 
+void FFT_planner_alloc(int N, struct FFT_plan** planned);
 void DCT_planner_init(int N, struct DCT_plan** planned);
 void DCT_planner_free(struct DCT_plan** planned);
 #endif

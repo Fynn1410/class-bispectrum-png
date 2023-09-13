@@ -3,13 +3,13 @@
 #include "primordial.h"
 #include "trigonometric_integrals.h"
 
-#include "../external/oneloopeft/header.h"
-
-
 #include <complex.h>
 
 #ifndef __FOURIER__
 #define __FOURIER__
+
+/** - definitions for usage of EFT */
+#include "../external/oneloopeft/header.h"
 
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
@@ -394,6 +394,9 @@ struct fourier {
 
   //@{
 
+  double wnw_k_split; /**< Wiggle/No-wiggle mode split (end of integration region); default 0.2 h/Mpc */
+  double wnw_k_feature; /**< Position of the BAO feature; default 1/110 h/Mpc */
+
   double * ln_pk_l_nw_extra; /**< No-wiggle linear power spectrum.
                             Computed from ln_pk_l_extra[index_pk_cb] or ln_pk_l_extra[index_pk_m] in this priority. 
                             ln_pk_l_nw_extra[index_tau * pfo->k_size_extra + index_k]   */
@@ -436,7 +439,12 @@ struct fourier {
  
   /** @name - parameters for the oneloop FFTLog method */
 
-  struct eft * peft;
+  struct eft * peft;  /**< EFTofLSS module(s) for each time at which non-linear corrections should be computed */
+  int eft_size;
+  double * z_pk_eft;
+  int z_pk_eft_num;
+  struct eft_input_parameters * eft_ip; /**< Bias and counterterm values for EFTofLSS read by the input module */
+  struct eft_hyper_parameters eft_hp; /**< Hyperparamaters for EFTofLSS made up of input and precision settings */
 
   // FFTLog solutions for the Linear Power Spectrum / no-wiggle Linear Power Spectrum -> index coming from enum rsd_ir_type
 
@@ -503,6 +511,11 @@ struct fourier_workspace {
 
 };
 
+extern struct ext_storage;
+extern int ext_insert_eft(struct ext_storage * pext,
+                   struct eft * peft,
+                   const int index,
+                   ErrorMsg errmsg);
 
 
 /********************************************************************************/
@@ -657,7 +670,8 @@ extern "C" {
                      struct thermodynamics *pth,
                      struct perturbations *ppt,
                      struct primordial *ppm,
-                     struct fourier *pfo
+                     struct fourier *pfo,
+                     struct ext_storage *pext
                      );
 
   int fourier_free(

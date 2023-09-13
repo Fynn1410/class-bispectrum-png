@@ -100,6 +100,7 @@ cdef class Class:
     cdef lensing le
     cdef distortions sd
     cdef file_content fc
+    cdef ext_storage ex
 
     cpdef int computed # Flag to see if classy has already computed with the given pars
     cpdef int allocated # Flag to see if classy structs are allocated already
@@ -406,7 +407,7 @@ cdef class Class:
 
         if "fourier" in level:
             if fourier_init(&self.pr, &self.ba, &self.th,
-                              &self.pt, &self.pm, &self.fo) == _FAILURE_:
+                              &self.pt, &self.pm, &self.fo, &self.ex) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.fo.error_message)
             self.ncp.add("fourier")

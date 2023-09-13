@@ -899,6 +899,19 @@ void FFT_real_planned(double* input_real_1, double* input_real_2, double* output
  * */
 
 /**
+ * Allocate the FFT planner.
+ *  -> Give an ADDRESS of the pointer you want to allocate
+ * */
+void FFT_planner_alloc(int N, struct FFT_plan** planned){
+  (*planned) = (struct FFT_plan*)malloc(sizeof(struct FFT_plan));
+  (*planned)->N=N;
+  (*planned)->cos_vals = (double*)malloc(N*sizeof(double));
+  (*planned)->sin_vals = (double*)malloc(N*sizeof(double));
+  (*planned)->temp_real = (double*)malloc(N*sizeof(double));
+  (*planned)->temp_imag = (double*)malloc(N*sizeof(double));
+}
+
+/**
  * Initialize and allocate the FFT planner.
  *  -> Give an ADDRESS of the pointer you want to allocate
  * */

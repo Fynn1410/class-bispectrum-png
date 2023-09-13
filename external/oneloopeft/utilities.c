@@ -27,6 +27,20 @@
 int _errno_util = 0;
 double complex _err_last_arg = CMPLX(0., 0.);
 
+/**
+ * @brief Retrieves the error status of the EFT tools module.
+ * 
+ * @param last_argument   Input: allocated double[2] array for the input arguments that lead to an error
+ * @return the error status
+*/
+int get_error_status(double * last_argument)
+{
+  last_argument[0] = creal(_err_last_arg);
+  last_argument[1] = cimag(_err_last_arg);
+  return _errno_util;
+}
+
+
 #define LANCZOS_GAMMA_N 13
 /**
  * @brief Complex Gamma function approximated using the
@@ -35,7 +49,7 @@ double complex _err_last_arg = CMPLX(0., 0.);
  * @param z     Input: Complex argument
  * @return      value of Gamma(z) / NaN at a singularity
 */
-double complex cGamma(double complex z)
+double complex cGamma(const double complex z)
 {
   const double g = 6.0246800407767295;
   const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
@@ -53,7 +67,7 @@ double complex cGamma(double complex z)
   if (r < 0.5)
   {
     /** - check the distance to the singularity */
-    if (cabs(z - rint(r)) < _EPSILON_) {
+    if (cabs(z - rint(r)) < _EPSILON_) {  /** - uses current rounding-mode, which defaults to round-to-nearest */
       _errno_util |= _ERR_RES_OUT_OF_RANGE_;
       _err_last_arg = z;
       #ifdef NAN
@@ -81,7 +95,7 @@ double complex cGamma(double complex z)
  * @param x     Input: Real argument
  * @return      value of Gamma(x) / NaN at a singularity
 */
-double rGamma(double x)
+double rGamma(const double x)
 {
   const double g = 6.0246800407767295;
   const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
@@ -97,7 +111,7 @@ double rGamma(double x)
   if (x < 0.5)
   {
     /** - check the distance to the singularity */
-    if ((fabs(x - rint(x)) < _EPSILON_)) {
+    if ((fabs(x - rint(x)) < _EPSILON_)) {  /** - uses current rounding-mode, which defaults to round-to-nearest */
       _errno_util = _ERR_RES_OUT_OF_RANGE_;
       _err_last_arg = x;
       #ifdef NAN

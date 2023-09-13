@@ -544,6 +544,23 @@ class_precision_parameter(nsteps_for_p1h_integral,int,256)
 class_precision_parameter(mmin_for_p1h_integral,double,1.e3)
 class_precision_parameter(mmax_for_p1h_integral,double,1.e18)
 
+/**
+ * No-wiggle linear power spectrum computation
+ * smoothing_scale = const + amplitude * Exp( -(ln(k) - ln_k_center)^2/ln_k_width^2 )
+*/
+class_precision_parameter(nw_smooth_const,double,0.06907755279)
+class_precision_parameter(nw_smooth_amplitude,double,0.6907755279)
+class_precision_parameter(nw_smooth_ln_k_center,double,-3.4538776395)
+class_precision_parameter(nw_smooth_ln_k_width,double,2.752115578658)
+
+/**
+ * EFT precision parameters
+ */
+class_precision_parameter(eft_fourier_mode,int,1) /**< use either FFT (=0) or exact Spline Fourier transform (=1) */
+class_precision_parameter(eft_num_sample_points,int,300)  /**< number of sample points for the splines of the linear spectrum against ln(k) */
+class_precision_parameter(eft_bao_oversampling,double,8.) /**< sample point density increases by this factor at the BAO */
+class_precision_parameter(eft_num_positive_frequencies,int,128)  /**< number of positive frequencies at which to sample the Fourier transform */
+class_precision_parameter(eft_fourier_condition_num_threshold,double,100.0)  /**< Threshold of the condition number of the Spline Fourier transform for usage of compensated summation */
 
 /*
  * Lensing precision parameters

@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (fourier_init(&pr,&ba,&th,&pt,&pm,&fo) == _FAILURE_) {
+  if (fourier_init(&pr,&ba,&th,&pt,&pm,&fo,NULL) == _FAILURE_) {
     printf("\n\nError in fourier_init \n=>%s\n",fo.error_message);
     return _FAILURE_;
   }

@@ -336,6 +336,67 @@ int array_derive_two(
 
 
 /**
+ * @brief Thomas algorithm for tridiagonal systems of linear equations.
+ *        Stable if the coefficient matrix is diagonally dominant or symmetric positive-definite.
+ *         
+ * @param size          Input: size of the coefficient matrix [size*size = (n+1)*(n+1)]
+ * @param diag          Input: array of diagonal elements [size] with elements mu_i = diag[i]
+ * @param superdiag     Input: array of super-diagonal elements [size-1] with elements lambda_i = superdiag[i]
+ * @param subdiag       Input: array of sub-diagonal elements [size-1] with elements kappa_i = subdiag[i-1]
+ * @param constant      Input: constant vector [size] with elements b_i = constant[i]
+ * @param solution      Output: solution vector [size] with elements x_i = solution[i]; externally allocated
+ * @param superdiag_f   In/Output: array of forward super-diagonal elements [size-1] with elements lambda'_i = superdiag_f[i]; externally allocated
+ * @param compute_forward_superdiagonal   Input: overwrite the forward super-diagonal elements in superdiag_f
+ * @param constant_f   Output: forward constant vector [size] with elements b'_i = constant_f[i]; externally allocated
+ * 
+ * @return the error status
+ */
+int arrays_tridiagonal_solve(const int size,
+                            const double * const diag,
+                            const double * const superdiag,
+                            const double * const subdiag,
+                            const double * const constant,
+                            double * solution,
+                            double * superdiag_f,
+                            const short compute_forward_superdiagonal,
+                            double * constant_f) {
+  
+  int it;
+  double denom;
+
+  /** - forward sweep */
+  if (compute_forward_superdiagonal) {  /** - compute the forward-substituted superdiagonal coefficients */
+    superdiag_f[0] = superdiag[0] / diag[0];  // lambda'_0 = lambda_0 / mu_0
+    constant_f[0]  = constant[0] / diag[0];   // b'_0 = b_0 / mu0
+    for (it=1; it < size-1; it++) { // from 1 to n-1
+      denom = diag[it] - subdiag[it-1] * superdiag_f[it-1]; // (mu_i - kappa_i * lambda'_{i-1})
+      superdiag_f[it] = superdiag[it] / denom;  // lambda'_i = lambda_i / (mu_i - kappa_i * lambda'_{i-1})
+      constant_f[it]  = (constant[it] - subdiag[it-1] * constant_f[it-1]) / denom;  // b'_i = (b_i - kappa_i * b'_{i-1})/(mu_i - kappa_i * lambda'_{i-1})
+    }
+    denom = diag[size-1] - subdiag[size-2] * superdiag_f[size-2]; // (mu_n - kappa_n * lambda'_{n-1})
+    constant_f[size-1] = (constant[size-1] - subdiag[size-2] * constant_f[size-2]) / denom; // b'_n = (b_n - kappa_n * b'_{n-1})/(mu_n - kappa_n * lambda'_{n-1})
+  }
+  else {  /** - use predefined forward-substituted superdiagonal coefficients */
+    constant_f[0]  = constant[0] / diag[0];   // b'_0 = b_0 / mu0
+    for (it=1; it < size-1; it++) { // from 1 to n-1
+      denom = diag[it] - subdiag[it-1] * superdiag_f[it-1]; // (mu_i - kappa_i * lambda'_{i-1})
+      constant_f[it]  = (constant[it] - subdiag[it-1] * constant_f[it-1]) / denom;  // b'_i = (b_i - kappa_i * b'_{i-1})/(mu_i - kappa_i * lambda'_{i-1})
+    }
+    denom = diag[size-1] - subdiag[size-2] * superdiag_f[size-2]; // (mu_n - kappa_n * lambda'_{n-1})
+    constant_f[size-1] = (constant[size-1] - subdiag[size-2] * constant_f[size-2]) / denom; // b'_n = (b_n - kappa_n * b'_{n-1})/(mu_n - kappa_n * lambda'_{n-1})
+  }
+
+  /** - backward substitution */
+  solution[size-1] = constant_f[size-1];  // x_n = b'_n
+  for (it=size-2; it >= 0; it--) {
+    solution[it] = constant_f[it] - superdiag_f[it] * solution[it+1]; // x_i = b'_i - lambda'_i * x_{i+1}
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
  * @brief Perform internal splining for the given input arrays (can be made identical) which are indexed as array[i*array_stride].
  *        Needs pre-allocated working arrays for superdiagonal and constant entries in the tridiagonal system of equations.
  *        Implements the Thomas algorithm which is stable for all valid splines.
@@ -1235,6 +1296,83 @@ int array_logspline_table_one_column(
   return _SUCCESS_;
 }
 
+double dcompsumv(double * const summands, const int size, const int num_accumulators) {
+  /** - TODO */
+  return 0.;
+}
+
+int array_integrate_internal(
+                double * const x0,
+                const int x_size,
+                const int x_stride,
+                double * const y0,
+                const int y_stride,
+                double * const ddy0,
+                const int ddy_stride,
+                double * result,
+                const double condition_number_threshold,
+                double * condition_number) {
+  
+  int index_x;
+  double h, sy, ty, sM, tM, sum, sum_abs;
+  double summands[x_size-1];
+
+  /** - compute the individual summands with compensation */
+  for (index_x = 0; index_x < x_size-1; index_x++) {
+    h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+    sy = d2sum(y0[(index_x+1)*y_stride], y0[index_x*y_stride], &ty);
+    sM = d2sum(ddy0[(index_x+1)*ddy_stride], ddy0[index_x*ddy_stride], &tM);
+    summands[index_x] = h/2. * ((sy - h*h/12. * sM) + (ty - h*h/12. * tM));
+  }
+
+  /** - sum them up and compute the condition number */
+  sum = 0.; sum_abs = 0.;
+  for (index_x = 0; index_x < x_size-1; index_x++) {
+    sum += summands[index_x];
+    #ifndef __FAST_MATH__
+    sum_abs += fabs(summands[index_x]);
+    #endif
+  }
+  *condition_number = sum_abs / fabs(sum);
+
+  /** - if condition number is higher than the threshold, recompute using compensated summation */
+  if (*condition_number > condition_number_threshold) {
+    sum = dcompsum(summands, x_size-1, 1);
+  }
+
+  *result = sum;
+
+  return _SUCCESS_;
+}
+
+int array_square_integrate_internal(
+                double * const x0,
+                const int x_size,
+                const int x_stride,
+                double * const y0,
+                const int y_stride,
+                double * const ddy0,
+                const int ddy_stride,
+                double * result) {
+  
+  int index_x;
+  double h, sy, sM, dM;
+  register double sum;
+
+  sum = 0.;
+  for (index_x = 0; index_x < x_size-1; index_x++) {
+    h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+    sy = y0[(index_x+1)*y_stride] + y0[index_x*y_stride];
+    sM = ddy0[(index_x+1)*ddy_stride] + ddy0[index_x*ddy_stride];
+
+    sum += h/3. * (sy*sy - y0[index_x*y_stride]*y0[(index_x+1)*y_stride]                                                                                \
+                  -2*h*h/15. * (sM*sy - 0.125*(ddy0[index_x*ddy_stride]*y0[(index_x+1)*y_stride] + ddy0[(index_x+1)*ddy_stride]*y0[index_x*y_stride]))  \
+                  +2*h*h*h*h/315. * (sM*sM - 0.0625*ddy0[index_x*ddy_stride]*ddy0[(index_x+1)*ddy_stride]) );
+  }
+  *result = sum;
+
+  return _SUCCESS_;
+}
 
 /**
  * @brief Computes the spline integral.
@@ -1260,22 +1398,18 @@ int array_integrate_all_spline(
 		   double * result,
 		   ErrorMsg errmsg) {
 
-  int i;
-  double h;
+  double cond_num;
 
-  *result = 0;
-
-  for (i=0; i < n_lines-1; i++) {
-
-    h = (array[(i+1)*n_columns+index_x]-array[i*n_columns+index_x]);
-
-    *result +=
-      (array[i*n_columns+index_y]+array[(i+1)*n_columns+index_y])*h/2. -
-      (array[i*n_columns+index_ddy]+array[(i+1)*n_columns+index_ddy])*h*h*h/24.;
-
-  }
-
-  return _SUCCESS_;
+  return array_integrate_internal(array + index_x,
+                                  n_lines,
+                                  n_columns,
+                                  array + index_y,
+                                  n_columns,
+                                  array + index_ddy,
+                                  n_columns,
+                                  result,
+                                  _SPL_INTEGRATION_DEF_COND_THRESHOLD_,
+                                  &cond_num);
 }
 
 /**
@@ -1302,25 +1436,106 @@ int array_integrate_all_spline_table_lines(
 			    double * result,
           ErrorMsg errmsg) {
 
-  int index_x, index_y;
-  double h;
-  
-  /** - initialize the result vector */
-  for (index_y = 0; index_y < y_size; index_y++)
-    *(result + index_y) = 0.;
+  int index_y;
+  double cond_num[y_size];
 
-  /** - integrate over index_x in every column indexed by index_y */
-  for (index_x = 0; index_x < x_size-1; index_x++)
-  {
-    for (index_y = 0; index_y < y_size; index_y++)
-    {
-      h = (x[(index_x+1)*y_size + index_y]-x[index_x*y_size + index_y]);
+  for (index_y = 0; index_y < y_size; index_y++) {
+    array_integrate_internal(x + index_y,
+                             x_size,
+                             y_size,
+                             y_array + index_y,
+                             y_size,
+                             ddy_array + index_y,
+                             y_size,
+                             result + index_y,
+                             _SPL_INTEGRATION_DEF_COND_THRESHOLD_,
+                             cond_num + index_y);
+  }
 
-      *(result + index_y) +=
-        (y_array[index_x*y_size + index_y]+y_array[(index_x+1)*y_size + index_y])*h/2. - 
-        (ddy_array[index_x*y_size + index_y]+ddy_array[(index_x+1)*y_size + index_y])*h*h*h/24.;
+  return _SUCCESS_;
+}
 
-    }
+/**
+ * @brief Computes the spline integral.
+ *        dI = dx S(x)
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param result      Output: integration result I with elements[index_y]
+ * @param condition_num_threshold   Input: threshold for condition number above which the sum is computed with compensation
+ * @param condition_num   Output: condition number of the underlying sum with elements[index_y]
+ * @param errmsg
+ * 
+ * @return the error status
+ */
+int array_integrate_all_spline_table_lines_compensated(
+		      double * x, 
+			    int x_size,
+			    double * y_array, 
+			    int y_size,
+			    double * ddy_array,
+			    double * result,
+          const double condition_num_threshold,
+          double * condition_num,
+          ErrorMsg errmsg) {
+
+  int index_y;
+
+  for (index_y = 0; index_y < y_size; index_y++) {
+    array_integrate_internal(x + index_y,
+                             x_size,
+                             y_size,
+                             y_array + index_y,
+                             y_size,
+                             ddy_array + index_y,
+                             y_size,
+                             result + index_y,
+                             condition_num_threshold,
+                             condition_num + index_y);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the squared spline integral.
+ *        dI = dx S(x)^2
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param result      Output: integration result I with elements[index_y]
+ * @param errmsg
+ * 
+ * @return the error status
+ */
+int array_square_integrate_all_spline_table_lines(
+		      double * x, 
+			    int x_size,
+			    double * y_array, 
+			    int y_size,
+			    double * ddy_array,
+			    double * result,
+          ErrorMsg errmsg) {
+
+  int index_y;
+
+  for (index_y = 0; index_y < y_size; index_y++) {
+    array_square_integrate_internal(x + index_y,
+                                    x_size,
+                                    y_size,
+                                    y_array + index_y,
+                                    y_size,
+                                    ddy_array + index_y,
+                                    y_size,
+                                    result + index_y);
   }
 
   return _SUCCESS_;
@@ -1537,12 +1752,15 @@ int array_integrate_internal_exponential_pure_phase(
                         double * ddy0,
                         const int ddy_stride,
                         double phase,
-                        double complex * result) {
+                        double complex * result,
+                        double complex * condition_number) {
 
   int index_x;
   double h1, h2;              /**< distance between control points i & (i-1) and (i+1) & i respectively */
   double phase_invpow[4];     /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
   register double complex sum;
+  register double complex sum_abs;
+  double spline_factor, real, imag;
 
   for (index_x = 0; index_x < 4; index_x++) phase_invpow[index_x] = pow(phase, -(index_x+1));
 
@@ -1555,24 +1773,101 @@ int array_integrate_internal_exponential_pure_phase(
                   - phase_invpow[0] * y0[0*y_stride]          \
                   + phase_invpow[2] * ddy0[0*ddy_stride] )    \
             * CMPLX( cos(phase * x0[0*x_stride]), -sin(phase * x0[0*x_stride]) );
-  *result -=CMPLX(- phase_invpow[1] * ((y0[(x_size-1)*y_stride] - y0[(x_size-2)*y_stride])/h2                 \
+  *condition_number = CMPLX( fabs(creal(*result)), fabs(cimag(*result)) );
+
+  sum    = -CMPLX(- phase_invpow[1] * ((y0[(x_size-1)*y_stride] - y0[(x_size-2)*y_stride])/h2                 \
                                       + h2/6.*(2*ddy0[(x_size-1)*ddy_stride] + ddy0[(x_size-2)*ddy_stride]))  \
                   + phase_invpow[3] * (ddy0[(x_size-1)*ddy_stride] - ddy0[(x_size-2)*ddy_stride])/h2 ,        \
                   - phase_invpow[0] * y0[(x_size-1)*y_stride]         \
                   + phase_invpow[2] * ddy0[(x_size-1)*ddy_stride] )   \
             * CMPLX( cos(phase * x0[(x_size-1)*x_stride]), -sin(phase * x0[(x_size-1)*x_stride]) );
+  *result += sum;
+  *condition_number += CMPLX( fabs(creal(sum)), fabs(cimag(sum)) );
   
   sum = 0.;
-  for (index_x = 1; index_x < x_size-2; index_x++) {
+  sum_abs = 0.;
+  for (index_x = 1; index_x < x_size-1; index_x++) {
     h1 = x0[index_x*x_stride] - x0[(index_x-1)*x_stride];
     h2 = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+    spline_factor = (ddy0[(index_x+1)*ddy_stride] - ddy0[index_x*ddy_stride]) / h2       \
+                   -(ddy0[index_x*ddy_stride] - ddy0[(index_x-1)*ddy_stride]) / h1;
+    real = cos(phase * x0[index_x*x_stride]);
+    imag = -sin(phase * x0[index_x*x_stride]);
 
-    sum += ( (ddy0[(index_x+1)*ddy_stride] - ddy0[index_x*ddy_stride]) / h2       \
-            -(ddy0[index_x*ddy_stride] - ddy0[(index_x-1)*ddy_stride]) / h1       \
-            ) * CMPLX( cos(phase * x0[index_x*x_stride]), -sin(phase * x0[index_x*x_stride]) );
+    sum += spline_factor * CMPLX(real, imag);
+    sum_abs += fabs(spline_factor) * CMPLX(fabs(real), fabs(imag));
   }
 
   *result += phase_invpow[3] * sum;
+  *condition_number += phase_invpow[3] * sum_abs;
+  *condition_number = CMPLX( creal(*condition_number) / fabs(creal(*result)),       \
+                             cimag(*condition_number) / fabs(cimag(*result)) );
+
+  return _SUCCESS_;
+}
+
+/** - assumes periodic splines with S(x0) = S(xn), S'(x0) = S'(xn), S''(x0) = S''(xn) */
+int array_integrate_internal_exponential_pure_phase_compensated(
+                        double * x0,
+                        const int x_size,
+                        const int x_stride,
+                        double * y0,
+                        const int y_stride,
+                        double * ddy0,
+                        const int ddy_stride,
+                        const double phase,
+                        double complex * result,
+                        const double condition_number_threshold,
+                        double complex * condition_number) {
+
+  int index_x;
+  double h1, h2, dM1, dM2, t1, t2;    /**< distances between control points, spline moment differences and error variable */
+  double phase_invquart;              /**< contains phase^(-4) */
+  double complex summands[x_size-1];  /**< summands of the Spline Fourier sum */
+  double complex sum, sum_abs;        /**< sum and sum of absolute values of summands */
+
+  phase_invquart = pow(phase, -4.);
+
+  /** - compute the summands of the Fourier sum */
+  h1 = x0[1*x_stride] - x0[0*x_stride];
+  h2 = x0[(x_size-1)*x_stride] - x0[(x_size-2)*x_stride];
+  dM1 = d2sum(ddy0[1*x_stride], -ddy0[0*x_stride], &t1);
+  dM2 = d2sum(ddy0[(x_size-1)*x_stride], -ddy0[(x_size-2)*x_stride], &t2);
+  summands[0] = ((dM1/h1 - dM2/h2) + (t1/h1 - t2/h2))     \
+                * cexp(-_Complex_I * phase * x0[0*x_stride]);
+  // printf("%.16e        %.16e \n", creal(summands[0]), cimag(summands[0]));
+
+  for (index_x = 1; index_x < x_size-1; index_x++) {
+    h1 = x0[index_x*x_stride] - x0[(index_x-1)*x_stride];
+    h2 = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+    dM1 = d2sum(ddy0[index_x*x_stride], -ddy0[(index_x-1)*x_stride], &t1);
+    dM2 = d2sum(ddy0[(index_x+1)*x_stride], -ddy0[index_x*x_stride], &t2);
+
+    summands[index_x] = ((dM2/h2 - dM1/h1) + (t2/h2 - t1/h1))     \
+                        * cexp(-_Complex_I * phase * x0[index_x*x_stride]);
+    // printf("%.16e        %.16e \n", creal(summands[index_x]), cimag(summands[index_x]));
+  }
+
+  /** - sum them up naively and compute the condition number */
+  sum = 0.; sum_abs = 0.;
+  for (index_x = 0; index_x < x_size-1; index_x++) {
+    sum += summands[index_x];
+    #ifndef __FAST_MATH__
+    sum_abs += CMPLX( fabs(creal(summands[index_x])), 
+                      fabs(cimag(summands[index_x])) );
+    #endif
+  }
+  *condition_number = CMPLX( creal(sum_abs)/fabs(creal(sum)), 
+                          cimag(sum_abs)/fabs(cimag(sum)) );
+  
+  /** - if the condition number is higher than a threshold, recompute the sum with compensated summation */
+  if ((creal(*condition_number) > condition_number_threshold)     \
+      || (cimag(*condition_number) > condition_number_threshold)) {
+    sum = ccompsum(summands, x_size-1, 1);
+  }
+  
+  /** - multiply by an overall factor of phase^(-4) */
+  *result = phase_invquart * sum;
 
   return _SUCCESS_;
 }
@@ -1589,11 +1884,13 @@ int array_integrate_internal_exponential_pure_phase(
  * @param index_ddy   Input: index for y''-values (->class_define_index)
  * @param phase       Input: phase factor p
  * @param result      Output: complex integration result I(p)
+ * @param condition_num_threshold   Input: threshold for condition number above which the sum is computed with compensation
+ * @param condition_num   Output: condition number of the underlying sum
  * @param errmsg
  * 
  * @return the error status
  */
-int array_integrate_all_spline_fourier(
+int array_integrate_all_spline_fourier_compensated(
           double * array,
           int n_columns,
           int n_lines,
@@ -1602,23 +1899,26 @@ int array_integrate_all_spline_fourier(
           int index_ddy,
           double phase,
           double complex * result,
+          const double condition_num_threshold,
+          double complex * condition_num,
           ErrorMsg errmsg) {
 
   class_test(n_lines<2,
              errmsg,
              "integral is zero with less than one spline segment");
 
-  array_integrate_internal_exponential_pure_phase(array + index_x,
-                                                  n_lines,
-                                                  n_columns,
-                                                  array + index_y,
-                                                  n_columns,
-                                                  array + index_ddy,
-                                                  n_columns,
-                                                  phase,
-                                                  result);
-
-  return _SUCCESS_;
+  return array_integrate_internal_exponential_pure_phase_compensated(
+                                            array + index_x,
+                                            n_lines,
+                                            n_columns,
+                                            array + index_y,
+                                            n_columns,
+                                            array + index_ddy,
+                                            n_columns,
+                                            phase,
+                                            result,
+                                            condition_num_threshold,
+                                            condition_num);
 }
 
 /**
@@ -1634,11 +1934,13 @@ int array_integrate_all_spline_fourier(
  *                            ddy_array[index_x*y_size + index_y]
  * @param phase       Input: phase factor p which may be complex
  * @param result      Output: complex integration result I(p)
+ * @param condition_num_threshold   Input: threshold for condition number above which the sum is computed with compensation
+ * @param condition_num   Output: condition number of the underlying sum with elements[index_y]
  * @param errmsg
  * 
  * @return the error status
  */
-int array_integrate_all_spline_table_lines_fourier(
+int array_integrate_all_spline_table_lines_fourier_compensated(
           double * x,
 		      int x_size,
 		      double * y_array,
@@ -1646,6 +1948,8 @@ int array_integrate_all_spline_table_lines_fourier(
 		      double * ddy_array,
           double phase,
           double complex * result,
+          const double condition_num_threshold,
+          double complex * condition_num,
           ErrorMsg errmsg) {
 
   int index_y;
@@ -1655,7 +1959,8 @@ int array_integrate_all_spline_table_lines_fourier(
              "integral is zero with less than one spline segment");
 
   for (index_y = 0; index_y < y_size; index_y++) {
-    array_integrate_internal_exponential_pure_phase(x,
+    array_integrate_internal_exponential_pure_phase_compensated(
+                                                    x,
                                                     x_size,
                                                     1,
                                                     y_array + index_y,
@@ -1663,7 +1968,9 @@ int array_integrate_all_spline_table_lines_fourier(
                                                     ddy_array + index_y,
                                                     y_size,
                                                     phase,
-                                                    result + index_y);
+                                                    result + index_y,
+                                                    condition_num_threshold,
+                                                    condition_num + index_y);
   }
 
   return _SUCCESS_;
@@ -2139,6 +2446,74 @@ int array_integrate_ratio(
     *(array+i*n_columns+index_int_y1_over_y2_dx)=sum;
   }
 
+
+  return _SUCCESS_;
+}
+
+int array_interpolate_internal(
+                double * const x0,
+                const int x_size,
+                const int x_stride,
+                double * const y0,
+                const int y_stride,
+                double * const ddy0,
+                const int ddy_stride,
+                const short derivative_order,
+                const double x,
+                int * last_index,
+                double * result) {
+  
+  int inf,sup,i;
+  double h,a,b;
+
+  /** - negative deriavtive order would require integration (non-local) */
+  // if (derivative_order < 0) return _FAILURE_;  handled by caller
+
+  /** - search for spline interval containing x close to last_index */
+  inf = *last_index;
+  // if (inf<0 || inf>(x_size-1)) return _FAILURE_;  handled by caller
+  while (x < x0[inf*x_stride]) {
+    inf--;
+    if (inf < 0) return _FAILURE_;
+  }
+  sup = inf+1;
+  while (x > x0[sup*x_stride]) {
+    sup++;
+    if (sup > (x_size-1)) return _FAILURE_;
+  }
+  inf = sup-1;
+
+  *last_index = inf;
+
+  h = x0[sup*x_stride] - x0[inf*x_stride];
+  b = (x - x0[inf*x_stride]) / h;
+  a = 1 - b;
+
+  switch (derivative_order)
+  {
+  case 0:
+    /* spline value */
+    *result = y0[inf*y_stride]*a + y0[sup*y_stride]*b         \
+              + h*h/6. * (ddy0[inf*ddy_stride]*a*(a*a - 1.) + ddy0[sup*ddy_stride]*b*(b*b - 1.));
+    break;
+  case 1:
+    /* first derivative */
+    *result = (y0[sup*y_stride] - y0[inf*y_stride]) / h       \
+              + h/6. * (ddy0[sup*ddy_stride]*(3*b*b - 1.) - ddy0[inf*ddy_stride]*(3*a*a - 1.));
+    break;
+  case 2:
+    /* second derivative */
+    *result = ddy0[inf*ddy_stride]*a + ddy0[sup*ddy_stride]*b;
+    break;
+  case 3:
+    /* third derivative (not continuous) */
+    *result = (ddy0[sup*ddy_stride] - ddy0[inf*ddy_stride]) / h;
+    break;
+  
+  default:
+    *result = 0.;
+    break;
+  }
 
   return _SUCCESS_;
 }
@@ -2971,7 +3346,7 @@ int array_interpolate_one_growing_closeby(
 		   int index_x,   /** from 0 to (n_columns-1) */
 		   double x,
 		   int * last_index,
-           int index_y,
+       int index_y,
 		   double * result,
 		   ErrorMsg errmsg) {
 

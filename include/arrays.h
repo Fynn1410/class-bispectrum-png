@@ -15,6 +15,8 @@
 #define _SPLINE_PERIODIC_ 2   /**< periodic spline: S'(x0)=S'(xn), S''(x0)=S''(xn) */
 #define array_spline_eval(y,ddy,inf,sup,h,a,b) ((a)*(y)[inf]+(b)*(y)[sup] + (((a)*(a)*(a)-(a))* (ddy)[inf] + ((b)*(b)*(b)-(b))* (ddy)[sup])*(h)*(h)/6.)
 
+#define _SPL_INTEGRATION_DEF_COND_THRESHOLD_ 100.0
+
 /**
  * Boilerplate for C++
  */
@@ -195,6 +197,28 @@ extern "C" {
             double * result,
             ErrorMsg errmsg
             );
+  
+  int array_integrate_all_spline_table_lines_compensated(
+            double * x, 
+            int x_size,
+            double * y_array, 
+            int y_size,
+            double * ddy_array,
+            double * result,
+            const double condition_num_threshold,
+            double * condition_num,
+            ErrorMsg errmsg
+            );
+
+  int array_square_integrate_all_spline_table_lines(
+            double * x, 
+            int x_size,
+            double * y_array, 
+            int y_size,
+            double * ddy_array,
+            double * result,
+            ErrorMsg errmsg
+            );
 
   int array_integrate_all_spline_gaussian_window(
             double * array,
@@ -232,7 +256,7 @@ extern "C" {
             ErrorMsg errmsg
             );
 
-  int array_integrate_all_spline_fourier(
+  int array_integrate_all_spline_fourier_compensated(
             double * array,
             int n_columns,
             int n_lines,
@@ -241,10 +265,12 @@ extern "C" {
             int index_ddy,
             double phase,
             double complex * result,
+            const double condition_num_threshold,
+            double complex * condition_num,
             ErrorMsg errmsg
             );
 
-  int array_integrate_all_spline_table_lines_fourier(
+  int array_integrate_all_spline_table_lines_fourier_compensated(
             double * x,
             int x_size,
             double * y_array,
@@ -252,6 +278,8 @@ extern "C" {
             double * ddy_array,
             double phase,
             double complex * result,
+            const double condition_num_threshold,
+            double complex * condition_num,
             ErrorMsg errmsg
             );
 
@@ -614,6 +642,147 @@ extern "C" {
   //                       const int min_pow,
   //                       const double x
   //                       );
+
+#ifdef __FAST_MATH__
+#warning Kahan-Neumaier summation is incompatible with -ffast-math. Defaulting to uncompensated summation.
+  
+  static inline double d2sum(const double a, const double b, double *restrict t) {
+    double s;
+    s = a + b;
+    *t = 0.;
+    return s;
+  }
+
+  static inline double dcompsum(double * const summands, const int size, const int stride) {
+    int i;
+    double s;
+    
+    s = 0.;
+    for (i = 0; i < size; i++) {
+      s += summands[i];
+    }
+    return s;
+  }
+
+  static inline double complex c2sum(const double complex a, const double complex b, double complex *restrict t) {
+    double complex s;
+    s = a + b;
+    *t = CMPLX(0., 0.);
+    return s;
+  }
+
+  static inline double complex ccompsum(double complex * const summands, const int size, const int stride) {
+    int i;
+    double complex s;
+    
+    s = 0.;
+    for (i = 0; i < size; i++) {
+      s += summands[i];
+    }
+    return s;
+  }
+
+#else
+  /**
+   * @brief Computes the floating-point error t of the sum a + b, such that a + b = s + t.
+   * @param a    Input: first summand
+   * @param b    Input: second summand
+   * @param t    Output: floating-point error of the operation a + b
+   * @return the sum s = float(a + b)
+   */
+  static inline double d2sum(const double a, const double b, double *restrict t) {
+    double s, ap, bp, da, db;
+    s = a + b;
+    ap = s - b;
+    bp = s - ap;
+    da = a - ap;
+    db = b - bp;
+    *t = da + db;
+    return s;
+  }
+
+  /**
+   * @brief Kahan-Babushka-Neumaier compensated summation for an array of doubles.
+   * @param summands  Input: array of summand values
+   * @param size      Input: number of summands to use
+   * @param stride    Input: stride in the summands array
+   * @return compensated sum of the input array
+   */
+  static inline double dcompsum(double * const summands, const int size, const int stride) {
+    int i;
+    double s, c, t, in;
+    
+    s = 0.; c = 0.;
+    for (i = 0; i < size; i++) {
+      in = summands[i];
+      t = s + in;
+      if (fabs(s) >= fabs(in)) {
+        c += (s - t) + in;
+      }
+      else {
+        c += (in - t) + s;
+      }
+      s = t;
+    }
+
+    return s + c;
+  }
+
+  /**
+   *  @brief Computes the floating-point error t of the complex sum a + b, such that a + b = s + t.
+   *  @param a    Input: first summand
+   *  @param b    Input: second summand
+   *  @param t    Output: floating-point error of the operation a + b
+   *  @return the complex sum s = float(a + b)
+   */
+  static inline double complex c2sum(const double complex a, const double complex b, double complex *restrict t) {
+    double complex s, ap, bp, da, db;
+    s = a + b;
+    ap = s - b;
+    bp = s - ap;
+    da = a - ap;
+    db = b - bp;
+    *t = da + db;
+    return s;
+  }
+
+  /**
+   * @brief Kahan-Babushka-Neumaier compensated summation for an array of complex doubles.
+   * @param summands  Input: array of summand values
+   * @param size      Input: number of summands to use
+   * @param stride    Input: stride in the summands array
+   * @return compensated sum of the input array
+   */
+  static inline double complex ccompsum(double complex * const summands, const int size, const int stride) {
+    int i;
+    double sr, si, cr, ci, tr, ti, inr, ini;
+    
+    sr = 0.; si = 0.; cr = 0.; ci = 0.;
+    for (i = 0; i < size; i++) {
+      inr = creal(summands[i]);
+      ini = cimag(summands[i]);
+      tr = sr + inr;
+      ti = si + ini;
+      if (fabs(sr) >= fabs(inr)) {
+        cr += (sr - tr) + inr;
+      }
+      else {
+        cr += (inr - tr) + sr;
+      }
+      if (fabs(si) >= fabs(ini)) {
+        ci += (si - ti) + ini;
+      }
+      else {
+        ci += (ini - ti) + si;
+      }
+      sr = tr;
+      si = ti;
+    }
+
+    return CMPLX(sr + cr, si + ci);
+  }
+
+#endif
 
 
 #ifdef __cplusplus
