@@ -607,7 +607,7 @@ int eft_fourier_transform_linear_spectra(
   // int * index_pk_types, index_pk_types_size = 0;
   const int num_independent_coefficients = peft->hp->num_positive_fourier_freq + 1;
   double ** pk_l_biased_p;
-  double spline_2nd_der_L1_norm = 0., spline_L2_norm, series_l2_norm = 0.;
+  double spline_lipschitz_const = 0., spline_gradient_change, spline_L2_norm, series_l2_norm = 0.;
 
   /** if the list is empty there is nothing to do */
   if (index_pk_types_size < 1) { return _SUCCESS_; }
@@ -637,7 +637,7 @@ int eft_fourier_transform_linear_spectra(
   /** list of indices for the pk_types to compute is prepared externally */
 
 
-  #pragma omp parallel shared(ppr, pba, ppm, pfo, peft, abort, stderr, num_independent_coefficients, index_pk_types, index_pk_types_size, spline_2nd_der_L1_norm, spline_L2_norm, series_l2_norm), \
+  #pragma omp parallel shared(ppr, pba, ppm, pfo, peft, abort, stderr, num_independent_coefficients, index_pk_types, index_pk_types_size, spline_lipschitz_const, spline_gradient_change, spline_L2_norm, series_l2_norm), \
                        private(it, index_mu, index_tracer, index_pk_type, index_list, mu_size, pk_l_biased_p), \
                        default(none)
   { /** , last_index, ln_k_fft, pk_l_biased_fft, fft_plan, fourier_coeff_real, fourier_coeff_imag */
@@ -868,23 +868,21 @@ int eft_fourier_transform_linear_spectra(
           if (peft->hp->eft_verbose > 2) {
             #pragma omp master
             {
-            spline_2nd_der_L1_norm = 0.;
+            spline_lipschitz_const = 0.;
             series_l2_norm = 0.;
             }
-            double h;
+            double h1, h2;
             double * M0 = peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier;
             #pragma omp barrier
-            /** - compute the L1 norm of the second derivative: since the (biased) spline is a C^2 function,
-             *    the magnitude of its Fourier coefficients is bounded by || S^(2) ||_L1 / frequency^2 */
-            #pragma omp for schedule(static) reduction(+:spline_2nd_der_L1_norm)
-            for (it = 1; it < peft->hp->k_size_fourier; it++) {
-              h = peft->ln_k_fourier[index_tracer][it] - peft->ln_k_fourier[index_tracer][it-1];
-              if (M0[it-1] * M0[it] >= 0.) {
-                spline_2nd_der_L1_norm += 0.5*h * fabs(M0[it-1] + M0[it]);
-              }
-              else {
-                spline_2nd_der_L1_norm += 0.5*h * (M0[it-1]*M0[it-1] + M0[it]*M0[it]) / fabs(M0[it-1] - M0[it]);
-              }
+            /** - compute the Lipschitz constant L of the second derivative: since the (biased) spline is a C^2 Lipschitz-continuous function,
+             *    the magnitude of its Fourier coefficients is bounded by pi/2 * L / frequency^3 */
+            #pragma omp for schedule(static) reduction(max:spline_lipschitz_const)
+            for (it = 0; it <= peft->hp->k_size_fourier; it++) {
+              h1 = peft->ln_k_fourier[index_tracer][it % peft->hp->k_size_fourier] - peft->ln_k_fourier[index_tracer][(it-1) % peft->hp->k_size_fourier];
+              h2 = peft->ln_k_fourier[index_tracer][(it+1) % peft->hp->k_size_fourier] - peft->ln_k_fourier[index_tracer][it % peft->hp->k_size_fourier];
+              spline_gradient_change = fabs((M0[(it+1) % peft->hp->k_size_fourier] - M0[it % peft->hp->k_size_fourier])*h1    \
+                                          - (M0[it % peft->hp->k_size_fourier] - M0[(it-1) % peft->hp->k_size_fourier])*h2) / (h1*h2);
+              if (spline_gradient_change > spline_lipschitz_const) { spline_lipschitz_const = spline_gradient_change; }
             }
             /** - compute the l2 norm of its Fourier coefficients: Because of Parseval's theorem, 
              *    these norms must be equal when taking into account infinite Fourier components.
@@ -909,7 +907,7 @@ int eft_fourier_transform_linear_spectra(
             spline_L2_norm /= peft->hp->period[index_tracer];
             double rel_loss_norm = (spline_L2_norm - series_l2_norm) / spline_L2_norm;
             printf("index_pk_type = %d, index_tracer = %d, index_mu = %d: Performed Spline Fourier with bias %.2f and relative power loss of %.3e at frequencies higher than %.3e \n", index_pk_type, index_tracer, index_mu, peft->hp->bias[index_tracer], rel_loss_norm, _TWOPI_*(num_independent_coefficients-1)/peft->hp->period[index_tracer]);
-            printf("                                                      Fourier coefficients are bounded by %.3e / frequency^2 \n", spline_2nd_der_L1_norm);
+            printf("                                                      Fourier coefficients are bounded by %.3e / frequency^3 \n", _PI_/2.*spline_lipschitz_const);
             }
           }
 
