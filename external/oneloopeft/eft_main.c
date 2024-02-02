@@ -455,7 +455,7 @@ int eft_linear_spectrum_real(
                                                     ln_kvec_sorted,
                                                     kvec_size*n_columns,
                                                     z,
-                                                    out_pk),
+                                                    pk_l),
                         pfo->error_message,
                         peft->error_message);
     for (it = 0; it < kvec_size*n_columns; it++) {
@@ -646,7 +646,7 @@ int eft_fourier_transform_linear_spectra(
   if (peft->hp->use_mu_approximation) {
     /** ----------------- Load requested linear spectra w/o mu dependence ---------------------- */
     /** - for the Fourier components */
-    #pragma omp for schedule(static, 1), collapse(2), nowait
+    #pragma omp for schedule(static, 1), collapse(2)
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
       for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
         index_pk_type = index_pk_types[index_list];
@@ -699,7 +699,7 @@ int eft_fourier_transform_linear_spectra(
 
 
     if (!abort) {
-      #pragma omp for schedule(static, 1), collapse(2), nowait
+      #pragma omp for schedule(static, 1), collapse(2)
       for (index_list = 0; index_list < index_pk_types_size; index_list++) {
         for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
           index_pk_type = index_pk_types[index_list];

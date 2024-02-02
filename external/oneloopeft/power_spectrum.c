@@ -436,6 +436,10 @@ int eft_load_linear_spectra(struct background * pba,
     }
   }
 
+  if (peft->hp->use_interpolation) {
+    free(ln_k);
+  }
+
   return _SUCCESS_;
 }
 

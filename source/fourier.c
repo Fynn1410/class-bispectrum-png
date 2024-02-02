@@ -2178,7 +2178,7 @@ int fourier_init(
                                             pfo,
                                             ppm,
                                             ppr,
-                                            Pdd_mm_real,
+                                            Pdd_hh_rsd,
                                             zvec,
                                             eft_ip_test,
                                             TEST_Z_SIZE,
@@ -2188,8 +2188,6 @@ int fourier_init(
                                             mu_sizevec,
                                             out_pkmu),
                 pfo->peft->error_message, pfo->error_message);
-
-
 
 
 
@@ -2313,6 +2311,15 @@ int fourier_init(
 
 
     /** compare to new code */
+
+    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+      free(kvec[index_z]);
+      free(muvec[index_z]);
+      free(out_pkmu[index_z]);
+    }
+    free(kvec);
+    free(muvec);
+    free(out_pkmu);
 
 
   }
