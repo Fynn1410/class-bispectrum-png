@@ -634,7 +634,7 @@ static double complex eft_mat_N22z(const double complex * const n)
 /** static array holding function pointers to the individual moments */
 const static double complex (*loop_mat[NUM_MOMENTS])(const double complex * const n)      \
   = {eft_mat_I2200, eft_mat_I1300, eft_mat_Idelta200, eft_mat_IG200, eft_mat_Idelta2delta200, eft_mat_IG2G200, eft_mat_Idelta2G200, eft_mat_FG200,  \
-     eft_mat_I2201, eft_mat_Idelta201, eft_mat_IG201, eft_mat_J21101, eft_mat_Jdelta201, eft_mat_JG201, eft_mat_FG201, eft_mat_I1301p3101, eft_mat_J12101,  \
+     eft_mat_I2201, eft_mat_Idelta201, eft_mat_IG201, eft_mat_J21101, eft_mat_Jdelta201, eft_mat_JG201, eft_mat_FG201, eft_mat_I1301p3101, eft_mat_J12101, NULL,  \
      eft_mat_J21102x, eft_mat_J21102y, eft_mat_Jdelta202x, eft_mat_Jdelta202y, eft_mat_JG202x, eft_mat_JG202y, eft_mat_I2211, eft_mat_J21111, eft_mat_N11x, eft_mat_N11y, eft_mat_J12102x, eft_mat_J12102y, eft_mat_I1311, eft_mat_J12111,  \
      eft_mat_J21112x, eft_mat_J21112y, eft_mat_N12x, eft_mat_N12y, eft_mat_J12112x, eft_mat_J12112y,                                \
      eft_mat_N22x, eft_mat_N22y, eft_mat_N22z};
@@ -655,11 +655,11 @@ int eft_compute_loop_matrices(struct eft * peft) {
 
   #pragma omp parallel for schedule(dynamic)
   for (index_moment = 0; index_moment < peft->index_num; index_moment++) {
-    use_tracer = eft_matter;  // must be set for each individual moment
+    use_tracer = peft->use_tracer[index_moment];  // must be set for each individual moment
     /** - generate matrices for different symmetry types in LAPACK-compatible storage schemes */
     switch (peft->symmetry[index_moment])
     {
-    case vec:
+    case sym_vec:
       *n1_real = -0.5 * peft->hp->bias[use_tracer];
       for (it1 = 0; it1 < peft->hp->fourier_coeff_size; it1++) {
         *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
@@ -667,11 +667,11 @@ int eft_compute_loop_matrices(struct eft * peft) {
       }
       break;
 
-    case mat_none:
+    case sym_mat_none:
       *n1_real = -0.5 * peft->hp->bias[use_tracer];
       *n2_real = -0.5 * peft->hp->bias[use_tracer];
-      for (it1 = 0; it1 < peft->hp->fourier_coeff_size; it1++) {
-        for (it2 = 0; it2 < peft->hp->fourier_coeff_size; it2++) {
+      for (it2 = 0; it2 < peft->hp->fourier_coeff_size; it2++) {  /** - row-major array is best filled in this order */
+        for (it1 = 0; it1 < peft->hp->fourier_coeff_size; it1++) {
           *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
           *n2_imag = -0.5 * peft->fourier_frequencies[use_tracer][it2];
           peft->loop_matrices[index_moment][it1 + it2*peft->hp->fourier_coeff_size] = (*loop_mat[index_moment])((const double complex * const)&n);
@@ -679,11 +679,11 @@ int eft_compute_loop_matrices(struct eft * peft) {
       }
       break;
 
-    case mat_symmetric:
+    case sym_mat_symmetric:
       *n1_real = -0.5 * peft->hp->bias[use_tracer];
       *n2_real = -0.5 * peft->hp->bias[use_tracer];
-      for (it1 = 0; it1 < peft->hp->fourier_coeff_size; it1++) {
-        for (it2 = it1; it2 < peft->hp->fourier_coeff_size; it2++) {
+      for (it2 = 0; it2 < peft->hp->fourier_coeff_size; it2++) {
+        for (it1 = 0; it1 <= it2; it1++) {
           *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
           *n2_imag = -0.5 * peft->fourier_frequencies[use_tracer][it2];
           /** - upper-triangular packed storage */

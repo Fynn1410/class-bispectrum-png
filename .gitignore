@@ -14,3 +14,11 @@ RealSpaceInterface/cache/
 .DS_Store
 doc/manual/html
 doc/manual/latex
+jupyter/
+.vscode/*
+Makefile
+*.txt
+*.ps
+*.pdf
+output_original/
+download/

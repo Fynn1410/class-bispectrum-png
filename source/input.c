@@ -1523,7 +1523,7 @@ int input_read_parameters(struct file_content * pfc,
    * This function is exclusively for those parameters, NOT
    *  related to any physical species
    * */
-  class_call(input_read_parameters_general(pfc,pba,pth,ppt,psd,
+  class_call(input_read_parameters_general(pfc,pba,pth,ppt,pfo,psd,
                                            errmsg),
              errmsg,
              errmsg);
@@ -1555,7 +1555,7 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for spectra quantities */
-  class_call(input_read_parameters_spectra(pfc,ppr,pba,ppm,ppt,ptr,phr,pop,
+  class_call(input_read_parameters_spectra(pfc,ppr,pba,ppm,ppt,pfo,ptr,phr,pop,
                                            errmsg),
              errmsg,
              errmsg);
@@ -1609,6 +1609,7 @@ int input_read_parameters_general(struct file_content * pfc,
                                   struct background * pba,
                                   struct thermodynamics * pth,
                                   struct perturbations * ppt,
+                                  struct fourier * pfo,
                                   struct distortions * psd,
                                   ErrorMsg errmsg){
 
@@ -1666,6 +1667,11 @@ int input_read_parameters_general(struct file_content * pfc,
     }
     if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL)) {
       ppt->has_pk_matter=_TRUE_;
+      ppt->has_perturbations = _TRUE_;
+    }
+    if ((strstr(string1,"mPknw") != NULL) || (strstr(string1,"MPknw") != NULL) || (strstr(string1,"MPKNW") != NULL)) {
+      pfo->has_pk_nw = _TRUE_;
+      ppt->has_pk_matter = _TRUE_;
       ppt->has_perturbations = _TRUE_;
     }
     if ((strstr(string1,"mTk") != NULL) || (strstr(string1,"MTk") != NULL) || (strstr(string1,"MTK") != NULL) ||
@@ -3456,6 +3462,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
     }
     else if((strstr(string1,"oneloopPT") != NULL) || (strstr(string1,"1loopPT") != NULL) || (strstr(string1,"OneloopPT") != NULL)) {
       pfo->method = nl_oneloopPT;
+      pfo->has_pk_nw = _TRUE_;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
       ppt->k_max_for_pk = MAX(ppt->k_max_for_pk, ppr->nonlinear_min_k_max);
 
@@ -3463,8 +3470,8 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
                   errmsg,
                   errmsg);
 
-      class_read_double("nowiggle_k_split_h/Mpc", pfo->wnw_k_split);
-      class_read_double("nowiggle_k_bao_h/Mpc", pfo->wnw_k_feature);
+      class_read_double("eft_ir_resummation_k_split_h/Mpc", pfo->eft_hp.ir_resummation_k_split);
+      class_read_double("eft_ir_resummation_k_bao_h/Mpc", pfo->eft_hp.ir_resummation_k_feature);
 
       if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
         //pfo->eft_hp.has_rsd = _TRUE_;
@@ -3474,6 +3481,9 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       class_read_flag("has_rsd", pfo->eft_hp.has_rsd);
       class_read_flag("eft_use_eds_scaling", pfo->eft_hp.use_EdS_time_scaling);
       //class_read_flag("eft_time_independent_kernels", pfo->eft_hp.use_time_independent_kernels);
+      class_read_flag("eft_write_loop_matrices", pfo->eft_hp.write_loop_matrices);
+      class_read_string("eft_loop_matrix_dir", pfo->eft_hp.eft_loop_matrix_directory);
+      class_read_flag("eft_use_interpolation", pfo->eft_hp.use_interpolation);
 
       /** Read list of redshift at which to evaluate nonlinear spectra */
       class_call(parser_read_list_of_doubles(pfc, "z_pk_eft", &size, &plist, &flag1, errmsg),
@@ -3558,7 +3568,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       class_read_double("eft_bias_matter", pfo->eft_hp.bias[eft_matter]);
       class_read_double("eft_bias_halo", pfo->eft_hp.bias[eft_halo]);
       class_read_flag("eft_compute_loop_matrices", pfo->eft_hp.compute_loop_matrices);
-      class_read_flag("eft_enable_mu_approximation", pfo->eft_hp.compute_mu_approximation);
+      class_read_flag("eft_enable_mu_approximation", pfo->eft_hp.use_mu_approximation);
 
       class_read_double("b1", pfo->b1);
       class_read_double("b2", pfo->b2);
@@ -4440,6 +4450,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                                   struct background * pba,
                                   struct primordial * ppm,
                                   struct perturbations * ppt,
+                                  struct fourier * pfo,
                                   struct transfer * ptr,
                                   struct harmonic *phr,
                                   struct output * pop,
@@ -4687,6 +4698,25 @@ int input_read_parameters_spectra(struct file_content * pfc,
     if (flag2 == _TRUE_){
       ppm->k_max_for_primordial_pk=param2;
       ppm->has_k_max_for_primordial_pk = _TRUE_;
+    }
+
+    /** 3.a.2) index_pk for the nowiggle spectrum */
+    if (pfo->has_pk_nw) {
+      class_call(parser_read_string(pfc,"nowiggle_pk_species",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      
+      if (flag1 == _TRUE_) {
+        if (strstr(string1, "total") || strstr(string1, "TOTAL") || strstr(string1, "matter") || strstr(string1, "MATTER")) {
+          pfo->nowiggle_pk_index = &(pfo->index_pk_total);
+        }
+        else if (strstr(string1, "cluster") || strstr(string1, "clustering") || strstr(string1, "CLUSTER") || strstr(string1, "CLUSTERING")) {
+          pfo->nowiggle_pk_index = &(pfo->index_pk_cluster);
+        }
+        else {
+          class_stop(errmsg, "Unrecognized species for the nowiggle spectrum, can be either total or clustering.");
+        }
+      }
     }
 
     /** 3.b) Redshift values */
@@ -5707,8 +5737,8 @@ int input_default_params(struct background *pba,
   pfo->c32 =  0.;
   pfo->c42 =  0.;
 
-  pfo->wnw_k_split = 0.2; 
-  pfo->wnw_k_feature = 1./110.;
+  pfo->eft_hp.ir_resummation_k_split = 0.2; 
+  pfo->eft_hp.ir_resummation_k_feature = 1./110.;
   
   pfo->eft_hp.has_rsd = _FALSE_;  /**< RSD moments should be computed */
   pfo->eft_hp.kmin_lin[eft_matter] = 1.e-6;
@@ -5722,7 +5752,9 @@ int input_default_params(struct background *pba,
   pfo->eft_hp.use_EdS_time_scaling = _TRUE_;
   pfo->eft_hp.use_time_independent_kernels = _TRUE_;
   pfo->eft_hp.compute_loop_matrices = _TRUE_;
-  pfo->eft_hp.compute_mu_approximation = _TRUE_;
+  pfo->eft_hp.use_mu_approximation = _TRUE_;
+  sprintf(pfo->eft_hp.eft_loop_matrix_directory, "loop_matrices/");
+  pfo->eft_hp.use_interpolation = _TRUE_;
 
   /**
    * Default to input_read_parameters_primordial
@@ -5858,6 +5890,8 @@ int input_default_params(struct background *pba,
   ppt->k_max_for_pk=1.;
   /** 3.a) Maximum k in P(k) primordial */
   ppm->has_k_max_for_primordial_pk = _FALSE_;
+  /** 3.a) index_pk for the nowiggle spectrum */
+  pfo->nowiggle_pk_index = &(pfo->index_pk_cluster);
   /** 3.b) Redshift values */
   pop->z_pk_num = 1;
   pop->z_pk[0] = 0.;

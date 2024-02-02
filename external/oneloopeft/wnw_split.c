@@ -13,7 +13,7 @@
 
 
 
-#include "header.h"
+#include "wnw_split.h"
 
 
 /**
@@ -90,7 +90,8 @@ int eft_ln_pk_nw_gfilter(
     for (it_k = 0; it_k < k_size; it_k++)
     {
       /** - compute the running smoothing scale */
-      smoothing_scale = ppr->nw_smooth_amplitude * exp( -pow((pfo->ln_k[index_kmin + it_k] - ppr->nw_smooth_ln_k_center) / ppr->nw_smooth_ln_k_width, 2) ) + ppr->nw_smooth_const;
+      smoothing_scale = eft_gfilter_smoothing_scale(pfo->ln_k[index_kmin + it_k]);
+      // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((pfo->ln_k[index_kmin + it_k] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
 
       /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
       class_call(array_integrate_all_spline_gaussian_window(intg_splines,
@@ -194,7 +195,7 @@ int eft_ln_pk_nw_gfilter_parallel(
 
     /** - compute the integrand at the control points once */
     for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
-      intg_splines[it_q*index_num + index_y] = exp( pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + it_q] - ln_pk0_z) \
+      intg_splines[it_q*index_num + index_y] = exp( pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + it_q] - ln_pk0_z ) \
                                                   / pk_approx_f[it_q];
 
     /** - spline the integrand function without exponential once */
@@ -213,7 +214,8 @@ int eft_ln_pk_nw_gfilter_parallel(
     for (it_k = 0; it_k < k_size; it_k++)
     {
       /** - compute the running smoothing scale */
-      smoothing_scale = ppr->nw_smooth_amplitude * exp( -pow((intg_splines[(index_kmin + it_k)*index_num + index_x] - ppr->nw_smooth_ln_k_center) / ppr->nw_smooth_ln_k_width, 2) ) + ppr->nw_smooth_const;
+      smoothing_scale = eft_gfilter_smoothing_scale(intg_splines[(index_kmin + it_k)*index_num + index_x]);
+      // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((intg_splines[(index_kmin + it_k)*index_num + index_x] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
 
       /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
       class_call_parallel(array_integrate_all_spline_gaussian_window(

@@ -90,11 +90,17 @@ HEADERFILES += $(wildcard ./$(HYREC)/*.h)
 endif
 
 # update flags for including oneloopeft 
-# append (ps_halo_1loop.o) for OneloopPT Direct integration
 vpath %.c $(ONELOOPEFT)
-INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.1 -I../$(ONELOOPEFT) 
-EXTERNAL += eft_main.o kernel_matrices.o utilities.o cosmology.o IR_res.o wnw_split.o pspec_FFTLog_real.o pspec_FFTLog_rsd.o FFTLog_ingredients.o FFTLog_real.o FFTLog_rsd.o
-HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)  $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.1/*.h)
+INCLUDES += -I../$(ONELOOPEFT) 
+EXTERNAL += eft_main.o kernel_matrices.o utilities.o cosmology.o IR_res.o wnw_split.o pspec_FFTLog_real.o pspec_FFTLog_rsd.o FFTLog_ingredients.o FFTLog_real.o FFTLog_rsd.o power_spectrum.o
+HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)
+# import Cuba library if direct_integration is requested
+ifneq ($(DIRECT_INTEGRATION),)
+INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.2
+EXTERNAL += direct_integration.o
+HEADERFILES += $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.2/*.h)
+CCFLAG += -DDIRECT_INTEGRATION
+endif
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 

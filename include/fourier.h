@@ -394,14 +394,16 @@ struct fourier {
 
   //@{
 
-  double wnw_k_split; /**< Wiggle/No-wiggle mode split (end of integration region); default 0.2 h/Mpc */
-  double wnw_k_feature; /**< Position of the BAO feature; default 1/110 h/Mpc */
+  short has_pk_nw;
+  int * nowiggle_pk_index;  /**< compute the nowiggle spectrum for this index_pk */
 
   double * ln_pk_l_nw_extra; /**< No-wiggle linear power spectrum.
                             Computed from ln_pk_l_extra[index_pk_cb] or ln_pk_l_extra[index_pk_m] in this priority. 
                             ln_pk_l_nw_extra[index_tau * pfo->k_size_extra + index_k]   */
   
   double * ddln_pk_l_nw_extra; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
+  
 
   //@}
 
@@ -512,10 +514,6 @@ struct fourier_workspace {
 };
 
 extern struct ext_storage;
-extern int ext_insert_eft(struct ext_storage * pext,
-                   struct eft * peft,
-                   const int index,
-                   ErrorMsg errmsg);
 
 
 /********************************************************************************/

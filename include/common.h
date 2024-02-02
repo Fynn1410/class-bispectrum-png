@@ -83,7 +83,7 @@ typedef char FileName[_FILENAMESIZE_];
 
 void class_protect_sprintf(char* dest, char* tpl,...);
 void class_protect_fprintf(FILE* dest, char* tpl,...);
-void* class_protect_memcpy(void* dest, void* from, size_t sz);
+void* class_protect_memcpy(void* dest, const void* from, size_t sz);
 
 /* some general functions */
 
@@ -171,7 +171,7 @@ int string_begins_with(char* thestring, char beginchar);
 }
 
 /* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
-#define class_calloc(pointer, init,size, error_message_output)  {                                                \
+#define class_calloc(pointer, init, size, error_message_output)  {                                                \
   pointer=calloc(init,size);                                                                                     \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
@@ -181,14 +181,42 @@ int string_begins_with(char* thestring, char beginchar);
   }                                                                                                              \
 }
 
+/* same inside parallel structure */
+#define class_calloc_parallel(pointer, init, size, error_message_output)  {                                             \
+  pointer=NULL;                                                                                                  \
+  if (abort == _FALSE_) {                                                                                        \
+    pointer=calloc(init,size);                                                                                        \
+    if (pointer == NULL) {                                                                                       \
+      int size_int;                                                                                              \
+      size_int = size;                                                                                           \
+      class_alloc_message(error_message_output,#pointer, size_int);                                              \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
+  }                                                                                                              \
+}
+
 /* macro for re-allocating memory, returning error if it failed */
 #define class_realloc(pointer, newname, size, error_message_output)  {                                          \
-    pointer=realloc(newname,size);                                                                               \
+  pointer=realloc(newname,size);                                                                               \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
     class_alloc_message(error_message_output,#pointer, size_int);                                                \
     return _FAILURE_;                                                                                            \
+  }                                                                                                              \
+}
+
+/* same inside parallel structure */
+#define class_realloc_parallel(pointer, newname, size, error_message_output)  {                                             \
+  pointer=NULL;                                                                                                  \
+  if (abort == _FALSE_) {                                                                                        \
+    pointer=realloc(newname,size);                                                                                        \
+    if (pointer == NULL) {                                                                                       \
+      int size_int;                                                                                              \
+      size_int = size;                                                                                           \
+      class_alloc_message(error_message_output,#pointer, size_int);                                              \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
   }                                                                                                              \
 }
 

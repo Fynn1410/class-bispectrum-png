@@ -548,10 +548,14 @@ class_precision_parameter(mmax_for_p1h_integral,double,1.e18)
  * No-wiggle linear power spectrum computation
  * smoothing_scale = const + amplitude * Exp( -(ln(k) - ln_k_center)^2/ln_k_width^2 )
 */
-class_precision_parameter(nw_smooth_const,double,0.06907755279)
-class_precision_parameter(nw_smooth_amplitude,double,0.6907755279)
-class_precision_parameter(nw_smooth_ln_k_center,double,-3.4538776395)
-class_precision_parameter(nw_smooth_ln_k_width,double,2.752115578658)
+// class_precision_parameter(nowiggle_k_min,double,0.00006)  /**< start computing the nowiggle spectrum at this k (in h/Mpc) */
+// class_precision_parameter(nowiggle_k_max,double,15000.) /**< stop computing the nowiggle spectrum at this k (in h/Mpc) */
+class_precision_parameter(nowiggle_boundary_dist_sigma_units,double,2.) /**< stop computing the filtered nowiggle power spectrum at some multiple of the smoothing scale away from the lowest/highest k; close to the boundaries P_nowiggle = P_lin */
+class_precision_parameter(nowiggle_filter_pivot_k,double,0.0001) /**< fixing/pivot scale for reducing dynamics before filtering */
+// class_precision_parameter(nowiggle_filter_const,double,0.06907755279)
+// class_precision_parameter(nowiggle_filter_amplitude,double,0.6907755279)
+// class_precision_parameter(nowiggle_filter_ln_k_center,double,-3.4538776395)
+// class_precision_parameter(nowiggle_filter_ln_k_width,double,2.752115578658)
 
 /**
  * EFT precision parameters
@@ -561,7 +565,12 @@ class_precision_parameter(eft_num_sample_points,int,300)  /**< number of sample 
 class_precision_parameter(eft_bao_oversampling,double,8.) /**< sample point density increases by this factor at the BAO */
 class_precision_parameter(eft_num_positive_frequencies,int,128)  /**< number of positive frequencies at which to sample the Fourier transform */
 class_precision_parameter(eft_fourier_condition_num_threshold,double,100.0)  /**< Threshold of the condition number of the Spline Fourier transform for usage of compensated summation */
-
+class_precision_parameter(eft_uv_cutoff,double,1.e3)  /**< UV cutoff for direct integration and the computation of divergent parts in FFTLog */
+class_precision_parameter(eft_ir_cutoff,double,1.e-5) /**< IR cutoff for direct integration and the computation of divergent parts in FFTLog */
+class_precision_parameter(eft_pk_moments_points,int,400)  /**< number of sample points for the integration of power spectrum moments (e.g. velocity dispersion) */
+class_precision_parameter(eft_interpolate_spectra_contributions,int,_TRUE_) /**< use a fixed set of sample points for the internal spectra contributions and interpolate when compiling the nonlinear spectra */
+class_precision_parameter(eft_di_vecsize,int,128) /**< number of integrand samples computed at once */
+class_precision_parameter(eft_di_key,int,13)  /**< key for underlying quadrature rule (may be 7, 9 or 13)*/
 /*
  * Lensing precision parameters
  */

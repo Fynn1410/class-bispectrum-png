@@ -32,10 +32,23 @@ int ext_save(struct ext_storage * pext,
 int ext_insert_eft(struct ext_storage * pext,
                    struct eft * peft,
                    const int index,
+                   const int num_matrices,
                    ErrorMsg errmsg) {
 
+  if (pext) {
+    if (!(pext->loop_matrices_stored) || index >= pext->eft_size || pext->eft_index_num < num_matrices) {
+      class_test_message(errmsg, "!pext || !(pext->loop_matrices_stored) || index >= pext->eft_size || pext->eft_index_num < num_matrices", \
+                        "Error in ext_insert_eft: pext = %p, stored = %d, stored number of indices = %d, stored number of matrices = %d", \
+                        pext, pext->loop_matrices_stored, pext->eft_size, pext->eft_index_num);
+      /** - query an update of the storage, flag will be reset at the update */
+      pext->update_required = _TRUE_;
 
-  /** - check matching configuration (size & symmetry & period) */
+      return _FAILURE_; /** - insertion is impossible */
+    }
+  }
+  else {
+    return _FAILURE_; /** - not considered an error, therefore no message */
+  }
                    
   return _SUCCESS_;
 }

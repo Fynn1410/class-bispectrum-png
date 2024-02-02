@@ -16,8 +16,8 @@ void class_protect_fprintf(FILE* stream, char* tpl,...) {
   fprintf(stream,"%s",dest);
 }
 
-void* class_protect_memcpy(void* dest, void* from, size_t sz) {
-  return memcpy(dest, from,sz);
+void* class_protect_memcpy(void* dest, const void* from, size_t sz) {
+  return memcpy(dest, from, sz);
 }
 
 int get_number_of_titles(char * titlestring){

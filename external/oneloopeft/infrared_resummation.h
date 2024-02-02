@@ -1,0 +1,5 @@
+#ifndef __EFT_INFRARED_RESUMMATION__
+#define __EFT_INFRARED_RESUMMATION__
+
+
+#endif

@@ -157,7 +157,6 @@ extern "C" {
 				    int x_size,
 				    double * y_array, /* array of size x_size*y_size with elements
 							 y_array[index_y*x_size+index_x] */
-				    int y_size,
 				    int index_y,
 				    double * ddy_array, /* array of size x_size*y_size */
 				    short spline_mode,
@@ -216,6 +215,18 @@ extern "C" {
             double * y_array, 
             int y_size,
             double * ddy_array,
+            double * result,
+            ErrorMsg errmsg
+            );
+
+  int array_square_integrate_exponential_all_spline_table_lines(
+            double * x, 
+            int x_size,
+            double * y_array, 
+            int y_size,
+            double * ddy_array,
+            const double bias,
+            const int derivative_order,
             double * result,
             ErrorMsg errmsg
             );
@@ -377,6 +388,32 @@ extern "C" {
 			       double * __restrict__ result,
 			       int result_size, /** from 1 to n_columns */
 			       ErrorMsg errmsg);
+
+  int array_interpolate_spline_derivative(
+            const double * const __restrict__ x_array,
+            const int n_lines,
+            const double * const __restrict__ array,
+            const double * const __restrict__ array_splined,
+            const int n_columns,
+            const double x,
+            const short derivative_order,
+            int * const __restrict__ last_index,
+            double * __restrict__ result,
+            const int result_size, /** from 1 to n_columns */
+            ErrorMsg errmsg);
+
+  int array_interpolate_spline_derivative_closeby(
+            const double * const __restrict__ x_array,
+            const int n_lines,
+            const double * const __restrict__ array,
+            const double * const __restrict__ array_splined,
+            const int n_columns,
+            const double x,
+            const short derivative_order,
+            int * const __restrict__ last_index,
+            double * __restrict__ result,
+            const int result_size, /** from 1 to n_columns */
+            ErrorMsg errmsg);
 
   int array_search_bisect(
                        int n_lines,
@@ -576,6 +613,17 @@ extern "C" {
 				 double * dy,
 				 double * ddy,
 				 ErrorMsg errmsg);
+
+  int array_convert_spline_table_columns_to_local_power_basis(
+          const double * const x, /* vector of size x_size */
+          const int x_size,
+          const double * const y_array, /* array of size x_size*y_size with elements
+                                            y_array[index_y*x_size+index_x] */
+          const int y_size,
+          const double * const ddy_array, /* array of size x_size*y_size */
+          double * coefficients,  /* array of coefficients of size y_size*(x_size-1)*4, Fortran order */
+          double * breakpoints,   /* array of breakpoints of size y_size*x_size */
+          ErrorMsg errmsg);
 
   int array_smooth(double * array,
 		   int n_columns,

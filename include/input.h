@@ -371,6 +371,7 @@ extern "C" {
                                     struct background * pba,
                                     struct thermodynamics * pth,
                                     struct perturbations * ppt,
+                                    struct fourier * pfo,
                                     struct distortions * psd,
                                     ErrorMsg errmsg);
 
@@ -413,6 +414,7 @@ extern "C" {
                                     struct background * pba,
                                     struct primordial * ppm,
                                     struct perturbations * ppt,
+                                    struct fourier * pfo,
                                     struct transfer * ptr,
                                     struct harmonic * phr,
                                     struct output * pop,

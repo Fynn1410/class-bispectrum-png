@@ -47,6 +47,7 @@ int ext_save(struct ext_storage * pext,
 int ext_insert_eft(struct ext_storage * pext,
                    struct eft * peft,
                    const int index,
+                   const int num_matrices,
                    ErrorMsg errmsg);
 
 
