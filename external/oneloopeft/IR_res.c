@@ -465,6 +465,18 @@ static int indexed_rsd_arg_cmp_k(const void * a, const void * b) {
       return 0;
 }
 
+/**
+ * @brief Compiles a list of sorted and indexed arguments for IR-resummed linear spectra in RSD space.
+ *        The argument list will contain the tensor product of the input k- and mu-lists.
+ * @param ln_kvec   Input: array of logarithmic wavenumbers (in 1/Mpc)
+ * @param k_size    Input: size of the wavenumber array
+ * @param muvec     Input: array of line-of-sight angles w.r.t. the RSD direction (cos(theta))
+ * @param mu_size   Input: size of the line-of-sight angle array
+ * @param vec       Output: argument list
+ * @param errmsg 
+ * 
+ * @return the error status
+ */
 int eft_rsd_argument_list_rect(const double * const ln_kvec,
                                const int k_size,
                                const double * const muvec,
@@ -491,6 +503,29 @@ int eft_rsd_argument_list_rect(const double * const ln_kvec,
   return _SUCCESS_;
 }
 
+int eft_rsd_argument_list(const double * const ln_kvec,
+                          const double * const muvec,
+                          const int size,
+                          struct indexed_rsd_arg ** vec,
+                          ErrorMsg errmsg) {
+
+  int it;
+  
+  /** - allocate the output list */
+  class_alloc(*vec, size*sizeof(struct indexed_rsd_arg), errmsg);
+
+  /** - transpose ln_kvec array to presort */
+  for (it = 0; it < size; it++) {
+    (*vec)[it].index = it;  /**< index in ln_kvec */
+    (*vec)[it].ln_k  = ln_kvec[it]; /**< corresponding ln(k) value */
+    (*vec)[it].mu    = muvec[it]; /**< corresponding mu value */
+  }
+  /** - sort using quicksort (fourier_pk functions require ln_kvec to be sorted in ascending order) */
+  qsort(*vec, size, sizeof(struct indexed_rsd_arg), indexed_rsd_arg_cmp_k);
+
+  return _SUCCESS_;
+}
+
 /**
  * @brief Compute the leading-order IR-resummed matter power spectrum in RSD space, ala Ivanovic et al.;
  *        assumes ln_kvec is sorted in ascending order
@@ -501,7 +536,7 @@ int eft_rsd_argument_list_rect(const double * const ln_kvec,
  * @param mode      Input: linear or logarithmic
  * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
  * @param muvec     Input: array of line-of-sight angles w.r.t. the RSD direction (cos(theta))
- * @param vec_size Input: size of array of wavenumbers and angles
+ * @param vec_size  Input: size of array of wavenumbers and angles
  * @param z         Input: redshift
  * @param f         Input: growth factor f(z)
  * @param sigma2_ir_at_z    Input: infrared-suppression factor in the exponent at z

@@ -78,6 +78,14 @@ int eft_rsd_argument_list_rect(
             ErrorMsg errmsg
             );
 
+int eft_rsd_argument_list(
+            const double * const ln_kvec,
+            const double * const muvec,
+            const int size,
+            struct indexed_rsd_arg ** vec,
+            ErrorMsg errmsg
+            );
+
 int eft_ir_pk_rsd_lo(
             struct background * pba,
             struct primordial * ppm,

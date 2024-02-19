@@ -9,6 +9,28 @@
 #include <stdlib.h>
 #include "library/Cuba-4.2.2/cuba.h"
 
+#undef _FAILURE_
+#define _FAILURE_ -999
+
+struct direct_integration_parameters
+{
+  struct eft * peft;
+  struct background * pba;
+  struct primordial * ppm;
+  struct fourier * pfo;
+
+  struct eft_hyper_parameters * eft_hp;
+
+  int * moment_list;
+  int moment_list_size;
+
+  double z;
+  double f_z;
+  double ln_k;  /**< external logarithmic wavenumber (in 1/Mpc) */
+  double mu;    /**< angle w.r.t. line-of-sight mu = e_k . n */
+};
+
+
 
 
 

@@ -1563,6 +1563,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
   } /** - end of z-loop */
   
   free(pkmu_nl);
+  free(ddpkmu_nl);
 
   return _SUCCESS_;
 }
