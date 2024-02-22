@@ -1,8 +1,10 @@
 
 
 /** @file header.h
- *
+ * 
+ * contains the eft module and parameter struct definitions and includes all other source files needed for CLASS-OneLoop
  */
+
 #ifndef __EFFECTIVE_FIELD_THEORY__
 #define __EFFECTIVE_FIELD_THEORY__
 
@@ -609,5 +611,6 @@ struct integrand_parameters2
 #include "pspec_FFTLog_rsd.h"
 #include "IR_res.h"
 #include "power_spectrum.h"
+#include "direct_integration.h"
 
 #endif

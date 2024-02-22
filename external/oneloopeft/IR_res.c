@@ -1,32 +1,11 @@
-/** @file asdf.c 
+/** @file IR_res.c 
  * 
- * author: Christian Radermacher, 2023
+ * author: Christian Radermacher, 2024
  * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
  * 
  * this module can be used by others without ever referencing eft structures
+ * contains infrared-resummed linear matter power spectra while the wiggle-nowiggle separation is performed in wnw_split.c
 */
-
-
-
-
-
-
-/** @file IR_res.c Documented IR_res module
- *
- * Azadeh Moradinezhad Dizgah, November 4th 2021
- *
- * This module is computes the leading and next-to-leading IR-resummed matter power spectrum
- * The wiggle-nowiggle seperation is performed in wnw_split.c module.
- *
- * In summary, the following functions can be called from other modules:
- * -# pm_IR_LO()
- * -# pm_IR_NLO()
- * -# IR_Sigma2()
- * -# pm_nowiggle()
- * -# pm_nowiggle_gfilter()
- * -# pm_nowiggle_bspline()
- * -# pm_nowiggle_dst()
- */
 
 #include "IR_res.h"
 
@@ -521,7 +500,7 @@ int eft_rsd_argument_list(const double * const ln_kvec,
     (*vec)[it].mu    = muvec[it]; /**< corresponding mu value */
   }
   /** - sort using quicksort (fourier_pk functions require ln_kvec to be sorted in ascending order) */
-  qsort(*vec, size, sizeof(struct indexed_rsd_arg), indexed_rsd_arg_cmp_k);
+  qsort((void *)*vec, size, sizeof(struct indexed_rsd_arg), indexed_rsd_arg_cmp_k);
 
   return _SUCCESS_;
 }

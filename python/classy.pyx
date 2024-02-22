@@ -207,6 +207,8 @@ cdef class Class:
     def struct_cleanup(self):
         if(self.allocated != True):
           return
+        # ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm, 
+        #          &self.fo, &self.tr, &self.hr, &self.le, &self.sd)
         if "distortions" in self.ncp:
             distortions_free(&self.sd)
         if "lensing" in self.ncp:
@@ -393,7 +395,7 @@ cdef class Class:
 
         if "perturb" in level:
             if perturbations_init(&(self.pr), &(self.ba),
-                            &(self.th), &(self.pt)) == _FAILURE_:
+                                  &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturb")
@@ -406,8 +408,8 @@ cdef class Class:
             self.ncp.add("primordial")
 
         if "fourier" in level:
-            if fourier_init(&self.pr, &self.ba, &self.th,
-                              &self.pt, &self.pm, &self.fo, &self.ex) == _FAILURE_:
+            if fourier_init(&(self.pr), &(self.ba), &(self.th),
+                            &(self.pt), &(self.pm), &(self.fo), &(self.ex)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.fo.error_message)
             self.ncp.add("fourier")
@@ -421,8 +423,8 @@ cdef class Class:
 
         if "harmonic" in level:
             if harmonic_init(&(self.pr), &(self.ba), &(self.pt),
-                            &(self.pm), &(self.fo), &(self.tr),
-                            &(self.hr)) == _FAILURE_:
+                             &(self.pm), &(self.fo), &(self.tr),
+                             &(self.hr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.hr.error_message)
             self.ncp.add("harmonic")

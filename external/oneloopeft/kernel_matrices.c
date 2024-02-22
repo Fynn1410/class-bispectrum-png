@@ -1,3 +1,11 @@
+/** @file kernel_matrices.c
+ * 
+ * author: Christian Radermacher, 2023
+ * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
+ * 
+ * contains analytic FFTLog kernel definitions using dimensional regularisation with d = 3
+*/
+
 #include "kernel_matrices.h"
 
 /*

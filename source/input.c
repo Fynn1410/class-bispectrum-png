@@ -3569,6 +3569,17 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       class_read_double("eft_bias_halo", pfo->eft_hp.bias[eft_halo]);
       class_read_flag("eft_compute_loop_matrices", pfo->eft_hp.compute_loop_matrices);
       class_read_flag("eft_enable_mu_approximation", pfo->eft_hp.use_mu_approximation);
+      class_read_flag("eft_direct_integration", pfo->eft_hp.integration_mode);
+      /** - if Direct integration is selected, deactivate the approximate mu-dependence used with FFTLog */
+      if (pfo->eft_hp.integration_mode == direct_integration) {
+        pfo->eft_hp.use_mu_approximation = _FALSE_;
+        pfo->eft_hp.use_interpolation = _FALSE_;
+        pfo->eft_hp.compute_loop_matrices = _FALSE_;
+
+        #ifndef DIRECT_INTEGRATION
+        class_stop(errmsg, "You have requested direct integration, but the associated module was not compiled!");
+        #endif
+      }
 
       class_read_double("b1", pfo->b1);
       class_read_double("b2", pfo->b2);
@@ -5722,6 +5733,7 @@ int input_default_params(struct background *pba,
   pfo->extrapolation_method = extrap_max_scaled;
   pfo->feedback = nl_emu_dmonly;
   pfo->z_infinity = 10.;
+  /** TODO: remove */
   pfo->has_rsd = _FALSE_;
   pfo->b1  =  2.;
   pfo->b2  = -1.;
@@ -5736,6 +5748,7 @@ int input_default_params(struct background *pba,
   pfo->c30 =  0.;
   pfo->c32 =  0.;
   pfo->c42 =  0.;
+  /** ------------ */
 
   pfo->eft_hp.ir_resummation_k_split = 0.2; 
   pfo->eft_hp.ir_resummation_k_feature = 1./110.;
@@ -5755,6 +5768,7 @@ int input_default_params(struct background *pba,
   pfo->eft_hp.use_mu_approximation = _TRUE_;
   sprintf(pfo->eft_hp.eft_loop_matrix_directory, "loop_matrices/");
   pfo->eft_hp.use_interpolation = _TRUE_;
+  pfo->eft_hp.integration_mode = fftlog;
 
   /**
    * Default to input_read_parameters_primordial

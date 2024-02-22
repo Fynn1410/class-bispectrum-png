@@ -21,21 +21,27 @@ struct direct_integration_parameters
 
   struct eft_hyper_parameters * eft_hp;
 
-  int * moment_list;
-  int moment_list_size;
+  const int * const moment_list;
+  const int moment_list_size;
 
-  double z;
-  double f_z;
+  const double z;
+  const double f_z;
   double ln_k;  /**< external logarithmic wavenumber (in 1/Mpc) */
   double mu;    /**< angle w.r.t. line-of-sight mu = e_k . n */
 };
 
 
-
-
-
-
-
+int eft_di_compute_spectra_contributions(
+                    struct eft * peft,
+                    struct background * pba,
+                    struct fourier * pfo,
+                    struct primordial * ppm,
+                    struct precision * ppr,
+                    const int * const moment_list,
+                    const int moment_list_size,
+                    const double z,
+                    const double f_z
+                    );
 
 
 #endif

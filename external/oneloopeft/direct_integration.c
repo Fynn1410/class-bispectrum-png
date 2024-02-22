@@ -1,4 +1,11 @@
-/** #if DIRECT_INTEGRATION : make will only compile this file if DIRECT_INTEGRATION=yes is given */
+/** @file direct_integration.c
+ * 
+ * author: Christian Radermacher, 2024
+ * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
+ * 
+ * contains kernel definitions for direct integration of loop terms
+ * only compiled if DIRECT_INTEGRATION=yes is given
+*/
 
 #include "direct_integration.h"
 
@@ -76,22 +83,22 @@ static double eft_di_los_kernel_q(const double k_sq, const double q_sq, const do
  * 
  * @return the error status (_CUBA_ERROR_ for immediate abortion)
  */
-int integrands(const int * ndim,
-               const double x[],
-               const int * ncomp,
-               double f[],
-               struct direct_integration_parameters * userdata,
-               const int * nvec,
-               const int * core) {
+int eft_di_integrands(const int * ndim,
+                      const double * x,
+                      const int * ncomp,
+                      double * f,
+                      void * userdata,
+                      const int * nvec,
+                      const int * core) {
 
-  int it, index_list, index_comp = 0;
-  struct eft_hyper_parameters * hp = (struct eft_hyper_parameters *)userdata->eft_hp;
-  const double k = exp(userdata->ln_k), cos_theta = userdata->mu, sin_theta = sqrt(1. - userdata->mu * userdata->mu), k_sq;
-  double * ln_q, * q_sq, * cos_thetaq, * ln_kmq, *kmq_sq, * cos_thetakmq, * measure;
-  double * plin_rsd_q, * plin_rsd_kmq, q, kmq, sin_thetaq, cos_phiq;
-  struct indexed_rsd_arg ** argqvec, ** argkmqvec;
+  int it, index_list, index_moment, index_comp = 0;
+  struct direct_integration_parameters * params = userdata;
+  struct eft_hyper_parameters * hp = (struct eft_hyper_parameters *)params->eft_hp;
+  const double k = exp(params->ln_k), cos_theta = params->mu, sin_theta = sqrt(1. - params->mu * params->mu), k_sq = exp(2.*params->ln_k);
+  double * ln_q, * q_sq, * cos_thetaq, * ln_kmq, *kmq_sq, * cos_thetakmq, * cos_phiq, * measure;
+  double * plin_rsd_q, * plin_rsd_kmq, q, kmq, sin_thetaq;
+  struct indexed_rsd_arg * argqvec, * argkmqvec;
   ErrorMsg errmsg;
-  k_sq = k*k;
 
   class_alloc(ln_q,         *nvec*sizeof(double), errmsg);
   class_alloc(q_sq,         *nvec*sizeof(double), errmsg);
@@ -99,22 +106,23 @@ int integrands(const int * ndim,
   class_alloc(ln_kmq,       *nvec*sizeof(double), errmsg);
   class_alloc(kmq_sq,       *nvec*sizeof(double), errmsg);
   class_alloc(cos_thetakmq, *nvec*sizeof(double), errmsg);
+  class_alloc(cos_phiq,     *nvec*sizeof(double), errmsg);
   class_alloc(measure,      *nvec*sizeof(double), errmsg);
   class_alloc(plin_rsd_q,   *nvec*sizeof(double), errmsg);
   class_alloc(plin_rsd_kmq, *nvec*sizeof(double), errmsg);
 
   /** - extract the arguments into (ln(q), mu_q, phi_q) from x */
   for (it = 0; it < *nvec; it++) {
-    ln_q[it] = log(hp->k_IR_cutoff) + x[it][0] * log(hp->k_UV_cutoff/hp->k_IR_cutoff);
+    ln_q[it] = log(hp->k_IR_cutoff) + x[it*(*ndim) + 0] * log(hp->k_UV_cutoff/hp->k_IR_cutoff);
     q = exp(ln_q[it]);
     q_sq[it] = q*q;
-    cos_thetaq[it]  = 2.*x[it][1] - 1.; /** angle w.r.t. k, not line-of-sight!; mu_q in (-1, 1), alternatively (0, 1) with additional symmetry factor */
+    cos_thetaq[it]  = 2.*x[it*(*ndim) + 1] - 1.; /** angle w.r.t. k, not line-of-sight!; mu_q in (-1, 1), alternatively (0, 1) with additional symmetry factor */
     sin_thetaq = sqrt(1. - cos_thetaq[it]*cos_thetaq[it]);
-    cos_phiq = cos(2.*_PI_*x[it][2]);
+    cos_phiq[it] = cos(2.*_PI_*x[it*(*ndim) + 2]);
     ln_kmq[it] = 0.5 * log( k_sq + q*q - 2.*k*q*cos_thetaq[it] ); /** values outside the stored interpolation range for the power spectrum will be removed from the integral (essentially pole cutoff = IR cutoff) */
     kmq = exp(ln_kmq[it]);
     kmq_sq[it] = kmq*kmq;
-    cos_thetakmq[it] = ((k - q*cos_thetaq[it]) * cos_theta[it] + q*sin_thetaq[it]*cos_phiq[it] * sin_theta[it]) / kmq;
+    cos_thetakmq[it] = ((k - q*cos_thetaq[it]) * cos_theta + q*sin_thetaq*cos_phiq[it] * sin_theta) / kmq;
     measure[it] = log(hp->k_UV_cutoff/hp->k_IR_cutoff) * q*q*q / (2.*_PI_*_PI_);  /**< integral measure after transforming to x_i in [0,1], starting from d^3q/(2 pi)^3 */
   }
 
@@ -122,7 +130,7 @@ int integrands(const int * ndim,
   class_call(eft_rsd_argument_list(ln_q,
                                    cos_thetaq,
                                    *nvec,
-                                   argqvec,
+                                   &argqvec,
                                    errmsg),
              errmsg, errmsg);
 
@@ -130,218 +138,306 @@ int integrands(const int * ndim,
   class_call(eft_rsd_argument_list(ln_kmq,
                                    cos_thetakmq,
                                    *nvec,
-                                   argkmqvec,
+                                   &argkmqvec,
                                    errmsg),
              errmsg, errmsg);
   
   /** - get the (IR-resummed) linear power spectrum */
-  class_call(eft_ir_pk_rsd_lo(userdata->pba,
-                              userdata->ppm,
-                              userdata->pfo,
+  class_call(eft_ir_pk_rsd_lo(params->pba,
+                              params->ppm,
+                              params->pfo,
                               linear,
                               argqvec,
                               *nvec,
-                              userdata->z,
-                              userdata->f_z,
+                              params->z,
+                              params->f_z,
                               hp->linear_spectrum_index,
-                              userdata->peft->Sigma2_ir,
-                              userdata->peft->dSigma2_ir,
+                              params->peft->Sigma2_ir,
+                              params->peft->dSigma2_ir,
                               plin_rsd_q),
              errmsg, errmsg);
 
-  class_call(eft_ir_pk_rsd_lo(userdata->pba,
-                              userdata->ppm,
-                              userdata->pfo,
+  class_call(eft_ir_pk_rsd_lo(params->pba,
+                              params->ppm,
+                              params->pfo,
                               linear,
                               argkmqvec,
                               *nvec,
-                              userdata->z,
-                              userdata->f_z,
+                              params->z,
+                              params->f_z,
                               hp->linear_spectrum_index,
-                              userdata->peft->Sigma2_ir,
-                              userdata->peft->dSigma2_ir,
+                              params->peft->Sigma2_ir,
+                              params->peft->dSigma2_ir,
                               plin_rsd_kmq),
              errmsg, errmsg);
 
-  for (index_list = 0; index_list < userdata->moment_list_size; index_list++) {
-    index_moment = (userdata->moment_list[index_list] % peft->index_num);
+  for (index_list = 0; index_list < params->moment_list_size; index_list++) {
+    index_moment = (params->moment_list[index_list] % params->peft->index_num);
 
     /** --------------------- Real-space moments ------------------------------ */
-    if (index_moment == userdata->peft->index_I2200) {
+    if (index_moment == params->peft->index_I2200) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]), 2);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]), 2);
     }
-    else if (index_moment == userdata->peft->index_I1300) {
+    else if (index_moment == params->peft->index_I1300) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_kernel_F3s(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_kernel_F3s(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_Idelta200) {
+    else if (index_moment == params->peft->index_Idelta200) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_IG200) {
+    else if (index_moment == params->peft->index_IG200) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_Idelta2delta200) {
+    else if (index_moment == params->peft->index_Idelta2delta200) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * (plin_rsd_kmq[it] - plin_rsd_q[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * (plin_rsd_kmq[it] - plin_rsd_q[it]);
     }
-    else if (index_moment == userdata->peft->index_IG2G200) {
+    else if (index_moment == params->peft->index_IG2G200) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]), 2);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]), 2);
     }
-    else if (index_moment == userdata->peft->index_Idelta2G200) {
+    else if (index_moment == params->peft->index_Idelta2G200) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_FG200) {
+    else if (index_moment == params->peft->index_FG200) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_F2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_F2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
     }
     /** --------------------- 1-st RSD moments -------------------------------- */
-    else if (index_moment == userdata->peft->index_I2201) {
+    else if (index_moment == params->peft->index_I2201) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_I1301p3101) {
+    else if (index_moment == params->peft->index_I1301p3101) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * (eft_di_kernel_F3s(k_sq, q_sq[it], kmq_sq[it]) + eft_di_kernel_G3s(k_sq, q_sq[it], kmq_sq[it]));
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * (eft_di_kernel_F3s(k_sq, q_sq[it], kmq_sq[it]) + eft_di_kernel_G3s(k_sq, q_sq[it], kmq_sq[it]));
     }
-    else if (index_moment == userdata->peft->index_Idelta201) {
+    else if (index_moment == params->peft->index_Idelta201) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_IG201) {
+    else if (index_moment == params->peft->index_IG201) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_FG201) {
+    else if (index_moment == params->peft->index_FG201) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_F2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]) * eft_di_kernel_F2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J12101) {
+    else if (index_moment == params->peft->index_J12101) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J11201) {
+    else if (index_moment == params->peft->index_J11201) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_F2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_F2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J21101) {
+    else if (index_moment == params->peft->index_J21101) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_Jdelta201) {
+    else if (index_moment == params->peft->index_Jdelta201) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta);
     }
-    else if (index_moment == userdata->peft->index_JG201) {
+    else if (index_moment == params->peft->index_JG201) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]);
     }
     /** --------------------- 2-nd RSD moments -------------------------------- */
-    else if (index_moment == userdata->peft->index_J12102x) {
+    else if (index_moment == params->peft->index_J12102x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J12102y) {
+    else if (index_moment == params->peft->index_J12102y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
-    else if (index_moment == userdata->peft->index_J21102x) {
+    else if (index_moment == params->peft->index_J21102x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_F2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J21102y) {
+    else if (index_moment == params->peft->index_J21102y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
-    else if (index_moment == userdata->peft->index_Jdelta202x) {
+    else if (index_moment == params->peft->index_Jdelta202x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]);
     }
-    else if (index_moment == userdata->peft->index_Jdelta202y) {
+    else if (index_moment == params->peft->index_Jdelta202y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
-    else if (index_moment == userdata->peft->index_JG202x) {
+    else if (index_moment == params->peft->index_JG202x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_S2(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_JG202y) {
+    else if (index_moment == params->peft->index_JG202y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
-    else if (index_moment == userdata->peft->index_I2211) {
+    else if (index_moment == params->peft->index_I2211) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]), 2);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]), 2);
     }
-    else if (index_moment == userdata->peft->index_I1311) {
+    else if (index_moment == params->peft->index_I1311) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_kernel_G3s(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_kernel_G3s(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J12111) {
+    else if (index_moment == params->peft->index_J12111) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J11211) {
+    else if (index_moment == params->peft->index_J11211) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_F2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_F2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J21111) {
+    else if (index_moment == params->peft->index_J21111) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_N11x) {
+    else if (index_moment == params->peft->index_N11x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * (eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) + eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]));
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * (eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) + eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]));
     }
-    else if (index_moment == userdata->peft->index_N11y) {
+    else if (index_moment == params->peft->index_N11y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
     /** --------------------- 3-rd RSD moments -------------------------------- */
-    else if (index_moment == userdata->peft->index_J21112x) {
+    else if (index_moment == params->peft->index_J21112x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_kmq(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J21112y) {
+    else if (index_moment == params->peft->index_J21112y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
-    else if (index_moment == userdata->peft->index_J12112x) {
+    else if (index_moment == params->peft->index_J12112x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]) * eft_di_kernel_G2s_q_mk(k_sq, q_sq[it], kmq_sq[it]);
     }
-    else if (index_moment == userdata->peft->index_J12112y) {
+    else if (index_moment == params->peft->index_J12112y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
-    else if (index_moment == userdata->peft->index_N12x) {
+    else if (index_moment == params->peft->index_N12x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta), 2) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta), 2) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]);
     }
-    else if (index_moment == userdata->peft->index_N12y) {
+    else if (index_moment == params->peft->index_N12y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
     /** --------------------- 4-th RSD moments -------------------------------- */
-    else if (index_moment == userdata->peft->index_N22x) {
+    else if (index_moment == params->peft->index_N22x) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]), 2);
+        f[it*(*ncomp) + index_comp] = measure[it] * plin_rsd_q[it] * plin_rsd_kmq[it] * pow(eft_di_los_kernel_q(k_sq, q_sq[it], kmq_sq[it], cos_thetaq[it], cos_phiq[it], cos_theta) * eft_di_los_kernel_kmq(k_sq, q_sq[it], kmq_sq[it], cos_thetakmq[it]), 2);
     }
-    else if (index_moment == userdata->peft->index_N22y) {
+    else if (index_moment == params->peft->index_N22y) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
-    else if (index_moment == userdata->peft->index_N22z) {
+    else if (index_moment == params->peft->index_N22z) {
       for (it = 0; it < *nvec; it++)
-        f[it][index_comp] = 0.;
+        f[it*(*ncomp) + index_comp] = 0.;
     }
-
+    else {
+      /** - abort immediately */
+      return _FAILURE_;
+    }
+  
     index_comp++;
   }
+
+  free(ln_q); free(q_sq); free(cos_thetaq);
+  free(ln_kmq); free(kmq_sq); free(cos_thetakmq); free(cos_phiq);
+  free(measure); free(plin_rsd_q); free(plin_rsd_kmq);
+
+  return _SUCCESS_;
+}
+
+
+int eft_di_compute_spectra_contributions(struct eft * peft,
+                                         struct background * pba,
+                                         struct fourier * pfo,
+                                         struct primordial * ppm,
+                                         struct precision * ppr,
+                                         const int * const moment_list,
+                                         const int moment_list_size,
+                                         const double z,
+                                         const double f_z) {
+
+  int index_k, index_mu, index_list, index_pk_type, index_moment, nregions, neval, fail, abort;
+  double * result, * error, * prob;
+  div_t list_elem;
+  struct direct_integration_parameters di_params = { .peft = peft, .eft_hp = peft->hp,    \
+                                                     .pba = pba, .pfo = pfo, .ppm = ppm,  \
+                                                     .moment_list = moment_list, .moment_list_size = moment_list_size,  \
+                                                     .z = z, .f_z = f_z, .ln_k = 0., .mu = 0.};
+
+  #pragma omp parallel shared(peft, ppr, moment_list, moment_list_size, abort), private(index_k, index_mu, index_list, nregions, neval, fail, result, error, prob, list_elem, index_pk_type, index_moment),  \
+                       firstprivate(di_params), default(none)
+  {
+
+  class_alloc_parallel(result, moment_list_size*sizeof(double), peft->error_message);
+  class_alloc_parallel(error,  moment_list_size*sizeof(double), peft->error_message);
+  class_alloc_parallel(prob,   moment_list_size*sizeof(double), peft->error_message);
+
+  if (!abort) {
+    #pragma omp for schedule(static), collapse(2)
+    for (index_mu = 0; index_mu < peft->mu_size; index_mu++) {
+      for (index_k = 0; index_k < peft->k_size; index_k++) {
+        /** - load the sampling point */
+        di_params.ln_k = peft->ln_k[index_mu*peft->k_size + index_k];
+        di_params.mu   = peft->mu[index_mu];
+
+        /** - compute the integral using cubature rules */
+        Cuhre(3, 
+              moment_list_size,
+              eft_di_integrands,
+              &di_params,
+              ppr->eft_di_vecsize,
+              ppr->eft_di_epsrel,
+              ppr->eft_di_epsabs,
+              ppr->eft_di_flags,
+              ppr->eft_di_mineval,
+              ppr->eft_di_maxeval,
+              ppr->eft_di_key,
+              NULL,
+              NULL,
+              &nregions,
+              &neval,
+              &fail,
+              result,
+              error,
+              prob);
+
+        /** - copy the result to the spectra_contributions array */
+        for (index_list = 0; index_list < moment_list_size; index_list++) {
+          list_elem = div(moment_list[index_list], peft->index_num);
+          index_pk_type = list_elem.quot;
+          index_moment = list_elem.rem;
+          peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + finite_part][index_mu*peft->k_size + index_k]     = result[index_list];
+          peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence][index_mu*peft->k_size + index_k]   = 0.;
+          peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence][index_mu*peft->k_size + index_k]   = 0.;
+          peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence][index_mu*peft->k_size + index_k] = 0.;
+        }
+      }
+    }
+  }
+
+  free(result);
+  free(error);
+  free(prob);
+
+  } /** - end of parallel region */
+  
 
   return _SUCCESS_;
 }

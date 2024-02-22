@@ -1,3 +1,10 @@
+/** @file ext_storage.c
+ * 
+ * author: Christian Radermacher, 2024
+ * 
+ * this module offers memory storage for pointers that are reused in repeated CLASS evaluations
+*/
+
 #include "ext_storage.h"
 
 int ext_save(struct ext_storage * pext,

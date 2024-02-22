@@ -1,3 +1,11 @@
+/** @file eft_main.c
+ * 
+ * author: Christian Radermacher, 2024
+ * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
+ * 
+ * contains many routines for the EFT workflow and handles all input/output operations
+*/
+
 #include "header.h"
 
 int eft_spline_sample_points_nonuniform(
@@ -395,7 +403,7 @@ int eft_init(struct precision * ppr,
   return _SUCCESS_;
 }
 
-// TODO: inline this
+/** TODO: inline this */
 int eft_linear_spectrum_real(
                   struct background * pba,
                   struct primordial * ppm,
@@ -1450,18 +1458,18 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
       }
     }
 
-    if (list_pk_types_loops_not_loaded_size > 0) {
-      if (!eft_hp->use_time_independent_kernels) {  /** if the kernels have been precomputed for a specific redshift, we have to load spectra at this exact redshift */
-        z = pfo->z_pk_eft[index_eft];
-        f_z = f_z_pk_eft[index_eft];
-        D_z = D_z_pk_eft[index_eft];
-      }
-      else {  /** else, load the spectra at the latest redshift in sub_zvec */
-        z = zvec[index_z];
-        f_z = f_zvec[index_z];
-        D_z = D_zvec[index_z];
-      }
+    if (!eft_hp->use_time_independent_kernels) {  /** if the kernels have been precomputed for a specific redshift, we have to load spectra at this exact redshift */
+      z = pfo->z_pk_eft[index_eft];
+      f_z = f_z_pk_eft[index_eft];
+      D_z = D_z_pk_eft[index_eft];
+    }
+    else {  /** else, load the spectra at the latest redshift in sub_zvec */
+      z = zvec[index_z];
+      f_z = f_zvec[index_z];
+      D_z = D_zvec[index_z];
+    }
 
+    if (list_pk_types_loops_not_loaded_size > 0 && peft->hp->integration_mode == fftlog) {
       /** - load the real-space linear spectra */
       class_call(eft_load_linear_spectra(pba, pfo, ppm,
                                          peft,
@@ -1487,22 +1495,41 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
 
     /** - allocate arrays for the necessary spectra_contributions */
     class_call(eft_allocate_spectra_contributions(peft,
-                                                  eft_hp->use_interpolation ? peft->k_size : k_sizevec[index_z]*mu_sizevec[index_z],
+                                                  (eft_hp->use_interpolation && eft_hp->integration_mode == fftlog) ? peft->k_size : k_sizevec[index_z]*mu_sizevec[index_z],
                                                   list_spectra_contributions,
                                                   list_spectra_contributions_size),
                 peft->error_message, peft->error_message);
 
-    /** - then compute the spectra_contributions that are not yet loaded */
-    class_call(eft_compute_spectra_contributions(peft,
-                                                 list_spectra_contributions_not_loaded,
-                                                 list_spectra_contributions_not_loaded_size),
-                peft->error_message, peft->error_message);
+    if (eft_hp->integration_mode == fftlog) {
+      /** - then compute the spectra_contributions that are not yet loaded */
+      class_call(eft_compute_spectra_contributions(peft,
+                                                  list_spectra_contributions_not_loaded,
+                                                  list_spectra_contributions_not_loaded_size),
+                  peft->error_message, peft->error_message);
 
-    /** - compute the divergent parts */
-    class_call(eft_compute_divergences(peft,
-                                       list_spectra_contributions_not_loaded,
-                                       list_spectra_contributions_not_loaded_size),
-                peft->error_message, peft->error_message);
+      /** - compute the divergent parts */
+      class_call(eft_compute_divergences(peft,
+                                        list_spectra_contributions_not_loaded,
+                                        list_spectra_contributions_not_loaded_size),
+                  peft->error_message, peft->error_message);
+    }
+    else if (eft_hp->integration_mode == direct_integration) {
+      #ifdef DIRECT_INTEGRATION
+      class_call(eft_di_compute_spectra_contributions(peft,
+                                                      pba,
+                                                      pfo,
+                                                      ppm,
+                                                      ppr,
+                                                      list_spectra_contributions_not_loaded,
+                                                      list_spectra_contributions_not_loaded_size,
+                                                      z,
+                                                      f_z),
+                  peft->error_message, peft->error_message);
+      #else
+      class_stop(peft->error_message, "You have requested direct integration, but the associated module was not compiled!");
+      #endif
+    }
+    else { class_stop(peft->error_message, "EFT integration mode not recognized, was %d", eft_hp->integration_mode); }
 
     if (eft_hp->use_interpolation) {
       class_realloc(pkmu_nl, pkmu_nl, peft->k_size*mu_sizevec[index_z]*sizeof(double),

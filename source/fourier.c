@@ -2059,8 +2059,8 @@ int fourier_init(
     /** - fill in hyperparameters from precision */
     pfo->eft_hp.linear_spectrum_index = pfo->index_pk_cluster;
     
-    pfo->eft_hp.fourier_mode = fourier_mode_spline; //ppr->eft_fourier_mode;
-    pfo->eft_hp.integration_mode = fftlog;
+    pfo->eft_hp.fourier_mode = ppr->eft_fourier_mode;
+    //pfo->eft_hp.integration_mode = fftlog;
     pfo->eft_hp.k_size_fourier = ppr->eft_num_sample_points + 1;
     pfo->eft_hp.bao_oversampling = ppr->eft_bao_oversampling;
     pfo->eft_hp.ln_k_oversampling_width = ppr->k_bao_width;
