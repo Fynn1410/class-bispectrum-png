@@ -610,12 +610,12 @@ int eft_fourier_transform_linear_spectra(
                             const int * const index_pk_types,
                             const int index_pk_types_size) {
 
-  int it, index_mu, index_tracer, index_pk_type, index_list, abort = _FALSE_;
+  int it, index_mu, index_tracer, index_pk_type, index_list, last_index, abort = _FALSE_;
   int mu_size;
   // int * index_pk_types, index_pk_types_size = 0;
   const int num_independent_coefficients = peft->hp->num_positive_fourier_freq + 1;
   double ** pk_l_biased_p;
-  double spline_lipschitz_const = 0., spline_gradient_change, spline_L2_norm, series_l2_norm = 0.;
+  double ln_k_fft, spline_lipschitz_const = 0., spline_gradient_change, spline_L2_norm, series_l2_norm = 0.;
 
   /** if the list is empty there is nothing to do */
   if (index_pk_types_size < 1) { return _SUCCESS_; }
@@ -645,8 +645,8 @@ int eft_fourier_transform_linear_spectra(
   /** list of indices for the pk_types to compute is prepared externally */
 
 
-  #pragma omp parallel shared(ppr, pba, ppm, pfo, peft, abort, stderr, num_independent_coefficients, index_pk_types, index_pk_types_size, spline_lipschitz_const, spline_gradient_change, spline_L2_norm, series_l2_norm), \
-                       private(it, index_mu, index_tracer, index_pk_type, index_list, mu_size, pk_l_biased_p), \
+  #pragma omp parallel shared(ppr, pba, ppm, pfo, peft, abort, stderr, spline_lipschitz_const, spline_gradient_change, spline_L2_norm, series_l2_norm), \
+                       private(it, index_mu, index_tracer, index_pk_type, index_list, mu_size, pk_l_biased_p, ln_k_fft, last_index), \
                        default(none)
   { /** , last_index, ln_k_fft, pk_l_biased_fft, fft_plan, fourier_coeff_real, fourier_coeff_imag */
 
@@ -934,8 +934,6 @@ int eft_fourier_transform_linear_spectra(
     /** -------------- fall-through -----------------------*/
   case fourier_mode_fft:
     /** - sample fourier_coeff_size-1 equidistant points for FFT */
-    int last_index = 0;
-    double ln_k_fft;
     double * pk_l_biased_fft[eft_tracer_num];
     struct FFT_plan * fft_plan;
     double * fourier_coeff_real[2], * fourier_coeff_imag[2];
@@ -953,6 +951,7 @@ int eft_fourier_transform_linear_spectra(
     class_protect_memcpy(fft_plan->sin_vals, peft->fft_plan->sin_vals, peft->fft_plan->N * sizeof(double));
 
     mu_size = (peft->hp->use_mu_approximation) ? 1 : peft->mu_size;
+    last_index = 0;
 
     #pragma omp for schedule(static, 1), collapse(2)
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
@@ -1203,7 +1202,7 @@ int eft_get_loop_matrices(struct eft * peft,
         class_call(eft_compute_loop_matrices(peft), peft->error_message, peft->error_message);
 
         if (peft->hp->write_loop_matrices) {  /** - and save them if flag is set */
-          #pragma omp parallel for schedule(dynamic), shared(peft, index, abort), private(index_moment, filename), default(none), num_threads(num_parallel_files)
+          #pragma omp parallel for schedule(dynamic), shared(peft, abort), private(index_moment, filename), default(none), num_threads(num_parallel_files)
           for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
             if (peft->loop_matrices_size[index_moment] == 0) { continue; }
             sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
@@ -1225,7 +1224,7 @@ int eft_get_loop_matrices(struct eft * peft,
         }
       }
       else {  /** - load the matrices from files without raising errors at this point if flag is set */
-        #pragma omp parallel for schedule(dynamic), shared(peft, index, abort), private(index_moment, filename), default(none), num_threads(num_parallel_files), reduction(+:counter)
+        #pragma omp parallel for schedule(dynamic), shared(peft, abort), private(index_moment, filename), default(none), num_threads(num_parallel_files), reduction(+:counter)
         for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
           if (peft->loop_matrices_size[index_moment] == 0) { continue; }
           sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
@@ -1565,7 +1564,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                      peft->error_message),
                   peft->error_message, peft->error_message);
 
-      #pragma omp parallel for schedule(static), shared(peft, pkmu_nl, ddpkmu_nl, out_pkmu, kvec, k_sizevec, mu_sizevec, index_z), private(index_mu, index_k, last_index), default(none)
+      #pragma omp parallel for schedule(static), shared(peft, pkmu_nl, ddpkmu_nl, out_pkmu, kvec, index_z), private(index_mu, index_k, last_index), default(none)
       for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
         last_index = 0;
         for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {

@@ -1391,7 +1391,7 @@ int array_square_integrate_exponential_internal(
   double h, sy, dy, sM, dM, sx, bias_h;
   register double sum;
 
-  #pragma omp parallel shared(x0, x_size, x_stride, y0, y_stride, ddy0, ddy_stride, bias, derivative_order, result, sum),   \
+  #pragma omp parallel shared(result, sum),   \
                        private(index_x, h, sy, dy, sM, dM, sx, bias_h), default(none),                                    \
                        if((num_threads > 1)), num_threads(num_threads)
   {

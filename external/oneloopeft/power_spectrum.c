@@ -296,7 +296,7 @@ int eft_compute_spectra_contributions(struct eft * peft,
 
   if (moment_list_size < 1) { return _SUCCESS_; }
 
-  #pragma omp parallel shared(peft, abort, moment_list, moment_list_size), default(none)   \
+  #pragma omp parallel shared(peft, abort), default(none)   \
                        private(vec, index_k, index_tracer, index_freq1, index_freq2, index_pk_type, index_moment, list_elem, sum1, sum2, index_k_loaded, pk_type_loaded)
   {
   for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
@@ -426,7 +426,7 @@ int eft_load_linear_spectra(struct background * pba,
   }
 
   /** - load the spectra into the arrays */
-  #pragma omp parallel for schedule(static, 1), shared(peft, pba, pfo, ppm, z, f, D, pk_types, pk_types_size, ln_k, muvec, mu_size, abort),  \
+  #pragma omp parallel for schedule(static, 1), shared(peft, pba, pfo, ppm, ln_k, abort),  \
                            private(index_list, index_mu, index_pk_type, rsd_indicator), default(none)
   for (index_list = 0; index_list < pk_types_size; index_list++) {
     index_pk_type = pk_types[index_list];
@@ -812,7 +812,7 @@ int eft_compute_divergences(struct eft * peft,
 
   if (moment_list_size < 1) { return _SUCCESS_; }
 
-  #pragma omp parallel for shared(peft, moment_list, moment_list_size, abort), private(index_pk_type, index_moment, index_list, list_elem, index_part, it, bias), default(none),  \
+  #pragma omp parallel for shared(peft, abort), private(index_pk_type, index_moment, index_list, list_elem, index_part, it, bias), default(none),  \
                            schedule(static), collapse(2)
   for (index_list = 0; index_list < moment_list_size; index_list++) {
     for (index_part = 1; index_part < eft_spectra_contribution_num; index_part++) {
@@ -1646,7 +1646,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
   D2 = pow(D_z/peft->D_z0, 2.);
   D4 = pow(D_z/peft->D_z0, 4.);
 
-  #pragma omp parallel shared(peft, f_z, D2, D4, pk_types_loops, pk_types_loops_size, muvec, mu_size, index_pk_out_type, eft_ip, pkmu_loop, pkmu),   \
+  #pragma omp parallel shared(peft, D2, D4, pk_types_loops, pk_types_loops_size, muvec, mu_size, eft_ip, pkmu_loop, pkmu),   \
                        private(index_list, index_part, index_k, index_mu, index_mu_k, index_pk_type,  \
                                k, mu, Plin, I2200, I1300, Idelta200, IG200, Idelta2delta200, IG2G200, Idelta2G200, FG200,  \
                                I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
@@ -1949,7 +1949,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
     D4[index_z] = pow(D_z[index_z]/peft->D_z0, 4.);
   }
 
-  #pragma omp parallel shared(peft, f_z, D2, D4, pk_types_loops, pk_types_loops_size, muvec, mu_size, z_size, index_pk_out_type, eft_ip, pkmu_loop, pkmu),   \
+  #pragma omp parallel shared(peft, D2, D4, pk_types_loops, pk_types_loops_size, muvec, mu_size, eft_ip, pkmu_loop, pkmu),   \
                        private(index_list, index_part, index_k, index_mu, index_mu_k, index_z, index_pk_type,  \
                                k, mu, Plin, I2200, I1300, Idelta200, IG200, Idelta2delta200, IG2G200, Idelta2G200, FG200,  \
                                I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
