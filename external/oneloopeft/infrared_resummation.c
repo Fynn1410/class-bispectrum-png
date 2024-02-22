@@ -12,7 +12,7 @@
 /** Integration measure for Sigma^2(z):  1 - j_0(q_osc) + 2 j_2(q_osc) 
  * error is always below 1e-10
 */
-inline double ir_sigma2_measure(const double q_osc) {
+static inline double ir_sigma2_measure(const double q_osc) {
   return (q_osc > 0.01) ? (1. - sin(q_osc) / q_osc + 2. * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) ))    \
                         : (3.*q_osc*q_osc/10. - q_osc*q_osc*q_osc*q_osc/56.);
 }
@@ -124,7 +124,7 @@ double eft_ir_sigma2(
 /** Integration measure for Sigma^2(z):  j_2(q_osc)
  * error is always below 1e-10, except at the roots
 */
-inline double ir_dsigma2_measure(const double q_osc) {
+static inline double ir_dsigma2_measure(const double q_osc) {
   return (q_osc > 0.01) ? ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc))    \
                         : (q_osc*q_osc/15. - q_osc*q_osc*q_osc*q_osc/210.);
 }
