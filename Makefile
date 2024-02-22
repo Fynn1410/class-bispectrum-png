@@ -92,7 +92,7 @@ endif
 # update flags for including oneloopeft 
 vpath %.c $(ONELOOPEFT)
 INCLUDES += -I../$(ONELOOPEFT) 
-EXTERNAL += eft_main.o kernel_matrices.o utilities.o cosmology.o IR_res.o wnw_split.o pspec_FFTLog_real.o pspec_FFTLog_rsd.o FFTLog_ingredients.o FFTLog_real.o FFTLog_rsd.o power_spectrum.o
+EXTERNAL += eft_main.o kernel_matrices.o wnw_split.o infrared_resummation.o power_spectrum.o utilities.o
 HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)
 # import Cuba library if direct_integration is requested
 ifneq ($(DIRECT_INTEGRATION),)
@@ -100,6 +100,7 @@ INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.2
 EXTERNAL += direct_integration.o
 HEADERFILES += $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.2/*.h)
 CCFLAG += -DDIRECT_INTEGRATION
+LDFLAG += -L./$(ONELOOPEFT)/library/Cuba-4.2.2 -lcuba
 endif
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
@@ -163,16 +164,13 @@ INI_ALL = explanatory.ini lcdm.ini
 MISC_FILES = Makefile CPU psd_FD_single.dat myselection.dat myevolution.dat README bbn/sBBN.dat external_Pk/* cpp
 PYTHON_FILES = python/classy.pyx python/setup.py python/cclassy.pxd python/test_class.py
 
-#For OneloopPT Direct integration
-#-L./$(ONELOOPEFT)/library/Cuba-4.2.1 -lcuba 
-
 all: class libclass.a classy
 
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm  -lgsl -lgslcblas -lfftw3 -L./$(ONELOOPEFT)/library/Cuba-4.2.1 -lcuba
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
 
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm

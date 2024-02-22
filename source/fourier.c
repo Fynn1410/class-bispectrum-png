@@ -1723,33 +1723,33 @@ int fourier_init(
       // fclose(fpknw);
 
       /** compare the power spectra */
-      fpknw = fopen("output/nowiggle_pk_comparison.dat", "w");
+      // fpknw = fopen("output/nowiggle_pk_comparison.dat", "w");
 
-      fprintf(fpknw, "# Nowiggle power spectrum at z=%.3f divided by Eisenstein-Hu \n", z);
-      fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
-      fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
-      fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
-      for (int it_k = 0; it_k < pfo->k_size_extra; it_k++)
-        fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
-                exp(pfo->ln_k[it_k]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]), 
-                exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]), 
-                pm_nowiggle_gfilter(pba, ppm, pfo, pfo->k[it_k], 0., 0) / exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]));
+      // fprintf(fpknw, "# Nowiggle power spectrum at z=%.3f divided by Eisenstein-Hu \n", z);
+      // fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
+      // fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
+      // fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
+      // for (int it_k = 0; it_k < pfo->k_size_extra; it_k++)
+      //   fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
+      //           exp(pfo->ln_k[it_k]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]), 
+      //           exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]), 
+      //           pm_nowiggle_gfilter(pba, ppm, pfo, pfo->k[it_k], 0., 0) / exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]));
 
-      fclose(fpknw);
+      // fclose(fpknw);
 
       /** test the moments */
-      double z = 0.;
-      double ir_sigma2_new = eft_ir_sigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
-      double ir_sigma2_old = IR_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
-      fprintf(stderr, "# Sigma2(z) = %.8e (quad), %.8e (spline) \n", ir_sigma2_old, ir_sigma2_new);
+      // double z = 0.;
+      // double ir_sigma2_new = eft_ir_sigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
+      // double ir_sigma2_old = IR_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
+      // fprintf(stderr, "# Sigma2(z) = %.8e (quad), %.8e (spline) \n", ir_sigma2_old, ir_sigma2_new);
 
-      double ir_dsigma2_new = eft_ir_dsigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
-      double ir_dsigma2_old = IR_del_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
-      fprintf(stderr, "# dSigma2(z) = %.8e (quad), %.8e (spline) \n", ir_dsigma2_old, ir_dsigma2_new);
+      // double ir_dsigma2_new = eft_ir_dsigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
+      // double ir_dsigma2_old = IR_del_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
+      // fprintf(stderr, "# dSigma2(z) = %.8e (quad), %.8e (spline) \n", ir_dsigma2_old, ir_dsigma2_new);
 
 
-      /** smallest allowed variation */
-      fprintf(stderr, "# Smallest allowed variation: %.3e", ppr->smallest_allowed_variation);
+      // /** smallest allowed variation */
+      // fprintf(stderr, "# Smallest allowed variation: %.3e", ppr->smallest_allowed_variation);
     }
   }
 
@@ -2190,126 +2190,6 @@ int fourier_init(
                 pfo->peft->error_message, pfo->error_message);
 
 
-
-    /** ------------------------------ OLD CODE -----------------------------*/
-
-    
-    // Calculations are typically done at redshift z=0 and then the EdS approximation is used
-    double z   = 0.0;
-
-    struct timeval t0,t1,t2;
-
-    /* Init function, computing cosmology dependent quantities, which are fixed for all k-values */
-    gettimeofday(&t0, NULL);
-    FFTLog_rsd_init(pba, ppm, pfo, z);
-    gettimeofday(&t1, NULL);
-    if (pfo->fourier_verbose > 2) {
-      fprintf(stderr,"FFTLog init(): %g sec.\n", (t1.tv_sec-t0.tv_sec) + (t1.tv_usec-t0.tv_usec)/(1.e6));
-    }
-
-    /* number of threads (always one if no openmp) */
-    int number_of_threads=1;
-    /* index of the thread (always 0 if no openmp) */
-    int thread=0;
-
-
-    /* This code can be optionally compiled with the openmp option for parallel computation.
-      Inside parallel regions, the use of the command "return" is forbidden.
-      For error management, instead of "return _FAILURE_", we will set the variable below
-      to "abort = _TRUE_". This will lead to a "return _FAILURE_" just after leaving the
-      parallel region. */
-    int abort;
-
-#ifdef _OPENMP
-        /* instrumentation times */
-        double tstart, tstop, tspent;
-#endif
-
-#ifdef _OPENMP
-
-#pragma omp parallel
-        {
-          number_of_threads= omp_get_num_threads();
-        }
-#endif
-
-        abort = _FALSE_;
-
-#pragma omp parallel \
-      shared(pfo, pba, ppm, z, index_tau, abort) \
-      private(index_k,thread,tspent,tstart,tstop) \
-      num_threads(number_of_threads)
-
-        {
-
-#ifdef _OPENMP
-          thread = omp_get_thread_num();
-          tspent=0.;
-#endif
-
-
-    #pragma omp for schedule (dynamic)
-    for (index_k=0; index_k<pfo->k_size; index_k++) {
-#ifdef _OPENMP
-      tstart = omp_get_wtime();
-#endif
-
-      // fprintf(stderr,"call Real_Oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-      class_call_parallel(Real_Oneloop_FFTLog(pba,
-                              ppm,
-                              pfo,
-                              index_k,
-                              z,
-                              142L),
-                pfo->error_message,
-                pfo->error_message);
-
-       // fprintf(stderr,"call RSD_Oneloop_FFTLog for k/h=%e\n",pfo->k[index_k] / pba->h);
-      class_call_parallel(RSD_Oneloop_FFTLog(pba,
-                              ppm,
-                              pfo,
-                              index_k,
-                              z,
-                              142L),
-                pfo->error_message,
-                pfo->error_message);
-
-      // pfo->nl_corr_density[pfo->index_pk_m][index_tau * pfo->k_size + index_k]
-      //   = sqrt(pk_mm_oneloop/exp(pfo->ln_pk_l[pfo->index_pk_m][index_tau * pfo->k_size + index_k]));
-
-      // pfo->ln_pk_nl[pfo->index_pk_m][index_tau * pfo->k_size + index_k] = log(pk_mm_oneloop);
-
-    }
-
-#ifdef _OPENMP
-    tstop = omp_get_wtime();
-
-    tspent += tstop-tstart;
-#endif
-        }
-        /* end of parallel zone */
-
-#ifdef _OPENMP
-	if (pfo->fourier_verbose>2) {
-	  printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
-		 __func__,tspent,thread);
-	}
-#endif
-
-    gettimeofday(&t2, NULL);
-    if (pfo->fourier_verbose>2) {
-      fprintf(stderr,"%d Loop_integrals(): %g sec.\n", pfo->k_size, (t2.tv_sec-t1.tv_sec) + (t2.tv_usec-t1.tv_usec)/(1.e6));
-    }
-
-    if (abort == _TRUE_) return _FAILURE_;
-
-    // JL: one more call with random k=1, z=1 to cleanup gsl
-    // nowiggle interpolator (temporary fix)
-    class_call_parallel(pm_nowiggle_gfilter(pba, ppm, pfo, 1., 1., 1),
-                        pfo->error_message,
-                        pfo->error_message);
-
-
     /** compare to new code */
 
     for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
@@ -2346,7 +2226,6 @@ int fourier_free(
   int i, index_pk;
 
   if (pfo->method == nl_oneloopPT) {
-    FFTLog_rsd_free(pfo);
     for (i = pfo->eft_size-1; i >= 0; i--) {
       eft_free(pfo->peft);
     }

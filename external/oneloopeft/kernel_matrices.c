@@ -43,7 +43,7 @@ static double complex eft_mat_J(const double complex nu1, const double complex n
  */
 static double complex eft_mat_M1(const double complex nu1, const double complex nu2)
 {
-  double complex out = 0.5*(J(-1. + nu1,nu2) - J(nu1,-1. + nu2) + J(nu1,nu2));
+  double complex out = 0.5*(eft_mat_J(-1. + nu1,nu2) - eft_mat_J(nu1,-1. + nu2) + eft_mat_J(nu1,nu2));
 
   return out;
 }
@@ -60,12 +60,12 @@ static double complex eft_mat_M1(const double complex nu1, const double complex 
  */
 static double complex eft_mat_M2(const double complex nu1, const double complex nu2, const double mu)
 {
-  double complex A2 = 0.125*(-J(-2 + nu1,nu2) + 2*J(-1 + nu1,-1 + nu2) +
-                            2*J(-1 + nu1,nu2) - J(nu1,-2 + nu2) + 2*J(nu1,-1 + nu2) -
-                            J(nu1,nu2));
-  double complex B2 = 0.125*(3*J(-2 + nu1,nu2) - 6*J(-1 + nu1,-1 + nu2) +
-                            2*J(-1 + nu1,nu2) + 3*J(nu1,-2 + nu2) -
-                            6*J(nu1,-1 + nu2) + 3*J(nu1,nu2));
+  double complex A2 = 0.125*(-eft_mat_J(-2 + nu1,nu2) + 2*eft_mat_J(-1 + nu1,-1 + nu2) +
+                            2*eft_mat_J(-1 + nu1,nu2) - eft_mat_J(nu1,-2 + nu2) + 2*eft_mat_J(nu1,-1 + nu2) -
+                            eft_mat_J(nu1,nu2));
+  double complex B2 = 0.125*(3*eft_mat_J(-2 + nu1,nu2) - 6*eft_mat_J(-1 + nu1,-1 + nu2) +
+                            2*eft_mat_J(-1 + nu1,nu2) + 3*eft_mat_J(nu1,-2 + nu2) -
+                            6*eft_mat_J(nu1,-1 + nu2) + 3*eft_mat_J(nu1,nu2));
 
   double complex out = A2 + mu*mu * B2;
 
@@ -84,16 +84,16 @@ static double complex eft_mat_M2(const double complex nu1, const double complex 
  */
 static double complex eft_mat_M3(const double complex nu1, const double complex nu2, const double mu)
 {
-  double complex A3 = -0.1875*(J(-3 + nu1,nu2) - 3*J(-2 + nu1,-1 + nu2) -
-                              J(-2 + nu1,nu2) + 3*J(-1 + nu1,-2 + nu2) -
-                              2*J(-1 + nu1,-1 + nu2) - J(-1 + nu1,nu2) -
-                              J(nu1,-3 + nu2) + 3*J(nu1,-2 + nu2) -
-                              3*J(nu1,-1 + nu2) + J(nu1,nu2));
-  double complex B3 = 0.0625*(5*J(-3 + nu1,nu2) - 15*J(-2 + nu1,-1 + nu2) +
-                              3*J(-2 + nu1,nu2) + 15*J(-1 + nu1,-2 + nu2) -
-                              18*J(-1 + nu1,-1 + nu2) + 3*J(-1 + nu1,nu2) -
-                              5*J(nu1,-3 + nu2) + 15*J(nu1,-2 + nu2) -
-                              15*J(nu1,-1 + nu2) + 5*J(nu1,nu2));
+  double complex A3 = -0.1875*(eft_mat_J(-3 + nu1,nu2) - 3*eft_mat_J(-2 + nu1,-1 + nu2) -
+                              eft_mat_J(-2 + nu1,nu2) + 3*eft_mat_J(-1 + nu1,-2 + nu2) -
+                              2*eft_mat_J(-1 + nu1,-1 + nu2) - eft_mat_J(-1 + nu1,nu2) -
+                              eft_mat_J(nu1,-3 + nu2) + 3*eft_mat_J(nu1,-2 + nu2) -
+                              3*eft_mat_J(nu1,-1 + nu2) + eft_mat_J(nu1,nu2));
+  double complex B3 = 0.0625*(5*eft_mat_J(-3 + nu1,nu2) - 15*eft_mat_J(-2 + nu1,-1 + nu2) +
+                              3*eft_mat_J(-2 + nu1,nu2) + 15*eft_mat_J(-1 + nu1,-2 + nu2) -
+                              18*eft_mat_J(-1 + nu1,-1 + nu2) + 3*eft_mat_J(-1 + nu1,nu2) -
+                              5*eft_mat_J(nu1,-3 + nu2) + 15*eft_mat_J(nu1,-2 + nu2) -
+                              15*eft_mat_J(nu1,-1 + nu2) + 5*eft_mat_J(nu1,nu2));
 
   double complex out = A3 + mu*mu * B3;
 
@@ -112,24 +112,24 @@ static double complex eft_mat_M3(const double complex nu1, const double complex 
  */
 static double complex eft_mat_M4(const double complex nu1, const double complex nu2, const double mu)
 {
-  double complex A4 = (3/128.)*(J(-4 + nu1,nu2) - 4*J(-3 + nu1,-1 + nu2) - 4*J(-3 + nu1,nu2) +
-                                6*J(-2 + nu1,-2 + nu2) + 4*J(-2 + nu1,-1 + nu2) +
-                                6*J(-2 + nu1,nu2) - 4*J(-1 + nu1,-3 + nu2) +
-                                4*J(-1 + nu1,-2 + nu2) + 4*J(-1 + nu1,-1 + nu2) -
-                                4*J(-1 + nu1,nu2) + J(nu1,-4 + nu2) - 4*J(nu1,-3 + nu2) +
-                                6*J(nu1,-2 + nu2) - 4*J(nu1,-1 + nu2) + J(nu1,nu2));
-  double complex B4 = (-3/64.)*(5*J(-4 + nu1,nu2) - 20*J(-3 + nu1,-1 + nu2) - 4*J(-3 + nu1,nu2) +
-                                30*J(-2 + nu1,-2 + nu2) - 12*J(-2 + nu1,-1 + nu2) -
-                                2*J(-2 + nu1,nu2) - 20*J(-1 + nu1,-3 + nu2) +
-                                36*J(-1 + nu1,-2 + nu2) - 12*J(-1 + nu1,-1 + nu2) -
-                                4*J(-1 + nu1,nu2) + 5*J(nu1,-4 + nu2) - 20*J(nu1,-3 + nu2) +
-                                30*J(nu1,-2 + nu2) - 20*J(nu1,-1 + nu2) + 5*J(nu1,nu2));
-  double complex C4 = (1/128.)*(35*J(-4 + nu1,nu2) - 140*J(-3 + nu1,-1 + nu2) + 20*J(-3 + nu1,nu2) +
-                                210*J(-2 + nu1,-2 + nu2) - 180*J(-2 + nu1,-1 + nu2) +
-                                18*J(-2 + nu1,nu2) - 140*J(-1 + nu1,-3 + nu2) +
-                                300*J(-1 + nu1,-2 + nu2) - 180*J(-1 + nu1,-1 + nu2) +
-                                20*J(-1 + nu1,nu2) + 35*J(nu1,-4 + nu2) - 140*J(nu1,-3 + nu2) +
-                                210*J(nu1,-2 + nu2) - 140*J(nu1,-1 + nu2) + 35*J(nu1,nu2));
+  double complex A4 = (3/128.)*(eft_mat_J(-4 + nu1,nu2) - 4*eft_mat_J(-3 + nu1,-1 + nu2) - 4*eft_mat_J(-3 + nu1,nu2) +
+                                6*eft_mat_J(-2 + nu1,-2 + nu2) + 4*eft_mat_J(-2 + nu1,-1 + nu2) +
+                                6*eft_mat_J(-2 + nu1,nu2) - 4*eft_mat_J(-1 + nu1,-3 + nu2) +
+                                4*eft_mat_J(-1 + nu1,-2 + nu2) + 4*eft_mat_J(-1 + nu1,-1 + nu2) -
+                                4*eft_mat_J(-1 + nu1,nu2) + eft_mat_J(nu1,-4 + nu2) - 4*eft_mat_J(nu1,-3 + nu2) +
+                                6*eft_mat_J(nu1,-2 + nu2) - 4*eft_mat_J(nu1,-1 + nu2) + eft_mat_J(nu1,nu2));
+  double complex B4 = (-3/64.)*(5*eft_mat_J(-4 + nu1,nu2) - 20*eft_mat_J(-3 + nu1,-1 + nu2) - 4*eft_mat_J(-3 + nu1,nu2) +
+                                30*eft_mat_J(-2 + nu1,-2 + nu2) - 12*eft_mat_J(-2 + nu1,-1 + nu2) -
+                                2*eft_mat_J(-2 + nu1,nu2) - 20*eft_mat_J(-1 + nu1,-3 + nu2) +
+                                36*eft_mat_J(-1 + nu1,-2 + nu2) - 12*eft_mat_J(-1 + nu1,-1 + nu2) -
+                                4*eft_mat_J(-1 + nu1,nu2) + 5*eft_mat_J(nu1,-4 + nu2) - 20*eft_mat_J(nu1,-3 + nu2) +
+                                30*eft_mat_J(nu1,-2 + nu2) - 20*eft_mat_J(nu1,-1 + nu2) + 5*eft_mat_J(nu1,nu2));
+  double complex C4 = (1/128.)*(35*eft_mat_J(-4 + nu1,nu2) - 140*eft_mat_J(-3 + nu1,-1 + nu2) + 20*eft_mat_J(-3 + nu1,nu2) +
+                                210*eft_mat_J(-2 + nu1,-2 + nu2) - 180*eft_mat_J(-2 + nu1,-1 + nu2) +
+                                18*eft_mat_J(-2 + nu1,nu2) - 140*eft_mat_J(-1 + nu1,-3 + nu2) +
+                                300*eft_mat_J(-1 + nu1,-2 + nu2) - 180*eft_mat_J(-1 + nu1,-1 + nu2) +
+                                20*eft_mat_J(-1 + nu1,nu2) + 35*eft_mat_J(nu1,-4 + nu2) - 140*eft_mat_J(nu1,-3 + nu2) +
+                                210*eft_mat_J(nu1,-2 + nu2) - 140*eft_mat_J(nu1,-1 + nu2) + 35*eft_mat_J(nu1,nu2));
   double mu_sq = mu*mu;
   double complex out = A4 + mu_sq * (B4 + mu_sq * C4);
 
@@ -145,7 +145,7 @@ static double complex eft_mat_I2200(const double complex * const n)
   double complex numerator   = ((-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1])*(58. + 98.*n[0]*n[0]*n[0]*n[1] + (3. - 91.*n[1])*n[1] +
     7.*n[0]*n[0]*(-13. - 2.*n[1] + 28.*n[1]*n[1]) + n[0]*(3. + 2.*n[1]*(-73. + 7.*n[1]*(-1. + 7.*n[1])))));
   double complex denominator = (392.*n[0]*(1. + n[0])*(-1. + 2.*n[0])*n[1]*(1. + n[1])*(-1. + 2.*n[1]));
-  double complex out         = numerator/denominator * J(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_J(n[0], n[1]);
 
   return out;
 }
@@ -163,7 +163,7 @@ static double complex eft_mat_Idelta200(const double complex * const n)
 {
   double complex numerator   = ((-3. + 2.*n[0] + 2.*n[1])*(-4. + 7.*n[0] + 7.*n[1]));
   double complex denominator = (28.*n[0]*n[1]);
-  double complex out         = numerator/denominator * J(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_J(n[0], n[1]);
 
   return out;
 }
@@ -172,14 +172,14 @@ static double complex eft_mat_IG200(const double complex * const n)
 {
   double complex numerator   = ((-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1])*(6. + 7.*n[0] + 7.*n[1]));
   double complex denominator = (56.*n[0]*(1. + n[0])*n[1]*(1. + n[1]));
-  double complex out         = - numerator/denominator * J(n[0], n[1]);
+  double complex out         = - numerator/denominator * eft_mat_J(n[0], n[1]);
 
   return out;
 }
 
 static double complex eft_mat_Idelta2delta200(const double complex * const n)
 {
-  double complex out         = J(n[0], n[1]);
+  double complex out         = eft_mat_J(n[0], n[1]);
   return out;
 }
 
@@ -187,7 +187,7 @@ static double complex eft_mat_IG2G200(const double complex * const n)
 {
   double complex numerator   = ((-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1]));
   double complex denominator = (2.*n[0]*(1. + n[0])*n[1]*(1. + n[1]));
-  double complex out         = numerator/denominator * J(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_J(n[0], n[1]);
 
   return out;
 }
@@ -196,7 +196,7 @@ static double complex eft_mat_Idelta2G200(const double complex * const n)
 {
   double complex numerator   = (3. - 2.*n[0] - 2.*n[1]);
   double complex denominator = (2.*n[0]*n[1]);
-  double complex out         = numerator/denominator * J(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_J(n[0], n[1]);
 
   return out;
 }
@@ -219,7 +219,7 @@ static double complex eft_mat_I2201(const double complex * const n)
   double complex numerator   = ((-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1])*(46. + 98.*n[0]*n[0]*n[0]*n[1] + (13. - 63.*n[1])*n[1] +
     7.*n[0]*n[0]*(-9. + 2.*n[1]*(-5. + 14.*n[1])) + n[0]*(13. + 2.*n[1]*(-69. + 7.*n[1]*(-5. + 7.*n[1])))));
   double complex denominator = (392.*n[0]*(1. + n[0])*(-1. + 2.*n[0])*n[1]*(1. + n[1])*(-1. + 2.*n[1]));
-  double complex out         = numerator/denominator * J(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_J(n[0], n[1]);
 
   return out;
 }
@@ -237,7 +237,7 @@ static double complex eft_mat_Idelta201(const double complex * const n)
 {
   double complex numerator   = ((-3. + 2.*n[0] + 2.*n[1])*(-8. + 7.*n[0] + 7.*n[1]));
   double complex denominator = (28.*n[0]*n[1]);
-  double complex out         = numerator/denominator * J(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_J(n[0], n[1]);
 
   return out;
 }
@@ -246,7 +246,7 @@ static double complex eft_mat_IG201(const double complex * const n)
 {
   double complex numerator   = -((-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1])*(-2. + 7.*n[0] + 7.*n[1]));
   double complex denominator = (56.*n[0]*(1. + n[0])*n[1]*(1. + n[1]));
-  double complex out         = numerator/denominator * J(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_J(n[0], n[1]);
 
   return out;
 }
@@ -275,7 +275,7 @@ static double complex eft_mat_J21101(const double complex * const n)
 {
   double complex numerator   = ((-3. + n[0] + n[1])*(-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1])*(-5. + n[0]*(-4. + 7.*n[0] + 7.*n[1])));
   double complex denominator = (14.*n[0]*(1. + n[0])*(-3. + 2.*n[0])*(-1. + 2.*n[0])*n[1]);
-  double complex out         = numerator/denominator * M1(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_M1(n[0], n[1]);
 
   return out;
 }
@@ -284,7 +284,7 @@ static double complex eft_mat_Jdelta201(const double complex * const n)
 {
   double complex numerator   = ((-3. + n[0] + n[1])*(-3. + 2.*n[0] + 2.*n[1]));
   double complex denominator = (n[0]*(-3. + 2.*n[0]));
-  double complex out         = numerator/denominator * M1(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_M1(n[0], n[1]);
 
   return out;
 }
@@ -293,7 +293,7 @@ static double complex eft_mat_JG201(const double complex * const n)
 {
   double complex numerator   = -0.5*((-3. + n[0] + n[1])*(-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1]));
   double complex denominator = (n[0]*(1. + n[0])*(-3. + 2.*n[0])*n[1]);
-  double complex out         = numerator/denominator * M1(n[0], n[1]);
+  double complex out         = numerator/denominator * eft_mat_M1(n[0], n[1]);
 
   return out;
 }
@@ -386,7 +386,7 @@ static double complex eft_mat_I2211(const double complex * const n)
   double complex numerator   =((-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1])*(50. + 98.*n[0]*n[0]*n[0]*n[1] - n[1]*(9. + 35.*n[1]) +
     7.*n[0]*n[0]*(-5. + 2.*n[1]*(-9. + 14.*n[1])) + n[0]*(-9. + 2.*n[1]*(-33. + 7.*n[1]*(-9. + 7.*n[1])))));
   double complex denominator = (392.*n[0]*(1. + n[0])*(-1. + 2.*n[0])*n[1]*(1. + n[1])*(-1. + 2.*n[1]));
-  double complex out = numerator/denominator * J(n[0],n[1]);
+  double complex out = numerator/denominator * eft_mat_J(n[0],n[1]);
 
   return out;
 }
@@ -413,7 +413,7 @@ static double complex eft_mat_J21111(const double complex * const n)
 {
   double complex numerator   = ((-3. + n[0] + n[1])*(-3. + 2.*n[0] + 2.*n[1])*(-1. + 2.*n[0] + 2.*n[1])*(-3. + n[0]*(-8. + 7.*n[0] + 7.*n[1])));
   double complex denominator = (14.*n[0]*(1. + n[0])*(-3. + 2.*n[0])*(-1. + 2.*n[0])*n[1]);
-  double complex out = numerator/denominator * M1(n[0],n[1]);
+  double complex out = numerator/denominator * eft_mat_M1(n[0],n[1]);
 
   return out;
 }
