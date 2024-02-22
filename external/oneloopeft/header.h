@@ -26,6 +26,16 @@
 //   int eft_size; // = 0;
 // };
 
+//#include <time.h>
+//#include <unistd.h>
+//#include <stdlib.h>
+//#include <stdio.h>
+//#include <math.h>
+//#include <float.h>
+//#include <string.h>
+//#include <omp.h>
+//#include <mpi.h>
+
 #include <complex.h>
 #include <limits.h>
 
@@ -89,6 +99,9 @@ const static FileName eft_loop_matrix_files_default[NUM_MOMENTS] = {"I2200", "I1
                                                                     "J21112x", "J21112y", "N12x", "N12y", "J12112x", "J12112y",                                                   \
                                                                     "N22x", "N22y", "N22z"};  /**< default filenames for the loop matrices */
 
+/**
+ * List of limHaloPT header files
+ */
 #include "wnw_split.h"
 #include "kernel_matrices.h"
 

@@ -18,7 +18,7 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = icc
+CC       = gcc
 #CC       = icc
 #CC       = pgcc
 
@@ -33,21 +33,18 @@ AR        = ar rv
 PYTHON ?= python
 
 # your optimization flag
-OPTFLAG = -O3
+OPTFLAG = -Og
 #OPTFLAG = -Ofast -ffast-math #-march=native
 #OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
-OMPFLAG   = -qopenmp
+OMPFLAG   = -fopenmp
 #OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
 #OMPFLAG   = -openmp
 
 # all other compilation flags
 CCFLAG = -ggdb -fPIC
 LDFLAG = -ggdb -fPIC
-
-# libraries to include
-LIBRARIES = -lm
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. "external/RecfastCLASS")
@@ -99,11 +96,11 @@ EXTERNAL += eft_main.o kernel_matrices.o wnw_split.o infrared_resummation.o powe
 HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)
 # import Cuba library if direct_integration is requested
 ifneq ($(DIRECT_INTEGRATION),)
-#INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.2
+INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.2
 EXTERNAL += direct_integration.o
-#HEADERFILES += $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.2/*.h)
+HEADERFILES += $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.2/*.h)
 CCFLAG += -DDIRECT_INTEGRATION
-LIBRARIES += -lcuba
+LDFLAG += -L./$(ONELOOPEFT)/library/Cuba-4.2.2 -lcuba
 endif
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
@@ -173,34 +170,34 @@ libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
 
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_loops_omp: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS_OMP)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_harmonic: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_HARMONIC)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_transfer: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_TRANSFER)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_fourier: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_FOURIER)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_perturbations: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_PERTURBATIONS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_thermodynamics: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_THERMODYNAMICS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_background: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_BACKGROUND)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_hyperspherical: $(TOOLS) $(TEST_HYPERSPHERICAL)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_hyperspherical $(addprefix build/,$(notdir $^)) $(LIBRARIES)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_hyperspherical $(addprefix build/,$(notdir $^)) -lm
 
 
 tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
