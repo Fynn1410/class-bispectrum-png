@@ -35,7 +35,7 @@ int eft_ln_pk_nw_gfilter(
                       const int index_k0,
                       const int index_kmin,
                       const int k_size,
-                      double *ln_pknw_array) {
+                      double * ln_pknw_array) {
   
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, last_index;
   double ln_pk0_z, k0, smoothing_scale;

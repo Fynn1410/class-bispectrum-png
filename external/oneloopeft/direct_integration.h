@@ -7,7 +7,7 @@
 #define __EFT_DIRECT_INTEGRATION__
 
 #include <stdlib.h>
-#include "library/Cuba-4.2.2/cuba.h"
+#include "cuba.h"
 
 #undef _FAILURE_
 #define _FAILURE_ -999
