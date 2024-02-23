@@ -1633,9 +1633,11 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
                                  ) {
 
   int index_z, last_index = pba->bt_size-1;
-  double pvecback[pba->bg_size];
+  double * pvecback;
   double f_z_pk_eft[pfo->z_pk_eft_num], D_z_pk_eft[pfo->z_pk_eft_num];
   double f_zvec[z_size], D_zvec[z_size];
+
+  pvecback = malloc(pba->bg_size*sizeof(double));
 
   for (index_z = pfo->z_pk_eft_num-1; index_z >= 0; index_z--) {
     class_call(background_at_z(pba,
@@ -1643,7 +1645,7 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
                                long_info,
                                inter_normal,
                                &last_index,
-                               &pvecback),
+                               pvecback),
                 pba->error_message,
                 pfo->error_message);
 
@@ -1657,13 +1659,15 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
                                long_info,
                                inter_normal,
                                &last_index,
-                               &pvecback),
+                               pvecback),
                 pba->error_message,
                 pfo->error_message);
 
     f_zvec[index_z] = pvecback[pba->index_bg_f];
     D_zvec[index_z] = pvecback[pba->index_bg_D];
   }
+
+  free(pvecback);
 
   class_call(eft_job_powerspectrum_wedges_ext_growth_rate(peft0,
                                                           peft_size,
