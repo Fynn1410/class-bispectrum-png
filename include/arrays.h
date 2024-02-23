@@ -364,6 +364,18 @@ extern "C" {
 			    int index_int_y1_over_y2_dx,
 			    ErrorMsg errmsg);
 
+  int array_integrate_internal(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                double * result,
+                const double condition_number_threshold,
+                double * condition_number);
+
   int array_interpolate(
 			double * array,
 			int n_columns,
@@ -612,6 +624,20 @@ extern "C" {
 				 double * ddy,
 				 ErrorMsg errmsg);
 
+  int array_interpolate_internal(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                const short derivative_order,
+                const double x,
+                const int inf,
+                const int sup,
+                double * result);
+
   int array_convert_spline_table_columns_to_local_power_basis(
           const double * const x, /* vector of size x_size */
           const int x_size,
@@ -699,7 +725,7 @@ extern "C" {
     return s;
   }
 
-  static inline double dcompsum(double * const summands, const int size, const int stride) {
+  static inline double dcompsum(const double * const summands, const int size, const int stride) {
     int i;
     double s;
 
@@ -754,7 +780,7 @@ extern "C" {
    * @param stride    Input: stride in the summands array
    * @return compensated sum of the input array
    */
-  static inline double dcompsum(double * const summands, const int size, const int stride) {
+  static inline double dcompsum(const double * const summands, const int size, const int stride) {
     int i;
     double s, c, t, in;
 
