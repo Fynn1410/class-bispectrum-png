@@ -368,7 +368,7 @@ cdef extern from "class.h":
         double * N12y;
         double * J12112x;
         double * J12112y;
-        
+
         double * N22x;
         double * N22y;
         double * N22z;
@@ -407,6 +407,15 @@ cdef extern from "class.h":
         FileArg * value
         short * read
 
+    cdef struct ext_storage:
+        double complex *** loop_matrices
+        int ** loop_matrices_size
+        short ** symmetry
+        int loop_matrices_stroed
+        int eft_index_num
+        int eft_size
+        short update_required
+
     void lensing_free(void*)
     void harmonic_free(void*)
     void transfer_free(void*)
@@ -427,7 +436,7 @@ cdef extern from "class.h":
     int thermodynamics_init(void*,void*,void*)
     int perturbations_init(void*,void*,void*,void*)
     int primordial_init(void*,void*,void*)
-    int fourier_init(void*,void*,void*,void*,void*,void*)
+    int fourier_init(void*,void*,void*,void*,void*,void*,void*)
     int transfer_init(void*,void*,void*,void*,void*,void*)
     int harmonic_init(void*,void*,void*,void*,void*,void*,void*)
     int lensing_init(void*,void*,void*,void*,void*)
@@ -540,71 +549,6 @@ cdef extern from "class.h":
     int fourier_hmcode_sigmadisp100_at_z(void* pba, void* pfo, double z, double* sigma_disp_100, double* sigma_disp_100_cb)
     int fourier_hmcode_sigmaprime_at_z(void* pba, void* pfo, double z, double* sigma_prime, double* sigma_prime_cb)
     int fourier_hmcode_window_nfw(void* pfo, double k, double rv, double c, double* window_nfw)
-
-    int Real_Matter_IR_Resummed(
-        void *pba, 
-        void *ppm, 
-        void *pfo,
-        int index_k,  
-        double z, 
-        long SPLIT, 
-        double *pk)
-
-    int Real_Galaxy_IR_Resummed_default(
-        void* pfo, 
-        void* pba, 
-        void* ppm,
-        int index_k, 
-        double z, 
-        long SPLIT, 
-        double *pk)
-
-    int Real_Galaxy_IR_Resummed(
-        void* pfo, 
-        void* pba, 
-        void* ppm,
-        int index_k, 
-        double z, 
-        double b1, double b2, double bG2, double btd, double R2,
-        double cs2,
-        long SPLIT, 
-        double *pk)
-
-    int RSD_IR_Ressummed_default(
-        void* pfo, 
-        void* pba, 
-        int index_k, 
-        double z, 
-        double mu, 
-        double *result);
-
-    int RSD_IR_Ressummed(
-        void *pfo, 
-        void *pba,
-        int index_k, 
-        double z, 
-        double mu, 
-        double b1, double b2, double bG2, double btd,
-        double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
-        double *result)
-
-    int RSD_Multipole_default(
-        void* pfo, 
-        void* pba, 
-        int index_k, 
-        double z, 
-        int l, 
-        double *result)
-
-    int RSD_Multipole(
-        void *pfo, 
-        void *pba, 
-        int index_k, 
-        double z, 
-        int l,
-        double b1, double b2, double bG2, double btd,
-        double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
-        double * result)
 
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 

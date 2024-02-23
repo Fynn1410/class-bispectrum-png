@@ -102,10 +102,10 @@ cdef class Class:
     cdef file_content fc
     cdef ext_storage ex
 
-    cpdef int computed # Flag to see if classy has already computed with the given pars
-    cpdef int allocated # Flag to see if classy structs are allocated already
-    cpdef object _pars # Dictionary of the parameters
-    cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+    cdef int computed # Flag to see if classy has already computed with the given pars
+    cdef int allocated # Flag to see if classy structs are allocated already
+    cdef object _pars # Dictionary of the parameters
+    cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -130,7 +130,7 @@ cdef class Class:
         self.set(**_pars)
 
     def __cinit__(self, default=False):
-        cpdef char* dumc
+        cdef char* dumc
         self.allocated = False
         self.computed = False
         self._pars = {}
@@ -207,7 +207,7 @@ cdef class Class:
     def struct_cleanup(self):
         if(self.allocated != True):
           return
-        # ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm, 
+        # ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm,
         #          &self.fo, &self.tr, &self.hr, &self.le, &self.sd)
         if "distortions" in self.ncp:
             distortions_free(&self.sd)
@@ -842,8 +842,9 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 internal_k_arr[index_k] = self.fo.k[index_k]
-                if (Real_Matter_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&internal_pk_matter[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
+                # to be updated
+                #if (Real_Matter_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&internal_pk_matter[index_k])==_FAILURE_):
+                #    raise CosmoSevereError(self.fo.error_message)
 
             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_matter,s=0)
             pk = pk_interp_k(k)
@@ -874,8 +875,9 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 internal_k_arr[index_k] = self.fo.k[index_k]
-                if (Real_Galaxy_IR_Resummed_default(&self.fo,&self.ba,&self.pm,index_k,z,142L,&internal_pk_halo[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
+                # to be updated
+                #if (Real_Galaxy_IR_Resummed_default(&self.fo,&self.ba,&self.pm,index_k,z,142L,&internal_pk_halo[index_k])==_FAILURE_):
+                #    raise CosmoSevereError(self.fo.error_message)
 
             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
             pk = pk_interp_k(k)
@@ -908,8 +910,9 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 internal_k_arr[index_k] = self.fo.k[index_k]
-                if (Real_Galaxy_IR_Resummed(&self.fo,&self.ba,&self.pm,index_k,z,b1,b2,bG2,btd,R2,cs2,142L,&internal_pk_halo[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
+                # to be updated
+                #if (Real_Galaxy_IR_Resummed(&self.fo,&self.ba,&self.pm,index_k,z,b1,b2,bG2,btd,R2,cs2,142L,&internal_pk_halo[index_k])==_FAILURE_):
+                #    raise CosmoSevereError(self.fo.error_message)
 
             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
             pk = pk_interp_k(k)
@@ -943,8 +946,9 @@ cdef class Class:
             for index_mu, mu in enumerate(internal_mu_arr):
                 for index_k in xrange(self.fo.k_size):
                     internal_k_arr[index_k] = self.fo.k[index_k]
-                    if (RSD_IR_Ressummed_default(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
-                        raise CosmoSevereError(self.fo.error_message)
+                    # to be updated
+                    #if (RSD_IR_Ressummed_default(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
+                    #    raise CosmoSevereError(self.fo.error_message)
                     internal_pk[index_mu][index_k] = pk_rsd[index_k]
             pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
             pk = pk_interp_k_mu(mu_arr, k)
@@ -981,8 +985,9 @@ cdef class Class:
             for index_mu, mu in enumerate(internal_mu_arr):
                 for index_k in xrange(self.fo.k_size):
                     internal_k_arr[index_k] = self.fo.k[index_k]
-                    if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
-                        raise CosmoSevereError(self.fo.error_message)
+                    # to be updated
+                    #if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
+                    #    raise CosmoSevereError(self.fo.error_message)
                     internal_pk[index_mu][index_k] = pk_rsd[index_k]
             pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
             pk = pk_interp_k_mu(mu_arr, k)
@@ -1016,8 +1021,9 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 k_arr[index_k] = self.fo.k[index_k]
-                if (RSD_Multipole(&self.fo,&self.ba,index_k,z,l,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
+                # to be updated
+                #if (RSD_Multipole(&self.fo,&self.ba,index_k,z,l,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
+                #    raise CosmoSevereError(self.fo.error_message)
 
             for index_k in xrange(len(k)):
                 pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
@@ -1049,8 +1055,9 @@ cdef class Class:
         if (self.fo.method == nl_oneloopPT):
             for index_k in xrange(self.fo.k_size):
                 k_arr[index_k] = self.fo.k[index_k]
-                if (RSD_Multipole_default(&self.fo,&self.ba,index_k,z,l,&pk_rsd[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
+                # to be updated
+                #if (RSD_Multipole_default(&self.fo,&self.ba,index_k,z,l,&pk_rsd[index_k])==_FAILURE_):
+                #    raise CosmoSevereError(self.fo.error_message)
 
             for index_k in xrange(len(k)):
                 pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])

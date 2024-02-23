@@ -13,6 +13,7 @@
 #include "../../include/background.h"
 #include "../../include/primordial.h"
 #include "../../include/fft.h"
+#include "../../include/ext_storage.h"
 
 //TODO: get rid of forward declarations
 // struct ext_storage
@@ -304,7 +305,7 @@ struct eft
 
 
 /** - forward declaration of ext_storage methods */
-extern struct ext_storage;
+//extern struct ext_storage;
 extern int ext_insert_eft(struct ext_storage * pext,
                           struct eft * peft,
                           const int index,
