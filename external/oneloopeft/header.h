@@ -436,6 +436,6 @@ int eft_job_powerspectrum_wedges(
 
 #include "infrared_resummation.h"
 #include "power_spectrum.h"
-#include "direct_integration.h"
+//#include "direct_integration.h"
 
 #endif

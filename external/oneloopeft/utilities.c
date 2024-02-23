@@ -1,8 +1,8 @@
 
-/** @file utilities.c 
- * 
+/** @file utilities.c
+ *
  * author: Christian Radermacher, 2023
- * 
+ *
  * contains the complex Gamma function using the Lanczos approximation
  */
 
@@ -11,11 +11,11 @@
 
 
 int _errno_util = 0;
-double complex _err_last_arg = CMPLX(0., 0.);
+double complex _err_last_arg = class_complex(0., 0.);
 
 /**
  * @brief Retrieves the error status of the EFT tools module.
- * 
+ *
  * @param last_argument   Input: allocated double[2] array for the input arguments that lead to an error
  * @return the error status
 */
@@ -31,7 +31,7 @@ int get_error_status(double * last_argument)
 /**
  * @brief Complex Gamma function approximated using the
  *        Lanczos method with g ~ 6 and N = 13.
- * 
+ *
  * @param z     Input: Complex argument
  * @return      value of Gamma(z) / NaN at a singularity
 */
@@ -40,15 +40,15 @@ double complex cGamma(const double complex z)
   const double g = 6.0246800407767295;
   const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
       589.5106040667278, -888.0253935502019,
-      395.8387847487511, -53.21395931507683, 
-      1.277182848200161, -4.046172558017667e-4, 
-      -7.347584327845915e-6, 8.208805790146655e-6, 
-      -5.159543403041225e-6, 2.319631454949221e-6, 
+      395.8387847487511, -53.21395931507683,
+      1.277182848200161, -4.046172558017667e-4,
+      -7.347584327845915e-6, 8.208805790146655e-6,
+      -5.159543403041225e-6, 2.319631454949221e-6,
       -6.671246136975432e-7, 9.060393467651553e-8};
   register double complex Lg;
   double complex t;
   double r;
-  
+
   r = creal(z);
   if (r < 0.5)
   {
@@ -57,9 +57,9 @@ double complex cGamma(const double complex z)
       _errno_util |= _ERR_RES_OUT_OF_RANGE_;
       _err_last_arg = z;
       #ifdef NAN
-      return CMPLX(nan(""), nan(""));   /** Gamma(z) is undefined */
+      return class_complex(nan(""), nan(""));   /** Gamma(z) is undefined */
       #else
-      return CMPLX(0., 0.);
+      return class_complex(0., 0.);
       #endif
     }
     /** - use mirror identity */
@@ -71,13 +71,13 @@ double complex cGamma(const double complex z)
   { Lg += co[k] / (z + k - 1); }  /** Partial fraction sum */
   t = z + g - 0.5;
   return cpow(t, z - 0.5) * cexp(-t) * Lg;
-} 
+}
 
 
 /**
  * @brief Real Gamma function approximated using the
  *        Lanczos method with g ~ 6 and N = 13.
- * 
+ *
  * @param x     Input: Real argument
  * @return      value of Gamma(x) / NaN at a singularity
 */
@@ -86,10 +86,10 @@ double rGamma(const double x)
   const double g = 6.0246800407767295;
   const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
       589.5106040667278, -888.0253935502019,
-      395.8387847487511, -53.21395931507683, 
-      1.277182848200161, -4.046172558017667e-4, 
-      -7.347584327845915e-6, 8.208805790146655e-6, 
-      -5.159543403041225e-6, 2.319631454949221e-6, 
+      395.8387847487511, -53.21395931507683,
+      1.277182848200161, -4.046172558017667e-4,
+      -7.347584327845915e-6, 8.208805790146655e-6,
+      -5.159543403041225e-6, 2.319631454949221e-6,
       -6.671246136975432e-7, 9.060393467651553e-8};
   register double Lg;
   double t;
@@ -115,4 +115,4 @@ double rGamma(const double x)
   { Lg += co[k] / (x + k - 1); }  /** Partial fraction sum */
   t = x + g - 0.5;
   return pow(t, x - 0.5) * exp(-t) * Lg;
-} 
+}

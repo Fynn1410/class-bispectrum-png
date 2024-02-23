@@ -1,8 +1,8 @@
 /** @file power_spectrum.c
- * 
+ *
  * author: Christian Radermacher, 2024
  * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
- * 
+ *
  * contains non-linear power spectrum definitions along with routines to compute the individual loop terms
 */
 
@@ -12,7 +12,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
                                         enum eft_pk_out_type pk_out_type,
                                         int ** list_spectra_contributions,
                                         int * list_spectra_contributions_size) {
-  
+
   int index_pk_type, index_moment, num_moments, index_list, it = 0;
 
   switch (pk_out_type)
@@ -26,7 +26,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
     break;
 
   case Pdd_mm_rsd:
-    /** TODO: */ 
+    /** TODO: */
     *list_spectra_contributions_size = 0;
     class_stop(peft->error_message, "Not implemented yet.");
     break;
@@ -72,7 +72,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
   }
 
   /** if this list contains an RSD spectrum, the computation of the spectra has to be changed in eft_build_nonlinear_power_spectrum_wedges */
-  
+
   return _SUCCESS_;
 }
 
@@ -90,7 +90,7 @@ int eft_necessary_pk_types_loops(struct eft * peft,
     break;
 
   case Pdd_mm_rsd:
-    /** TODO: */ 
+    /** TODO: */
     *list_pk_types_size = 0;
     class_stop(peft->error_message, "Not implemented yet.");
     break;
@@ -122,7 +122,7 @@ int eft_necessary_pk_types_loops(struct eft * peft,
   }
 
   /** if this list contains an RSD spectrum, the computation of the spectra has to be changed in eft_build_nonlinear_power_spectrum_wedges */
-  
+
   return _SUCCESS_;
 }
 
@@ -168,7 +168,7 @@ int eft_necessary_pk_types_total(struct eft * peft,
       (*list_pk_types)[1] = pkmu_rsd_ir_resummed_nlo;
     }
     break;
-  
+
   default:
     *list_pk_types_size = 0;
     class_stop(peft->error_message, "Invalid pk_out_type = %d given.", pk_out_type);
@@ -183,9 +183,9 @@ int eft_set_sampling_points(struct eft * peft,
                             const double * const muvec,
                             const int k_size,
                             const int mu_size) {
-  
+
   int it;
-  
+
   /** - set the k(mu) and mu arrays where spectra_contributions (and the nonlinear spectrum) shall be evaluated */
   peft->k_size = k_size;
   peft->mu_size = (peft->hp->use_mu_approximation) ? 1 : mu_size;
@@ -195,12 +195,12 @@ int eft_set_sampling_points(struct eft * peft,
   for (it = 0; it < peft->mu_size*peft->k_size; it++) {
     peft->ln_k[it] = log( kvec_Mpc[it] );
   }
-  if (!peft->hp->use_mu_approximation) { 
-    class_realloc(peft->mu, peft->mu, peft->mu_size*sizeof(double), peft->error_message); 
+  if (!peft->hp->use_mu_approximation) {
+    class_realloc(peft->mu, peft->mu, peft->mu_size*sizeof(double), peft->error_message);
     class_protect_memcpy(peft->mu, muvec, peft->mu_size*sizeof(double));
   }
   else {
-    class_realloc(peft->mu, peft->mu, 1*sizeof(double), peft->error_message); 
+    class_realloc(peft->mu, peft->mu, 1*sizeof(double), peft->error_message);
     peft->mu[0] = 0.;
   }
 
@@ -215,19 +215,19 @@ int eft_set_sampling_points(struct eft * peft,
 int eft_set_sampling_points_mu_only(struct eft * peft,
                                     const double * const muvec,
                                     const int mu_size) {
-  
+
   int it;
-  
+
   /** - set the mu arrays where spectra_contributions (and the nonlinear spectrum) shall be evaluated */
   peft->mu_size = (peft->hp->use_mu_approximation) ? 1 : mu_size;
 
   /** - allocate mu arrays and copy from input */
-  if (!peft->hp->use_mu_approximation) { 
-    class_realloc(peft->mu, peft->mu, peft->mu_size*sizeof(double), peft->error_message); 
+  if (!peft->hp->use_mu_approximation) {
+    class_realloc(peft->mu, peft->mu, peft->mu_size*sizeof(double), peft->error_message);
     class_protect_memcpy(peft->mu, muvec, peft->mu_size*sizeof(double));
   }
   else {
-    class_realloc(peft->mu, peft->mu, 1*sizeof(double), peft->error_message); 
+    class_realloc(peft->mu, peft->mu, 1*sizeof(double), peft->error_message);
     peft->mu[0] = 0.;
   }
 
@@ -242,11 +242,11 @@ int eft_set_sampling_points_mu_only(struct eft * peft,
 /**
  * @brief Allocates the spectra_contributions array for a list of (pk_type*peft->index_num + index_moment) with a given size;
  *        guarantees that the corresponding kernel matrices and Fourier coefficients are loaded
- * @param peft 
- * @param size 
- * @param moment_list 
- * @param moment_list_size 
- * 
+ * @param peft
+ * @param size
+ * @param moment_list
+ * @param moment_list_size
+ *
  * @return the error status
  */
 int eft_allocate_spectra_contributions(struct eft * peft,
@@ -261,7 +261,7 @@ int eft_allocate_spectra_contributions(struct eft * peft,
     list_elem = div(moment_list[index_list], peft->index_num);
     index_pk_type = list_elem.quot;
     index_moment = list_elem.rem;
-    
+
     class_test(index_pk_type >= pk_type_num, peft->error_message, "Invalid pk_type = %d given.", index_pk_type);
     if (peft->hp->integration_mode == fftlog) {
       class_test(!peft->pk_type_loaded[index_pk_type], peft->error_message, "No Fourier coefficients available for pk_type = %d", index_pk_type);
@@ -273,13 +273,13 @@ int eft_allocate_spectra_contributions(struct eft * peft,
 
       for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
         /** - realloc is okay here, since every spectra_contributions[pk_type][index_moment*eft_spectra_contribution_num + index_part] is initialized as NULL */
-        class_realloc(peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + index_part], 
-                      peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + index_part], 
+        class_realloc(peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + index_part],
+                      peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + index_part],
                       peft->spectra_contributions_size[moment_list[index_list]]*sizeof(double), peft->error_message);
       }
     } /** - else: correct size allocated (no-op) */
   }
-  
+
   return _SUCCESS_;
 }
 
@@ -287,7 +287,7 @@ int eft_allocate_spectra_contributions(struct eft * peft,
 int eft_compute_spectra_contributions(struct eft * peft,
                                       const int * const moment_list,
                                       const int moment_list_size) {
-  
+
   int abort = _FALSE_, index_k, index_list, index_pk_type, index_tracer, index_freq1, index_freq2, index_moment, index_k_loaded = -1, pk_type_loaded = -1;
   div_t list_elem;
   double complex * vec[eft_tracer_num]; /**< Fourier basis elements vec[index_tracer][index_freq1] */
@@ -313,7 +313,7 @@ int eft_compute_spectra_contributions(struct eft * peft,
         list_elem = div(moment_list[index_list], peft->index_num);
         index_pk_type = list_elem.quot;
         index_moment = list_elem.rem;
-        
+
         /** - compute Fourier basis elements */
         if (index_k_loaded != index_k || pk_type_loaded != index_pk_type) {
           index_k_loaded = index_k; pk_type_loaded = index_pk_type;
@@ -367,7 +367,7 @@ int eft_compute_spectra_contributions(struct eft * peft,
                       * vec[peft->use_tracer[index_moment]][index_freq1] * vec[peft->use_tracer[index_moment]][index_freq1];
           }
           break;
-        
+
         default:
           if (!abort) {
             class_protect_sprintf(peft->error_message, "Invalid symmetry type for index_moment = %d at index_k = %d", index_moment, index_k);
@@ -389,7 +389,7 @@ int eft_compute_spectra_contributions(struct eft * peft,
 
   } /** - end of parallel region */
 
-  return abort;                                    
+  return abort;
 }
 
 int eft_load_linear_spectra(struct background * pba,
@@ -403,7 +403,7 @@ int eft_load_linear_spectra(struct background * pba,
                             const int pk_types_size,
                             const double * const muvec,
                             const int mu_size) {
-  
+
   int index_list, index_mu, index_pk_type, size, rsd_indicator, abort = _FALSE_;
   double * ln_k;
 
@@ -505,7 +505,7 @@ double sigma_sq(struct eft * peft, const short n, enum eft_pk_type pk_type) {
                                   peft->pk_l_moments[pk_type],
                                   1,
                                   peft->ddpk_l_moments[pk_type],
-                                  CMPLX(-(2.*n + 3), 0.),
+                                  class_complex(-(2.*n + 3), 0.),
                                   &value,
                                   peft->error_message) == _FAILURE_) {
       value = 0.;
@@ -552,7 +552,7 @@ double shot_sym_sq(struct eft * peft, const short n, const short m, enum eft_pk_
                                         peft->error_message) == _FAILURE_) {
       value = 0.;
     }
-    
+
     peft->ps_uv_shot_noise_corrections_underlying[pk_type][index_moment].moment = value / (2.*_PI_*_PI_);
     peft->ps_uv_shot_noise_corrections_underlying[pk_type][index_moment].index_bias = n;
     peft->ps_uv_shot_noise_corrections_underlying[pk_type][index_moment].index_derivative = m;
@@ -585,7 +585,7 @@ double plin_of_lnk_uv(struct eft * peft, const short derivative_order, enum eft_
 double plin_of_lnk_ir(struct eft * peft, const short derivative_order, enum eft_pk_type pk_type) {
   double value;
   int inf = 0;
-  
+
   if (array_interpolate_spline_derivative_closeby(
                                 peft->ln_k_moments,
                                 peft->hp->k_size_moments,
@@ -786,7 +786,7 @@ int add_shot_contribution(struct eft * peft,
       out_pkmu0[it_mu*peft->k_size + it_k] = prefactor * exp(k_power * peft->ln_k[it_mu*peft->k_size + it_k]);
     }
   }
-  
+
   /** - multiply by the mu-factor if the mu-dependencies are not added later */
   if (!peft->hp->use_mu_approximation) {
     for (it_mu = 0; it_mu < mu_size; it_mu++) {
@@ -804,7 +804,7 @@ int add_shot_contribution(struct eft * peft,
 int eft_compute_divergences(struct eft * peft,
                             const int * const moment_list,
                             const int moment_list_size) {
-        
+
   int index_pk_type, index_list, index_moment, index_part, it, max_moments = 0;
   div_t list_elem;
   double bias;
@@ -832,7 +832,7 @@ int eft_compute_divergences(struct eft * peft,
       case uv_divergence:
         if (index_moment == peft->index_I2200) {
           if (bias >= 0.5) {
-            add_shot_contribution(peft, 4, 0, 9./196.*shot_sq(peft, 2, 0, index_pk_type), 
+            add_shot_contribution(peft, 4, 0, 9./196.*shot_sq(peft, 2, 0, index_pk_type),
                                   peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
                                   moment_list[index_list]);
           }
@@ -1495,7 +1495,7 @@ int eft_compute_divergences(struct eft * peft,
           // TODO
         }
         else if (index_moment == peft->index_J11211) {  // * P_lin(k) mu
-          // TODO 
+          // TODO
         }
         else if (index_moment == peft->index_J21111) {  // * mu
           /** - nothing for bias > -3 */
@@ -1550,7 +1550,7 @@ int eft_compute_divergences(struct eft * peft,
           class_build_error_string(peft->error_message, "error; %s", errmsg);
         }
         break;
-      
+
       default:
         abort = _TRUE_;
         ErrorMsg errmsg;
@@ -1619,7 +1619,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
   for (index_list = 0; index_list < pk_types_size; index_list++) {
     for (index_part = 0; index_part < pk_types_loops_size && pk_types[index_list] != pk_types_loops[index_part]; index_part++);
     if (index_part == pk_types_loops_size) {
-      pk_types_outside_loops[it++] = pk_types[index_list]; 
+      pk_types_outside_loops[it++] = pk_types[index_list];
     }
   }
   /** - and load them into peft->pk_l (will be rescaled by D2 later) */
@@ -1677,7 +1677,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
             I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
 
             Preal_loop = D4 * 2.*(I2200 + 3.*I1300);
-            if (index_part == uv_divergence) {  
+            if (index_part == uv_divergence) {
               Preal_loop += -D2 * 2.*k*k * eft_ip.cs2 * Plin;
             }
 
@@ -1700,7 +1700,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
 
             Prsd0_loop = D4 * (2.*eft_ip.b1*eft_ip.b1 * (I2200 + 3.*I1300) + 2.*eft_ip.b1*eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2*eft_ip.bG2 * IG2G200 + 4.*eft_ip.b1*eft_ip.bG2 * IG200        \
                               + 0.5*eft_ip.b2*eft_ip.b2 * Idelta2delta200 + 2.*eft_ip.b2*eft_ip.bG2 * Idelta2G200 + 8.*eft_ip.b1*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);
-            if (index_part == uv_divergence) {  
+            if (index_part == uv_divergence) {
               Prsd0_loop += -D2 * 2.*k*k * (eft_ip.b1 * (eft_ip.R2 + eft_ip.b1 * eft_ip.cs2)) * Plin;
             }
 
@@ -1755,7 +1755,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
             N22 =          peft->spectra_contributions[index_pk_type][peft->index_N22x*eft_spectra_contribution_num + index_part][index_mu_k]   \
                 + mu*mu * (peft->spectra_contributions[index_pk_type][peft->index_N22y*eft_spectra_contribution_num + index_part][index_mu_k]   \
                 + mu*mu *  peft->spectra_contributions[index_pk_type][peft->index_N22z*eft_spectra_contribution_num + index_part][index_mu_k]);
-            
+
             /** - assemble the power spectrum controbutions from the RSD moments only from FFTLog loop terms */
             Prsd0_loop = D4 * (2.*eft_ip.b1*eft_ip.b1 * (I2200 + 3.*I1300) + 2.*eft_ip.b1*eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2*eft_ip.bG2 * IG2G200 + 4.*eft_ip.b1*eft_ip.bG2 * IG200        \
                               + 0.5*eft_ip.b2*eft_ip.b2 * Idelta2delta200 + 2.*eft_ip.b2*eft_ip.bG2 * Idelta2G200 + 8.*eft_ip.b1*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);
@@ -1767,7 +1767,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
             Prsd4_loop = D4*f_z*f_z*f_z*f_z * 0.5*mu*mu*mu*mu*k*k*k*k * N22;
 
             /** - add counterterm contributions to UV-divergent parts */
-            if (index_part == uv_divergence) {  
+            if (index_part == uv_divergence) {
               Prsd0_loop += D2 * eft_ip.c00 * k*k * Plin;
               Prsd1_loop += D2*f_z * eft_ip.c10 * mu*mu*k*k * Plin;
               Prsd2_loop += D2*f_z*f_z * ((eft_ip.c20 + eft_ip.c22 * mu*mu) - D2 * eft_ip.b1*eft_ip.b1 * sigma_sq(peft, -1, index_pk_type)/3.) * mu*mu*k*k * Plin;
@@ -1777,7 +1777,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
 
             pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Prsd0_loop + Prsd1_loop + Prsd2_loop + Prsd3_loop + Prsd4_loop;
             break;
-          
+
           default:
             break;
           }
@@ -1786,7 +1786,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
     }
   }
 
-  /** - sum the parts of the power spectrum and accumulate in the last defined part index, 
+  /** - sum the parts of the power spectrum and accumulate in the last defined part index,
    *    add the finite part last to utilize cancellations between divergent parts */
   #pragma omp for schedule(static), collapse(3)
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
@@ -1816,7 +1816,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
       {
       case Pdd_mm_real:
         pkmu[index_mu*peft->k_size + index_k] = peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
-                        + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]; 
+                        + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_mm_rsd:
@@ -1841,7 +1841,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
                                                   + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         }
         break;
-      
+
       default:
         break;
       }
@@ -1981,7 +1981,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
 
             for (index_z = 0; index_z < z_size; index_z++) {
               Preal_loop = D4[index_z] * 2.*(I2200 + 3.*I1300);
-              if (index_part == uv_divergence) {  
+              if (index_part == uv_divergence) {
                 Preal_loop += -D2[index_z] * 2.*k*k * eft_ip.cs2 * Plin;
               }
 
@@ -2006,7 +2006,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
             for (index_z = 0; index_z < z_size; index_z++) {
               Prsd0_loop = D4[index_z] * (2.*eft_ip.b1*eft_ip.b1 * (I2200 + 3.*I1300) + 2.*eft_ip.b1*eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2*eft_ip.bG2 * IG2G200 + 4.*eft_ip.b1*eft_ip.bG2 * IG200        \
                                 + 0.5*eft_ip.b2*eft_ip.b2 * Idelta2delta200 + 2.*eft_ip.b2*eft_ip.bG2 * Idelta2G200 + 8.*eft_ip.b1*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);
-              if (index_part == uv_divergence) {  
+              if (index_part == uv_divergence) {
                 Prsd0_loop += -D2[index_z] * 2.*k*k * (eft_ip.b1 * (eft_ip.R2 + eft_ip.b1 * eft_ip.cs2)) * Plin;
               }
 
@@ -2062,7 +2062,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
             N22 =          peft->spectra_contributions[index_pk_type][peft->index_N22x*eft_spectra_contribution_num + index_part][index_mu_k]   \
                 + mu*mu * (peft->spectra_contributions[index_pk_type][peft->index_N22y*eft_spectra_contribution_num + index_part][index_mu_k]   \
                 + mu*mu *  peft->spectra_contributions[index_pk_type][peft->index_N22z*eft_spectra_contribution_num + index_part][index_mu_k]);
-            
+
             /** - assemble the power spectrum controbutions from the RSD moments only from FFTLog loop terms */
             for (index_z = 0; index_z < z_size; index_z++) {
               Prsd0_loop = D4[index_z] * (2.*eft_ip.b1*eft_ip.b1 * (I2200 + 3.*I1300) + 2.*eft_ip.b1*eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2*eft_ip.bG2 * IG2G200 + 4.*eft_ip.b1*eft_ip.bG2 * IG200        \
@@ -2075,7 +2075,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
               Prsd4_loop = D4[index_z]*f_z[index_z]*f_z[index_z]*f_z[index_z]*f_z[index_z] * 0.5*mu*mu*mu*mu*k*k*k*k * N22;
 
               /** - add counterterm contributions to UV-divergent parts */
-              if (index_part == uv_divergence) {  
+              if (index_part == uv_divergence) {
                 Prsd0_loop += D2[index_z] * eft_ip.c00 * k*k * Plin;
                 Prsd1_loop += D2[index_z]*f_z[index_z] * eft_ip.c10 * mu*mu*k*k * Plin;
                 Prsd2_loop += D2[index_z]*f_z[index_z]*f_z[index_z] * ((eft_ip.c20 + eft_ip.c22 * mu*mu) - D2[index_z] * eft_ip.b1*eft_ip.b1 * sigma_sq(peft, -1, index_pk_type)/3.) * mu*mu*k*k * Plin;
@@ -2086,7 +2086,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
               pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][(index_z*mu_size + index_mu)*peft->k_size + index_k] = Prsd0_loop + Prsd1_loop + Prsd2_loop + Prsd3_loop + Prsd4_loop;
             }
             break;
-          
+
           default:
             break;
           }
@@ -2095,7 +2095,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
     }
   }
 
-  /** - sum the parts of the power spectrum and accumulate in the last defined part index, 
+  /** - sum the parts of the power spectrum and accumulate in the last defined part index,
    *    add the finite part last to utilize cancellations between divergent parts */
   #pragma omp for schedule(static), collapse(4)
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
@@ -2128,7 +2128,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
         {
         case Pdd_mm_real:
           pkmu[index_z][index_mu*peft->k_size + index_k] = D2[index_z] * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
-                          + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k]; 
+                          + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k];
           break;
 
         case Pdd_mm_rsd:
@@ -2147,7 +2147,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
                                           + exp(-k*k * D2[index_z] * sigma2_tot_z0) * (pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k]   \
                                                                             - pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k]);
           break;
-        
+
         default:
           break;
         }
