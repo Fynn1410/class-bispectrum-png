@@ -338,7 +338,7 @@ int array_derive_two(
 /**
  * @brief Thomas algorithm for tridiagonal systems of linear equations.
  *        Stable if the coefficient matrix is diagonally dominant or symmetric positive-definite.
- *         
+ *
  * @param size          Input: size of the coefficient matrix [size*size = (n+1)*(n+1)]
  * @param diag          Input: array of diagonal elements [size] with elements mu_i = diag[i]
  * @param superdiag     Input: array of super-diagonal elements [size-1] with elements lambda_i = superdiag[i]
@@ -348,7 +348,7 @@ int array_derive_two(
  * @param superdiag_f   In/Output: array of forward super-diagonal elements [size-1] with elements lambda'_i = superdiag_f[i]; externally allocated
  * @param compute_forward_superdiagonal   Input: overwrite the forward super-diagonal elements in superdiag_f
  * @param constant_f   Output: forward constant vector [size] with elements b'_i = constant_f[i]; externally allocated
- * 
+ *
  * @return the error status
  */
 int arrays_tridiagonal_solve(const int size,
@@ -360,7 +360,7 @@ int arrays_tridiagonal_solve(const int size,
                             double * superdiag_f,
                             const short compute_forward_superdiagonal,
                             double * constant_f) {
-  
+
   int it;
   double denom;
 
@@ -401,7 +401,7 @@ int arrays_tridiagonal_solve(const int size,
  *        Needs pre-allocated working arrays for superdiagonal and constant entries in the tridiagonal system of equations.
  *        Implements the Thomas algorithm which is stable for all valid splines.
  *        Sets natural boundary conditions S''(x0) = S''(xn) = 0.
- *         
+ *
  * @param x0          Input: pointer to first x value
  * @param x_stride    Input: stride in the x-array to get to the next value
  * @param y0          Input: pointer to first y-value
@@ -411,7 +411,7 @@ int arrays_tridiagonal_solve(const int size,
  * @param size        Input: number of equations to solve (#points)
  * @param super       Output: iterative super-diagonal coefficients (externally allocated: at least (size-1)*sizeof(double))
  * @param constants   Output: iterative constant terms / RHS (externally allocated: at least (size-1)*sizeof(double))
- * 
+ *
  * @return the error status
  */
 int array_spline_internal_natural(
@@ -447,7 +447,7 @@ int array_spline_internal_natural(
   }
 
   /** - set boundary condition at x_n */
-  ddy0[(size-1)*ddy_stride] = 0.; // M_n = b'_{n} = 0 since b_n = kappa_n = 0 and mu_n = 1  
+  ddy0[(size-1)*ddy_stride] = 0.; // M_n = b'_{n} = 0 since b_n = kappa_n = 0 and mu_n = 1
 
   /** - backward substitution */
   for (it=size-2; it >= 0; it--) {
@@ -463,7 +463,7 @@ int array_spline_internal_natural(
  *        Needs pre-allocated working arrays for superdiagonal and constant entries in the tridiagonal system of equations.
  *        Implements the Thomas algorithm which is stable for all valid splines.
  *        Sets hermite boundary conditions S'(x0) = dy_first and S'(xn) = dy_last which can be approximated from the input.
- *         
+ *
  * @param x0          Input: pointer to first x value
  * @param x_stride    Input: stride in the x-array to get to the next value
  * @param y0          Input: pointer to first y-value
@@ -476,7 +476,7 @@ int array_spline_internal_natural(
  * @param use_approx  Input: use 3-point approximation of the derivative at the boundaries
  * @param dy_first    In/Output: derivative of y at x0
  * @param dy_last     In/Output: derivative of y at xn
- * 
+ *
  * @return the error status
  */
 int array_spline_internal_hermite(
@@ -513,7 +513,7 @@ int array_spline_internal_hermite(
                           -h2*h2*(y0[(size-1)*y_stride]-y0[(size-3)*y_stride]))  \
                 /((h1+h2)*h1*h2);
   }
-  
+
   /** - set boundary condition at x0 */
   h1 = x0[1*x_stride] - x0[0*x_stride]; // h1
   super[0] = 0.5; // lambda0/mu0
@@ -551,7 +551,7 @@ int array_spline_internal_hermite(
  *        Needs pre-allocated working arrays for superdiagonal and constant entries in the tridiagonal system of equations.
  *        Implements the Thomas algorithm which is stable for all valid splines.
  *        Sets hermite boundary conditions S'(x0) = dy_first and S'(xn) = dy_last which can be approximated from the input.
- *         
+ *
  * @param x0            Input: pointer to first x value
  * @param x_stride      Input: stride in the x-array to get to the next value
  * @param y0            Input: pointer to first y-value
@@ -563,7 +563,7 @@ int array_spline_internal_hermite(
  * @param constants     Output: iterative constant terms / RHS (externally allocated: at least (size-1)*sizeof(double))
  * @param constants_aux Output: iterative constant terms / RHS for auxiliary problem (externally allocated: at least (size-1)*sizeof(double))
  * @param sol_aux       Output: solution of the auxiliary problem ~A.sol = u (externally allocated: at least size*sizeof(double))
- * 
+ *
  * @return the error status
  */
 int array_spline_internal_periodic(
@@ -685,7 +685,7 @@ int array_spline(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
     break;
@@ -744,7 +744,7 @@ int array_spline_table_line_to_line(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
     break;
@@ -809,7 +809,7 @@ int array_spline_table_lines(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
     break;
@@ -897,7 +897,7 @@ int array_spline_table_lines_parallel(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     #pragma omp single
     {
@@ -967,7 +967,7 @@ int array_spline_table_columns(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
     break;
@@ -1055,7 +1055,7 @@ int array_spline_table_columns_parallel(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     #pragma omp single
     {
@@ -1118,7 +1118,7 @@ int array_spline_table_one_column(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
     break;
@@ -1203,7 +1203,7 @@ int array_logspline_table_lines(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
     break;
@@ -1283,7 +1283,7 @@ int array_logspline_table_one_column(
     free(constants_aux);
     free(sol_aux);
     break;
-  
+
   default:
     class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
     break;
@@ -1311,7 +1311,7 @@ int array_integrate_internal(
                 double * result,
                 const double condition_number_threshold,
                 double * condition_number) {
-  
+
   int index_x;
   double h, sy, ty, sM, tM, sum, sum_abs;
   double summands[x_size-1];
@@ -1353,7 +1353,7 @@ int array_square_integrate_internal(
                 double * const ddy0,
                 const int ddy_stride,
                 double * result) {
-  
+
   int index_x;
   double h, sy, sM, dM;
   register double sum;
@@ -1386,7 +1386,7 @@ int array_square_integrate_exponential_internal(
                 const int derivative_order,
                 double * result,
                 int num_threads) {
-  
+
   int index_x;
   double h, sy, dy, sM, dM, sx, bias_h;
   register double sum;
@@ -1472,7 +1472,7 @@ int array_square_integrate_exponential_internal(
 
         sum += exp(bias * sx) / (144.*pow(bias, 5)*bias_h*bias_h)   \
               * (-6*bias_h*bias_h*(12*bias*bias*bias*dy*(dM + bias_h*sM) + bias_h*(dM*dM*(9. + bias_h*bias_h)     \
-                                    + dM*sM*bias_h*(9. + bias_h*bias_h) + 3*bias_h*bias_h*sM*sM)) * cosh(bias_h) 
+                                    + dM*sM*bias_h*(9. + bias_h*bias_h) + 3*bias_h*bias_h*sM*sM)) * cosh(bias_h)
                 + (144*bias*bias*bias*bias*bias*bias*dy*dy + 24*bias*bias*bias*dy*bias_h*(dM*(3. + bias_h*bias_h)     \
                     + 3*bias_h*sM) + bias_h*bias_h*(dM*dM*(54. + 24*bias_h*bias_h + bias_h*bias_h*bias_h*bias_h)      \
                     + 6*dM*sM*bias_h*(9. + 4*bias_h*bias_h) + 9*bias_h*bias_h*(2. + bias_h*bias_h)*sM*sM)) * sinh(bias_h));
@@ -1545,7 +1545,7 @@ int array_square_integrate_exponential_internal(
       }
     }
     break;
-  
+
   default:
     /** - higher derivative vanish */
     break;
@@ -1569,7 +1569,7 @@ int array_square_integrate_exponential_internal(
  * @param index_ddy   Input: index for y''-values (->class_define_index)
  * @param result      Output: integration result I
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline(
@@ -1608,13 +1608,13 @@ int array_integrate_all_spline(
  *                            ddy_array[index_x*y_size + index_y]
  * @param result      Output: integration result I with elements[index_y]
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline_table_lines(
-		      double * x, 
+		      double * x,
 			    int x_size,
-			    double * y_array, 
+			    double * y_array,
 			    int y_size,
 			    double * ddy_array,
 			    double * result,
@@ -1653,13 +1653,13 @@ int array_integrate_all_spline_table_lines(
  * @param condition_num_threshold   Input: threshold for condition number above which the sum is computed with compensation
  * @param condition_num   Output: condition number of the underlying sum with elements[index_y]
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline_table_lines_compensated(
-		      double * x, 
+		      double * x,
 			    int x_size,
-			    double * y_array, 
+			    double * y_array,
 			    int y_size,
 			    double * ddy_array,
 			    double * result,
@@ -1697,13 +1697,13 @@ int array_integrate_all_spline_table_lines_compensated(
  *                            ddy_array[index_x*y_size + index_y]
  * @param result      Output: integration result I with elements[index_y]
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_square_integrate_all_spline_table_lines(
-		      double * x, 
+		      double * x,
 			    int x_size,
-			    double * y_array, 
+			    double * y_array,
 			    int y_size,
 			    double * ddy_array,
 			    double * result,
@@ -1739,13 +1739,13 @@ int array_square_integrate_all_spline_table_lines(
  * @param derivative_order  Input: order of the spline derivative m (there are 3 non-zero derivatives)
  * @param result      Output: integration result I with elements[index_y]
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_square_integrate_exponential_all_spline_table_lines(
-		      double * x, 
+		      double * x,
 			    int x_size,
-			    double * y_array, 
+			    double * y_array,
 			    int y_size,
 			    double * ddy_array,
           const double bias,
@@ -1789,7 +1789,7 @@ int array_square_integrate_exponential_all_spline_table_lines(
  * @param stddev      Input: standard deviation
  * @param result      Output: integration result I(m, s)
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline_gaussian_window(
@@ -1807,7 +1807,7 @@ int array_integrate_all_spline_gaussian_window(
   int i;
   double h;                          /**< distance between control points */
   double a, b, g, d, Ms, dM, ys, dy; /**< alpha, beta, gamma, delta, sum/difference of y and y'' */
-  
+
   *result = 0;
 
   for (i=0; i < n_lines-1; i++) {
@@ -1855,7 +1855,7 @@ int array_integrate_internal_exponential(
   h2 = x0[(x_size-1)*x_stride] - x0[(x_size-2)*x_stride];
 
   *result = ( phase_invpow[0] * y0[0*y_stride]
-            + phase_invpow[1] * ((y0[1*y_stride] - y0[0*y_stride])/h1 
+            + phase_invpow[1] * ((y0[1*y_stride] - y0[0*y_stride])/h1
                                 - h1/6.*(2*ddy0[0*ddy_stride] + ddy0[0*ddy_stride]))
             + phase_invpow[2] * ddy0[0*ddy_stride]
             + phase_invpow[3] * (ddy0[1*ddy_stride] - ddy0[0*ddy_stride])/h1    \
@@ -1866,7 +1866,7 @@ int array_integrate_internal_exponential(
             + phase_invpow[2] * ddy0[(x_size-1)*ddy_stride]
             + phase_invpow[3] * (ddy0[(x_size-1)*ddy_stride] - ddy0[(x_size-2)*ddy_stride])/h2    \
             ) * cexp(-phase * x0[(x_size-1)*x_stride]);
-  
+
   sum = 0.;
   for (index_x = 1; index_x < x_size-2; index_x++) {
     h1 = x0[index_x*x_stride] - x0[(index_x-1)*x_stride];
@@ -1895,7 +1895,7 @@ int array_integrate_internal_exponential(
  * @param phase       Input: phase factor p which may be complex
  * @param result      Output: complex integration result I(p)
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline_exponential(
@@ -1909,7 +1909,7 @@ int array_integrate_all_spline_exponential(
           double complex * result,
           ErrorMsg errmsg) {
 
-  
+
   class_test(n_lines<2,
              errmsg,
              "integral is zero with less than one spline segment");
@@ -1941,7 +1941,7 @@ int array_integrate_all_spline_exponential(
  * @param phase       Input: phase factor p which may be complex
  * @param result      Output: complex integration result I(p)
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline_table_lines_exponential(
@@ -2002,23 +2002,23 @@ int array_integrate_internal_exponential_pure_phase(
   h1 = x0[1*x_stride] - x0[0*x_stride];
   h2 = x0[(x_size-1)*x_stride] - x0[(x_size-2)*x_stride];
 
-  *result = CMPLX(- phase_invpow[1] * ((y0[1*y_stride] - y0[0*y_stride])/h1                 \
+  *result = class_complex(- phase_invpow[1] * ((y0[1*y_stride] - y0[0*y_stride])/h1                 \
                                       - h1/6.*(2*ddy0[0*ddy_stride] + ddy0[1*ddy_stride]))  \
                   + phase_invpow[3] * (ddy0[1*ddy_stride] - ddy0[0*ddy_stride])/h1 ,        \
                   - phase_invpow[0] * y0[0*y_stride]          \
                   + phase_invpow[2] * ddy0[0*ddy_stride] )    \
-            * CMPLX( cos(phase * x0[0*x_stride]), -sin(phase * x0[0*x_stride]) );
-  *condition_number = CMPLX( fabs(creal(*result)), fabs(cimag(*result)) );
+            * class_complex( cos(phase * x0[0*x_stride]), -sin(phase * x0[0*x_stride]) );
+  *condition_number = class_complex( fabs(creal(*result)), fabs(cimag(*result)) );
 
-  sum    = -CMPLX(- phase_invpow[1] * ((y0[(x_size-1)*y_stride] - y0[(x_size-2)*y_stride])/h2                 \
+  sum    = -class_complex(- phase_invpow[1] * ((y0[(x_size-1)*y_stride] - y0[(x_size-2)*y_stride])/h2                 \
                                       + h2/6.*(2*ddy0[(x_size-1)*ddy_stride] + ddy0[(x_size-2)*ddy_stride]))  \
                   + phase_invpow[3] * (ddy0[(x_size-1)*ddy_stride] - ddy0[(x_size-2)*ddy_stride])/h2 ,        \
                   - phase_invpow[0] * y0[(x_size-1)*y_stride]         \
                   + phase_invpow[2] * ddy0[(x_size-1)*ddy_stride] )   \
-            * CMPLX( cos(phase * x0[(x_size-1)*x_stride]), -sin(phase * x0[(x_size-1)*x_stride]) );
+            * class_complex( cos(phase * x0[(x_size-1)*x_stride]), -sin(phase * x0[(x_size-1)*x_stride]) );
   *result += sum;
-  *condition_number += CMPLX( fabs(creal(sum)), fabs(cimag(sum)) );
-  
+  *condition_number += class_complex( fabs(creal(sum)), fabs(cimag(sum)) );
+
   sum = 0.;
   sum_abs = 0.;
   for (index_x = 1; index_x < x_size-1; index_x++) {
@@ -2029,13 +2029,13 @@ int array_integrate_internal_exponential_pure_phase(
     real = cos(phase * x0[index_x*x_stride]);
     imag = -sin(phase * x0[index_x*x_stride]);
 
-    sum += spline_factor * CMPLX(real, imag);
-    sum_abs += fabs(spline_factor) * CMPLX(fabs(real), fabs(imag));
+    sum += spline_factor * class_complex(real, imag);
+    sum_abs += fabs(spline_factor) * class_complex(fabs(real), fabs(imag));
   }
 
   *result += phase_invpow[3] * sum;
   *condition_number += phase_invpow[3] * sum_abs;
-  *condition_number = CMPLX( creal(*condition_number) / fabs(creal(*result)),       \
+  *condition_number = class_complex( creal(*condition_number) / fabs(creal(*result)),       \
                              cimag(*condition_number) / fabs(cimag(*result)) );
 
   return _SUCCESS_;
@@ -2088,19 +2088,19 @@ int array_integrate_internal_exponential_pure_phase_compensated(
   for (index_x = 0; index_x < x_size-1; index_x++) {
     sum += summands[index_x];
     #ifndef __FAST_MATH__
-    sum_abs += CMPLX( fabs(creal(summands[index_x])), 
+    sum_abs += class_complex( fabs(creal(summands[index_x])),
                       fabs(cimag(summands[index_x])) );
     #endif
   }
-  *condition_number = CMPLX( creal(sum_abs)/fabs(creal(sum)), 
+  *condition_number = class_complex( creal(sum_abs)/fabs(creal(sum)),
                           cimag(sum_abs)/fabs(cimag(sum)) );
-  
+
   /** - if the condition number is higher than a threshold, recompute the sum with compensated summation */
   if ((creal(*condition_number) > condition_number_threshold)     \
       || (cimag(*condition_number) > condition_number_threshold)) {
     sum = ccompsum(summands, x_size-1, 1);
   }
-  
+
   /** - multiply by an overall factor of phase^(-4) */
   *result = phase_invquart * sum;
 
@@ -2122,7 +2122,7 @@ int array_integrate_internal_exponential_pure_phase_compensated(
  * @param condition_num_threshold   Input: threshold for condition number above which the sum is computed with compensation
  * @param condition_num   Output: condition number of the underlying sum
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline_fourier_compensated(
@@ -2172,7 +2172,7 @@ int array_integrate_all_spline_fourier_compensated(
  * @param condition_num_threshold   Input: threshold for condition number above which the sum is computed with compensation
  * @param condition_num   Output: condition number of the underlying sum with elements[index_y]
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline_table_lines_fourier_compensated(
@@ -2218,7 +2218,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //  * @param coeff_size  Input: Number of terms in the sum
 //  * @param min_pow     Input: Minimal exponent
 //  * @param x           Input: function argument
-//  * 
+//  *
 //  * @return function value at x
 //  */
 // inline double array_polynomial(const double * pcoeff,
@@ -2243,10 +2243,10 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //  *        n = 0 is set to the sine function.
 //  * @param x   Input: function argument
 //  * @param n   Input: index in the ring
-//  * 
+//  *
 //  * @return function value at x
 //  */
-// inline double array_trigonometric_ring(double x, 
+// inline double array_trigonometric_ring(double x,
 //                                         const int n) {
 //   const int m = (((n % 4) + 4) % 4);
 //   switch (m)
@@ -2271,7 +2271,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //           const double x,
 //           double * result,
 //           ErrorMsg errmsg) {
-  
+
 //   int m, k, ksup;
 //   double prefactor = 1., x_pow = 1., term, sum, polysum;
 //   double x2_half = x*x/2;
@@ -2320,7 +2320,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //  * @param shift       Input: shift variable s in the Bessel function
 //  * @param result      Output: Integration result I(n, c, s)
 //  * @param errmsg
-//  * 
+//  *
 //  * @return the error status
 //  */
 // int array_integrate_all_spline_spherical_bessel_J(
@@ -2346,8 +2346,8 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //   ErrorMsg internal_error;
 
 //   class_test( coeff * (array[0*n_columns+index_x] - shift) < 0.,
-//               errmsg, 
-//               "%s(L:%d) First shifted abscissa is too close to zero for this integration method: %.5e", 
+//               errmsg,
+//               "%s(L:%d) First shifted abscissa is too close to zero for this integration method: %.5e",
 //               __func__, __LINE__, coeff * (array[0*n_columns+index_x] - shift));
 
 
@@ -2359,7 +2359,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //     dM = array[i*n_columns+index_ddy] - array[(i+1)*n_columns+index_ddy];
 //     ys = array[i*n_columns+index_y] + array[(i+1)*n_columns+index_y];
 //     dy = array[i*n_columns+index_y] - array[(i+1)*n_columns+index_y];
-    
+
 //     min_pow = 0;
 //     /** - pcoeff initially contains f_{n}(x) */
 //     pcoeff[0] = array[i*n_columns+index_y] + a/coeff * (dy/h + h*(3.*Ms + dM)/12.)
@@ -2382,7 +2382,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //     }
 //     else {
 //       /** - compute the bessel functions at a and b up to order n-1 */
-//       class_call(spherical_bessel_j(n, a, bessel_j_a, internal_error), 
+//       class_call(spherical_bessel_j(n, a, bessel_j_a, internal_error),
 //                   internal_error, errmsg);
 //       class_call(spherical_bessel_j(n, b, bessel_j_b, internal_error),
 //                   internal_error, errmsg);
@@ -2461,12 +2461,12 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //       }
 //       j++;
 //       for (j; j < min_pow + 4; j++) {
-//         /** - positive powers: use partial integration -> sequence terminates automatically 
+//         /** - positive powers: use partial integration -> sequence terminates automatically
 //          *                                                (result consists only of boundary terms) */
 //         factor = 1;
 //         apow = pow(a, j);
 //         bpow = pow(b, j);
-//         prt_res =  bpow * array_trigonometric_ring(b, -1) 
+//         prt_res =  bpow * array_trigonometric_ring(b, -1)
 //                   -apow * array_trigonometric_ring(a, -1);
 //         for (k = 1; k <= j; k++) {
 //           apow *= 1/a; bpow *= 1/b;
@@ -2497,7 +2497,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
  * @param index_ddy   Input: index for y''-values (->class_define_index)
  * @param result      Output: integration result I
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_spline_table_line_to_line(
@@ -2540,7 +2540,7 @@ int array_integrate_all_spline_table_line_to_line(
  * @param index_ddy   Input: index for y''-values (->class_define_index)
  * @param result      Output: integration result I
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_all_trapzd_or_spline(
@@ -2600,7 +2600,7 @@ int array_integrate_all_trapzd_or_spline(
  * @param index_y     Input: index for y-values (->class_define_index)
  * @param index_int_y_dx  Input: index for integration result
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate(
@@ -2647,7 +2647,7 @@ int array_integrate(
  * @param index_y2    Input: index for y2-values (->class_define_index)
  * @param index_int_y1_over_y2_dx  Input: index for integration result
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int array_integrate_ratio(
@@ -2686,16 +2686,16 @@ int array_integrate_ratio(
 }
 
 /**
- * @brief Internal function for searching supremum and infimum indices 
+ * @brief Internal function for searching supremum and infimum indices
  *        for value in array using bisection
- * 
+ *
  * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
  * @param array_stride  Input: stride in array
  * @param array_size    Input: size of array
  * @param value         Input: value to search for
  * @param inf_index     In/Output: infimum index (previous must be given)
  * @param sup_index     Output: supremum index
- *  
+ *
  * @return the error status
  */
 int array_search_bisect_internal(
@@ -2706,7 +2706,7 @@ int array_search_bisect_internal(
                 int * const __restrict__ inf_index,
                 int * const __restrict__ sup_index,
                 ErrorMsg errmsg) {
-  
+
   int inf, sup, mid, reversed = _FALSE_;
   const double * array = array0;
 
@@ -2723,7 +2723,7 @@ int array_search_bisect_internal(
   class_test((value < array[0*array_stride]) || (value > array[(array_size-1)*array_stride]), errmsg, \
             "value=%e is outside of the range of array values (y_min=%e, y_max=%e)",                  \
             value, array[0*array_stride], array[(array_size-1)*array_stride]);
-  
+
   while (sup-inf > 1) {
     mid = (int)(0.5*(inf+sup));
     if (value < array[mid]) {sup=mid;}
@@ -2743,16 +2743,16 @@ int array_search_bisect_internal(
 }
 
 /**
- * @brief Internal function for searching supremum and infimum indices 
+ * @brief Internal function for searching supremum and infimum indices
  *        for value in array in the neighborhood of a previous infimum
- * 
+ *
  * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
  * @param array_stride  Input: stride in array
  * @param array_size    Input: size of array
  * @param value         Input: value to search for
  * @param inf_index     In/Output: infimum index (previous must be given)
  * @param sup_index     Output: supremum index
- *  
+ *
  * @return the error status
  */
 int array_search_closeby_internal(
@@ -2821,7 +2821,7 @@ static inline int array_interpolate_internal(
                 const int inf,
                 const int sup,
                 double * result) {
-  
+
   int i;
   double h,a,b;
 
@@ -2852,7 +2852,7 @@ static inline int array_interpolate_internal(
     /* third derivative (not continuous) */
     *result = (ddy0[sup*ddy_stride] - ddy0[inf*ddy_stride]) / h;
     break;
-  
+
   default:
     *result = 0.;
     break;
@@ -3984,18 +3984,18 @@ int array_interpolate_spline_growing_hunt(
  * @param y_array     Input: contains y-values indexed as y_array[index_x] with size x_size
  * @param ddy_array   Input: contains y''-values retrieved from splining with size x_size
  * @param y           Input: y-value for which to find a solution x
- * @param x           In/Output: solution x (> or <) x0, should be initialised to a starting value x0 
+ * @param x           In/Output: solution x (> or <) x0, should be initialised to a starting value x0
  * @param ascending   Input: if _TRUE_, search in ascending x-direction, else descending
  * @param last        Output: index of the start of the spline segment with y_{i} <= y <= y_{i+1}
- * @param errmsg 
- * 
+ * @param errmsg
+ *
  * @return the error status
  */
 int array_spline_solve_table_lines(
                       double * x_array,
                       const int x_size,
-                      double * y_array, 
-                      double * ddy_array, 
+                      double * y_array,
+                      double * ddy_array,
                       const double y,
                       double * x,
                       const int ascending,
@@ -4039,7 +4039,7 @@ int array_spline_solve_table_lines(
   b = h*h/2. * ddy_array[index_y_inf];
   c = y_array[index_y_inf+1] - y_array[index_y_inf] - h*h/6. * (ddy_array[index_y_inf+1] + 2.*ddy_array[index_y_inf]);
   d = y_array[index_y_inf] - y;
-  
+
   if (fabs(a) > COEFF_MIN) {
     /** - cubic polynomial transform to depressed form t^3 + pt + q = 0 */
     double p = (3.*a*c - b*b) / (3.*a*a);
@@ -4536,7 +4536,7 @@ int array_convert_spline_table_columns_to_local_power_basis(
 
   class_protect_memcpy(breakpoints, x, x_size*sizeof(double));
 
-  
+
   for (index_x = 0; index_x < x_size-1; index_x++) {
     h = x[index_x + 1] - x[index_x];
     for (index_y = 0; index_y < y_size; index_y++) {

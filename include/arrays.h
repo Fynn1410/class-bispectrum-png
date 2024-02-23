@@ -7,8 +7,6 @@
 
 #include "common.h"
 #include "trigonometric_integrals.h"
-#include <complex.h>
-#undef I
 
 #define _SPLINE_NATURAL_ 0    /**< natural spline: ddy0=ddyn=0 */
 #define _SPLINE_EST_DERIV_ 1  /**< spline with estimation of first derivative on both edges */
@@ -188,19 +186,19 @@ extern "C" {
 				 );
 
   int array_integrate_all_spline_table_lines(
-            double * x, 
+            double * x,
             int x_size,
-            double * y_array, 
+            double * y_array,
             int y_size,
             double * ddy_array,
             double * result,
             ErrorMsg errmsg
             );
-  
+
   int array_integrate_all_spline_table_lines_compensated(
-            double * x, 
+            double * x,
             int x_size,
-            double * y_array, 
+            double * y_array,
             int y_size,
             double * ddy_array,
             double * result,
@@ -210,9 +208,9 @@ extern "C" {
             );
 
   int array_square_integrate_all_spline_table_lines(
-            double * x, 
+            double * x,
             int x_size,
-            double * y_array, 
+            double * y_array,
             int y_size,
             double * ddy_array,
             double * result,
@@ -220,9 +218,9 @@ extern "C" {
             );
 
   int array_square_integrate_exponential_all_spline_table_lines(
-            double * x, 
+            double * x,
             int x_size,
-            double * y_array, 
+            double * y_array,
             int y_size,
             double * ddy_array,
             const double bias,
@@ -501,8 +499,8 @@ extern "C" {
 
   int array_spline_solve_table_lines(double * x_array,
                                     const int x_size,
-                                    double * y_array, 
-                                    double * ddy_array, 
+                                    double * y_array,
+                                    double * ddy_array,
                                     const double y,
                                     double * x,
                                     const int ascending,
@@ -693,7 +691,7 @@ extern "C" {
 
 #ifdef __FAST_MATH__
 #warning Kahan-Neumaier summation is incompatible with -ffast-math. Defaulting to uncompensated summation.
-  
+
   static inline double d2sum(const double a, const double b, double *restrict t) {
     double s;
     s = a + b;
@@ -704,7 +702,7 @@ extern "C" {
   static inline double dcompsum(double * const summands, const int size, const int stride) {
     int i;
     double s;
-    
+
     s = 0.;
     for (i = 0; i < size; i++) {
       s += summands[i];
@@ -715,14 +713,14 @@ extern "C" {
   static inline double complex c2sum(const double complex a, const double complex b, double complex *restrict t) {
     double complex s;
     s = a + b;
-    *t = CMPLX(0., 0.);
+    *t = class_complex(0., 0.);
     return s;
   }
 
   static inline double complex ccompsum(double complex * const summands, const int size, const int stride) {
     int i;
     double complex s;
-    
+
     s = 0.;
     for (i = 0; i < size; i++) {
       s += summands[i];
@@ -759,7 +757,7 @@ extern "C" {
   static inline double dcompsum(double * const summands, const int size, const int stride) {
     int i;
     double s, c, t, in;
-    
+
     s = 0.; c = 0.;
     for (i = 0; i < size; i++) {
       in = summands[i];
@@ -804,7 +802,7 @@ extern "C" {
   static inline double complex ccompsum(double complex * const summands, const int size, const int stride) {
     int i;
     double sr, si, cr, ci, tr, ti, inr, ini;
-    
+
     sr = 0.; si = 0.; cr = 0.; ci = 0.;
     for (i = 0; i < size; i++) {
       inr = creal(summands[i]);
@@ -827,7 +825,7 @@ extern "C" {
       si = ti;
     }
 
-    return CMPLX(sr + cr, si + ci);
+    return class_complex(sr + cr, si + ci);
   }
 
 #endif

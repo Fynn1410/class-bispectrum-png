@@ -3,8 +3,6 @@
 #include "primordial.h"
 #include "trigonometric_integrals.h"
 
-#include <complex.h>
-
 #ifndef __FOURIER__
 #define __FOURIER__
 
@@ -45,38 +43,38 @@ typedef struct fft_struct
 	double kmin_fft_g;
 	double fft_bias_m;
 	double fft_bias_g;
-	double complex * etam_m;  
-  double complex * cmsym_m; 
-  double complex * etam_g;  
+	double complex * etam_m;
+  double complex * cmsym_m;
+  double complex * etam_g;
   double complex * cmsym_g;
-       
+
 }fft_struct;
 
 typedef struct fft_matrices
 {
   // Matter loops
-  double complex ** I2200_mat; 
+  double complex ** I2200_mat;
   double complex *  I1300_mat;
 
   // Realspace (0-th moment in RSD) Biased loops
-  double complex ** Idelta200_mat; 
-  double complex ** IG200_mat; 
-  double complex ** Idelta2delta200_mat; 
-  double complex ** IG2G200_mat; 
-  double complex ** Idelta2G200_mat; 
-  double complex *  FG200_mat; 
+  double complex ** Idelta200_mat;
+  double complex ** IG200_mat;
+  double complex ** Idelta2delta200_mat;
+  double complex ** IG2G200_mat;
+  double complex ** Idelta2G200_mat;
+  double complex *  FG200_mat;
 
   // 1-st moment in RSD Biased loops
-  double complex ** I2201_mat; 
-  double complex ** Idelta201_mat; 
-  double complex ** IG201_mat; 
-  double complex ** J21101_mat; 
-  double complex ** Jdelta201_mat; 
-  double complex ** JG201_mat; 
-  double complex *  FG201_mat; 
-  double complex *  I1301p3101_mat; 
-  double complex *  J12101_mat; 
-  
+  double complex ** I2201_mat;
+  double complex ** Idelta201_mat;
+  double complex ** IG201_mat;
+  double complex ** J21101_mat;
+  double complex ** Jdelta201_mat;
+  double complex ** JG201_mat;
+  double complex *  FG201_mat;
+  double complex *  I1301p3101_mat;
+  double complex *  J12101_mat;
+
   // 2-nd moment in RSD Biased loops
   double complex ** J21102x_mat;
   double complex ** J21102y_mat;
@@ -125,7 +123,7 @@ struct oneloop_fftlog_workspace {
   double sigma_v2; /** Value of the integrated linear power spectrum divided by q^2 (for the UV- / IR-divergences of the integrals) **/
 
   double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
-  
+
   double del_sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation in RSD**/
 
   // FFTLog for the Linear Power Spectrum / no-wiggle Linear Power Spectrum / Real-Space IR-Resummed Linear Power Spectrum-> index coming from enum rsd_ir_type
@@ -231,7 +229,7 @@ struct oneloop_fftlog_halo_rsd {
   double * N12y;
   double * J12112x;
   double * J12112y;
-  
+
   //4-th moment
   double * N22x;
   double * N22y;
@@ -274,7 +272,7 @@ struct fourier {
 
   double c00; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 0-th moment */
   double c10; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 1-st moment */
-  double c20; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */ 
+  double c20; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */
   double c22; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */
   double c30; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 3-rd moment */
   double c32; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 3-rd moment */
@@ -373,7 +371,7 @@ struct fourier {
                        */
 
   double ** ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
-              
+
 
   double * sigma8;   /**< sigma8[index_pk] */
 
@@ -398,12 +396,12 @@ struct fourier {
   int * nowiggle_pk_index;  /**< compute the nowiggle spectrum for this index_pk */
 
   double * ln_pk_l_nw_extra; /**< No-wiggle linear power spectrum.
-                            Computed from ln_pk_l_extra[index_pk_cb] or ln_pk_l_extra[index_pk_m] in this priority. 
+                            Computed from ln_pk_l_extra[index_pk_cb] or ln_pk_l_extra[index_pk_m] in this priority.
                             ln_pk_l_nw_extra[index_tau * pfo->k_size_extra + index_k]   */
-  
+
   double * ddln_pk_l_nw_extra; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
-  
+
 
   //@}
 
@@ -438,7 +436,7 @@ struct fourier {
   double * pk_eq_ddw_and_ddOmega;   /**< table of second derivatives */
 
   //@}
- 
+
   /** @name - parameters for the oneloop FFTLog method */
 
   struct eft * peft;  /**< EFTofLSS module(s) for each time at which non-linear corrections should be computed */
@@ -581,7 +579,7 @@ extern "C" {
                         struct primordial * ppm,
                         struct fourier * pfo,
                         enum linear_or_logarithmic mode,
-                        enum pk_outputs pk_output, 
+                        enum pk_outputs pk_output,
                         double * ln_kvec, // log(kvec[index_kvec])
                         const int kvec_size,
                         const double z,

@@ -1,8 +1,6 @@
 #include "header.h"
 #include "../../include/common.h"
 
-#include <complex.h>
-
 #ifndef __EFT_POWER_SPECTRUM__
 #define __EFT_POWER_SPECTRUM__
 

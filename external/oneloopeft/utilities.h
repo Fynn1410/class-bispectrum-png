@@ -1,5 +1,3 @@
-#include <complex.h>
-
 #ifndef __EFT_TOOLS__
 #define __EFT_TOOLS__
 

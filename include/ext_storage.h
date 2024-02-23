@@ -1,6 +1,4 @@
 #include "common.h"
-#include <complex.h>
-#undef I
 
 #ifndef __EXTERNAL_STORAGE__
 #define __EXTERNAL_STORAGE__

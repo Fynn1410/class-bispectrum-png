@@ -1,7 +1,7 @@
 
 
 /** @file header.h
- * 
+ *
  * contains the eft module and parameter struct definitions and includes all other source files needed for CLASS-OneLoop
  */
 
@@ -26,8 +26,6 @@
 //   int eft_size; // = 0;
 // };
 
-
-#include <complex.h>
 #include <limits.h>
 
 
@@ -57,7 +55,7 @@ static inline int eft_rsd_indicator(enum eft_pk_type pk_type) {
   case pkmu_rsd_ir_resummed_nlo:
     return _TRUE_;
     break;
-  
+
   default:
     return -1;
     break;
@@ -76,7 +74,7 @@ static inline int eft_rsd_out_indicator(enum eft_pk_out_type pk_out_type) {
   case Pdd_hh_rsd:
     return _TRUE_;
     break;
-  
+
   default:
     return -1;
     break;
