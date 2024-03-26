@@ -1295,18 +1295,18 @@ int array_logspline_table_one_column(
   return _SUCCESS_;
 }
 
-double dcompsumv(double * const summands, const int size, const int num_accumulators) {
+double dcompsumv(const double * const summands, const int size, const int num_accumulators) {
   /** - TODO */
   return 0.;
 }
 
 int array_integrate_internal(
-                double * const x0,
+                const double * const x0,
                 const int x_size,
                 const int x_stride,
-                double * const y0,
+                const double * const y0,
                 const int y_stride,
-                double * const ddy0,
+                const double * const ddy0,
                 const int ddy_stride,
                 double * result,
                 const double condition_number_threshold,
@@ -1345,12 +1345,12 @@ int array_integrate_internal(
 }
 
 int array_square_integrate_internal(
-                double * const x0,
+                const double * const x0,
                 const int x_size,
                 const int x_stride,
-                double * const y0,
+                const double * const y0,
                 const int y_stride,
-                double * const ddy0,
+                const double * const ddy0,
                 const int ddy_stride,
                 double * result) {
 
@@ -1375,12 +1375,12 @@ int array_square_integrate_internal(
 
 #define _SPL_SQUARE_EXP_SERIES_THRESHOLD_ 0.001
 int array_square_integrate_exponential_internal(
-                double * const x0,
+                const double * const x0,
                 const int x_size,
                 const int x_stride,
-                double * const y0,
+                const double * const y0,
                 const int y_stride,
-                double * const ddy0,
+                const double * const ddy0,
                 const int ddy_stride,
                 const double bias,
                 const int derivative_order,
@@ -2808,19 +2808,19 @@ int array_search_closeby_internal(
   return _SUCCESS_;
 }
 
-static inline int array_interpolate_internal(
-                double * const x0,
-                const int x_size,
-                const int x_stride,
-                double * const y0,
-                const int y_stride,
-                double * const ddy0,
-                const int ddy_stride,
-                const short derivative_order,
-                const double x,
-                const int inf,
-                const int sup,
-                double * result) {
+int array_interpolate_internal(
+                               const double * const x0,
+                               const int x_size,
+                               const int x_stride,
+                               const double * const y0,
+                               const int y_stride,
+                               const double * const ddy0,
+                               const int ddy_stride,
+                               const short derivative_order,
+                               const double x,
+                               const int inf,
+                               const int sup,
+                               double * result) {
 
   int i;
   double h,a,b;

@@ -106,6 +106,10 @@ cdef class Class:
     cdef int allocated # Flag to see if classy structs are allocated already
     cdef object _pars # Dictionary of the parameters
     cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+    cdef int computed # Flag to see if classy has already computed with the given pars
+    cdef int allocated # Flag to see if classy structs are allocated already
+    cdef object _pars # Dictionary of the parameters
+    cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -130,6 +134,7 @@ cdef class Class:
         self.set(**_pars)
 
     def __cinit__(self, default=False):
+        cdef char* dumc
         cdef char* dumc
         self.allocated = False
         self.computed = False

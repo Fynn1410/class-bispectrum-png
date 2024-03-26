@@ -564,6 +564,15 @@ cdef extern from "class.h":
         FileArg * value
         short * read
 
+    cdef struct ext_storage:
+        double complex *** loop_matrices
+        int ** loop_matrices_size
+        short ** symmetry
+        int loop_matrices_stroed
+        int eft_index_num
+        int eft_size
+        short update_required
+
     void lensing_free(void*)
     void harmonic_free(void*)
     void transfer_free(void*)

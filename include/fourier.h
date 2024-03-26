@@ -2,6 +2,10 @@
 
 #include "primordial.h"
 #include "trigonometric_integrals.h"
+#include "ext_storage.h"
+
+#ifndef __FOURIER__
+#define __FOURIER__
 
 /** - definitions for usage of EFT */
 #include "../external/oneloopeft/header.h"
@@ -276,7 +280,8 @@ struct fourier_workspace {
 
 };
 
-// extern struct ext_storage;
+// unnecessary if we included ext_storage.h
+//extern struct ext_storage;
 
 
 /********************************************************************************/
