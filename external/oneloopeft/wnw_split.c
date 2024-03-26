@@ -145,7 +145,7 @@ int eft_ln_pk_nw_gfilter_parallel(
                       const int index_k0,
                       const int index_kmin,
                       const int k_size,
-                      double *ln_pknw_array) {
+                      double * ln_pknw_array) {
   
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, abort = _FALSE_;
   double ln_pk0_z, k0, smoothing_scale;
@@ -155,17 +155,13 @@ int eft_ln_pk_nw_gfilter_parallel(
 
   k0 = pfo->k[index_k0];
 
-  /** - compute the Eisenstein-Hu approximation to the nowiggle power spectrum */
-  for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
-    
-  }
-
   #pragma omp parallel shared(pk_approx_f, k0, index_pk, index_k0, index_kmin, k_size, ln_pknw_array, ppr, pba, ppm, pfo, abort), \
                        private(it_k, it_q, it_tau, ln_pk0_z, smoothing_scale, intg_splines, intg_result, index_x, index_y, index_ddy, index_num), \
                        default(none), if(pfo->ln_tau_size > 1)
   {
 
   /** - define indices for the spline array */
+  it_q = 0;
   class_define_index(index_x, _TRUE_, it_q, 1);
   class_define_index(index_y, _TRUE_, it_q, 1);
   class_define_index(index_ddy, _TRUE_, it_q, 1);

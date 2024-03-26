@@ -3475,7 +3475,6 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
 
       if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
         //pfo->eft_hp.has_rsd = _TRUE_;
-        pfo->has_rsd = _TRUE_;
       }
 
       class_read_flag("has_rsd", pfo->eft_hp.has_rsd);
@@ -3572,31 +3571,9 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       class_read_flag("eft_direct_integration", pfo->eft_hp.integration_mode);
       /** - if Direct integration is selected, deactivate the approximate mu-dependence used with FFTLog */
       if (pfo->eft_hp.integration_mode == direct_integration) {
-        pfo->eft_hp.use_mu_approximation = _FALSE_;
-        pfo->eft_hp.use_interpolation = _FALSE_;
-        pfo->eft_hp.compute_loop_matrices = _FALSE_;
-
         #ifndef DIRECT_INTEGRATION
         class_stop(errmsg, "You have requested direct integration, but the associated module was not compiled!");
         #endif
-      }
-
-      class_read_double("b1", pfo->b1);
-      class_read_double("b2", pfo->b2);
-      class_read_double("bG2", pfo->bG2);
-      class_read_double("btd", pfo->btd);
-
-      class_read_double("cs2", pfo->cs2);
-      class_read_double("R2", pfo->R2);
-
-      if (pfo->has_rsd == _TRUE_){
-        class_read_double("c00", pfo->c00);
-        class_read_double("c10", pfo->c10);
-        class_read_double("c20", pfo->c20);
-        class_read_double("c22", pfo->c22);
-        class_read_double("c30", pfo->c30);
-        class_read_double("c32", pfo->c32);
-        class_read_double("c42", pfo->c42);
       }
     }
     else if(strstr(string1,"no")!=NULL){
@@ -5733,22 +5710,6 @@ int input_default_params(struct background *pba,
   pfo->extrapolation_method = extrap_max_scaled;
   pfo->feedback = nl_emu_dmonly;
   pfo->z_infinity = 10.;
-  /** TODO: remove */
-  pfo->has_rsd = _FALSE_;
-  pfo->b1  =  2.;
-  pfo->b2  = -1.;
-  pfo->bG2 =  0.2;
-  pfo->btd = -0.1;
-  pfo->cs2 =  0.2/pow(pba->h,2.);
-  pfo->R2  =  5./pow(pba->h,2.);
-  pfo->c00 =  0.;
-  pfo->c10 =  0.;
-  pfo->c20 =  0.;
-  pfo->c22 =  0.;
-  pfo->c30 =  0.;
-  pfo->c32 =  0.;
-  pfo->c42 =  0.;
-  /** ------------ */
 
   pfo->eft_hp.ir_resummation_k_split = 0.2; 
   pfo->eft_hp.ir_resummation_k_feature = 1./110.;

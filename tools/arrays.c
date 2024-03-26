@@ -3126,6 +3126,8 @@ int array_interpolate_spline_derivative(
                                           errmsg),
               errmsg, errmsg);
 
+  *last_index = inf;
+
   for (i = 0; i < result_size; i++) {
     array_interpolate_internal(x_array,
                               n_lines,
@@ -3159,6 +3161,8 @@ int array_interpolate_spline_derivative_closeby(
 
   int inf, sup, i;
 
+  inf = *last_index;
+
   class_call(array_search_closeby_internal(x_array,
                                            1,
                                            n_lines,
@@ -3167,6 +3171,8 @@ int array_interpolate_spline_derivative_closeby(
                                            &sup,
                                            errmsg),
               errmsg, errmsg);
+
+  *last_index = inf;
 
   for (i = 0; i < result_size; i++) {
     array_interpolate_internal(x_array,

@@ -17,6 +17,7 @@
 #include "arrays.h"
 #include "dei_rkck.h"
 #include "parser.h"
+#include "ext_storage.h"
 
 /* class modules */
 #include "common.h"

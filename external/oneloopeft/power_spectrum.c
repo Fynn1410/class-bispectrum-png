@@ -51,16 +51,16 @@ int eft_necessary_spectra_contributions(struct eft * peft,
       }
     }
     else {
-      const int exclusion_list_size = 10;
-      const int exclusion_list[10] = {peft->index_J12102y, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z};
-      num_moments = peft->index_N22z - peft->index_I2200 + 1 - exclusion_list_size;
+      // const int exclusion_list_size = 10;
+      // const int exclusion_list[10] = {peft->index_J12102y, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z};
+      num_moments = peft->index_sigmav_mu - peft->index_I2200 + 1; // - exclusion_list_size;
       *list_spectra_contributions_size = num_moments;
       class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; (index_moment <= peft->index_N22z); index_moment++) {
-        for (index_list = 0; (index_list < exclusion_list_size) && (index_moment != exclusion_list[index_list]); index_list++);
-        if (index_list >= exclusion_list_size) {
-          (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
-        }
+      for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
+        // for (index_list = 0; (index_list < exclusion_list_size) && (index_moment != exclusion_list[index_list]); index_list++);
+        // if (index_list >= exclusion_list_size) {
+        (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+        // }
       }
     }
     break;
@@ -1588,14 +1588,14 @@ int eft_build_nonlinear_power_spectrum_wedges(
           I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
           J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
           J21112, N12, J12112,                                                                        \
-          N22,                                                                                        \
+          N22, sigmav_mu,                                                                             \
           Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0;  /** RSD moments multiplied by i^n/n! (k mu)^n only containing loop terms */
   /** sigma2_ir_at_z = D2 * sigma2_ir */
 
   if (!peft->hp->use_interpolation) {
     muvec = peft->mu; mu_size = peft->mu_size;
     /** TODO: implement */
-    class_stop(peft->error_message, "Not implemented yet.")
+    //class_stop(peft->error_message, "Not implemented yet.")
   }
 
   /** - if a real space spectrum is requested, ignore the mu input and let muvec point to a valid address with a constant value */
@@ -1612,7 +1612,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
   class_call(eft_necessary_pk_types_total(peft, index_pk_out_type, &pk_types, &pk_types_size),
              peft->error_message, peft->error_message);
 
-  /** - find the spectra in this list that have not yet been loaded */
+  /** - find the spectra in this list that have not yet been loaded in FFTLog mode */
   pk_types_outside_loops_size = pk_types_size - pk_types_loops_size;
   class_alloc(pk_types_outside_loops, pk_types_outside_loops_size*sizeof(int), peft->error_message);
   it = 0;
@@ -1628,8 +1628,8 @@ int eft_build_nonlinear_power_spectrum_wedges(
                                      z,
                                      f_z,
                                      D_z,
-                                     pk_types_outside_loops,
-                                     pk_types_outside_loops_size,
+                                     (peft->hp->integration_mode == fftlog) ? pk_types_outside_loops : pk_types,
+                                     (peft->hp->integration_mode == fftlog) ? pk_types_outside_loops_size : pk_types_size,
                                      muvec,
                                      mu_size),
               peft->error_message, peft->error_message);
@@ -1652,7 +1652,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
                                I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
                                J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
                                J21112, N12, J12112,                                                                        \
-                               N22,                                                                                        \
+                               N22, sigmav_mu,                                                                             \
                                Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0), default(none)
   {
   /** - compute the loop power spectra of every internal pk_type in the list for every k, mu, still separated into finite, UV, IR and pole parts */
@@ -1756,7 +1756,8 @@ int eft_build_nonlinear_power_spectrum_wedges(
                 + mu*mu * (peft->spectra_contributions[index_pk_type][peft->index_N22y*eft_spectra_contribution_num + index_part][index_mu_k]   \
                 + mu*mu *  peft->spectra_contributions[index_pk_type][peft->index_N22z*eft_spectra_contribution_num + index_part][index_mu_k]);
 
-            /** - assemble the power spectrum controbutions from the RSD moments only from FFTLog loop terms */
+
+            /** - assemble the power spectrum contributions from the RSD moments only from FFTLog loop terms */
             Prsd0_loop = D4 * (2.*eft_ip.b1*eft_ip.b1 * (I2200 + 3.*I1300) + 2.*eft_ip.b1*eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2*eft_ip.bG2 * IG2G200 + 4.*eft_ip.b1*eft_ip.bG2 * IG200        \
                               + 0.5*eft_ip.b2*eft_ip.b2 * Idelta2delta200 + 2.*eft_ip.b2*eft_ip.bG2 * Idelta2G200 + 8.*eft_ip.b1*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);
             Prsd1_loop = D4*f_z * (2.*mu*mu * (2.*eft_ip.b1 * I2201 + 3.*eft_ip.b1 * I1301p3101 + eft_ip.b2 * Idelta201 + 2.*eft_ip.bG2 * IG201 + 4.*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG201)   \
@@ -1770,9 +1771,23 @@ int eft_build_nonlinear_power_spectrum_wedges(
             if (index_part == uv_divergence) {
               Prsd0_loop += D2 * eft_ip.c00 * k*k * Plin;
               Prsd1_loop += D2*f_z * eft_ip.c10 * mu*mu*k*k * Plin;
-              Prsd2_loop += D2*f_z*f_z * ((eft_ip.c20 + eft_ip.c22 * mu*mu) - D2 * eft_ip.b1*eft_ip.b1 * sigma_sq(peft, -1, index_pk_type)/3.) * mu*mu*k*k * Plin;
-              Prsd3_loop += D2*f_z*f_z*f_z * ((eft_ip.c30 + eft_ip.c32 * mu*mu) - 2.*D2 * eft_ip.b1 * sigma_sq(peft, -1, index_pk_type)/3.) * mu*mu*mu*mu*k*k * Plin;
-              Prsd4_loop += D2*f_z*f_z*f_z*f_z * (eft_ip.c42 - D2 * sigma_sq(peft, -1, index_pk_type)/3.) * mu*mu*mu*mu*mu*mu*k*k * Plin;
+              Prsd2_loop += D2*f_z*f_z * (eft_ip.c20 + eft_ip.c22 * mu*mu) * mu*mu*k*k * Plin;
+              Prsd3_loop += D2*f_z*f_z*f_z * (eft_ip.c30 + eft_ip.c32 * mu*mu) * mu*mu*mu*mu*k*k * Plin;
+              Prsd4_loop += D2*f_z*f_z*f_z*f_z * eft_ip.c42 * mu*mu*mu*mu*mu*mu*k*k * Plin;
+            }
+
+            if (index_part == finite_part) {
+              if (peft->hp->use_mu_approximation) {
+                Prsd2_loop += -D4*f_z*f_z * eft_ip.b1*eft_ip.b1 * sigma_sq(peft, -1, index_pk_type)/3. * mu*mu*k*k * Plin;
+                Prsd3_loop += -2.*D4*f_z*f_z*f_z * eft_ip.b1 * sigma_sq(peft, -1, index_pk_type)/3. * mu*mu*mu*mu*k*k * Plin;
+                Prsd4_loop += -D4*f_z*f_z*f_z*f_z * sigma_sq(peft, -1, index_pk_type)/3. * mu*mu*mu*mu*mu*mu*k*k * Plin;
+              }
+              else {
+                sigmav_mu = peft->spectra_contributions[index_pk_type][peft->index_sigmav_mu*eft_spectra_contribution_num + index_part][index_mu_k];
+                Prsd2_loop += -D4*f_z*f_z * eft_ip.b1*eft_ip.b1 * sigmav_mu * mu*mu*k*k * Plin;
+                Prsd3_loop += -2.*D4*f_z*f_z*f_z * eft_ip.b1 * sigmav_mu * mu*mu*mu*mu*k*k * Plin;
+                Prsd4_loop += -D4*f_z*f_z*f_z*f_z * sigmav_mu * mu*mu*mu*mu*mu*mu*k*k * Plin;
+              }
             }
 
             pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Prsd0_loop + Prsd1_loop + Prsd2_loop + Prsd3_loop + Prsd4_loop;

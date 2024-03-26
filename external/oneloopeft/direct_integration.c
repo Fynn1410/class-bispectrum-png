@@ -97,6 +97,7 @@ int eft_di_integrands(const int * ndim,
   const double k = exp(params->ln_k), cos_theta = params->mu, sin_theta = sqrt(1. - params->mu * params->mu), k_sq = exp(2.*params->ln_k);
   double * ln_q, * q_sq, * cos_thetaq, * ln_kmq, *kmq_sq, * cos_thetakmq, * cos_phiq, * measure;
   double * plin_rsd_q, * plin_rsd_kmq, q, kmq, sin_thetaq;
+  short * remove_point;
   struct indexed_rsd_arg * argqvec, * argkmqvec;
   ErrorMsg errmsg;
 
@@ -110,6 +111,7 @@ int eft_di_integrands(const int * ndim,
   class_alloc(measure,      *nvec*sizeof(double), errmsg);
   class_alloc(plin_rsd_q,   *nvec*sizeof(double), errmsg);
   class_alloc(plin_rsd_kmq, *nvec*sizeof(double), errmsg);
+  class_calloc(remove_point, *nvec, sizeof(short), errmsg);
 
   /** - extract the arguments into (ln(q), mu_q, phi_q) from x */
   for (it = 0; it < *nvec; it++) {
@@ -124,6 +126,14 @@ int eft_di_integrands(const int * ndim,
     kmq_sq[it] = kmq*kmq;
     cos_thetakmq[it] = ((k - q*cos_thetaq[it]) * cos_theta + q*sin_thetaq*cos_phiq[it] * sin_theta) / kmq;
     measure[it] = log(hp->k_UV_cutoff/hp->k_IR_cutoff) * q*q*q / (2.*_PI_*_PI_);  /**< integral measure after transforming to x_i in [0,1], starting from d^3q/(2 pi)^3 */
+    
+    /** - screen for points close to the pole q=k or the boundaries */
+    if ((kmq < hp->k_pole_cutoff) || (kmq > hp->k_UV_cutoff)) {
+      ln_kmq[it] = -4.; /** just an arbitrary default value inside the interpolation range */
+      kmq_sq[it] = 3.35462628e-4;
+      cos_thetakmq[it] = 0.;
+      remove_point[it] = 1;
+    }
   }
 
   /** - create the q argument list */
@@ -170,6 +180,13 @@ int eft_di_integrands(const int * ndim,
                               params->peft->dSigma2_ir,
                               plin_rsd_kmq),
              errmsg, errmsg);
+
+  free(argqvec); free(argkmqvec);
+
+  for (it = 0; it < *nvec; it++) {
+    if (remove_point[it])
+      plin_rsd_kmq[it] = 0.;
+  }
 
   for (index_list = 0; index_list < params->moment_list_size; index_list++) {
     index_moment = (params->moment_list[index_list] % params->peft->index_num);
@@ -347,6 +364,10 @@ int eft_di_integrands(const int * ndim,
       for (it = 0; it < *nvec; it++)
         f[it*(*ncomp) + index_comp] = 0.;
     }
+    else if (index_moment == params->peft->index_sigmav_mu) {
+      for (it = 0; it < *nvec; it++)
+        f[it*(*ncomp) + index_comp] = log(hp->k_UV_cutoff/hp->k_IR_cutoff) * exp(ln_q[it]) / (2.*_PI_*_PI_) * pow(cos_thetaq[it], 2) * plin_rsd_q[it];
+    }
     else {
       /** - abort immediately */
       return _FAILURE_;
@@ -358,6 +379,7 @@ int eft_di_integrands(const int * ndim,
   free(ln_q); free(q_sq); free(cos_thetaq);
   free(ln_kmq); free(kmq_sq); free(cos_thetakmq); free(cos_phiq);
   free(measure); free(plin_rsd_q); free(plin_rsd_kmq);
+  free(remove_point);
 
   return _SUCCESS_;
 }
@@ -371,20 +393,36 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
                                          const int * const moment_list,
                                          const int moment_list_size,
                                          const double z,
-                                         const double f_z) {
+                                         const double f,
+                                         const double D) {
 
   int index_k, index_mu, index_list, index_pk_type, index_moment, nregions, neval, fail, abort;
-  double * result, * error, * prob;
+  int ncores = 0, npoints = ppr->eft_di_vecsize, naccel = 0, npointsaccel = 0, max_error_index;
+  double * result, * error, * prob, max_rel_error;
   div_t list_elem;
   struct direct_integration_parameters di_params = { .peft = peft, .eft_hp = peft->hp,    \
                                                      .pba = pba, .pfo = pfo, .ppm = ppm,  \
                                                      .moment_list = moment_list, .moment_list_size = moment_list_size,  \
-                                                     .z = z, .f_z = f_z, .ln_k = 0., .mu = 0.};
+                                                     .z = z, .f_z = f, .ln_k = 0., .mu = 0.};
 
-  #pragma omp parallel shared(peft, ppr, moment_list, moment_list_size, abort), private(index_k, index_mu, index_list, nregions, neval, fail, result, error, prob, list_elem, index_pk_type, index_moment),  \
+  peft->z0 = z;
+  peft->f_z0 = f; /**< growth rate may be supplied externally */
+  peft->D_z0 = D;
+
+  /** Compute the suppression factor for IR-Resummation */
+  peft->Sigma2_ir  =  eft_ir_sigma2(pba, ppm, pfo, peft->z0, peft->hp->ir_resummation_k_split*pba->h, peft->hp->ir_resummation_k_feature*pba->h);  /** k_split = 0.2 h/Mpc, k_feature = 1/110 h/Mpc */
+  peft->dSigma2_ir = eft_ir_dsigma2(pba, ppm, pfo, peft->z0, peft->hp->ir_resummation_k_split*pba->h, peft->hp->ir_resummation_k_feature*pba->h);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
+
+  cubacores(&ncores, &npoints);
+  cubaaccel(&naccel, &npointsaccel);
+
+  printf("Starting direct integration.\n");
+
+  #pragma omp parallel shared(peft, ppr, moment_list, moment_list_size, abort), private(index_k, index_mu, index_list, nregions, neval, fail, result, error, prob, list_elem, index_pk_type, index_moment, max_rel_error, max_error_index),  \
                        firstprivate(di_params), default(none)
   {
 
+  abort = _FALSE_;
   class_alloc_parallel(result, moment_list_size*sizeof(double), peft->error_message);
   class_alloc_parallel(error,  moment_list_size*sizeof(double), peft->error_message);
   class_alloc_parallel(prob,   moment_list_size*sizeof(double), peft->error_message);
@@ -418,6 +456,19 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
               error,
               prob);
 
+        // Suave(3,
+        //       moment_list_size,
+        //       eft_di_integrands,
+        //       &di_params,
+        //       ppr->eft_di_vecsize,
+        //       ppr->eft_di_epsrel,
+        //       ppr->eft_di_epsabs,
+        //       ppr->eft_di_flags,
+        //       0,
+        //       ppr->eft_di_mineval,
+        //       ppr->eft_di_maxeval,
+        //       )
+
         /** - copy the result to the spectra_contributions array */
         for (index_list = 0; index_list < moment_list_size; index_list++) {
           list_elem = div(moment_list[index_list], peft->index_num);
@@ -427,6 +478,23 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
           peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence][index_mu*peft->k_size + index_k]   = 0.;
           peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence][index_mu*peft->k_size + index_k]   = 0.;
           peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence][index_mu*peft->k_size + index_k] = 0.;
+        }
+
+        if (peft->hp->eft_verbose > 1) {
+          if (fail == 0) {
+            printf("Direct integration (mu = %6.3f, ln(k) = %6.3f): finished in %.2e evaluations \n", di_params.mu, di_params.ln_k, (double)neval);
+          }
+          else if (fail > 0) {
+            max_rel_error = 0.;
+            for (index_list = 0; index_list < moment_list_size; index_list++) {
+              if ((result[index_list] != 0.) && (fabs(error[index_list]/result[index_list]) > max_rel_error)) {
+                max_rel_error = fabs(error[index_list]/result[index_list]);
+                max_error_index = index_list;
+              }
+            }
+            index_moment = (moment_list[max_error_index] % peft->index_num);
+            printf("Direct integration (mu = %6.3f, ln(k) = %6.3f): accuracy goal not met in %.2e evaluations; highest rel. error is %.2e for index_moment = %d \n", di_params.mu, di_params.ln_k, (double)neval, max_rel_error, index_moment);
+          }
         }
       }
     }

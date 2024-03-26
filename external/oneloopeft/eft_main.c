@@ -94,7 +94,7 @@ int eft_allocate_loop_matrices(struct eft * peft) {
   class_alloc(peft->spectra_contributions_dimension, peft->index_num*sizeof(short), peft->error_message);
 
   for (i = 0; i < peft->index_num; i++) { /** i = index_moment*/
-    peft->spectra_contributions_dimension[i] = 3; /** default wavenumber dimension is 3 for any integral without the prefactors (from integration measure, integrand is mostly dimensionless) */
+    peft->spectra_contributions_dimension[i] = 3; /** default wavenumber dimension is 3 for any integral without the prefactors (from integration measure, integrands are mostly dimensionless) */
   }
 
   peft->symmetry[peft->index_I2200] = sym_mat_symmetric; peft->use_tracer[peft->index_I2200] = eft_matter;
@@ -145,6 +145,8 @@ int eft_allocate_loop_matrices(struct eft * peft) {
     peft->symmetry[peft->index_N22x] = sym_mat_none; peft->use_tracer[peft->index_N22x] = eft_matter; peft->spectra_contributions_dimension[peft->index_N22x] = -1;
     peft->symmetry[peft->index_N22y] = sym_mat_none; peft->use_tracer[peft->index_N22y] = eft_matter; peft->spectra_contributions_dimension[peft->index_N22y] = -1;
     peft->symmetry[peft->index_N22z] = sym_mat_none; peft->use_tracer[peft->index_N22z] = eft_matter; peft->spectra_contributions_dimension[peft->index_N22z] = -1;
+
+    peft->symmetry[peft->index_sigmav_mu] = no_finite_part; peft->use_tracer[peft->index_sigmav_mu] = eft_matter; peft->spectra_contributions_dimension[peft->index_sigmav_mu] = -2;
   }
 
   /** - loop kernel matrices */
@@ -232,6 +234,9 @@ int eft_indices(struct eft * peft,
       class_define_index(peft->index_N22x,      _TRUE_, i, 1);
       class_define_index(peft->index_N22y,      _TRUE_, i, 1);
       class_define_index(peft->index_N22z,      _TRUE_, i, 1);
+
+      /** - additional RSD moments */
+      class_define_index(peft->index_sigmav_mu, _TRUE_, i, 1);
     }
 
     peft->index_num = i;
@@ -304,8 +309,10 @@ int eft_free(struct eft * peft) {
     free(peft->symmetry);
     free(peft->use_tracer);
 
-    for (index_moment = 0; index_moment < peft->index_num; index_moment++) {
-      free(peft->loop_matrices[index_moment]);
+    if (peft->loop_matrices) {
+      for (index_moment = 0; index_moment < peft->index_num; index_moment++) {
+        free(peft->loop_matrices[index_moment]);
+      }
     }
     free(peft->loop_matrices);
     free(peft->loop_matrices_size);
@@ -387,7 +394,7 @@ int eft_init(struct precision * ppr,
                                         peft->hp->bao_oversampling, peft->hp->ln_k_oversampling_width,          \
                                         peft->hp->k_size_moments, peft->ln_k_moments, peft->hp->eft_verbose);
 
-    /** Generate the sampling points for the output spectrum */
+    /** Generate the initial sampling points for the output spectrum (might be overwritten) */
     if (peft->hp->use_interpolation) {
       eft_spline_sample_points_nonuniform(peft->hp->kmin_nl, peft->hp->k_feature_nl, peft->hp->kmax_nl,       \
                                           peft->hp->bao_oversampling, peft->hp->ln_k_oversampling_width_nl,   \
@@ -502,6 +509,8 @@ int eft_linear_spectrum_real(
     break;
   }
 
+  free(vec);
+
   return abort;
 }
 
@@ -566,6 +575,8 @@ int eft_linear_spectrum_rsd(
     class_stop(pfo->error_message, "index_pk_type = %d not recognized.", index_pk_type);
     break;
   }
+
+  free(vec);
 
   return abort;
 }
@@ -1284,6 +1295,33 @@ int eft_get_loop_matrices(struct eft * peft,
   return abort;
 }
 
+
+int eft_apply_ap_effect_in_place(double ** kvec,
+                                 const int * k_sizevec,
+                                 double ** muvec,
+                                 const int * mu_sizevec,
+                                 const int z_size,
+                                 const double * ap_parallel,
+                                 const double * ap_perpendicular) {
+        
+  int index_z, index_mu, index_k;
+  double ap_ratio, sqrt_factor;
+
+  for (index_z = 0; index_z < z_size; index_z++) {
+    ap_ratio = ap_perpendicular[index_z] / ap_parallel[index_z];
+    for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
+      sqrt_factor = sqrt(1. + (ap_ratio*ap_ratio - 1.) * muvec[index_z][index_mu]); // here muvec must still be fiducial
+      for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
+        kvec[index_z][index_mu*k_sizevec[index_z] + index_k] *= 1./ap_perpendicular[index_z] * sqrt_factor;
+      }
+      muvec[index_z][index_mu] *= ap_ratio / sqrt_factor;
+    }
+  }
+
+  return _SUCCESS_;
+}
+
+
 double eft_temporal_distance(struct background * pba,
                              const double z,
                              const double z_eft) {
@@ -1306,27 +1344,31 @@ static int indexed_double_cmp_inc(const void * a, const void * b) {
 
 
 /**
- * @brief
- * @param peft
- * @param peft_size
- * @param f_z_pk_eft
- * @param D_z_pk_eft
- * @param pba
- * @param pfo
- * @param ppm
- * @param ppr
- * @param
- * @param zvec
- * @param f_zvec
- * @param D_zvec
- * @param peft_ip
- * @param z_size
- * @param kvec
- * @param k_sizevec
- * @param muvec
- * @param mu_sizevec
- * @param out_pkmu
- * @return
+ * @brief Computes power-spectrum wedges at given redshifts, wavenumbers and l.o.s. angles
+ *        using a given growth rate consistently.
+ * 
+ * @param peft0       Input: pointer to the first eft-structure
+ * @param peft_size   Input: number of eft-structures
+ * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
+ * @param D_z_pk_eft  Input: growth rate D(z) at z_pk of each eft-structure
+ * @param pba         Input: pointer to the background structure
+ * @param pfo         Input: pointer to the fourier structure
+ * @param ppm         Input: pointer to the primordial structure
+ * @param ppr         Input: pointer to the precisions structure
+ * @param pk_out_type Input: type of power-spectrum to compute
+ * @param zvec        Input: redshifts at which to compute it
+ * @param f_zvec      Input: logarithmic growth rate at each z in zvec
+ * @param D_zvec      Input: growth rate D(z) at each z in zvec
+ * @param peft_ip     Input: Input parameter structures for each eft-structure
+ * @param z_size      Input: size of zvec
+ * @param kvec        Input: wavenumbers [in 1/Mpc]; indexed as kvec[index_z][index_mu*k_sizevec[index_z] + index_k]
+ * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
+ * @param muvec       Input: cosine of line-of-sight angles; indexed as muvec[index_z][index_mu]
+ * @param mu_sizevec  Input: size of muvec at each index_z; indexed as mu_sizevec[index_z]
+ * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]; 
+ *                            needs to be pre-allocated with size k_sizevec[index_z]*mu_sizevec[index_z] at each index_z
+ * 
+ * @return the error status
  */
 int eft_job_powerspectrum_wedges_ext_growth_rate(
                                 struct eft * peft0,
@@ -1423,6 +1465,12 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                          muvec[index_z],
                                          k_sizevec[index_z],
                                          mu_sizevec[index_z]),
+                  peft->error_message, peft->error_message);
+    }
+    else if (!eft_hp->use_mu_approximation) {
+      class_call(eft_set_sampling_points_mu_only(peft,
+                                                 muvec[index_z],
+                                                 mu_sizevec[index_z]),
                   peft->error_message, peft->error_message);
     }
 
@@ -1523,7 +1571,8 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                       list_spectra_contributions_not_loaded,
                                                       list_spectra_contributions_not_loaded_size,
                                                       z,
-                                                      f_z),
+                                                      f_z,
+                                                      D_z),
                   peft->error_message, peft->error_message);
       #else
       class_stop(peft->error_message, "You have requested direct integration, but the associated module was not compiled!");
@@ -1597,23 +1646,27 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
 
 
 /**
- * @brief
- * @param peft
- * @param peft_size
- * @param pba
- * @param pfo
- * @param ppm
- * @param ppr
- * @param
- * @param zvec
- * @param peft_ip
- * @param z_size
- * @param kvec
- * @param k_sizevec
- * @param muvec
- * @param mu_sizevec
- * @param out_pkmu
- * @return
+ * @brief Computes power-spectrum wedges at given redshifts, wavenumbers and l.o.s. angles
+ *        using internal CLASS growth rates.
+ * 
+ * @param peft0       Input: pointer to the first eft-structure
+ * @param peft_size   Input: number of eft-structures
+ * @param pba         Input: pointer to the background structure
+ * @param pfo         Input: pointer to the fourier structure
+ * @param ppm         Input: pointer to the primordial structure
+ * @param ppr         Input: pointer to the precisions structure
+ * @param pk_out_type Input: type of power-spectrum to compute
+ * @param zvec        Input: redshifts at which to compute it
+ * @param peft_ip     Input: Input parameter structures for each eft-structure
+ * @param z_size      Input: size of zvec
+ * @param kvec        Input: wavenumbers [in 1/Mpc]; indexed as kvec[index_z][index_mu*k_sizevec[index_z] + index_k]
+ * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
+ * @param muvec       Input: cosine of line-of-sight angles; indexed as muvec[index_z][index_mu]
+ * @param mu_sizevec  Input: size of muvec at each index_z; indexed as mu_sizevec[index_z]
+ * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]; 
+ *                            needs to be pre-allocated with size k_sizevec[index_z]*mu_sizevec[index_z] at each index_z
+ * 
+ * @return the error status
  */
 int eft_job_powerspectrum_wedges(struct eft * peft0,
                                  const int peft_size,
@@ -1637,7 +1690,7 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
   double f_z_pk_eft[pfo->z_pk_eft_num], D_z_pk_eft[pfo->z_pk_eft_num];
   double f_zvec[z_size], D_zvec[z_size];
 
-  pvecback = malloc(pba->bg_size*sizeof(double));
+  class_alloc(pvecback, pba->bg_size*sizeof(double), pfo->error_message);
 
   for (index_z = pfo->z_pk_eft_num-1; index_z >= 0; index_z--) {
     class_call(background_at_z(pba,
@@ -1690,6 +1743,252 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
                                                           out_pkmu),
               peft0->error_message, peft0->error_message);
 
+
+  return _SUCCESS_;
+}
+
+#define MULTIPOLE_SIZE 3
+// static const int gl_rule_size = 9;
+// static const double gl_abscissa[] = {-1., -0.89975799541146015731, -0.67718627951073775345, -0.36311746382617815871, 0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+// static const double gl_weights[] = {0.027777777777777777778, -0.067801868533905777326, 0.087327403186094540303, -0.098096963223617334406, 0.10158730158730158730, -0.098096963223617334406, 0.087327403186094540303, -0.067801868533905777326, 0.027777777777777777778};
+static const int gl_rule_sym_size = 5;
+static const double gl_sym_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+static const double gl_sym_weights[] = {0.10158730158730158730, -0.19619392644723466881, 0.17465480637218908061, -0.13560373706781155465, 0.055555555555555555556};
+static const double lg_measure[][MULTIPOLE_SIZE] = { {1., -0.5, 0.375}, {1., -0.30221856119666629454, -0.043391796245607083376}, {1., 0.18787188573639255829, -0.42463134814493003484}, {1., 0.71434667546027373625, 0.20648468285207557975}, {1., 1., 1.} };
+
+/**
+ * @brief Computes power-spectrum multipoles at given redshifts and fiducial wavenumbers
+ *        using a given growth rate consistently.
+ * 
+ * @param peft0       Input: pointer to the first eft-structure
+ * @param peft_size   Input: number of eft-structures
+ * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
+ * @param D_z_pk_eft  Input: growth rate D(z) at z_pk of each eft-structure
+ * @param pba         Input: pointer to the background structure
+ * @param pfo         Input: pointer to the fourier structure
+ * @param ppm         Input: pointer to the primordial structure
+ * @param ppr         Input: pointer to the precisions structure
+ * @param pk_out_type Input: type of power-spectrum to compute
+ * @param zvec        Input: redshifts at which to compute it
+ * @param f_zvec      Input: logarithmic growth rate at each z in zvec
+ * @param D_zvec      Input: growth rate D(z) at each z in zvec
+ * @param peft_ip     Input: Input parameter structures for each eft-structure
+ * @param z_size      Input: size of zvec
+ * @param kvec        Input: wavenumbers [in 1/Mpc]; indexed as kvec[index_z][index_k]
+ * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
+ * @param ap_parallel Input: parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
+ * @param ap_perpendicular  Input: perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z)
+ * @param out_pkl     Output: power-spectrum multipoles of order 0,2,4,...,2*(MULTIPOLE_SIZE-1) at zvec,kvec; indexed as out_pkl[index_z][(l/2)*k_sizevec[index_z] + index_k]; 
+ *                            needs to be pre-allocated with size k_sizevec[index_z]*MULTIPOLE_SIZE at each index_z
+ * 
+ * @return the error status
+ */
+int eft_job_powerspectrum_multipoles_ext_growth_rate(
+                                struct eft * peft0,
+                                const int peft_size,
+                                const double * const f_z_pk_eft,
+                                const double * const D_z_pk_eft,
+                                struct background * pba,
+                                struct fourier * pfo,
+                                struct primordial * ppm,
+                                struct precision * ppr,
+                                enum eft_pk_out_type pk_out_type,
+                                const double * const zvec,
+                                const double * const f_zvec,
+                                const double * const D_zvec,
+                                const struct eft_input_parameters * peft_ip,
+                                const int z_size,
+                                double ** kvec,
+                                const int * const k_sizevec,
+                                const double * ap_parallel,
+                                const double * ap_perpendicular,
+                                double ** out_pkl
+                                ) {
+
+  int index_z, index_l, index_mu, index_k, mu_sizevec[z_size];
+  double ap_ratio, * kvec_true[z_size], * muvec_true[z_size], * out_pkmu[z_size];
+
+  /** - allocate additional input/output arrays for power-spectrum wedges */
+  for (index_z = 0; index_z < z_size; index_z++) {
+    mu_sizevec[index_z] = gl_rule_sym_size;
+    class_alloc(muvec_true[index_z], mu_sizevec[index_z]*sizeof(double), peft0->error_message);
+    class_alloc(kvec_true[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft0->error_message);
+    class_alloc(out_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft0->error_message);
+
+    /** - copy the fiducial wavenumbers and l.o.s. angles */
+    for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
+      class_protect_memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
+    }
+    class_protect_memcpy(muvec_true[index_z], gl_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
+  }
+
+  /** - apply the AP effect */
+  eft_apply_ap_effect_in_place(kvec_true,
+                               k_sizevec,
+                               muvec_true,
+                               mu_sizevec,
+                               z_size,
+                               ap_parallel,
+                               ap_perpendicular);
+
+  /** - get the power-spectrum wedges */
+  class_call(eft_job_powerspectrum_wedges_ext_growth_rate(peft0,
+                                                          peft_size,
+                                                          f_z_pk_eft,
+                                                          D_z_pk_eft,
+                                                          pba,
+                                                          pfo,
+                                                          ppm,
+                                                          ppr,
+                                                          pk_out_type,
+                                                          zvec,
+                                                          f_zvec,
+                                                          D_zvec,
+                                                          peft_ip,
+                                                          z_size,
+                                                          kvec_true,
+                                                          k_sizevec,
+                                                          muvec_true,
+                                                          mu_sizevec,
+                                                          out_pkmu),
+             peft0->error_message, peft0->error_message);
+
+  for (index_z = 0; index_z < z_size; index_z++) {
+    free(kvec_true[index_z]); free(muvec_true[index_z]);
+  }
+
+  /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
+  #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu),   \
+                           private(index_z, index_l, index_k, index_mu), firstprivate(gl_sym_weights, lg_measure), default(none)
+  for (index_z = 0; index_z < z_size; index_z++) {
+    for (index_l = 0; index_l < MULTIPOLE_SIZE; index_l++) {
+      for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
+        out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] = 0.;
+        for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
+          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_sym_weights[index_mu] * lg_measure[index_mu][index_l] * out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
+        }
+        out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] *= 0.5*(4*index_l + 1);
+      }
+    }
+  }
+
+  for (index_z = 0; index_z < z_size; index_z++)
+    free(out_pkmu[index_z]);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * @brief Computes power-spectrum multipoles at given redshifts and fiducial wavenumbers
+ *        using a given growth rate consistently.
+ * 
+ * @param peft0       Input: pointer to the first eft-structure
+ * @param peft_size   Input: number of eft-structures
+ * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
+ * @param D_z_pk_eft  Input: growth rate D(z) at z_pk of each eft-structure
+ * @param pba         Input: pointer to the background structure
+ * @param pfo         Input: pointer to the fourier structure
+ * @param ppm         Input: pointer to the primordial structure
+ * @param ppr         Input: pointer to the precisions structure
+ * @param pk_out_type Input: type of power-spectrum to compute
+ * @param zvec        Input: redshifts at which to compute it
+ * @param f_zvec      Input: logarithmic growth rate at each z in zvec
+ * @param D_zvec      Input: growth rate D(z) at each z in zvec
+ * @param peft_ip     Input: Input parameter structures for each eft-structure
+ * @param z_size      Input: size of zvec
+ * @param kvec        Input: wavenumbers [in 1/Mpc]; indexed as kvec[index_z][index_k]
+ * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
+ * @param ap_parallel Input: parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
+ * @param ap_perpendicular  Input: perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z)
+ * @param out_pkl     Output: power-spectrum multipoles of order 0,2,4,...,2*(MULTIPOLE_SIZE-1) at zvec,kvec; indexed as out_pkl[index_z][(l/2)*k_sizevec[index_z] + index_k]; 
+ *                            needs to be pre-allocated with size k_sizevec[index_z]*MULTIPOLE_SIZE at each index_z
+ * 
+ * @return the error status
+ */
+int eft_job_powerspectrum_multipoles(
+                                struct eft * peft0,
+                                const int peft_size,
+                                struct background * pba,
+                                struct fourier * pfo,
+                                struct primordial * ppm,
+                                struct precision * ppr,
+                                enum eft_pk_out_type pk_out_type,
+                                const double * const zvec,
+                                const struct eft_input_parameters * peft_ip,
+                                const int z_size,
+                                double ** kvec,
+                                const int * const k_sizevec,
+                                const double * ap_parallel,
+                                const double * ap_perpendicular,
+                                double ** out_pkl
+                                ) {
+
+  int index_z, index_l, index_mu, index_k, mu_sizevec[z_size];
+  double ap_ratio, * kvec_true[z_size], * muvec_true[z_size], * out_pkmu[z_size];
+
+  /** - allocate additional input/output arrays for power-spectrum wedges */
+  for (index_z = 0; index_z < z_size; index_z++) {
+    mu_sizevec[index_z] = gl_rule_sym_size;
+    class_alloc(muvec_true[index_z], mu_sizevec[index_z]*sizeof(double), peft0->error_message);
+    class_alloc(kvec_true[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft0->error_message);
+    class_alloc(out_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft0->error_message);
+
+    /** - copy the fiducial wavenumbers and l.o.s. angles */
+    for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
+      class_protect_memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
+    }
+    class_protect_memcpy(muvec_true[index_z], gl_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
+  }
+
+  /** - apply the AP effect */
+  eft_apply_ap_effect_in_place(kvec_true,
+                               k_sizevec,
+                               muvec_true,
+                               mu_sizevec,
+                               z_size,
+                               ap_parallel,
+                               ap_perpendicular);
+
+  /** - get the power-spectrum wedges */
+  class_call(eft_job_powerspectrum_wedges(peft0,
+                                          peft_size,
+                                          pba,
+                                          pfo,
+                                          ppm,
+                                          ppr,
+                                          pk_out_type,
+                                          zvec,
+                                          peft_ip,
+                                          z_size,
+                                          kvec_true,
+                                          k_sizevec,
+                                          muvec_true,
+                                          mu_sizevec,
+                                          out_pkmu),
+             peft0->error_message, peft0->error_message);
+
+  for (index_z = 0; index_z < z_size; index_z++) {
+    free(kvec_true[index_z]); free(muvec_true[index_z]);
+  }
+
+  /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
+  #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu),   \
+                           private(index_z, index_l, index_k, index_mu), firstprivate(gl_sym_weights, lg_measure), default(none)
+  for (index_z = 0; index_z < z_size; index_z++) {
+    for (index_l = 0; index_l < MULTIPOLE_SIZE; index_l++) {
+      for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
+        out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] = 0.;
+        for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
+          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_sym_weights[index_mu] * lg_measure[index_mu][index_l] * out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
+        }
+        out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] *= 0.5*(4*index_l + 1);
+      }
+    }
+  }
+
+  for (index_z = 0; index_z < z_size; index_z++)
+    free(out_pkmu[index_z]);
 
   return _SUCCESS_;
 }

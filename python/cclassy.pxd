@@ -48,15 +48,78 @@ cdef extern from "class.h":
         pk_linear
         pk_nonlinear
 
-    cdef enum rsd_ir_type:
-        lin
-        no_wiggle
-        real_ir
-
     cdef enum out_sigmas:
         out_sigma
         out_sigma_prime
         out_sigma_disp
+
+    cdef enum eft_struct_role:
+        eft_master
+        eft_slave
+
+    cdef enum eft_tracer: 
+        eft_matter
+        eft_halo
+        eft_tracer_num
+
+    cdef enum eft_pk_type: 
+        pk_lin
+        pk_nowiggle
+        pk_ir_resummed_lo
+        pkmu_rsd_ir_resummed_lo
+        pk_ir_resummed_nlo
+        pkmu_rsd_ir_resummed_nlo
+        pk_type_num
+
+    cdef enum eft_pk_out_type: 
+        Pdd_mm_real
+        Pdd_mm_rsd
+        Pdd_hh_real
+        Pdd_hh_rsd
+        pk_out_type_num
+
+    cdef enum eft_spectra_contribution: 
+        finite_part
+        uv_divergence
+        ir_divergence
+        pole_divergence
+        eft_spectra_contribution_num
+
+    cdef enum sym_type: 
+        no_finite_part
+        sym_vec
+        sym_mat_none
+        sym_mat_symmetric
+
+    cdef enum eft_fourier_mode: 
+        fourier_mode_fft
+        fourier_mode_spline
+
+    cdef enum eft_integration_mode: 
+        fftlog
+        direct_integration
+
+    cdef struct FFT_plan:
+        int N;
+        double* cos_vals;
+        double* sin_vals;
+
+        double* temp_real;
+        double* temp_imag;
+
+    cdef struct ext_storage:
+        double complex *** loop_matrices;
+        int ** loop_matrices_size; 
+        short ** symmetry; 
+        short ** use_tracer;
+        short ** spectra_contributions_dimension; 
+
+        double ** period;
+        int loop_matrices_stored;
+        int * eft_index_num;
+        int eft_size;
+
+        ErrorMsg error_message;
 
     cdef struct precision:
         ErrorMsg error_message
@@ -295,83 +358,175 @@ cdef extern from "class.h":
         int l_unlensed_max
         ErrorMsg error_message
 
-    cdef struct oneloop_fftlog_workspace:
-        double sigma_v2;
-        double sigma_2_IR;
-        double del_sigma_2_IR;
+    struct eft_input_parameters:
+        double b1;
+        double b2;
+        double bG2;
+        double btd;
 
-    cdef struct oneloop_fftlog_matter_real:
-        double * Plin_IR;
-        double * Plin_NL_IR;
-        double * P_mm;
-        double * I2200;
-        double * I1300;
+        double cs2;
+        double R2;
 
-    cdef struct oneloop_fftlog_halo_real:
-        double * Plin_IR;
-        double * Plin_NL_IR;
-        double * P_mm;
-        double * I2200;
-        double * Idelta200;
-        double * IG200;
-        double * Idelta2delta200;
-        double * IG2G200;
-        double * Idelta2G200;
-        double * I1300;
-        double * FG200;
-        double * IR2;
-        double * P_hh;
+        short has_rsd;
+        double c00;
+        double c10;
+        double c20;
+        double c22;
+        double c30;
+        double c32;
+        double c42;
 
-    cdef struct oneloop_fftlog_halo_rsd:
-        double * Plin;
-        double * P_mm;
-        double * I2200;
-        double * Idelta200;
-        double * IG200;
-        double * Idelta2delta200;
-        double * IG2G200;
-        double * Idelta2G200;
-        double * I1300;
-        double * FG200;
-        double * IR2;
+    cdef struct eft_hyper_parameters:
+        double kmin_lin[2]; 
+        double kmax_lin[2];
+        double period[2];
+        int k_size_fourier; 
+        double bao_oversampling; 
+        double ln_k_oversampling_width;
+        int linear_spectrum_index;
 
-        double * I2201;
-        double * Idelta201;
-        double * IG201;
-        double * FG201;
-        double * J21101;
-        double * Jdelta201;
-        double * JG201;
-        double * I1301p3101;
-        double * J12101;
-        double * J11201;
+        double ir_resummation_k_split; 
+        double ir_resummation_k_feature;
 
-        double * J21102x;
-        double * J21102y;
-        double * Jdelta202x;
-        double * Jdelta202y;
-        double * JG202x;
-        double * JG202y;
-        double * I2211;
-        double * J21111;
-        double * N11x;
-        double * N11y;
-        double * J12102x;
-        double * J12102y;
-        double * I1311;
-        double * J12111;
-        double * J11211;
+        int fourier_mode;
+        double bias[2]; 
+        int num_positive_fourier_freq; 
+        int fourier_coeff_size;
 
-        double * J21112x;
-        double * J21112y;
-        double * N12x;
-        double * N12y;
-        double * J12112x;
-        double * J12112y;
-        
-        double * N22x;
-        double * N22y;
-        double * N22z;
+        double k_UV_cutoff;
+        double k_IR_cutoff;
+        double k_pole_cutoff;
+        int k_size_moments;
+
+        short use_interpolation; 
+        int k_size_nl;
+        double kmin_nl;
+        double kmax_nl;
+        double k_feature_nl;
+        double ln_k_oversampling_width_nl;
+
+        int integration_mode;
+        short has_rsd;
+        short use_EdS_time_scaling;
+        short use_time_independent_kernels;
+        short compute_loop_matrices;
+        short use_mu_approximation;
+        short reload_linear_spectra; 
+
+        short write_loop_matrices;
+        short ignore_missing_files;
+        FileName eft_loop_matrix_directory;
+        FileName eft_loop_matrix_files[43];
+
+        short eft_verbose;
+
+    cdef struct eft_moment_single: 
+        double moment;
+        short index_bias;
+
+    cdef struct eft_moment_double:
+        double moment;
+        short index_bias;
+        short index_derivative;
+
+    cdef struct eft:
+        double z0;
+        double f_z0;
+        double D_z0;
+        double * ln_k; 
+        int k_size;
+        double * mu;
+        int mu_size;
+        double * pk_l[6];
+        double * ddpk_l[6];
+
+        int * spectra_contributions_size; 
+        double ** spectra_contributions[6];
+        short * spectra_contributions_dimension; 
+
+        double * ln_k_moments;
+        double * pk_l_moments[6]; 
+        double * ddpk_l_moments[6]; 
+        eft_moment_single dispersion[6][2];
+        eft_moment_double ps_uv_shot_noise_corrections[6][9];
+        eft_moment_double ps_uv_shot_noise_corrections_underlying[6][6];
+
+        double Sigma2_ir;
+        double dSigma2_ir;
+
+        int index_num;
+
+        int index_I2200;
+        int index_I1300;
+
+        int index_Idelta200;
+        int index_IG200;
+        int index_Idelta2delta200;
+        int index_IG2G200;
+        int index_Idelta2G200;
+        int index_FG200;
+
+        int index_I2201;
+        int index_Idelta201;
+        int index_IG201;
+        int index_J21101;
+        int index_Jdelta201;
+        int index_JG201;
+        int index_FG201;
+        int index_I1301p3101;
+        int index_J12101;
+        int index_J11201;
+
+        int index_J21102x;
+        int index_J21102y;
+        int index_Jdelta202x;
+        int index_Jdelta202y;
+        int index_JG202x;
+        int index_JG202y;
+        int index_I2211;
+        int index_J21111;
+        int index_N11x;
+        int index_N11y;
+        int index_J12102x;
+        int index_J12102y;
+        int index_I1311;
+        int index_J12111;
+        int index_J11211;
+
+        int index_J21112x;
+        int index_J21112y;
+        int index_N12x;
+        int index_N12y;
+        int index_J12112x;
+        int index_J12112y;
+
+        int index_N22x;
+        int index_N22y;
+        int index_N22z;
+
+        int index_sigmav_mu;
+
+        double * ln_k_fourier[2]; 
+        double * pk_l_biased[2*6];
+        double * ddpk_l_biased[2*6];
+
+        int moments_allocated;
+        int * loop_matrices_size; 
+        double complex ** loop_matrices; 
+        short * symmetry;
+        short * use_tracer;
+        short pk_type_loaded[6]; 
+        double complex * fourier_coeff[2*6]; 
+        double complex * fourier_condition_num[2*6];
+        double * fourier_frequencies[2];
+
+        FFT_plan * fft_plan;
+
+        eft_hyper_parameters * hp;
+        eft_input_parameters * ip;
+
+        short role;
+        ErrorMsg error_message;
 
     cdef struct fourier:
         short has_pk_matter
@@ -387,10 +542,12 @@ cdef extern from "class.h":
         double * tau
         double ** ln_pk_l
         double ** ln_pk_nl
-        oneloop_fftlog_workspace * fft_ws;
-        oneloop_fftlog_matter_real * pk_matter_real_nl
-        oneloop_fftlog_halo_real * pk_halo_real_nl
-        oneloop_fftlog_halo_rsd ** pk_halo_rsd_nl
+        eft * peft;
+        int eft_size;
+        double * z_pk_eft;
+        int z_pk_eft_num;
+        eft_input_parameters * eft_ip;
+        eft_hyper_parameters eft_hp;
         double * sigma8
         int has_pk_m
         int has_pk_cb
@@ -427,7 +584,7 @@ cdef extern from "class.h":
     int thermodynamics_init(void*,void*,void*)
     int perturbations_init(void*,void*,void*,void*)
     int primordial_init(void*,void*,void*)
-    int fourier_init(void*,void*,void*,void*,void*,void*)
+    int fourier_init(void*,void*,void*,void*,void*,void*,void*)
     int transfer_init(void*,void*,void*,void*,void*,void*)
     int harmonic_init(void*,void*,void*,void*,void*,void*,void*)
     int lensing_init(void*,void*,void*,void*,void*)
@@ -541,71 +698,6 @@ cdef extern from "class.h":
     int fourier_hmcode_sigmaprime_at_z(void* pba, void* pfo, double z, double* sigma_prime, double* sigma_prime_cb)
     int fourier_hmcode_window_nfw(void* pfo, double k, double rv, double c, double* window_nfw)
 
-    int Real_Matter_IR_Resummed(
-        void *pba, 
-        void *ppm, 
-        void *pfo,
-        int index_k,  
-        double z, 
-        long SPLIT, 
-        double *pk)
-
-    int Real_Galaxy_IR_Resummed_default(
-        void* pfo, 
-        void* pba, 
-        void* ppm,
-        int index_k, 
-        double z, 
-        long SPLIT, 
-        double *pk)
-
-    int Real_Galaxy_IR_Resummed(
-        void* pfo, 
-        void* pba, 
-        void* ppm,
-        int index_k, 
-        double z, 
-        double b1, double b2, double bG2, double btd, double R2,
-        double cs2,
-        long SPLIT, 
-        double *pk)
-
-    int RSD_IR_Ressummed_default(
-        void* pfo, 
-        void* pba, 
-        int index_k, 
-        double z, 
-        double mu, 
-        double *result);
-
-    int RSD_IR_Ressummed(
-        void *pfo, 
-        void *pba,
-        int index_k, 
-        double z, 
-        double mu, 
-        double b1, double b2, double bG2, double btd,
-        double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
-        double *result)
-
-    int RSD_Multipole_default(
-        void* pfo, 
-        void* pba, 
-        int index_k, 
-        double z, 
-        int l, 
-        double *result)
-
-    int RSD_Multipole(
-        void *pfo, 
-        void *pba, 
-        int index_k, 
-        double z, 
-        int l,
-        double b1, double b2, double bG2, double btd,
-        double c00, double c10, double c20, double c22, double c30, double c32, double c42, 
-        double * result)
-
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 
     int harmonic_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)
@@ -620,3 +712,25 @@ cdef extern from "class.h":
                   double * pk_tot_out,
                   double * pk_cb_tot_out,
                   int nonlinear)
+
+    int ext_init(void * pext)
+
+    int ext_cleanup(void * pext)
+
+    int ext_save( void * pext,
+                  void * pba,
+                  void * pth,
+                  void * ppt,
+                  void * ppm,
+                  void * pfo,
+                  void * ptr,
+                  void * phr,
+                  void * ple,
+                  void * psd)
+
+    int ext_insert_eft(
+                  void * pext,
+                  void * peft,
+                  const int index_eft,
+                  const int num_matrices,
+                  ErrorMsg errmsg)

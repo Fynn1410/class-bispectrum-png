@@ -567,15 +567,16 @@ class_precision_parameter(eft_num_positive_frequencies,int,128)  /**< number of 
 class_precision_parameter(eft_fourier_condition_num_threshold,double,100.0)  /**< Threshold of the condition number of the Spline Fourier transform for usage of compensated summation */
 class_precision_parameter(eft_uv_cutoff,double,1.e3)  /**< UV cutoff for direct integration and the computation of divergent parts in FFTLog */
 class_precision_parameter(eft_ir_cutoff,double,1.e-5) /**< IR cutoff for direct integration and the computation of divergent parts in FFTLog */
+class_precision_parameter(eft_pole_cutoff,double,1.e-5) /**< Pole cutoff for direct integration */
 class_precision_parameter(eft_pk_moments_points,int,400)  /**< number of sample points for the integration of power spectrum moments (e.g. velocity dispersion) */
 class_precision_parameter(eft_interpolate_spectra_contributions,int,_TRUE_) /**< use a fixed set of sample points for the internal spectra contributions and interpolate when compiling the nonlinear spectra */
 class_precision_parameter(eft_di_vecsize,int,1024) /**< number of integrand samples computed at once */
 class_precision_parameter(eft_di_key,int,11)  /**< key for underlying quadrature rule (may be 7, 9, 11 or 13 [only 2D])*/
-class_precision_parameter(eft_di_flags,int,0) /**< Cuba flags for direct integration (Bits 0-1: verbosity, Bit 2: only last sample set is used, Bits 8-31: random number generator)*/
-class_precision_parameter(eft_di_maxeval,int,1000000) /**< maximum evaluations of the integrand */
+class_precision_parameter(eft_di_flags,int,4) /**< Cuba flags for direct integration (Bits 0-1: verbosity, Bit 2: only last sample set is used, Bits 8-31: random number generator)*/
+class_precision_parameter(eft_di_maxeval,int,20000000) /**< maximum evaluations of the integrand */
 class_precision_parameter(eft_di_mineval,int,16384) /**< minimum evaluations of the integrand */
 class_precision_parameter(eft_di_epsabs,double,0.)  /**< absolute error of direct integration (set to 0 in order to use only relative error) */
-class_precision_parameter(eft_di_epsrel,double,1.e-5) /**< relative error of direct integration */
+class_precision_parameter(eft_di_epsrel,double,1.e-4) /**< relative error of direct integration */
 /*
  * Lensing precision parameters
  */

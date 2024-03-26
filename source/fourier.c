@@ -1673,6 +1673,50 @@ int fourier_init(
     // }
     // printf("%.16e        %.16e \n", cimag(result[1]), cimag(cond_num[1]));
 
+    double x[4] = {-_PI_, -_PI_/2., _PI_/2., _PI_};
+    double y[4] = {0., -1., 1., 0.};
+    double ddy[4] = {0., 12./(_PI_*_PI_), -12./(_PI_*_PI_), 0.};
+    int last_index = 0;
+    double p;
+    #define NPOINTS 200
+    double test_func_vals[NPOINTS];
+    for (int i = 0; i < NPOINTS; i++) {
+      p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NPOINTS - 1);
+      array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, test_func_vals + i, 1, pfo->error_message);
+    }
+
+    // compute Spline Fourier
+    #define NFREQ 256
+    double complex fourier_coeff[NFREQ];
+    double complex cond_num[NFREQ];
+    fourier_coeff[0] = class_complex(0., 0.);
+    array_integrate_all_spline_table_lines_compensated(x, 4, y, 1, ddy, fourier_coeff, 0., cond_num, pfo->error_message);
+    for (int i = 1; i < NFREQ; i++) {
+      p = (double)i;
+      array_integrate_all_spline_table_lines_fourier_compensated(x, 4, y, 1, ddy, p, fourier_coeff + i, 0., cond_num + i, pfo->error_message);
+      fourier_coeff[i] /= 2.*_PI_;
+    }
+
+    #define NFFT 256
+    double samples[NFFT], zero[NFFT];
+    double fft_coeff_real[NFFT], fft_coeff_imag[NFFT], zero_coeff_real[NFFT], zero_coeff_imag[NFFT];
+    double fft_coeff_mag[NFFT];
+    struct FFT_plan * fft_plan;
+    FFT_planner_init(NFFT, &fft_plan);
+    //FFT_planner_alloc(NFFT, &fft_plan);
+    last_index = 0;
+    for (int i = 0; i < NFFT; i++) {
+      p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NFFT);
+      array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, samples + i, 1, pfo->error_message);
+      zero[i] = 0.;
+    }
+    FFT_real_planned(samples, zero, fft_coeff_real, fft_coeff_imag, zero_coeff_real, zero_coeff_imag, fft_plan);
+    FFT_planner_free(&fft_plan);
+    for (int i = 0; i < NFFT; i++) {
+      fft_coeff_mag[i] = sqrt(fft_coeff_real[i]*fft_coeff_real[i] + fft_coeff_imag[i]*fft_coeff_imag[i])/(double)NFFT;
+    }
+    
+
     /** - debug output */
     if (pfo->fourier_verbose > 2) {
       FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
@@ -2068,9 +2112,16 @@ int fourier_init(
     pfo->eft_hp.fourier_coeff_size = 2*pfo->eft_hp.num_positive_fourier_freq + 1;
     pfo->eft_hp.k_UV_cutoff = ppr->eft_uv_cutoff;
     pfo->eft_hp.k_IR_cutoff = ppr->eft_ir_cutoff;
+    pfo->eft_hp.k_pole_cutoff = ppr->eft_pole_cutoff;
     pfo->eft_hp.k_size_moments = ppr->eft_pk_moments_points;
     pfo->eft_hp.use_interpolation = ppr->eft_interpolate_spectra_contributions;
     pfo->eft_hp.ignore_missing_files = _FALSE_;
+    if (pfo->eft_hp.integration_mode == direct_integration) {
+      pfo->eft_hp.use_mu_approximation = _FALSE_;
+      pfo->eft_hp.use_interpolation = _FALSE_;
+      pfo->eft_hp.compute_loop_matrices = _FALSE_;
+    }
+    class_test((pfo->eft_hp.integration_mode == fftlog) && (pfo->eft_hp.use_mu_approximation == _FALSE_), pfo->error_message, "The evaluation of loop integrals using Fourier decomposition requires the analytic mu-dependence!");
     for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
       if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
         strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
@@ -2140,8 +2191,8 @@ int fourier_init(
     }
 
     #define TEST_Z_SIZE 2
-    #define TEST_K_SIZE 100
-    #define TEST_MU_SIZE 10
+    #define TEST_K_SIZE 10
+    #define TEST_MU_SIZE 3
     double zvec[TEST_Z_SIZE] = {0., 1.};
     struct eft_input_parameters eft_ip_test[TEST_Z_SIZE];
     double **kvec;
@@ -2153,7 +2204,7 @@ int fourier_init(
     muvec = malloc(TEST_Z_SIZE*sizeof(double *));
     out_pkmu = malloc(TEST_Z_SIZE*sizeof(double *));
     for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-      kvec[index_z] = malloc(TEST_K_SIZE*sizeof(double));
+      kvec[index_z] = malloc(TEST_MU_SIZE*TEST_K_SIZE*sizeof(double));
       muvec[index_z] = malloc(TEST_MU_SIZE*sizeof(double));
       out_pkmu[index_z] = malloc(TEST_K_SIZE*TEST_MU_SIZE*sizeof(double));
     }
@@ -2161,16 +2212,18 @@ int fourier_init(
     for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
       k_sizevec[index_z] = TEST_K_SIZE;
       mu_sizevec[index_z] = TEST_MU_SIZE;
-      for (index_k = 0; index_k < TEST_K_SIZE; index_k++) {
-        kvec[index_z][index_k] = exp( log(pfo->eft_hp.kmin_nl) + log(pfo->eft_hp.kmax_nl/pfo->eft_hp.kmin_nl) * index_k / (double)TEST_K_SIZE );
+      for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+        for (index_k = 0; index_k < TEST_K_SIZE; index_k++) {
+          kvec[index_z][index_mu*TEST_K_SIZE + index_k] = exp( log(pfo->eft_hp.kmin_nl) + log(pfo->eft_hp.kmax_nl/pfo->eft_hp.kmin_nl) * index_k / (double)TEST_K_SIZE );
+        }
       }
       for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
         muvec[index_z][index_mu] = index_mu / (double)(TEST_MU_SIZE-1);
       }
     }
 
-    eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 0 };
-    eft_ip_test[1] = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 0 };
+    eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = -0.5, .bG2 = 0.3, .btd = 0.8, .has_rsd = 1, .c00 = -10., .c10 = 20., .c22 = 20., .c32 = 20., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 10., .R2 = 5. };
+    eft_ip_test[1] = (struct eft_input_parameters){ .b1 = 1., .b2 = -0.5, .bG2 = 0.3, .btd = 0.8, .has_rsd = 1, .c00 = -10., .c10 = 20., .c22 = 20., .c32 = 20., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 10., .R2 = 5. };
 
     class_call(eft_job_powerspectrum_wedges(pfo->peft,
                                             pfo->eft_size,

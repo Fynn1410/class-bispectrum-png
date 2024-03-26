@@ -102,10 +102,10 @@ cdef class Class:
     cdef file_content fc
     cdef ext_storage ex
 
-    cpdef int computed # Flag to see if classy has already computed with the given pars
-    cpdef int allocated # Flag to see if classy structs are allocated already
-    cpdef object _pars # Dictionary of the parameters
-    cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+    cdef int computed # Flag to see if classy has already computed with the given pars
+    cdef int allocated # Flag to see if classy structs are allocated already
+    cdef object _pars # Dictionary of the parameters
+    cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -130,7 +130,7 @@ cdef class Class:
         self.set(**_pars)
 
     def __cinit__(self, default=False):
-        cpdef char* dumc
+        cdef char* dumc
         self.allocated = False
         self.computed = False
         self._pars = {}
@@ -140,11 +140,13 @@ cdef class Class:
         dumc = "NOFILE"
         sprintf(self.fc.filename,"%s",dumc)
         self.ncp = set()
+        ext_init(&self.ex)
         if default: self.set_default()
 
     def __dealloc__(self):
         if self.allocated:
           self.struct_cleanup()
+        ext_cleanup(&self.ex)
         self.empty()
         # Reset all the fc to zero if its not already done
         if self.fc.size !=0:
@@ -207,8 +209,8 @@ cdef class Class:
     def struct_cleanup(self):
         if(self.allocated != True):
           return
-        # ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm, 
-        #          &self.fo, &self.tr, &self.hr, &self.le, &self.sd)
+        ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm, 
+                 &self.fo, &self.tr, &self.hr, &self.le, &self.sd)
         if "distortions" in self.ncp:
             distortions_free(&self.sd)
         if "lensing" in self.ncp:
@@ -782,11 +784,11 @@ cdef class Class:
         if (self.fo.method == nl_none):
             if fourier_pk_at_k_and_z(&self.ba,&self.pm,&self.fo,pk_linear,k,z,self.fo.index_pk_m,&pk,NULL)==_FAILURE_:
                 raise CosmoSevereError(self.fo.error_message)
-        elif (self.fo.method == nl_oneloopPT):
-            for index_k in xrange(self.fo.k_size):
-                pk_arr[index_k] = self.fo.pk_matter_real_nl.P_mm[index_k]
-                k_arr[index_k] = self.fo.k[index_k]
-            pk = UnivariateSpline(k_arr, pk_arr,s=0)(k)
+        # elif (self.fo.method == nl_oneloopPT):
+        #     for index_k in xrange(self.fo.k_size):
+        #         pk_arr[index_k] = self.fo.pk_matter_real_nl.P_mm[index_k]
+        #         k_arr[index_k] = self.fo.k[index_k]
+        #     pk = UnivariateSpline(k_arr, pk_arr,s=0)(k)
         else:
             if fourier_pk_at_k_and_z(&self.ba,&self.pm,&self.fo,pk_nonlinear,k,z,self.fo.index_pk_m,&pk,NULL)==_FAILURE_:
                 raise CosmoSevereError(self.fo.error_message)
@@ -820,629 +822,629 @@ cdef class Class:
 
         return pk_cb
 
-    # Gives the matter pk for a given (k_arr,z)
-    def pk_matter_real(self,k,double z):
-        """
-        Gives the Real-Space Matter Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for a given cs2 matter counter-term
+#     # Gives the matter pk for a given (k_arr,z)
+#     def pk_matter_real(self,k,double z):
+#         """
+#         Gives the Real-Space Matter Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for a given cs2 matter counter-term
 
-        .. note::
+#         .. note::
 
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
+#             there is an additional check that output contains `mPk`,
+#             because otherwise a segfault will occur
 
-        """
-        cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
+#         """
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
 
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_matter = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_matter = np.zeros((self.fo.k_size),'float64')
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+#         if (self.pt.has_pk_matter == _FALSE_):
+#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
-        if (self.fo.method == nl_oneloopPT):
-            for index_k in xrange(self.fo.k_size):
-                internal_k_arr[index_k] = self.fo.k[index_k]
-                if (Real_Matter_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&internal_pk_matter[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
+#         if (self.fo.method == nl_oneloopPT):
+#             for index_k in xrange(self.fo.k_size):
+#                 internal_k_arr[index_k] = self.fo.k[index_k]
+#                 if (Real_Matter_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&internal_pk_matter[index_k])==_FAILURE_):
+#                     raise CosmoSevereError(self.fo.error_message)
 
-            pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_matter,s=0)
-            pk = pk_interp_k(k)
-        else:
-            raise CosmoSevereError("Only available for oneloopPT.")
-
-        return pk
+#             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_matter,s=0)
+#             pk = pk_interp_k(k)
+#         else:
+#             raise CosmoSevereError("Only available for oneloopPT.")
+
+#         return pk
 
-    # Gives the halo pk for a given (k,z) in real-space
-    def pk_halo_real_default(self,k,double z):
-        """
-        Gives the Real-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for the set biases (b1,b2,bG2,btd,R2) and counter-term cs2 matter counter-term within CLASS
+#     # Gives the halo pk for a given (k,z) in real-space
+#     def pk_halo_real_default(self,k,double z):
+#         """
+#         Gives the Real-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for the set biases (b1,b2,bG2,btd,R2) and counter-term cs2 matter counter-term within CLASS
 
-        .. note::
+#         .. note::
 
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
+#             there is an additional check that output contains `mPk`,
+#             because otherwise a segfault will occur
 
-        """
-        cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
+#         """
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
 
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_halo = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_halo = np.zeros((self.fo.k_size),'float64')
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+#         if (self.pt.has_pk_matter == _FALSE_):
+#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
-        if (self.fo.method == nl_oneloopPT):
-            for index_k in xrange(self.fo.k_size):
-                internal_k_arr[index_k] = self.fo.k[index_k]
-                if (Real_Galaxy_IR_Resummed_default(&self.fo,&self.ba,&self.pm,index_k,z,142L,&internal_pk_halo[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
-
-            pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
-            pk = pk_interp_k(k)
-        else:
-            raise CosmoSevereError("Only available for oneloopPT.")
-
-        return pk
-
-    # Gives the halo pk for a given (k, z, biases, counter) in real-space for a given set of biases ()
-    def pk_halo_real(self,k,double z, biases, double cs2):
-        """
-        Gives the Real-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z for a given set of biases (b1,b2,bG2,btd,R2) and counter-term cs2 matter counter-term
-
-        .. note::
-
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
-
-        """
-        b1, b2, bG2, btd, R2 = biases
-
-        cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
-
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_halo = np.zeros((self.fo.k_size),'float64')
-
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-        if (self.fo.method == nl_oneloopPT):
-            for index_k in xrange(self.fo.k_size):
-                internal_k_arr[index_k] = self.fo.k[index_k]
-                if (Real_Galaxy_IR_Resummed(&self.fo,&self.ba,&self.pm,index_k,z,b1,b2,bG2,btd,R2,cs2,142L,&internal_pk_halo[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
-
-            pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
-            pk = pk_interp_k(k)
-        else:
-            raise CosmoSevereError("Only available for oneloopPT.")
-
-        return pk
-
-    # Gives the halo pk for a given (k_arr,z,mu_arr) in redshift-space for initialized biases and counter terms
-    def pk_halo_rsd_default(self, k, double z, mu_arr):
-        """
-        Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd,R2) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
-
-        .. note::
-
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
-
-        """
-        k = np.atleast_1d(k)
-        mu_arr = np.atleast_1d(mu_arr)
-        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((len(mu_arr),len(k)),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_mu_arr = np.linspace(-1.0, 1.0, 200,'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] internal_pk = np.zeros((len(internal_mu_arr),len(internal_k_arr)),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-        if (self.fo.method == nl_oneloopPT):
-            for index_mu, mu in enumerate(internal_mu_arr):
-                for index_k in xrange(self.fo.k_size):
-                    internal_k_arr[index_k] = self.fo.k[index_k]
-                    if (RSD_IR_Ressummed_default(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
-                        raise CosmoSevereError(self.fo.error_message)
-                    internal_pk[index_mu][index_k] = pk_rsd[index_k]
-            pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
-            pk = pk_interp_k_mu(mu_arr, k)
-        else:
-            raise CosmoSevereError("Only available for oneloopPT.")
-
-        return pk
-
-    # Gives the halo pk for a given (k_arr,z, mu_arr, biases, counters) in redshift-space with the biases and counter terms passed as argument
-    def pk_halo_rsd(self, k, double z, mu_arr, biases, counters):
-        """
-        Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
-
-        .. note::
-
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
-
-        """
-        b1, b2, bG2, btd = biases
-        c00, c10, c20, c22, c30, c32, c42 = counters
-
-        k = np.atleast_1d(k)
-        mu_arr = np.atleast_1d(mu_arr)
-        cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((len(mu_arr),len(k)),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] internal_mu_arr = np.linspace(-1.0, 1.0, 200,'float64')
-        cdef np.ndarray[DTYPE_t,ndim=2] internal_pk = np.zeros((len(internal_mu_arr),len(internal_k_arr)),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-        if (self.fo.method == nl_oneloopPT):
-            for index_mu, mu in enumerate(internal_mu_arr):
-                for index_k in xrange(self.fo.k_size):
-                    internal_k_arr[index_k] = self.fo.k[index_k]
-                    if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
-                        raise CosmoSevereError(self.fo.error_message)
-                    internal_pk[index_mu][index_k] = pk_rsd[index_k]
-            pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
-            pk = pk_interp_k_mu(mu_arr, k)
-        else:
-            raise CosmoSevereError("Only available for oneloopPT.")
-
-        return pk
-
-    # Gives the halo multipoles for a given (k_arr,z,l,biases,counters) in redshift-space with the biases and counter terms passed as arguments
-    def pk_rsd_multipoles(self,k,double z,int l, biases, counters):
-        """
-        Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
-
-        .. note::
-
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
-
-        """
-        b1, b2, bG2, btd = biases
-        c00, c10, c20, c22, c30, c32, c42 = counters
-
-        cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
-
-        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-        if (self.fo.method == nl_oneloopPT):
-            for index_k in xrange(self.fo.k_size):
-                k_arr[index_k] = self.fo.k[index_k]
-                if (RSD_Multipole(&self.fo,&self.ba,index_k,z,l,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
-
-            for index_k in xrange(len(k)):
-                pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
-        else:
-            raise CosmoSevereError("Only available for oneloopPT.")
-
-        return pk
-
-    # Gives the halo multipoles for a given (k_arr,z,l) in redshift-space for initialized biases and counter terms
-    def pk_rsd_multipoles_default(self,k,double z,int l):
-        """
-        Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
-
-        .. note::
-
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
-
-        """
-
-        cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
-
-        cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-        if (self.fo.method == nl_oneloopPT):
-            for index_k in xrange(self.fo.k_size):
-                k_arr[index_k] = self.fo.k[index_k]
-                if (RSD_Multipole_default(&self.fo,&self.ba,index_k,z,l,&pk_rsd[index_k])==_FAILURE_):
-                    raise CosmoSevereError(self.fo.error_message)
-
-            for index_k in xrange(len(k)):
-                pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
-        else:
-            raise CosmoSevereError("Only available for oneloopPT.")
-
-        return pk
-
-# Return a dictionary containing all the necessary pieces for compuyting P_halo_real(k_i,z) for arbitrary z, mu biases and counter terms
-    def pk_halo_real_pieces(self):
-        """
-        Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
-        """
-
-        # create the output dictionary
-        loops = {}
-
-        # initialize array of wavenumbers in 1/Mpc and fill it
-        loops['k_arr'] = np.zeros((self.fo.k_size),'float64')
-        for index_k in xrange(self.fo.k_size):
-            loops['k_arr'][index_k] = self.fo.k[index_k]
-
-        # initialize output array of P_halo_rsd in Mpc**3 and leave it set to zero
-        loops['pk_arr'] = np.zeros((self.fo.k_size),'float64')
-
-        # initialise the dictionary storing all loops for a given index_k.
-        # For each key, the value is a 1D array of two floats for the two index values (wiggle, no_wiggle)
-        loop_names = ['Plin_IR', 'Plin_NL_IR',
-                      'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200']
-
-        for elem in loop_names:
-            loops[elem] = np.zeros((self.fo.k_size),'float64')
-
-        # loop over wavenumbers
-        for index_k in xrange(self.fo.k_size):
-
-            # get the loops for this index_k
-
-            ##### the following lines have been generated by the following python script and copy/pasted in the code:
-            #
-            # for elem in loop_names:
-            #     print("            loops['%s'][index_k] = self.fo.pk_halo_real_nl[idx].%s[index_k]"%(str(elem),str(elem)))
-            #
-            # (in plain python we would condense all this in just two lines without even the index_k loop:
-            # for elem in loop_names:
-            #     exec("loops[elem][:,:] = self.fo.pk_halo_real_nl[:].%s[:]"%(str(elem)))
-            # but this does not seem to work here)
-            #
-            loops['Plin_IR'][index_k] = self.fo.pk_halo_real_nl.Plin_IR[index_k]
-            loops['Plin_NL_IR'][index_k] = self.fo.pk_halo_real_nl.Plin_NL_IR[index_k]
-            loops['I2200'][index_k] = self.fo.pk_halo_real_nl.I2200[index_k]
-            loops['Idelta200'][index_k] = self.fo.pk_halo_real_nl.Idelta200[index_k]
-            loops['IG200'][index_k] = self.fo.pk_halo_real_nl.IG200[index_k]
-            loops['Idelta2delta200'][index_k] = self.fo.pk_halo_real_nl.Idelta2delta200[index_k]
-            loops['IG2G200'][index_k] = self.fo.pk_halo_real_nl.IG2G200[index_k]
-            loops['Idelta2G200'][index_k] = self.fo.pk_halo_real_nl.Idelta2G200[index_k]
-            loops['I1300'][index_k] = self.fo.pk_halo_real_nl.I1300[index_k]
-            loops['FG200'][index_k] = self.fo.pk_halo_real_nl.FG200[index_k]
-
-        return loops
-
-    # Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
-    def pk_halo_rsd_pieces(self):
-        """
-        Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
-        """
-
-        # create the output dictionary
-        loops = {}
-
-        # initialize array of wavenumbers in 1/Mpc and fill it
-        loops['k_arr'] = np.zeros((self.fo.k_size),'float64')
-        for index_k in xrange(self.fo.k_size):
-            loops['k_arr'][index_k] = self.fo.k[index_k]
-
-        # initialize output array of P_halo_rsd in Mpc**3 and leave it set to zero
-        loops['pk_arr'] = np.zeros((self.fo.k_size),'float64')
-
-        # sigma's
-        loops['sigma_v2'] = self.fo.fft_ws.sigma_v2
-        loops['sigma_2_IR'] = self.fo.fft_ws.sigma_2_IR
-        loops['del_sigma_2_IR'] = self.fo.fft_ws.del_sigma_2_IR
-
-        # initialise the dictionary storing all loops for a given index_k.
-        # For each key, the value is a 1D array of two floats for the two index values (wiggle, no_wiggle)
-        loop_names = ['Plin',
-                      'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200',
-                      'I2201','Idelta201','IG201','FG201','J21101','Jdelta201','JG201','I1301p3101','J12101','J11201',
-                      'J21102x','J21102y','Jdelta202x','Jdelta202y','JG202x','JG202y','I2211','J21111','N11x','N11y',
-                      'J12102x','J12102y','I1311','J12111','J11211',
-                      'J21112x','J21112y','N12x','N12y','J12112x','J12112y',
-                      'N22x','N22y','N22z']
-
-        for elem in loop_names:
-            loops[elem] = np.zeros((2,self.fo.k_size),'float64')
-
-        # loop over wavenumbers
-        for index_k in xrange(self.fo.k_size):
-
-            # get the loops for this index_k
-            for idx in xrange(2):
-
-                ##### the following lines have been generated by the following python script and copy/pasted in the code:
-                #
-                # for elem in loop_names:
-                #     print("            loops['%s'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].%s[index_k]"%(str(elem),str(elem)))
-                #
-                # (in plain python we would condense all this in just two lines without even the index_k loop:
-                # for elem in loop_names:
-                #     exec("loops[elem][:,:] = self.fo.pk_halo_rsd_nl[:].%s[:]"%(str(elem)))
-                # but this does not seem to work here)
-                #
-                loops['Plin'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Plin[index_k]
-                loops['I2200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2200[index_k]
-                loops['Idelta200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta200[index_k]
-                loops['IG200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG200[index_k]
-                loops['Idelta2delta200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta2delta200[index_k]
-                loops['IG2G200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG2G200[index_k]
-                loops['Idelta2G200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta2G200[index_k]
-                loops['I1300'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1300[index_k]
-                loops['FG200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].FG200[index_k]
-                loops['I2201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2201[index_k]
-                loops['Idelta201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta201[index_k]
-                loops['IG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG201[index_k]
-                loops['FG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].FG201[index_k]
-                loops['J21101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21101[index_k]
-                loops['Jdelta201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta201[index_k]
-                loops['JG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG201[index_k]
-                loops['I1301p3101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1301p3101[index_k]
-                loops['J12101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12101[index_k]
-                loops['J11201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J11201[index_k]
-                loops['J21102x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21102x[index_k]
-                loops['J21102y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21102y[index_k]
-                loops['Jdelta202x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta202x[index_k]
-                loops['Jdelta202y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta202y[index_k]
-                loops['JG202x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG202x[index_k]
-                loops['JG202y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG202y[index_k]
-                loops['I2211'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2211[index_k]
-                loops['J21111'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21111[index_k]
-                loops['N11x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N11x[index_k]
-                loops['N11y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N11y[index_k]
-                loops['J12102x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12102x[index_k]
-                loops['J12102y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12102y[index_k]
-                loops['I1311'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1311[index_k]
-                loops['J12111'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12111[index_k]
-                loops['J11211'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J11211[index_k]
-                loops['J21112x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21112x[index_k]
-                loops['J21112y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21112y[index_k]
-                loops['N12x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N12x[index_k]
-                loops['N12y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N12y[index_k]
-                loops['J12112x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12112x[index_k]
-                loops['J12112y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12112y[index_k]
-                loops['N22x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22x[index_k]
-                loops['N22y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22y[index_k]
-                loops['N22z'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22z[index_k]
-
-        return loops
-
-    # Return an array of k_i and a corresponding array of P_halo_rsd(k_i,z) with the biases and counter terms passed as argument
-    def pk_halo_rsd_assemble(self, double z, mu, biases, counters):
-        """
-        Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k of index_k, z and mu for a given set of biases (b1,b2,bG2,btd) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
-
-        .. note::
-
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
-
-        """
-        b1, b2, bG2, btd = biases
-        c00, c10, c20, c22, c30, c32, c42 = counters
-
-        loops = self.pk_halo_rsd_pieces()
-
-        k_arr = loops['k_arr']
-
-        pk_arr = loops['pk_arr']
-
-        # growth factor
-        D = self.scale_independent_growth_factor(z)
-        f = self.scale_independent_growth_factor_f(z)
-        D2=D*D
-        D4=D2*D2
-
-        # sigma's
-        sigma_v2 = loops['sigma_v2']
-        sigma_2_IR = loops['sigma_2_IR'] * D2
-        del_sigma_2_IR = loops['del_sigma_2_IR'] * D2
-        sigma_tot = (1. + f*pow(mu,2.)*(2. + f))*sigma_2_IR + pow(f*mu,2.)*(pow(mu,2.) - 1.)*del_sigma_2_IR
-
-        # indices
-        wiggle=0
-        no_wiggle=1
-
-        ##### the following lines have been generated by the following python script and copy/pasted in the code:
-        #
-        #array_names = ['Plin',
-        #              'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200',
-        #              'Moment_0',
-        #              'I2201','Idelta201','IG201','FG201','J21101','Jdelta201','JG201','I1301p3101','J12101','J11201',
-        #              'Moment_1',
-        #              'J21102x','J21102y','J21102','Jdelta202x','Jdelta202y','Jdelta202','JG202x','JG202y','JG202','I2211','J21111','N11x','N11y','N11',
-        #              'J12102x','J12102y','J12102','I1311','J12111','J11211',
-        #              'Moment_2',
-        #              'J21112x','J21112y','J21112','N12x','N12y','N12','J12112x','J12112y','J12112',
-        #              'Moment_3',
-        #              'N22x','N22y','N22z','N22',
-        #              'Moment_4','RSD']
-        #for elem in array_names:
-        #    print("        %s = np.zeros(2,'float64')"%(str(elem)))
-        #
-        # (in plain python we would use
-        #    exec("%s = np.zeros(2,'float64')"%(str(elem)))
-        # but this does not seem to work here)
-        #
-        # initialize all necessary 1D arrays with two index values (wiggle, no_wiggle)
-        Plin = np.zeros(2,'float64')
-        I2200 = np.zeros(2,'float64')
-        Idelta200 = np.zeros(2,'float64')
-        IG200 = np.zeros(2,'float64')
-        Idelta2delta200 = np.zeros(2,'float64')
-        IG2G200 = np.zeros(2,'float64')
-        Idelta2G200 = np.zeros(2,'float64')
-        I1300 = np.zeros(2,'float64')
-        FG200 = np.zeros(2,'float64')
-        Moment_0 = np.zeros(2,'float64')
-        I2201 = np.zeros(2,'float64')
-        Idelta201 = np.zeros(2,'float64')
-        IG201 = np.zeros(2,'float64')
-        FG201 = np.zeros(2,'float64')
-        J21101 = np.zeros(2,'float64')
-        Jdelta201 = np.zeros(2,'float64')
-        JG201 = np.zeros(2,'float64')
-        I1301p3101 = np.zeros(2,'float64')
-        J12101 = np.zeros(2,'float64')
-        J11201 = np.zeros(2,'float64')
-        Moment_1 = np.zeros(2,'float64')
-        J21102x = np.zeros(2,'float64')
-        J21102y = np.zeros(2,'float64')
-        J21102 = np.zeros(2,'float64')
-        Jdelta202x = np.zeros(2,'float64')
-        Jdelta202y = np.zeros(2,'float64')
-        Jdelta202 = np.zeros(2,'float64')
-        JG202x = np.zeros(2,'float64')
-        JG202y = np.zeros(2,'float64')
-        JG202 = np.zeros(2,'float64')
-        I2211 = np.zeros(2,'float64')
-        J21111 = np.zeros(2,'float64')
-        N11x = np.zeros(2,'float64')
-        N11y = np.zeros(2,'float64')
-        N11 = np.zeros(2,'float64')
-        J12102x = np.zeros(2,'float64')
-        J12102y = np.zeros(2,'float64')
-        J12102 = np.zeros(2,'float64')
-        I1311 = np.zeros(2,'float64')
-        J12111 = np.zeros(2,'float64')
-        J11211 = np.zeros(2,'float64')
-        Moment_2 = np.zeros(2,'float64')
-        J21112x = np.zeros(2,'float64')
-        J21112y = np.zeros(2,'float64')
-        J21112 = np.zeros(2,'float64')
-        N12x = np.zeros(2,'float64')
-        N12y = np.zeros(2,'float64')
-        N12 = np.zeros(2,'float64')
-        J12112x = np.zeros(2,'float64')
-        J12112y = np.zeros(2,'float64')
-        J12112 = np.zeros(2,'float64')
-        Moment_3 = np.zeros(2,'float64')
-        N22x = np.zeros(2,'float64')
-        N22y = np.zeros(2,'float64')
-        N22z = np.zeros(2,'float64')
-        N22 = np.zeros(2,'float64')
-        Moment_4 = np.zeros(2,'float64')
-        RSD = np.zeros(2,'float64')
-
-        # loop over wavenumbers
-        for index_k in xrange(len(k_arr)):
-
-            k = k_arr[index_k]
-
-            # dewiggle factor due to IR resummation
-            suppression = exp(-pow(k,2.)*sigma_tot)
-
-            # linear spectrum (full, no_wiggle)
-
-            Plin[:] = loops['Plin'][:,index_k]
-
-            # 0-th moment
-
-            I2200[:]           = loops['I2200'][:,index_k]
-            Idelta200[:]       = loops['Idelta200'][:,index_k]
-            IG200[:]           = loops['IG200'][:,index_k]
-            Idelta2delta200[:] = loops['Idelta2delta200'][:,index_k]
-            IG2G200[:]         = loops['IG2G200'][:,index_k]
-            Idelta2G200[:]     = loops['Idelta2G200'][:,index_k]
-            I1300[:]           = loops['I1300'][:,index_k]
-            FG200[:]           = loops['FG200'][:,index_k]
-
-            Moment_0[:] = (pow(b1,2.)*(2.*I2200[:] + 6.*I1300[:]) + 2.*b1*b2*Idelta200[:] + 4.*b1*bG2*IG200[:] + 0.5*pow(b2,2.)*Idelta2delta200[:] + 2.*pow(bG2,2.)*IG2G200[:] + 8.*b1*(bG2 + 0.4*btd)*FG200[:]) *D4
-            # - 2.*c00*pow(k,2.)*Plin[:] *D2;
-
-            # 1-st moment
-
-            I2201[:]      = loops['I2201'][:,index_k]
-            Idelta201[:]  = loops['Idelta201'][:,index_k]
-            IG201[:]      = loops['IG201'][:,index_k]
-            FG201[:]      = loops['FG201'][:,index_k]
-            J21101[:]     = loops['J21101'][:,index_k] * mu;
-            Jdelta201[:]  = loops['Jdelta201'][:,index_k] * mu;
-            JG201[:]      = loops['JG201'][:,index_k] * mu;
-            I1301p3101[:] = loops['I1301p3101'][:,index_k]
-            J12101[:]     = loops['J12101'][:,index_k] * mu;
-            J11201[:]     = loops['J11201'][:,index_k] * mu;
-
-            Moment_1[:] =   2. * (f*mu/k) * (2.*b1*I2201[:] + 3.*b1*I1301p3101[:] + b2*Idelta201[:] + 2.*bG2*IG201[:] + 4.*(bG2 + 0.4*btd)*FG201[:]) *D4 + 2. * (2.*f)    * (pow(b1,2.)*(J12101[:] + J11201[:] + J21101[:]) + 0.5*b1*b2*Jdelta201[:] + b1*bG2*JG201[:]) *D4
-            # + c10*f*mu*k*Plin[:] *D2
-
-            # 2-nd moment
-
-            J21102x[:]    = loops['J21102x'][:,index_k]
-            J21102y[:]    = loops['J21102y'][:,index_k]
-            J21102[:]     = (J21102x[:] + J21102y[:] * pow(mu,2.));
-            Jdelta202x[:] = loops['Jdelta202x'][:,index_k]
-            Jdelta202y[:] = loops['Jdelta202y'][:,index_k]
-            Jdelta202[:]  = (Jdelta202x[:] + Jdelta202y[:] * pow(mu,2.));
-            JG202x[:]     = loops['JG202x'][:,index_k]
-            JG202y[:]     = loops['JG202y'][:,index_k]
-            JG202[:]      = (JG202x[:] + JG202y[:] * pow(mu,2.));
-            I2211[:]      = loops['I2211'][:,index_k]
-            J21111[:]     = loops['J21111'][:,index_k] * mu;
-            N11x[:]       = loops['N11x'][:,index_k]
-            N11y[:]       = loops['N11y'][:,index_k]
-            N11[:]        = (N11x[:] + N11y[:] * pow(mu,2.));
-            J12102x[:]    = loops['J12102x'][:,index_k]
-            J12102y[:]    = loops['J12102y'][:,index_k]
-            J12102[:]     = (J12102x[:] + J12102y[:] * pow(mu,2.));
-            I1311[:]      = loops['I1311'][:,index_k]
-            J12111[:]     = loops['J12111'][:,index_k] * mu;
-            J11211[:]     = loops['J11211'][:,index_k] * mu;
-
-            Moment_2[:] = 2. * pow(f*mu/k,2.) * (2.*I2211[:] + 6.*I1311[:]) *D4 + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[:] + J11211[:] + J21111[:])) *D4 + 2. * pow(f,2.) * (pow(b1,2.)*N11[:]) *D4 + 2. * pow(f,2.) * (4.*b1*J12102[:] + 2.*b1*J21102[:] + b2*Jdelta202[:] + 2.*bG2*JG202[:] - pow(b1,2.)*Plin[:]*sigma_v2) *D4
-            # - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[:] *D2
-
-            # 3-rd moment
-
-            J21112x[:] = loops['J21112x'][:,index_k]
-            J21112y[:] = loops['J21112y'][:,index_k]
-            J21112[:]  = (J21112x[:] + J21112y[:] * pow(mu,2.));
-            N12x[:]    = loops['N12x'][:,index_k]
-            N12y[:]    = loops['N12y'][:,index_k]
-            N12[:]     = (N12x[:] * mu + N12y[:] * pow(mu,3.));
-            J12112x[:] = loops['J12112x'][:,index_k]
-            J12112y[:] = loops['J12112y'][:,index_k]
-            J12112[:]  = (J12112x[:] + J12112y[:] * pow(mu,2.));
-
-            Moment_3[:] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.)*(mu/k) * (J21112[:] + 2.*J12112[:]) *D4 - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.) * b1*N12[:] *D4
-            # + 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[:] *D2
-
-            # 4-th moment
-
-            N22x[:] = loops['N22x'][:,index_k]
-            N22y[:] = loops['N22y'][:,index_k]
-            N22z[:] = loops['N22z'][:,index_k]
-            N22[:]  = (N22x[:] + N22y[:] * pow(mu,2.) + N22z[:] * pow(mu,4.))
-
-            Moment_4[:] = - 24. * pow(f,4.)*pow(mu/k,2.) * Plin[:]*sigma_v2 *D4 + 12. * pow(f,4.) * N22[:] *D4
-            # + 24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[:] *D2
-
-            RSD[:] = Moment_0[:] + k*mu * Moment_1[:] + (1./2.) * pow(k*mu,2.) * Moment_2[:] + (1./6.) * pow(k*mu,3.) * Moment_3[:] + (1./24.) * pow(k*mu,4.) * Moment_4[:] + (c00 + c10*f*mu*mu + c22*f*f*mu*mu*mu*mu + c32*f*f*f*pow(mu,6.))*pow(k,2)*Plin[:]*D2
-
-            P_wiggle = Plin[wiggle] - Plin[no_wiggle]
-
-            pk_arr[index_k] = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot)) *D2 + RSD[no_wiggle] + suppression * (RSD[wiggle] - RSD[no_wiggle]);
-
-            # JL debugging
-            #if index_k == 0:
-            #    log = {}
-            #    log['z'] = z
-            #    log['k'] = k
-            #    log['mu'] = mu
-            #    log['D'] = D
-            #    log['f'] = f
-            #    log['pk'] = pk_arr[index_k]
-            #    log['pk_lin_ww'] = Plin[wiggle]
-            #    log['pk_lin_nw'] = Plin[no_wiggle]
-            #    log['P_lin_w'] = P_wiggle
-            #    log['suppression'] = suppression
-            #    log['sigma_tot'] = sigma_tot
-            #    log['rsd_nw'] = RSD[no_wiggle]
-            #    log['rsd_w'] = RSD[wiggle]
-
-        return k_arr,pk_arr #,log
+#         if (self.fo.method == nl_oneloopPT):
+#             for index_k in xrange(self.fo.k_size):
+#                 internal_k_arr[index_k] = self.fo.k[index_k]
+#                 if (Real_Galaxy_IR_Resummed_default(&self.fo,&self.ba,&self.pm,index_k,z,142L,&internal_pk_halo[index_k])==_FAILURE_):
+#                     raise CosmoSevereError(self.fo.error_message)
+
+#             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
+#             pk = pk_interp_k(k)
+#         else:
+#             raise CosmoSevereError("Only available for oneloopPT.")
+
+#         return pk
+
+#     # Gives the halo pk for a given (k, z, biases, counter) in real-space for a given set of biases ()
+#     def pk_halo_real(self,k,double z, biases, double cs2):
+#         """
+#         Gives the Real-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z for a given set of biases (b1,b2,bG2,btd,R2) and counter-term cs2 matter counter-term
+
+#         .. note::
+
+#             there is an additional check that output contains `mPk`,
+#             because otherwise a segfault will occur
+
+#         """
+#         b1, b2, bG2, btd, R2 = biases
+
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
+
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_halo = np.zeros((self.fo.k_size),'float64')
+
+#         if (self.pt.has_pk_matter == _FALSE_):
+#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+#         if (self.fo.method == nl_oneloopPT):
+#             for index_k in xrange(self.fo.k_size):
+#                 internal_k_arr[index_k] = self.fo.k[index_k]
+#                 if (Real_Galaxy_IR_Resummed(&self.fo,&self.ba,&self.pm,index_k,z,b1,b2,bG2,btd,R2,cs2,142L,&internal_pk_halo[index_k])==_FAILURE_):
+#                     raise CosmoSevereError(self.fo.error_message)
+
+#             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
+#             pk = pk_interp_k(k)
+#         else:
+#             raise CosmoSevereError("Only available for oneloopPT.")
+
+#         return pk
+
+#     # Gives the halo pk for a given (k_arr,z,mu_arr) in redshift-space for initialized biases and counter terms
+#     def pk_halo_rsd_default(self, k, double z, mu_arr):
+#         """
+#         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd,R2) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
+
+#         .. note::
+
+#             there is an additional check that output contains `mPk`,
+#             because otherwise a segfault will occur
+
+#         """
+#         k = np.atleast_1d(k)
+#         mu_arr = np.atleast_1d(mu_arr)
+#         cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((len(mu_arr),len(k)),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_mu_arr = np.linspace(-1.0, 1.0, 200,'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=2] internal_pk = np.zeros((len(internal_mu_arr),len(internal_k_arr)),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
+#         if (self.pt.has_pk_matter == _FALSE_):
+#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+#         if (self.fo.method == nl_oneloopPT):
+#             for index_mu, mu in enumerate(internal_mu_arr):
+#                 for index_k in xrange(self.fo.k_size):
+#                     internal_k_arr[index_k] = self.fo.k[index_k]
+#                     if (RSD_IR_Ressummed_default(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
+#                         raise CosmoSevereError(self.fo.error_message)
+#                     internal_pk[index_mu][index_k] = pk_rsd[index_k]
+#             pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
+#             pk = pk_interp_k_mu(mu_arr, k)
+#         else:
+#             raise CosmoSevereError("Only available for oneloopPT.")
+
+#         return pk
+
+#     # Gives the halo pk for a given (k_arr,z, mu_arr, biases, counters) in redshift-space with the biases and counter terms passed as argument
+#     def pk_halo_rsd(self, k, double z, mu_arr, biases, counters):
+#         """
+#         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
+
+#         .. note::
+
+#             there is an additional check that output contains `mPk`,
+#             because otherwise a segfault will occur
+
+#         """
+#         b1, b2, bG2, btd = biases
+#         c00, c10, c20, c22, c30, c32, c42 = counters
+
+#         k = np.atleast_1d(k)
+#         mu_arr = np.atleast_1d(mu_arr)
+#         cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((len(mu_arr),len(k)),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] internal_mu_arr = np.linspace(-1.0, 1.0, 200,'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=2] internal_pk = np.zeros((len(internal_mu_arr),len(internal_k_arr)),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
+#         if (self.pt.has_pk_matter == _FALSE_):
+#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+#         if (self.fo.method == nl_oneloopPT):
+#             for index_mu, mu in enumerate(internal_mu_arr):
+#                 for index_k in xrange(self.fo.k_size):
+#                     internal_k_arr[index_k] = self.fo.k[index_k]
+#                     if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
+#                         raise CosmoSevereError(self.fo.error_message)
+#                     internal_pk[index_mu][index_k] = pk_rsd[index_k]
+#             pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
+#             pk = pk_interp_k_mu(mu_arr, k)
+#         else:
+#             raise CosmoSevereError("Only available for oneloopPT.")
+
+#         return pk
+
+#     # Gives the halo multipoles for a given (k_arr,z,l,biases,counters) in redshift-space with the biases and counter terms passed as arguments
+#     def pk_rsd_multipoles(self,k,double z,int l, biases, counters):
+#         """
+#         Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+#         .. note::
+
+#             there is an additional check that output contains `mPk`,
+#             because otherwise a segfault will occur
+
+#         """
+#         b1, b2, bG2, btd = biases
+#         c00, c10, c20, c22, c30, c32, c42 = counters
+
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
+
+#         cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
+
+#         if (self.pt.has_pk_matter == _FALSE_):
+#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+#         if (self.fo.method == nl_oneloopPT):
+#             for index_k in xrange(self.fo.k_size):
+#                 k_arr[index_k] = self.fo.k[index_k]
+#                 if (RSD_Multipole(&self.fo,&self.ba,index_k,z,l,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
+#                     raise CosmoSevereError(self.fo.error_message)
+
+#             for index_k in xrange(len(k)):
+#                 pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
+#         else:
+#             raise CosmoSevereError("Only available for oneloopPT.")
+
+#         return pk
+
+#     # Gives the halo multipoles for a given (k_arr,z,l) in redshift-space for initialized biases and counter terms
+#     def pk_rsd_multipoles_default(self,k,double z,int l):
+#         """
+#         Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
+
+#         .. note::
+
+#             there is an additional check that output contains `mPk`,
+#             because otherwise a segfault will occur
+
+#         """
+
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
+
+#         cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
+#         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
+
+#         if (self.pt.has_pk_matter == _FALSE_):
+#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
+#         if (self.fo.method == nl_oneloopPT):
+#             for index_k in xrange(self.fo.k_size):
+#                 k_arr[index_k] = self.fo.k[index_k]
+#                 if (RSD_Multipole_default(&self.fo,&self.ba,index_k,z,l,&pk_rsd[index_k])==_FAILURE_):
+#                     raise CosmoSevereError(self.fo.error_message)
+
+#             for index_k in xrange(len(k)):
+#                 pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
+#         else:
+#             raise CosmoSevereError("Only available for oneloopPT.")
+
+#         return pk
+
+# # Return a dictionary containing all the necessary pieces for compuyting P_halo_real(k_i,z) for arbitrary z, mu biases and counter terms
+#     def pk_halo_real_pieces(self):
+#         """
+#         Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
+#         """
+
+#         # create the output dictionary
+#         loops = {}
+
+#         # initialize array of wavenumbers in 1/Mpc and fill it
+#         loops['k_arr'] = np.zeros((self.fo.k_size),'float64')
+#         for index_k in xrange(self.fo.k_size):
+#             loops['k_arr'][index_k] = self.fo.k[index_k]
+
+#         # initialize output array of P_halo_rsd in Mpc**3 and leave it set to zero
+#         loops['pk_arr'] = np.zeros((self.fo.k_size),'float64')
+
+#         # initialise the dictionary storing all loops for a given index_k.
+#         # For each key, the value is a 1D array of two floats for the two index values (wiggle, no_wiggle)
+#         loop_names = ['Plin_IR', 'Plin_NL_IR',
+#                       'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200']
+
+#         for elem in loop_names:
+#             loops[elem] = np.zeros((self.fo.k_size),'float64')
+
+#         # loop over wavenumbers
+#         for index_k in xrange(self.fo.k_size):
+
+#             # get the loops for this index_k
+
+#             ##### the following lines have been generated by the following python script and copy/pasted in the code:
+#             #
+#             # for elem in loop_names:
+#             #     print("            loops['%s'][index_k] = self.fo.pk_halo_real_nl[idx].%s[index_k]"%(str(elem),str(elem)))
+#             #
+#             # (in plain python we would condense all this in just two lines without even the index_k loop:
+#             # for elem in loop_names:
+#             #     exec("loops[elem][:,:] = self.fo.pk_halo_real_nl[:].%s[:]"%(str(elem)))
+#             # but this does not seem to work here)
+#             #
+#             loops['Plin_IR'][index_k] = self.fo.pk_halo_real_nl.Plin_IR[index_k]
+#             loops['Plin_NL_IR'][index_k] = self.fo.pk_halo_real_nl.Plin_NL_IR[index_k]
+#             loops['I2200'][index_k] = self.fo.pk_halo_real_nl.I2200[index_k]
+#             loops['Idelta200'][index_k] = self.fo.pk_halo_real_nl.Idelta200[index_k]
+#             loops['IG200'][index_k] = self.fo.pk_halo_real_nl.IG200[index_k]
+#             loops['Idelta2delta200'][index_k] = self.fo.pk_halo_real_nl.Idelta2delta200[index_k]
+#             loops['IG2G200'][index_k] = self.fo.pk_halo_real_nl.IG2G200[index_k]
+#             loops['Idelta2G200'][index_k] = self.fo.pk_halo_real_nl.Idelta2G200[index_k]
+#             loops['I1300'][index_k] = self.fo.pk_halo_real_nl.I1300[index_k]
+#             loops['FG200'][index_k] = self.fo.pk_halo_real_nl.FG200[index_k]
+
+#         return loops
+
+#     # Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
+#     def pk_halo_rsd_pieces(self):
+#         """
+#         Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
+#         """
+
+#         # create the output dictionary
+#         loops = {}
+
+#         # initialize array of wavenumbers in 1/Mpc and fill it
+#         loops['k_arr'] = np.zeros((self.fo.k_size),'float64')
+#         for index_k in xrange(self.fo.k_size):
+#             loops['k_arr'][index_k] = self.fo.k[index_k]
+
+#         # initialize output array of P_halo_rsd in Mpc**3 and leave it set to zero
+#         loops['pk_arr'] = np.zeros((self.fo.k_size),'float64')
+
+#         # sigma's
+#         loops['sigma_v2'] = self.fo.fft_ws.sigma_v2
+#         loops['sigma_2_IR'] = self.fo.fft_ws.sigma_2_IR
+#         loops['del_sigma_2_IR'] = self.fo.fft_ws.del_sigma_2_IR
+
+#         # initialise the dictionary storing all loops for a given index_k.
+#         # For each key, the value is a 1D array of two floats for the two index values (wiggle, no_wiggle)
+#         loop_names = ['Plin',
+#                       'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200',
+#                       'I2201','Idelta201','IG201','FG201','J21101','Jdelta201','JG201','I1301p3101','J12101','J11201',
+#                       'J21102x','J21102y','Jdelta202x','Jdelta202y','JG202x','JG202y','I2211','J21111','N11x','N11y',
+#                       'J12102x','J12102y','I1311','J12111','J11211',
+#                       'J21112x','J21112y','N12x','N12y','J12112x','J12112y',
+#                       'N22x','N22y','N22z']
+
+#         for elem in loop_names:
+#             loops[elem] = np.zeros((2,self.fo.k_size),'float64')
+
+#         # loop over wavenumbers
+#         for index_k in xrange(self.fo.k_size):
+
+#             # get the loops for this index_k
+#             for idx in xrange(2):
+
+#                 ##### the following lines have been generated by the following python script and copy/pasted in the code:
+#                 #
+#                 # for elem in loop_names:
+#                 #     print("            loops['%s'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].%s[index_k]"%(str(elem),str(elem)))
+#                 #
+#                 # (in plain python we would condense all this in just two lines without even the index_k loop:
+#                 # for elem in loop_names:
+#                 #     exec("loops[elem][:,:] = self.fo.pk_halo_rsd_nl[:].%s[:]"%(str(elem)))
+#                 # but this does not seem to work here)
+#                 #
+#                 loops['Plin'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Plin[index_k]
+#                 loops['I2200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2200[index_k]
+#                 loops['Idelta200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta200[index_k]
+#                 loops['IG200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG200[index_k]
+#                 loops['Idelta2delta200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta2delta200[index_k]
+#                 loops['IG2G200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG2G200[index_k]
+#                 loops['Idelta2G200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta2G200[index_k]
+#                 loops['I1300'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1300[index_k]
+#                 loops['FG200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].FG200[index_k]
+#                 loops['I2201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2201[index_k]
+#                 loops['Idelta201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta201[index_k]
+#                 loops['IG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG201[index_k]
+#                 loops['FG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].FG201[index_k]
+#                 loops['J21101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21101[index_k]
+#                 loops['Jdelta201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta201[index_k]
+#                 loops['JG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG201[index_k]
+#                 loops['I1301p3101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1301p3101[index_k]
+#                 loops['J12101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12101[index_k]
+#                 loops['J11201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J11201[index_k]
+#                 loops['J21102x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21102x[index_k]
+#                 loops['J21102y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21102y[index_k]
+#                 loops['Jdelta202x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta202x[index_k]
+#                 loops['Jdelta202y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta202y[index_k]
+#                 loops['JG202x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG202x[index_k]
+#                 loops['JG202y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG202y[index_k]
+#                 loops['I2211'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2211[index_k]
+#                 loops['J21111'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21111[index_k]
+#                 loops['N11x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N11x[index_k]
+#                 loops['N11y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N11y[index_k]
+#                 loops['J12102x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12102x[index_k]
+#                 loops['J12102y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12102y[index_k]
+#                 loops['I1311'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1311[index_k]
+#                 loops['J12111'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12111[index_k]
+#                 loops['J11211'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J11211[index_k]
+#                 loops['J21112x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21112x[index_k]
+#                 loops['J21112y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21112y[index_k]
+#                 loops['N12x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N12x[index_k]
+#                 loops['N12y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N12y[index_k]
+#                 loops['J12112x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12112x[index_k]
+#                 loops['J12112y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12112y[index_k]
+#                 loops['N22x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22x[index_k]
+#                 loops['N22y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22y[index_k]
+#                 loops['N22z'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22z[index_k]
+
+#         return loops
+
+#     # Return an array of k_i and a corresponding array of P_halo_rsd(k_i,z) with the biases and counter terms passed as argument
+#     def pk_halo_rsd_assemble(self, double z, mu, biases, counters):
+#         """
+#         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k of index_k, z and mu for a given set of biases (b1,b2,bG2,btd) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
+
+#         .. note::
+
+#             there is an additional check that output contains `mPk`,
+#             because otherwise a segfault will occur
+
+#         """
+#         b1, b2, bG2, btd = biases
+#         c00, c10, c20, c22, c30, c32, c42 = counters
+
+#         loops = self.pk_halo_rsd_pieces()
+
+#         k_arr = loops['k_arr']
+
+#         pk_arr = loops['pk_arr']
+
+#         # growth factor
+#         D = self.scale_independent_growth_factor(z)
+#         f = self.scale_independent_growth_factor_f(z)
+#         D2=D*D
+#         D4=D2*D2
+
+#         # sigma's
+#         sigma_v2 = loops['sigma_v2']
+#         sigma_2_IR = loops['sigma_2_IR'] * D2
+#         del_sigma_2_IR = loops['del_sigma_2_IR'] * D2
+#         sigma_tot = (1. + f*pow(mu,2.)*(2. + f))*sigma_2_IR + pow(f*mu,2.)*(pow(mu,2.) - 1.)*del_sigma_2_IR
+
+#         # indices
+#         wiggle=0
+#         no_wiggle=1
+
+#         ##### the following lines have been generated by the following python script and copy/pasted in the code:
+#         #
+#         #array_names = ['Plin',
+#         #              'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200',
+#         #              'Moment_0',
+#         #              'I2201','Idelta201','IG201','FG201','J21101','Jdelta201','JG201','I1301p3101','J12101','J11201',
+#         #              'Moment_1',
+#         #              'J21102x','J21102y','J21102','Jdelta202x','Jdelta202y','Jdelta202','JG202x','JG202y','JG202','I2211','J21111','N11x','N11y','N11',
+#         #              'J12102x','J12102y','J12102','I1311','J12111','J11211',
+#         #              'Moment_2',
+#         #              'J21112x','J21112y','J21112','N12x','N12y','N12','J12112x','J12112y','J12112',
+#         #              'Moment_3',
+#         #              'N22x','N22y','N22z','N22',
+#         #              'Moment_4','RSD']
+#         #for elem in array_names:
+#         #    print("        %s = np.zeros(2,'float64')"%(str(elem)))
+#         #
+#         # (in plain python we would use
+#         #    exec("%s = np.zeros(2,'float64')"%(str(elem)))
+#         # but this does not seem to work here)
+#         #
+#         # initialize all necessary 1D arrays with two index values (wiggle, no_wiggle)
+#         Plin = np.zeros(2,'float64')
+#         I2200 = np.zeros(2,'float64')
+#         Idelta200 = np.zeros(2,'float64')
+#         IG200 = np.zeros(2,'float64')
+#         Idelta2delta200 = np.zeros(2,'float64')
+#         IG2G200 = np.zeros(2,'float64')
+#         Idelta2G200 = np.zeros(2,'float64')
+#         I1300 = np.zeros(2,'float64')
+#         FG200 = np.zeros(2,'float64')
+#         Moment_0 = np.zeros(2,'float64')
+#         I2201 = np.zeros(2,'float64')
+#         Idelta201 = np.zeros(2,'float64')
+#         IG201 = np.zeros(2,'float64')
+#         FG201 = np.zeros(2,'float64')
+#         J21101 = np.zeros(2,'float64')
+#         Jdelta201 = np.zeros(2,'float64')
+#         JG201 = np.zeros(2,'float64')
+#         I1301p3101 = np.zeros(2,'float64')
+#         J12101 = np.zeros(2,'float64')
+#         J11201 = np.zeros(2,'float64')
+#         Moment_1 = np.zeros(2,'float64')
+#         J21102x = np.zeros(2,'float64')
+#         J21102y = np.zeros(2,'float64')
+#         J21102 = np.zeros(2,'float64')
+#         Jdelta202x = np.zeros(2,'float64')
+#         Jdelta202y = np.zeros(2,'float64')
+#         Jdelta202 = np.zeros(2,'float64')
+#         JG202x = np.zeros(2,'float64')
+#         JG202y = np.zeros(2,'float64')
+#         JG202 = np.zeros(2,'float64')
+#         I2211 = np.zeros(2,'float64')
+#         J21111 = np.zeros(2,'float64')
+#         N11x = np.zeros(2,'float64')
+#         N11y = np.zeros(2,'float64')
+#         N11 = np.zeros(2,'float64')
+#         J12102x = np.zeros(2,'float64')
+#         J12102y = np.zeros(2,'float64')
+#         J12102 = np.zeros(2,'float64')
+#         I1311 = np.zeros(2,'float64')
+#         J12111 = np.zeros(2,'float64')
+#         J11211 = np.zeros(2,'float64')
+#         Moment_2 = np.zeros(2,'float64')
+#         J21112x = np.zeros(2,'float64')
+#         J21112y = np.zeros(2,'float64')
+#         J21112 = np.zeros(2,'float64')
+#         N12x = np.zeros(2,'float64')
+#         N12y = np.zeros(2,'float64')
+#         N12 = np.zeros(2,'float64')
+#         J12112x = np.zeros(2,'float64')
+#         J12112y = np.zeros(2,'float64')
+#         J12112 = np.zeros(2,'float64')
+#         Moment_3 = np.zeros(2,'float64')
+#         N22x = np.zeros(2,'float64')
+#         N22y = np.zeros(2,'float64')
+#         N22z = np.zeros(2,'float64')
+#         N22 = np.zeros(2,'float64')
+#         Moment_4 = np.zeros(2,'float64')
+#         RSD = np.zeros(2,'float64')
+
+#         # loop over wavenumbers
+#         for index_k in xrange(len(k_arr)):
+
+#             k = k_arr[index_k]
+
+#             # dewiggle factor due to IR resummation
+#             suppression = exp(-pow(k,2.)*sigma_tot)
+
+#             # linear spectrum (full, no_wiggle)
+
+#             Plin[:] = loops['Plin'][:,index_k]
+
+#             # 0-th moment
+
+#             I2200[:]           = loops['I2200'][:,index_k]
+#             Idelta200[:]       = loops['Idelta200'][:,index_k]
+#             IG200[:]           = loops['IG200'][:,index_k]
+#             Idelta2delta200[:] = loops['Idelta2delta200'][:,index_k]
+#             IG2G200[:]         = loops['IG2G200'][:,index_k]
+#             Idelta2G200[:]     = loops['Idelta2G200'][:,index_k]
+#             I1300[:]           = loops['I1300'][:,index_k]
+#             FG200[:]           = loops['FG200'][:,index_k]
+
+#             Moment_0[:] = (pow(b1,2.)*(2.*I2200[:] + 6.*I1300[:]) + 2.*b1*b2*Idelta200[:] + 4.*b1*bG2*IG200[:] + 0.5*pow(b2,2.)*Idelta2delta200[:] + 2.*pow(bG2,2.)*IG2G200[:] + 8.*b1*(bG2 + 0.4*btd)*FG200[:]) *D4
+#             # - 2.*c00*pow(k,2.)*Plin[:] *D2;
+
+#             # 1-st moment
+
+#             I2201[:]      = loops['I2201'][:,index_k]
+#             Idelta201[:]  = loops['Idelta201'][:,index_k]
+#             IG201[:]      = loops['IG201'][:,index_k]
+#             FG201[:]      = loops['FG201'][:,index_k]
+#             J21101[:]     = loops['J21101'][:,index_k] * mu;
+#             Jdelta201[:]  = loops['Jdelta201'][:,index_k] * mu;
+#             JG201[:]      = loops['JG201'][:,index_k] * mu;
+#             I1301p3101[:] = loops['I1301p3101'][:,index_k]
+#             J12101[:]     = loops['J12101'][:,index_k] * mu;
+#             J11201[:]     = loops['J11201'][:,index_k] * mu;
+
+#             Moment_1[:] =   2. * (f*mu/k) * (2.*b1*I2201[:] + 3.*b1*I1301p3101[:] + b2*Idelta201[:] + 2.*bG2*IG201[:] + 4.*(bG2 + 0.4*btd)*FG201[:]) *D4 + 2. * (2.*f)    * (pow(b1,2.)*(J12101[:] + J11201[:] + J21101[:]) + 0.5*b1*b2*Jdelta201[:] + b1*bG2*JG201[:]) *D4
+#             # + c10*f*mu*k*Plin[:] *D2
+
+#             # 2-nd moment
+
+#             J21102x[:]    = loops['J21102x'][:,index_k]
+#             J21102y[:]    = loops['J21102y'][:,index_k]
+#             J21102[:]     = (J21102x[:] + J21102y[:] * pow(mu,2.));
+#             Jdelta202x[:] = loops['Jdelta202x'][:,index_k]
+#             Jdelta202y[:] = loops['Jdelta202y'][:,index_k]
+#             Jdelta202[:]  = (Jdelta202x[:] + Jdelta202y[:] * pow(mu,2.));
+#             JG202x[:]     = loops['JG202x'][:,index_k]
+#             JG202y[:]     = loops['JG202y'][:,index_k]
+#             JG202[:]      = (JG202x[:] + JG202y[:] * pow(mu,2.));
+#             I2211[:]      = loops['I2211'][:,index_k]
+#             J21111[:]     = loops['J21111'][:,index_k] * mu;
+#             N11x[:]       = loops['N11x'][:,index_k]
+#             N11y[:]       = loops['N11y'][:,index_k]
+#             N11[:]        = (N11x[:] + N11y[:] * pow(mu,2.));
+#             J12102x[:]    = loops['J12102x'][:,index_k]
+#             J12102y[:]    = loops['J12102y'][:,index_k]
+#             J12102[:]     = (J12102x[:] + J12102y[:] * pow(mu,2.));
+#             I1311[:]      = loops['I1311'][:,index_k]
+#             J12111[:]     = loops['J12111'][:,index_k] * mu;
+#             J11211[:]     = loops['J11211'][:,index_k] * mu;
+
+#             Moment_2[:] = 2. * pow(f*mu/k,2.) * (2.*I2211[:] + 6.*I1311[:]) *D4 + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[:] + J11211[:] + J21111[:])) *D4 + 2. * pow(f,2.) * (pow(b1,2.)*N11[:]) *D4 + 2. * pow(f,2.) * (4.*b1*J12102[:] + 2.*b1*J21102[:] + b2*Jdelta202[:] + 2.*bG2*JG202[:] - pow(b1,2.)*Plin[:]*sigma_v2) *D4
+#             # - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[:] *D2
+
+#             # 3-rd moment
+
+#             J21112x[:] = loops['J21112x'][:,index_k]
+#             J21112y[:] = loops['J21112y'][:,index_k]
+#             J21112[:]  = (J21112x[:] + J21112y[:] * pow(mu,2.));
+#             N12x[:]    = loops['N12x'][:,index_k]
+#             N12y[:]    = loops['N12y'][:,index_k]
+#             N12[:]     = (N12x[:] * mu + N12y[:] * pow(mu,3.));
+#             J12112x[:] = loops['J12112x'][:,index_k]
+#             J12112y[:] = loops['J12112y'][:,index_k]
+#             J12112[:]  = (J12112x[:] + J12112y[:] * pow(mu,2.));
+
+#             Moment_3[:] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.)*(mu/k) * (J21112[:] + 2.*J12112[:]) *D4 - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.) * b1*N12[:] *D4
+#             # + 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[:] *D2
+
+#             # 4-th moment
+
+#             N22x[:] = loops['N22x'][:,index_k]
+#             N22y[:] = loops['N22y'][:,index_k]
+#             N22z[:] = loops['N22z'][:,index_k]
+#             N22[:]  = (N22x[:] + N22y[:] * pow(mu,2.) + N22z[:] * pow(mu,4.))
+
+#             Moment_4[:] = - 24. * pow(f,4.)*pow(mu/k,2.) * Plin[:]*sigma_v2 *D4 + 12. * pow(f,4.) * N22[:] *D4
+#             # + 24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[:] *D2
+
+#             RSD[:] = Moment_0[:] + k*mu * Moment_1[:] + (1./2.) * pow(k*mu,2.) * Moment_2[:] + (1./6.) * pow(k*mu,3.) * Moment_3[:] + (1./24.) * pow(k*mu,4.) * Moment_4[:] + (c00 + c10*f*mu*mu + c22*f*f*mu*mu*mu*mu + c32*f*f*f*pow(mu,6.))*pow(k,2)*Plin[:]*D2
+
+#             P_wiggle = Plin[wiggle] - Plin[no_wiggle]
+
+#             pk_arr[index_k] = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot)) *D2 + RSD[no_wiggle] + suppression * (RSD[wiggle] - RSD[no_wiggle]);
+
+#             # JL debugging
+#             #if index_k == 0:
+#             #    log = {}
+#             #    log['z'] = z
+#             #    log['k'] = k
+#             #    log['mu'] = mu
+#             #    log['D'] = D
+#             #    log['f'] = f
+#             #    log['pk'] = pk_arr[index_k]
+#             #    log['pk_lin_ww'] = Plin[wiggle]
+#             #    log['pk_lin_nw'] = Plin[no_wiggle]
+#             #    log['P_lin_w'] = P_wiggle
+#             #    log['suppression'] = suppression
+#             #    log['sigma_tot'] = sigma_tot
+#             #    log['rsd_nw'] = RSD[no_wiggle]
+#             #    log['rsd_w'] = RSD[wiggle]
+
+#         return k_arr,pk_arr #,log
 
     # Gives the total matter pk for a given (k,z)
     def pk_lin(self,double k,double z):

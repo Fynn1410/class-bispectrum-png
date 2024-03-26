@@ -29,7 +29,7 @@
 #include <limits.h>
 
 
-#define NUM_MOMENTS 42
+#define NUM_MOMENTS 43
 
 enum eft_struct_role {eft_master, eft_slave};
 enum eft_tracer {eft_matter, eft_halo, eft_tracer_num}; /**< nothing more than the number of distinct bias choices we want to use */
@@ -141,6 +141,7 @@ struct eft_hyper_parameters
   /** - divergence / direct integration settings */
   double k_UV_cutoff;
   double k_IR_cutoff;
+  double k_pole_cutoff; /**< |k-q| > pole_cutoff (only relevant for direct integration) */
   int k_size_moments;
 
   /** - output sampling settings: in effect if use_interpolation = _TRUE_ */
@@ -274,6 +275,9 @@ struct eft
   int index_N22y;
   int index_N22z;
 
+  /** - additional RSD moments if the mu-approximation is not used */
+  int index_sigmav_mu;
+
   //@}
 
   double * ln_k_fourier[eft_tracer_num];  /**< sample points for Fourier transform; ln_k_fourier[index_tracer][index_k] */
@@ -281,10 +285,10 @@ struct eft
   double * ddpk_l_biased[eft_tracer_num*pk_type_num];
 
   int moments_allocated;
-  int * loop_matrices_size; /**< loop_matrices_size[index_moment]*/
+  int * loop_matrices_size; /**< loop_matrices_size[index_moment] */
   double complex ** loop_matrices;  /**< loop_matrices[index_moment][index_matrix] */
-  short * symmetry; /**< symmetry[index_moment]*/
-  short * use_tracer; /**< use_tracer[index_moment]*/
+  short * symmetry; /**< symmetry[index_moment] */
+  short * use_tracer; /**< use_tracer[index_moment] */
   short pk_type_loaded[pk_type_num];  /**< keeps track of which power spectra the Fourier coefficients were computed */
   double complex * fourier_coeff[eft_tracer_num*pk_type_num];  /**< fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*fourier_coeff_size + index_freq] */
   double complex * fourier_condition_num[eft_tracer_num*pk_type_num];  /**< fourier_condition_num[index_pk_type*eft_tracer_num + index_tracer][index_mu*fourier_coeff_size + index_freq] */
@@ -304,12 +308,12 @@ struct eft
 
 
 /** - forward declaration of ext_storage methods */
-extern struct ext_storage;
-extern int ext_insert_eft(struct ext_storage * pext,
-                          struct eft * peft,
-                          const int index,
-                          const int num_matrices,
-                          ErrorMsg errmsg);
+//extern struct ext_storage;
+// extern int ext_insert_eft(struct ext_storage * pext,
+//                           struct eft * peft,
+//                           const int index,
+//                           const int num_matrices,
+//                           ErrorMsg errmsg);
 /** -------------------------------------------- */
 
 
@@ -393,6 +397,16 @@ int eft_linear_spectrum_rsd(
         double * out_pk
         );
 
+int eft_apply_ap_effect_in_place(
+        double ** kvec,
+        const int * k_sizevec,
+        double ** muvec,
+        const int * mu_sizevec,
+        const int z_size,
+        const double * ap_parallel,
+        const double * ap_perpendicular
+        );
+
 int eft_job_powerspectrum_wedges_ext_growth_rate(
         struct eft * peft0,
         const int peft_size,
@@ -433,6 +447,45 @@ int eft_job_powerspectrum_wedges(
         double ** out_pkmu
         );
 
+int eft_job_powerspectrum_multipoles_ext_growth_rate(
+        struct eft * peft0,
+        const int peft_size,
+        const double * const f_z_pk_eft,
+        const double * const D_z_pk_eft,
+        struct background * pba,
+        struct fourier * pfo,
+        struct primordial * ppm,
+        struct precision * ppr,
+        enum eft_pk_out_type pk_out_type,
+        const double * const zvec,
+        const double * const f_zvec,
+        const double * const D_zvec,
+        const struct eft_input_parameters * peft_ip,
+        const int z_size,
+        double ** kvec,
+        const int * const k_sizevec,
+        const double * ap_parallel,
+        const double * ap_perpendicular,
+        double ** out_pkl
+        );
+
+int eft_job_powerspectrum_multipoles(
+        struct eft * peft0,
+        const int peft_size,
+        struct background * pba,
+        struct fourier * pfo,
+        struct primordial * ppm,
+        struct precision * ppr,
+        enum eft_pk_out_type pk_out_type,
+        const double * const zvec,
+        const struct eft_input_parameters * peft_ip,
+        const int z_size,
+        double ** kvec,
+        const int * const k_sizevec,
+        const double * ap_parallel,
+        const double * ap_perpendicular,
+        double ** out_pkl
+        );
 
 #include "infrared_resummation.h"
 #include "power_spectrum.h"

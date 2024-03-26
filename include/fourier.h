@@ -3,11 +3,11 @@
 #include "primordial.h"
 #include "trigonometric_integrals.h"
 
-#ifndef __FOURIER__
-#define __FOURIER__
-
 /** - definitions for usage of EFT */
 #include "../external/oneloopeft/header.h"
+
+#ifndef __FOURIER__
+#define __FOURIER__
 
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
@@ -25,219 +25,6 @@ enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_
 enum hmcode_baryonic_feedback_model {nl_emu_dmonly, nl_owls_dmonly, nl_owls_ref, nl_owls_agn, nl_owls_dblim, nl_user_defined};
 enum out_sigmas {out_sigma,out_sigma_prime,out_sigma_disp};
 
-enum rsd_ir_type {lin, no_wiggle, real_ir};
-
-/**
- * Structure containing all information on non-linear spectra.
- *
- * Once initialized by fourier_init(), contains a table for all two points correlation functions
- * and for all the ai,bj functions (containing the three points correlation functions), for each
- * time and wave-number.
- */
-
-typedef struct fft_struct
-{
-	int nfft;
-	int fft_first;
-	double kmin_fft_m;
-	double kmin_fft_g;
-	double fft_bias_m;
-	double fft_bias_g;
-	double complex * etam_m;
-  double complex * cmsym_m;
-  double complex * etam_g;
-  double complex * cmsym_g;
-
-}fft_struct;
-
-typedef struct fft_matrices
-{
-  // Matter loops
-  double complex ** I2200_mat;
-  double complex *  I1300_mat;
-
-  // Realspace (0-th moment in RSD) Biased loops
-  double complex ** Idelta200_mat;
-  double complex ** IG200_mat;
-  double complex ** Idelta2delta200_mat;
-  double complex ** IG2G200_mat;
-  double complex ** Idelta2G200_mat;
-  double complex *  FG200_mat;
-
-  // 1-st moment in RSD Biased loops
-  double complex ** I2201_mat;
-  double complex ** Idelta201_mat;
-  double complex ** IG201_mat;
-  double complex ** J21101_mat;
-  double complex ** Jdelta201_mat;
-  double complex ** JG201_mat;
-  double complex *  FG201_mat;
-  double complex *  I1301p3101_mat;
-  double complex *  J12101_mat;
-
-  // 2-nd moment in RSD Biased loops
-  double complex ** J21102x_mat;
-  double complex ** J21102y_mat;
-  double complex ** Jdelta202x_mat;
-  double complex ** Jdelta202y_mat;
-  double complex ** JG202x_mat;
-  double complex ** JG202y_mat;
-  double complex ** I2211_mat;
-  double complex ** J21111_mat;
-  double complex ** N11x_mat;
-  double complex ** N11y_mat;
-  double complex *  J12102x_mat;
-  double complex *  J12102y_mat;
-  double complex *  I1311_mat;
-  double complex *  J12111_mat;
-  double complex *  J11211_mat;
-
-  // 3-rd moment in RSD Biased loops
-  double complex ** J21112x_mat;
-  double complex ** J21112y_mat;
-  double complex ** N12x_mat;
-  double complex ** N12y_mat;
-  double complex *  J12112x_mat;
-  double complex *  J12112y_mat;
-
-  // 4-th moment in RSD Biased loops
-  double complex ** N22x_mat;
-  double complex ** N22y_mat;
-  double complex ** N22z_mat;
-
-}fft_matrices;
-
-/**
- * Structure containing variables, calculated in fourier and used only in nl_oneloopPT by various functions.
- *
- */
-
-struct oneloop_fftlog_workspace {
-
-  /** @name - quantitites used by nl_oneloopPT */
-
-  //@{
-
-  double sigma_v0; /** Value of the integrated linear power spectrum (for the UV- / IR-divergences of the integrals) **/
-
-  double sigma_v2; /** Value of the integrated linear power spectrum divided by q^2 (for the UV- / IR-divergences of the integrals) **/
-
-  double sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation **/
-
-  double del_sigma_2_IR; /** Value of the supression factor of the wiggle part for the IR-resummation in RSD**/
-
-  // FFTLog for the Linear Power Spectrum / no-wiggle Linear Power Spectrum / Real-Space IR-Resummed Linear Power Spectrum-> index coming from enum rsd_ir_type
-  struct fft_struct **fft_input; /** Containing the details of the FFTLog and the FFTLog transform of the IR-resummed power spectrum **/
-  struct fft_matrices *fft_matrix;  /** Containing the complex matrices used for the FFTLog loop calculations **/
-
-  // Eulerian Biases
-  double b1;
-  double b2;
-  double bG2;
-  double btd;
-  double cs2;
-  double R2;
-
-  //@}
-
-};
-
-struct oneloop_fftlog_matter_real {
-
-  /** @name - terms in the real space bias expansion at one-loop */
-
-  //@{
-  double * Plin_IR;
-  double * Plin_NL_IR;
-  double * P_mm;
-  double * I2200;
-  double * I1300;
-  //@}
-};
-
-struct oneloop_fftlog_halo_real {
-
-  /** @name - terms in the real space bias expansion at one-loop */
-
-  //@{
-  double * Plin_IR;
-  double * Plin_NL_IR;
-  double * P_mm;
-  double * I2200;
-  double * Idelta200;
-  double * IG200;
-  double * Idelta2delta200;
-  double * IG2G200;
-  double * Idelta2G200;
-  double * I1300;
-  double * FG200;
-  double * P_hh;
-  //@}
-};
-
-struct oneloop_fftlog_halo_rsd {
-
-  /** @name - terms in the redshift space bias expansion at one-loop */
-
-  //@{
-
-  //0-th moment
-  double * Plin;
-  double * P_mm;
-  double * I2200;
-  double * Idelta200;
-  double * IG200;
-  double * Idelta2delta200;
-  double * IG2G200;
-  double * Idelta2G200;
-  double * I1300;
-  double * FG200;
-
-  //1-st moment
-  double * I2201;
-  double * Idelta201;
-  double * IG201;
-  double * FG201;
-  double * J21101;
-  double * Jdelta201;
-  double * JG201;
-  double * I1301p3101;
-  double * J12101;
-  double * J11201;
-
-  //2-nd moment
-  double * J21102x;
-  double * J21102y;
-  double * Jdelta202x;
-  double * Jdelta202y;
-  double * JG202x;
-  double * JG202y;
-  double * I2211;
-  double * J21111;
-  double * N11x;
-  double * N11y;
-  double * J12102x;
-  double * J12102y;
-  double * I1311;
-  double * J12111;
-  double * J11211;
-
-  //3-rd moment
-  double * J21112x;
-  double * J21112y;
-  double * N12x;
-  double * N12y;
-  double * J12112x;
-  double * J12112y;
-
-  //4-th moment
-  double * N22x;
-  double * N22y;
-  double * N22z;
-
-  //@}
-
-};
 
 struct fourier {
 
@@ -260,23 +47,23 @@ struct fourier {
 
   short has_pk_eq;  /**< flag: in case wa_fld is defined and non-zero, should we use the pk_eq method? */
 
-  short has_rsd; /** for OneloopPT: flag indicating if the loop contributions for the galaxy power spectrum in redshift space needed to be computed */
+  // short has_rsd; /** for OneloopPT: flag indicating if the loop contributions for the galaxy power spectrum in redshift space needed to be computed */
 
-  double b1; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
-  double b2; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
-  double bG2; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
-  double btd; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
+  // double b1; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
+  // double b2; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
+  // double bG2; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
+  // double btd; /** for OneloopPT: Bias parameter for the galaxy power spectrum in real and redshift space */
 
-  double cs2; /** for OneloopPT: Matter counter term for the matter power spectrum in real space */
-  double R2; /** for OneloopPT: Halo/Galaxy counter term for the galaxy power spectrum in real space */
+  // double cs2; /** for OneloopPT: Matter counter term for the matter power spectrum in real space */
+  // double R2; /** for OneloopPT: Halo/Galaxy counter term for the galaxy power spectrum in real space */
 
-  double c00; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 0-th moment */
-  double c10; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 1-st moment */
-  double c20; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */
-  double c22; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */
-  double c30; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 3-rd moment */
-  double c32; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 3-rd moment */
-  double c42; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 4-th moment */
+  // double c00; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 0-th moment */
+  // double c10; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 1-st moment */
+  // double c20; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */
+  // double c22; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 2-nd moment */
+  // double c30; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 3-rd moment */
+  // double c32; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 3-rd moment */
+  // double c42; /** for OneloopPT: RSD counter term for the galaxy power spectrum in redshift space contributing in the 4-th moment */
 
   //@}
 
@@ -446,28 +233,6 @@ struct fourier {
   struct eft_input_parameters * eft_ip; /**< Bias and counterterm values for EFTofLSS read by the input module */
   struct eft_hyper_parameters eft_hp; /**< Hyperparamaters for EFTofLSS made up of input and precision settings */
 
-  // FFTLog solutions for the Linear Power Spectrum / no-wiggle Linear Power Spectrum -> index coming from enum rsd_ir_type
-
-  struct oneloop_fftlog_matter_real * pk_matter_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
-                          Only depends on indices index_k:
-                          ln_pk[index_k]
-                       */
-
-  struct oneloop_fftlog_halo_real * pk_halo_real_nl; /**< Total halo power spectrum (nonlinear) in real space.
-                          Only depends on indices index_k:
-                          ln_pk[index_k]
-                       */
-
-  struct oneloop_fftlog_halo_rsd ** pk_halo_rsd_nl; /**< Total halo power spectrum (nonlinear) in redshift space.
-                          Only depends on indices index_k:
-                          ln_pk[index_k]
-                          */
-
-  //@{
-  struct oneloop_fftlog_workspace * fft_ws;
-  //@}
-
-
 
   /** @name - technical parameters */
 
@@ -511,7 +276,7 @@ struct fourier_workspace {
 
 };
 
-extern struct ext_storage;
+// extern struct ext_storage;
 
 
 /********************************************************************************/

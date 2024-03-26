@@ -40,7 +40,8 @@ int eft_di_compute_spectra_contributions(
                     const int * const moment_list,
                     const int moment_list_size,
                     const double z,
-                    const double f_z
+                    const double f,
+                    const double D
                     );
 
 
