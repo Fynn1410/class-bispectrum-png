@@ -1,5 +1,4 @@
 #include "common.h"
-#include "fourier.h"
 
 #ifndef __EXTERNAL_STORAGE__
 #define __EXTERNAL_STORAGE__
@@ -14,6 +13,8 @@
 // extern struct lensing;
 // extern struct distortions;
 // extern struct eft;
+
+#include "fourier.h"
 
 struct ext_storage
 {

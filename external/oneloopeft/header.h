@@ -13,7 +13,7 @@
 #include "../../include/background.h"
 #include "../../include/primordial.h"
 #include "../../include/fft.h"
-#include "../../include/ext_storage.h"
+//#include "../../include/ext_storage.h"
 
 //TODO: get rid of forward declarations
 // struct ext_storage

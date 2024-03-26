@@ -2,10 +2,6 @@
 
 #include "primordial.h"
 #include "trigonometric_integrals.h"
-#include "ext_storage.h"
-
-#ifndef __FOURIER__
-#define __FOURIER__
 
 /** - definitions for usage of EFT */
 #include "../external/oneloopeft/header.h"
