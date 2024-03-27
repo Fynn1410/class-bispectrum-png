@@ -1206,7 +1206,7 @@ int eft_get_loop_matrices(struct eft * peft,
     /** - external storage takes precedent: insert loop matrices from external storage */
     /** - condition here is negated: if insertion fails, allocate and compute matrices / load them from files */
     if (ext_insert_eft(pext, peft, index, peft->moments_allocated, errmsg) != _SUCCESS_) {
-      if (pext && peft->hp->eft_verbose > 1) { printf("Could not insert loop matrices from external storage for index = %d: => %s \n", index, errmsg); }
+      if (pext && peft->hp->eft_verbose > 1) { printf("Could not insert loop matrices from external storage for index = %d: \n => %s \n", index, errmsg); }
 
       class_call(eft_allocate_loop_matrices(peft), peft->error_message, peft->error_message);
       /** - if external storage is not available/compatible, either */

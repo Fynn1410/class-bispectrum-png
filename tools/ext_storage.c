@@ -127,8 +127,12 @@ int ext_insert_eft(struct ext_storage * pext,
   int index_moment, index_tracer;
 
   if (pext) {
-    if (!(pext->loop_matrices_stored) || index_eft >= pext->eft_size || pext->eft_index_num[index_eft] < num_matrices) {
-      class_test_message(errmsg, "!pext || !(pext->loop_matrices_stored) || index_eft >= pext->eft_size || pext->eft_index_num[index_eft] < num_matrices", \
+    if (!(pext->loop_matrices_stored)) {  /** - if the matrices are not stored, then return immediately (not considered an error) */
+      class_protect_sprintf(errmsg, "Nothing is stored in pext = %p", pext);
+      return _FAILURE_;
+    } 
+    else if (index_eft >= pext->eft_size || pext->eft_index_num[index_eft] < num_matrices) {  /** - if they are stored, but don't conform to the request, return an error message */
+      class_test_message(errmsg, "index_eft >= pext->eft_size || pext->eft_index_num[index_eft] < num_matrices", \
                         "Error in ext_insert_eft: pext = %p, stored = %d, stored number of indices = %d, stored number of matrices = %d", \
                         pext, pext->loop_matrices_stored, pext->eft_size, pext->eft_index_num[index_eft]);
       // /** - query an update of the storage, flag will be reset at the update */
@@ -136,7 +140,7 @@ int ext_insert_eft(struct ext_storage * pext,
 
       return _FAILURE_; /** - insertion is impossible */
     }
-    else {
+    else {  /** - attempt insertion */
       for (index_tracer = 0; (index_tracer < eft_tracer_num) && (pext->period[index_eft][index_tracer] == peft->hp->period[index_tracer]); index_tracer++);
       if (index_tracer == eft_tracer_num) { /** - stored period is equal to the one requested in peft->hp */
         /** - copy the pointers back over to the eft-structure */
