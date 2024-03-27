@@ -1623,7 +1623,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                    pkmu_nl + index_mu*peft->k_size,
                                                    ddpkmu_nl + index_mu*peft->k_size,
                                                    1,
-                                                   log(kvec[index_z][index_k]),
+                                                   log(kvec[index_z][index_mu*k_sizevec[index_z] + index_k]),
                                                    &last_index,
                                                    out_pkmu[index_z] + index_mu*k_sizevec[index_z] + index_k,
                                                    1,
@@ -1858,14 +1858,16 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
   }
 
   /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
-  #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu),   \
+  #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu, ap_parallel, ap_perpendicular),   \
                            private(index_z, index_l, index_k, index_mu), firstprivate(gl_sym_weights, lg_measure), default(none)
   for (index_z = 0; index_z < z_size; index_z++) {
     for (index_l = 0; index_l < MULTIPOLE_SIZE; index_l++) {
       for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
         out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] = 0.;
         for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_sym_weights[index_mu] * lg_measure[index_mu][index_l] * out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
+          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_sym_weights[index_mu] * lg_measure[index_mu][index_l]    \
+                                                                    * out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]  \
+                                                                    / (ap_parallel[index_z] * ap_perpendicular[index_z] * ap_perpendicular[index_z]);
         }
         out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] *= 0.5*(4*index_l + 1);
       }
@@ -1973,14 +1975,16 @@ int eft_job_powerspectrum_multipoles(
   }
 
   /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
-  #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu),   \
+  #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu, ap_parallel, ap_perpendicular),   \
                            private(index_z, index_l, index_k, index_mu), firstprivate(gl_sym_weights, lg_measure), default(none)
   for (index_z = 0; index_z < z_size; index_z++) {
     for (index_l = 0; index_l < MULTIPOLE_SIZE; index_l++) {
       for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
         out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] = 0.;
         for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_sym_weights[index_mu] * lg_measure[index_mu][index_l] * out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
+          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_sym_weights[index_mu] * lg_measure[index_mu][index_l]    \
+                                                                    * out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]  \
+                                                                    / (ap_parallel[index_z] * ap_perpendicular[index_z] * ap_perpendicular[index_z]);
         }
         out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] *= 0.5*(4*index_l + 1);
       }
