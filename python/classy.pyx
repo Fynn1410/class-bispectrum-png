@@ -2920,21 +2920,36 @@ make        nonlinear_scale_cb(z, z_size)
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
 
-    # return the oneloop power spectra
-    def eft_job_powerspectrum_wedges_grid(
-        self,
+    def eft_job_powerspectrum_wedges_grid(self,
         np.ndarray[DTYPE_t,ndim=1] mu,
         np.ndarray[DTYPE_t,ndim=1] k,
         np.ndarray[DTYPE_t,ndim=1] z,
-        int mu_size,
-        int k_size,
-        int z_size,
-        pk_output,
-        biases,
-        counterterms,
-        R2,
-        cs2,
-        has_rsd):
+        int mu_size,int k_size,int z_size,pk_output,biases,counterterms,R2,cs2,has_rsd):
+        """
+        eft_job_powerspectrum_wedges_grid(mi,k,z,mu_size,k_size,z_size,pk_output,biases,counterterms,R2,cs2,has_rsd)
+
+        Returns the oneloop power spectrum P_oneloop(k,mu,z)
+
+        Input parameters
+        ----------------
+        mu      : numpy array of mu values, indexed as mu[index_z + z_size*index_mu], of size z_size*mu_size
+        k       : numpy array of k values, indexed as k[index_z + z_size*(index_mu + mu_size*index_k)], of size z_size*mu_size*k_size
+        z       : numpy array of z values, indexed as z[index_z], of size z_size
+        mu_size : number of mu values
+        k_size  : number of k values
+        z_size  : number of z values
+        pk_output: input: one of 'Pdd_mm_real','Pdd_mm_rsd','Pdd_hh_real','Pdd_hh_rsd'
+        biases : input: numpy array of biases [b1,b2,bG2,btd]
+        counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+        R2 : input: R2 parameter in EFT
+        cs2 : input: cs2 parameter in EFT
+        has_rsd : input: boolean (do we want redshift space distortions?)
+
+        Returns:
+        --------
+        out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z + z_size*(index_mu + mu_size*index_k)]
+
+        """
 
         # check input consistency
         if len(mu) != mu_size*z_size:
