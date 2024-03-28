@@ -57,12 +57,12 @@ cdef extern from "class.h":
         eft_master
         eft_slave
 
-    cdef enum eft_tracer: 
+    cdef enum eft_tracer:
         eft_matter
         eft_halo
         eft_tracer_num
 
-    cdef enum eft_pk_type: 
+    cdef enum eft_pk_type:
         pk_lin
         pk_nowiggle
         pk_ir_resummed_lo
@@ -71,31 +71,31 @@ cdef extern from "class.h":
         pkmu_rsd_ir_resummed_nlo
         pk_type_num
 
-    cdef enum eft_pk_out_type: 
+    cdef enum eft_pk_out_type:
         Pdd_mm_real
         Pdd_mm_rsd
         Pdd_hh_real
         Pdd_hh_rsd
         pk_out_type_num
 
-    cdef enum eft_spectra_contribution: 
+    cdef enum eft_spectra_contribution:
         finite_part
         uv_divergence
         ir_divergence
         pole_divergence
         eft_spectra_contribution_num
 
-    cdef enum sym_type: 
+    cdef enum sym_type:
         no_finite_part
         sym_vec
         sym_mat_none
         sym_mat_symmetric
 
-    cdef enum eft_fourier_mode: 
+    cdef enum eft_fourier_mode:
         fourier_mode_fft
         fourier_mode_spline
 
-    cdef enum eft_integration_mode: 
+    cdef enum eft_integration_mode:
         fftlog
         direct_integration
 
@@ -109,10 +109,10 @@ cdef extern from "class.h":
 
     cdef struct ext_storage:
         double complex *** loop_matrices;
-        int ** loop_matrices_size; 
-        short ** symmetry; 
+        int ** loop_matrices_size;
+        short ** symmetry;
         short ** use_tracer;
-        short ** spectra_contributions_dimension; 
+        short ** spectra_contributions_dimension;
 
         double ** period;
         int loop_matrices_stored;
@@ -377,20 +377,20 @@ cdef extern from "class.h":
         double c42;
 
     cdef struct eft_hyper_parameters:
-        double kmin_lin[2]; 
+        double kmin_lin[2];
         double kmax_lin[2];
         double period[2];
-        int k_size_fourier; 
-        double bao_oversampling; 
+        int k_size_fourier;
+        double bao_oversampling;
         double ln_k_oversampling_width;
         int linear_spectrum_index;
 
-        double ir_resummation_k_split; 
+        double ir_resummation_k_split;
         double ir_resummation_k_feature;
 
         int fourier_mode;
-        double bias[2]; 
-        int num_positive_fourier_freq; 
+        double bias[2];
+        int num_positive_fourier_freq;
         int fourier_coeff_size;
 
         double k_UV_cutoff;
@@ -398,7 +398,7 @@ cdef extern from "class.h":
         double k_pole_cutoff;
         int k_size_moments;
 
-        short use_interpolation; 
+        short use_interpolation;
         int k_size_nl;
         double kmin_nl;
         double kmax_nl;
@@ -411,7 +411,7 @@ cdef extern from "class.h":
         short use_time_independent_kernels;
         short compute_loop_matrices;
         short use_mu_approximation;
-        short reload_linear_spectra; 
+        short reload_linear_spectra;
 
         short write_loop_matrices;
         short ignore_missing_files;
@@ -420,7 +420,7 @@ cdef extern from "class.h":
 
         short eft_verbose;
 
-    cdef struct eft_moment_single: 
+    cdef struct eft_moment_single:
         double moment;
         short index_bias;
 
@@ -433,20 +433,20 @@ cdef extern from "class.h":
         double z0;
         double f_z0;
         double D_z0;
-        double * ln_k; 
+        double * ln_k;
         int k_size;
         double * mu;
         int mu_size;
         double * pk_l[6];
         double * ddpk_l[6];
 
-        int * spectra_contributions_size; 
+        int * spectra_contributions_size;
         double ** spectra_contributions[6];
-        short * spectra_contributions_dimension; 
+        short * spectra_contributions_dimension;
 
         double * ln_k_moments;
-        double * pk_l_moments[6]; 
-        double * ddpk_l_moments[6]; 
+        double * pk_l_moments[6];
+        double * ddpk_l_moments[6];
         eft_moment_single dispersion[6][2];
         eft_moment_double ps_uv_shot_noise_corrections[6][9];
         eft_moment_double ps_uv_shot_noise_corrections_underlying[6][6];
@@ -506,17 +506,17 @@ cdef extern from "class.h":
 
         int index_sigmav_mu;
 
-        double * ln_k_fourier[2]; 
+        double * ln_k_fourier[2];
         double * pk_l_biased[2*6];
         double * ddpk_l_biased[2*6];
 
         int moments_allocated;
-        int * loop_matrices_size; 
-        double complex ** loop_matrices; 
+        int * loop_matrices_size;
+        double complex ** loop_matrices;
         short * symmetry;
         short * use_tracer;
-        short pk_type_loaded[6]; 
-        double complex * fourier_coeff[2*6]; 
+        short pk_type_loaded[6];
+        double complex * fourier_coeff[2*6];
         double complex * fourier_condition_num[2*6];
         double * fourier_frequencies[2];
 
@@ -743,3 +743,20 @@ cdef extern from "class.h":
                   const int index_eft,
                   const int num_matrices,
                   ErrorMsg errmsg)
+
+    int eft_job_powerspectrum_wedges_grid(void * peft0,
+                                          int peft_size,
+                                          void * pba,
+                                          void * pfo,
+                                          void * ppm,
+                                          void * ppr,
+                                          eft_pk_out_type pk_out_type,
+                                          double * z,
+                                          void * peft_ip,
+                                          int z_size,
+                                          double * k,
+                                          int k_size,
+                                          double * mu,
+                                          int mu_size,
+                                          double * out_pkmuz
+                                          )

@@ -448,6 +448,23 @@ int eft_job_powerspectrum_wedges(
         double ** out_pkmu
         );
 
+int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
+                                      const int peft_size,
+                                      struct background * pba,
+                                      struct fourier * pfo,
+                                      struct primordial * ppm,
+                                      struct precision * ppr,
+                                      enum eft_pk_out_type pk_out_type,
+                                      const double * const zvec,
+                                      const struct eft_input_parameters * peft_ip,
+                                      const int z_size,
+                                      double * k, // indexed as k[index_z + z_size*(index_mu + mu_size*index_k)]
+                                      int k_size,
+                                      double * mu, // indexed as mu[index_z + z_size*index_mu]
+                                      int mu_size,
+                                      double * out_pkmu // indexed as out_pkmu[index_z + z_size*(index_mu + mu_size*index_k)]
+                                      );
+
 int eft_job_powerspectrum_multipoles_ext_growth_rate(
         struct eft * peft0,
         const int peft_size,

@@ -730,7 +730,7 @@ int fourier_pks_at_k_and_z(
  * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
  * either linear or logarithmic.
  *
- * The main goal of this routine is speed. If the input k_i 
+ * The main goal of this routine is speed. If the input k_i
  * falls outside the pre-computed range [kmin,kmax],
  * the power spectrum is extrapolated from the primordial spectrum.
  *
@@ -748,7 +748,7 @@ int fourier_pk_at_kvec_and_z(
                     struct primordial * ppm,
                     struct fourier * pfo,
                     enum linear_or_logarithmic mode,
-                    enum pk_outputs pk_output, 
+                    enum pk_outputs pk_output,
                     double * ln_kvec, // log(kvec[index_kvec])
                     const int kvec_size,
                     const double z,
@@ -767,13 +767,13 @@ int fourier_pk_at_kvec_and_z(
 
   /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
 
-  class_call(fourier_pk_at_z(pba, 
-                             pfo, 
-                             logarithmic, 
-                             pk_output, 
-                             z, 
-                             index_pk, 
-                             out_pk_at_z, 
+  class_call(fourier_pk_at_z(pba,
+                             pfo,
+                             logarithmic,
+                             pk_output,
+                             z,
+                             index_pk,
+                             out_pk_at_z,
                              NULL),
               pfo->error_message,
               pfo->error_message);
@@ -793,7 +793,7 @@ int fourier_pk_at_kvec_and_z(
                                       pfo->error_message),
               pfo->error_message,
               pfo->error_message);
-              
+
 
   /** - Loop over first k values. If k<kmin, extrapolate using the primordial spectrum. */
   if (ln_kvec[0] < pfo->ln_k[0]) {
@@ -817,7 +817,7 @@ int fourier_pk_at_kvec_and_z(
                                         ln_pk_primordial),
                 ppm->error_message,
                 pfo->error_message);
-    
+
     /** - write to output: P(k) = P(kmin) * (k*P_R(k) / kmin*P_R(kmin)) */
     out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
   }
@@ -839,7 +839,7 @@ int fourier_pk_at_kvec_and_z(
                   pfo->error_message,
                   pfo->error_message);
   }
-  
+
   for (index_kvec; index_kvec < kvec_size; index_kvec++) {
     /** - for k higher than kmax in pfo->ln_k, write zero to output */
     out_pk[index_kvec] = 0.;
@@ -849,9 +849,9 @@ int fourier_pk_at_kvec_and_z(
   free(ddout_pk_at_z);
 
   /** - convert to linear output if needed */
-  if (mode == linear) 
+  if (mode == linear)
   {
-    for (index_kvec = 0; index_kvec < kvec_size; index_kvec++) 
+    for (index_kvec = 0; index_kvec < kvec_size; index_kvec++)
       out_pk[index_kvec] = exp(out_pk[index_kvec]);
   }
 
@@ -1505,7 +1505,7 @@ int fourier_init(
   /** - get the dewiggled power spectrum at each time in ln_tau */
   if (pfo->has_pk_nw) {
 
-    double ln_k0 = log( ppr->nowiggle_filter_pivot_k ); 
+    double ln_k0 = log( ppr->nowiggle_filter_pivot_k );
     // double ln_k_nw_min = log( ppr->nowiggle_k_min );
     // double ln_k_nw_max = log( ppr->nowiggle_k_max );
     double ln_k_nw_min, ln_k_nw_max;
@@ -1517,7 +1517,7 @@ int fourier_init(
                                     ln_k0, &index_k0, pfo->error_message),
                 pfo->error_message,
                 pfo->error_message);
-    
+
     // class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
     //                                 ln_k_nw_min, &index_k_min, pfo->error_message),
     //             pfo->error_message,
@@ -1538,11 +1538,11 @@ int fourier_init(
       if (pfo->ln_k[pfo->k_size_extra-1] - ln_k_nw_max > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
     }
     k_nw_size = index_k_max - index_k_min + 1;
-    
 
-    /** - fill the nowiggle array with the original linear spectrum 
+
+    /** - fill the nowiggle array with the original linear spectrum
      * and overwrite only values between index_kmin and index_kmax*/
-    memcpy(pfo->ln_pk_l_nw_extra, pfo->ln_pk_l_extra[*(pfo->nowiggle_pk_index)], 
+    memcpy(pfo->ln_pk_l_nw_extra, pfo->ln_pk_l_extra[*(pfo->nowiggle_pk_index)],
             pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
 
     /** - compute the nowiggle spectrum using gaussian filter */
@@ -1583,7 +1583,7 @@ int fourier_init(
     // array_square_integrate_exponential_all_spline_table_lines(x, NSPLINE, y, 1, ddy, 0.5, 3, &result, pfo->error_message);
 
     // #define NSPLINE 500
-    // double x[NSPLINE], y[2*NSPLINE], ddy_old[2*NSPLINE], ddy[2*NSPLINE], diffsum; 
+    // double x[NSPLINE], y[2*NSPLINE], ddy_old[2*NSPLINE], ddy[2*NSPLINE], diffsum;
     // int spline_mode = 1;
     // for (int i = 0; i < NSPLINE; i++) {
     //   x[i] = 0. + (2.*_PI_ - (0.)) * i / (NSPLINE-1);
@@ -1641,7 +1641,7 @@ int fourier_init(
     //   array[3*i+2] = ddy[i];
     // }
     // array_integrate_all_spline_gaussian_window(array, 3, NSPLINE, 0, 1, 2, 1., 2., &result, pfo->error_message);
-    
+
     // double x_sol = 1.;
     // int last_ind = 0;
     // array_spline_solve_table_lines(x, NSPLINE, y, ddy, 0., &x_sol, _TRUE_, &last_ind, pfo->error_message);
@@ -1715,7 +1715,7 @@ int fourier_init(
     for (int i = 0; i < NFFT; i++) {
       fft_coeff_mag[i] = sqrt(fft_coeff_real[i]*fft_coeff_real[i] + fft_coeff_imag[i]*fft_coeff_imag[i])/(double)NFFT;
     }
-    
+
 
     /** - debug output */
     if (pfo->fourier_verbose > 2) {
@@ -1727,7 +1727,7 @@ int fourier_init(
       fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
       for (int i = 0; i < pfo->k_size_extra; i++)
         fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
-                exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]), 
+                exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]),
                 exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]));
                 //pm_nowiggle_gfilter(pba, ppm, pfo, exp(pfo->ln_k[i]), 0., 0));
 
@@ -1761,7 +1761,7 @@ int fourier_init(
       // fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
       // for (int i = 0; i < NTEST; i++)
       //   fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
-      //           exp(lnk[i]), singleNW[i], vectorNW[i], 
+      //           exp(lnk[i]), singleNW[i], vectorNW[i],
       //           pm_nowiggle_gfilter(pba, ppm, pfo, exp(lnk[i]), z, 0));
 
       // fclose(fpknw);
@@ -1775,8 +1775,8 @@ int fourier_init(
       // fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
       // for (int it_k = 0; it_k < pfo->k_size_extra; it_k++)
       //   fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
-      //           exp(pfo->ln_k[it_k]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]), 
-      //           exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]), 
+      //           exp(pfo->ln_k[it_k]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]),
+      //           exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]),
       //           pm_nowiggle_gfilter(pba, ppm, pfo, pfo->k[it_k], 0., 0) / exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]));
 
       // fclose(fpknw);
@@ -2102,7 +2102,7 @@ int fourier_init(
 
     /** - fill in hyperparameters from precision */
     pfo->eft_hp.linear_spectrum_index = pfo->index_pk_cluster;
-    
+
     pfo->eft_hp.fourier_mode = ppr->eft_fourier_mode;
     //pfo->eft_hp.integration_mode = fftlog;
     pfo->eft_hp.k_size_fourier = ppr->eft_num_sample_points + 1;
@@ -2136,7 +2136,7 @@ int fourier_init(
     pfo->eft_hp.k_feature_nl = 0.1;
     pfo->eft_hp.ln_k_oversampling_width_nl = 1.6;
     pfo->eft_hp.k_size_nl = 200;
-    
+
 
     printf("compute_loop_matrices = %d \n", pfo->eft_hp.compute_loop_matrices);
     printf("compute mu approximation = %d \n", pfo->eft_hp.use_mu_approximation);
@@ -2154,8 +2154,8 @@ int fourier_init(
                   pfo->peft[index_eft].error_message,
                   pfo->error_message);
     }
-    
-    // /** - if we want to use the mu-approximation of the spectra, load the linear and nowiggle spectrum at this point 
+
+    // /** - if we want to use the mu-approximation of the spectra, load the linear and nowiggle spectrum at this point
     //  *    otherwise the IR-resummed spectrum will be loaded on demand from the python interface */
     // if (pfo->eft_hp.use_mu_approximation) {
     //   double pvecback[pba->bg_size];
@@ -2190,16 +2190,24 @@ int fourier_init(
                   pfo->error_message);
     }
 
+    // test zone to illustrate how to get some output (will need to be used toi store results in the fourier structure like with other moethods)
+    /*
     #define TEST_Z_SIZE 2
-    #define TEST_K_SIZE 10
+    #define TEST_K_SIZE 100
     #define TEST_MU_SIZE 3
+    double k_min,k_max;
+    k_min = pfo->eft_hp.kmin_nl;
+    k_max = pfo->eft_hp.kmax_nl;
     double zvec[TEST_Z_SIZE] = {0., 1.};
+
+
     struct eft_input_parameters eft_ip_test[TEST_Z_SIZE];
     double **kvec;
     double **muvec;
     int k_sizevec[TEST_Z_SIZE], mu_sizevec[TEST_Z_SIZE];
     int index_z, index_k, index_mu;
     double **out_pkmu;
+
     kvec = malloc(TEST_Z_SIZE*sizeof(double *));
     muvec = malloc(TEST_Z_SIZE*sizeof(double *));
     out_pkmu = malloc(TEST_Z_SIZE*sizeof(double *));
@@ -2223,7 +2231,9 @@ int fourier_init(
     }
 
     eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = -0.5, .bG2 = 0.3, .btd = 0.8, .has_rsd = 1, .c00 = -10., .c10 = 20., .c22 = 20., .c32 = 20., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 10., .R2 = 5. };
-    eft_ip_test[1] = (struct eft_input_parameters){ .b1 = 1., .b2 = -0.5, .bG2 = 0.3, .btd = 0.8, .has_rsd = 1, .c00 = -10., .c10 = 20., .c22 = 20., .c32 = 20., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 10., .R2 = 5. };
+    //eft_ip_test[1] = (struct eft_input_parameters){ .b1 = 1., .b2 = -0.5, .bG2 = 0.3, .btd = 0.8, .has_rsd = 1, .c00 = -10., .c10 = 20., .c22 = 20., .c32 = 20., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 10., .R2 = 5. };
+
+    fprintf(stderr,"Calling eft_job_powerspectrum_wedges() with eft_size=%d\n",pfo->eft_size);
 
     class_call(eft_job_powerspectrum_wedges(pfo->peft,
                                             pfo->eft_size,
@@ -2242,8 +2252,17 @@ int fourier_init(
                                             out_pkmu),
                 pfo->peft->error_message, pfo->error_message);
 
-
-    /** compare to new code */
+    FILE * out=fopen("output/pkmuz.dat","w");
+    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+      for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+        for (index_k = 0; index_k < TEST_K_SIZE; index_k++) {
+          fprintf(out,"%e %e\n",
+                  kvec[index_z][k_sizevec[index_z]*index_mu+index_k],
+                  out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
+        }
+      }
+    }
+    fclose(out);
 
     for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
       free(kvec[index_z]);
@@ -2253,7 +2272,7 @@ int fourier_init(
     free(kvec);
     free(muvec);
     free(out_pkmu);
-
+    */
 
   }
 
@@ -2486,7 +2505,7 @@ int fourier_indices(
 
   if (pfo->has_pk_nw) {
     class_alloc(pfo->ln_pk_l_nw_extra, pfo->ln_tau_size*pfo->k_size_extra*sizeof(double), pfo->error_message);
-    
+
     if (pfo->ln_tau_size > 1)
       class_alloc(pfo->ddln_pk_l_nw_extra, pfo->ln_tau_size*pfo->k_size_extra*sizeof(double), pfo->error_message);
   }
@@ -5108,7 +5127,7 @@ int fourier_hmcode_sigmaprime_at_z(
 }
 
 /**
- * Return the linear nowiggle spectrum P_nw(k,z) for a given redshift z 
+ * Return the linear nowiggle spectrum P_nw(k,z) for a given redshift z
  *
  * Output format:
  *
@@ -5220,7 +5239,7 @@ int fourier_pk_nw_at_z(
 
 /**
  * Return the linear nowiggle spectrum P_nw(k,z) for a given (k,z)
- 
+
  * Output format:
  *
  *     out_pk = P_nw(k,z)
@@ -5409,7 +5428,7 @@ int fourier_pk_nw_at_k_and_z(
  * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
  * either linear or logarithmic.
  *
- * The main goal of this routine is speed. If the input k_i 
+ * The main goal of this routine is speed. If the input k_i
  * falls outside the pre-computed range [kmin,kmax],
  * the power spectrum is extrapolated from the primordial spectrum.
  *
@@ -5468,7 +5487,7 @@ int fourier_pk_nw_at_kvec_and_z(
                                       pfo->error_message),
               pfo->error_message,
               pfo->error_message);
-              
+
 
   /** - Loop over first k values. If k<kmin, extrapolate using the primordial spectrum. */
   if (ln_kvec[0] < pfo->ln_k[0]) {
@@ -5492,7 +5511,7 @@ int fourier_pk_nw_at_kvec_and_z(
                                         ln_pk_primordial),
                 ppm->error_message,
                 pfo->error_message);
-    
+
     /** - write to output: P(k) = P(kmin) * (k*P_R(k) / kmin*P_R(kmin)) */
     out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
   }
@@ -5514,7 +5533,7 @@ int fourier_pk_nw_at_kvec_and_z(
                   pfo->error_message,
                   pfo->error_message);
   }
-  
+
   for (index_kvec; index_kvec < kvec_size; index_kvec++) {
     /** - for k higher than kmax in pfo->ln_k, write zero to output */
     out_pk[index_kvec] = 0.;
@@ -5524,9 +5543,9 @@ int fourier_pk_nw_at_kvec_and_z(
   free(ddout_pk_at_z);
 
   /** - convert to linear output if needed */
-  if (mode == linear) 
+  if (mode == linear)
   {
-    for (index_kvec = 0; index_kvec < kvec_size; index_kvec++) 
+    for (index_kvec = 0; index_kvec < kvec_size; index_kvec++)
       out_pk[index_kvec] = exp(out_pk[index_kvec]);
   }
 

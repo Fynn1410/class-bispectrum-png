@@ -2919,3 +2919,80 @@ make        nonlinear_scale_cb(z, z_size)
           sd_amp[i] = self.sd.DI[i]*self.sd.DI_units*1.e26
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
+
+    # return the oneloop power spectra
+    def eft_job_powerspectrum_wedges_grid(
+        self,
+        np.ndarray[DTYPE_t,ndim=1] mu,
+        np.ndarray[DTYPE_t,ndim=1] k,
+        np.ndarray[DTYPE_t,ndim=1] z,
+        int mu_size,
+        int k_size,
+        int z_size,
+        pk_output,
+        biases,
+        counterterms,
+        R2,
+        cs2,
+        has_rsd):
+
+        # check input consistency
+        if len(mu) != mu_size*z_size:
+            raise CosmoSevereError("mu should have dimension %d, not %" %(mu_size*z_size,len(mu)))
+        if len(k) != k_size*mu_size*z_size:
+            raise CosmoSevereError("k should have dimension %d, not %" %(k_size*mu_size*z_size,len(k)))
+        if len(z) != z_size:
+            raise CosmoSevereError("z should have dimension %d, not %" %(z_size,len(z)))
+
+        # allocate output array
+        cdef np.ndarray[DTYPE_t,ndim=1] out_pkmuz = np.zeros(z_size*k_size*mu_size,'float64')
+
+        # fill input structure
+        cdef eft_input_parameters eft_ip_test
+
+        eft_ip_test.b1 = biases[0]
+        eft_ip_test.b2 = biases[1]
+        eft_ip_test.bG2 = biases[2]
+        eft_ip_test.btd = biases[3]
+        eft_ip_test.c00 = counterterms[0]
+        eft_ip_test.c10 = counterterms[1]
+        eft_ip_test.c20 = counterterms[2]
+        eft_ip_test.c22 = counterterms[3]
+        eft_ip_test.c30 = counterterms[4]
+        eft_ip_test.c32 = counterterms[5]
+        eft_ip_test.c42 = counterterms[6]
+        eft_ip_test.has_rsd = has_rsd
+        eft_ip_test.R2 = R2
+        eft_ip_test.cs2 = cs2
+
+        # fill input type enum
+        cdef eft_pk_out_type pk_output_type
+
+        if pk_output == 'Pdd_mm_real':
+            pk_output_type = Pdd_mm_real
+        elif pk_output == 'Pdd_mm_rsd':
+            pk_output_type = Pdd_mm_rsd
+        elif pk_output == 'Pdd_hh_real':
+            pk_output_type = Pdd_hh_real
+        elif pk_output == 'Pdd_hh_rsd':
+            pk_output_type = Pdd_hh_rsd
+        else:
+            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_output)
+
+        eft_job_powerspectrum_wedges_grid(self.fo.peft,
+                                          self.fo.eft_size,
+                                          &self.ba,
+                                          &self.fo,
+                                          &self.pm,
+                                          &self.pr,
+                                          pk_output_type,
+                                          <double*> z.data,
+                                          &eft_ip_test,
+                                          z_size,
+                                          <double*> k.data,
+                                          k_size,
+                                          <double*> mu.data,
+                                          mu_size,
+                                          <double*>out_pkmuz.data)
+
+        return out_pkmuz

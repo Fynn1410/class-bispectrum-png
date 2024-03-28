@@ -1303,7 +1303,7 @@ int eft_apply_ap_effect_in_place(double ** kvec,
                                  const int z_size,
                                  const double * ap_parallel,
                                  const double * ap_perpendicular) {
-        
+
   int index_z, index_mu, index_k;
   double ap_ratio, sqrt_factor;
 
@@ -1346,7 +1346,7 @@ static int indexed_double_cmp_inc(const void * a, const void * b) {
 /**
  * @brief Computes power-spectrum wedges at given redshifts, wavenumbers and l.o.s. angles
  *        using a given growth rate consistently.
- * 
+ *
  * @param peft0       Input: pointer to the first eft-structure
  * @param peft_size   Input: number of eft-structures
  * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
@@ -1365,9 +1365,9 @@ static int indexed_double_cmp_inc(const void * a, const void * b) {
  * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
  * @param muvec       Input: cosine of line-of-sight angles; indexed as muvec[index_z][index_mu]
  * @param mu_sizevec  Input: size of muvec at each index_z; indexed as mu_sizevec[index_z]
- * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]; 
+ * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
  *                            needs to be pre-allocated with size k_sizevec[index_z]*mu_sizevec[index_z] at each index_z
- * 
+ *
  * @return the error status
  */
 int eft_job_powerspectrum_wedges_ext_growth_rate(
@@ -1459,6 +1459,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     index_z = sorted_indexvec[index_z_sort];
 
     /** - if interpolation is deactivated, set the output sampling points for each redshift */
+
     if (!eft_hp->use_interpolation) {
       class_call(eft_set_sampling_points(peft,
                                          kvec[index_z],
@@ -1488,6 +1489,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
 
     /** - compile a list of pk_types of which to compute the Fourier transform,
      *    if use_interpolation = FALSE then this list will contain all of list_pk_types_loops */
+
     class_alloc(list_pk_types_loops_not_loaded, list_pk_types_loops_size*sizeof(int), peft->error_message);
     list_pk_types_loops_not_loaded_size = 0;
     for (index_list = 0; index_list < list_pk_types_loops_size; index_list++) {
@@ -1506,12 +1508,14 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
       }
     }
 
-    if (!eft_hp->use_time_independent_kernels) {  /** if the kernels have been precomputed for a specific redshift, we have to load spectra at this exact redshift */
+    /* if the kernels have been precomputed for a specific redshift, we have to load spectra at this exact redshift */
+    if (!eft_hp->use_time_independent_kernels) {
       z = pfo->z_pk_eft[index_eft];
       f_z = f_z_pk_eft[index_eft];
       D_z = D_z_pk_eft[index_eft];
     }
-    else {  /** else, load the spectra at the latest redshift in sub_zvec */
+    /* else, load the spectra at the latest redshift in sub_zvec */
+    else {
       z = zvec[index_z];
       f_z = f_zvec[index_z];
       D_z = D_zvec[index_z];
@@ -1623,7 +1627,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                    pkmu_nl + index_mu*peft->k_size,
                                                    ddpkmu_nl + index_mu*peft->k_size,
                                                    1,
-                                                   log(kvec[index_z][index_k]),
+                                                   log(kvec[index_z][index_mu*k_sizevec[index_z] + index_k]),
                                                    &last_index,
                                                    out_pkmu[index_z] + index_mu*k_sizevec[index_z] + index_k,
                                                    1,
@@ -1632,10 +1636,10 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
       }
     }
 
-
     free(list_pk_types_loops);
     free(list_pk_types_loops_not_loaded);
     free(list_spectra_contributions);
+
   } /** - end of z-loop */
 
   free(pkmu_nl);
@@ -1648,7 +1652,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
 /**
  * @brief Computes power-spectrum wedges at given redshifts, wavenumbers and l.o.s. angles
  *        using internal CLASS growth rates.
- * 
+ *
  * @param peft0       Input: pointer to the first eft-structure
  * @param peft_size   Input: number of eft-structures
  * @param pba         Input: pointer to the background structure
@@ -1663,9 +1667,9 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
  * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
  * @param muvec       Input: cosine of line-of-sight angles; indexed as muvec[index_z][index_mu]
  * @param mu_sizevec  Input: size of muvec at each index_z; indexed as mu_sizevec[index_z]
- * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]; 
+ * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
  *                            needs to be pre-allocated with size k_sizevec[index_z]*mu_sizevec[index_z] at each index_z
- * 
+ *
  * @return the error status
  */
 int eft_job_powerspectrum_wedges(struct eft * peft0,
@@ -1743,6 +1747,90 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
                                                           out_pkmu),
               peft0->error_message, peft0->error_message);
 
+  return _SUCCESS_;
+}
+
+/* same as previous function with different input/output format (flattened arrays with lower rank pointers, assuming that the number of k and mu values is independent of z) */
+
+int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
+                                      const int peft_size,
+                                      struct background * pba,
+                                      struct fourier * pfo,
+                                      struct primordial * ppm,
+                                      struct precision * ppr,
+                                      enum eft_pk_out_type pk_out_type,
+                                      const double * const z, // indexed as z[index_z]
+                                      const struct eft_input_parameters * peft_ip,
+                                      const int z_size,
+                                      double * k, // indexed as k[index_z + z_size*(index_mu + mu_size*index_k)]
+                                      int k_size,
+                                      double * mu, // indexed as mu[index_z + z_size*index_mu]
+                                      int mu_size,
+                                      double * out_pkmuz // indexed as out_pkmu[index_z + z_size*(index_mu + mu_size*index_k)], already allocated
+                                      ) {
+
+  double ** kvec;
+  double ** muvec;
+  int * k_sizevec;
+  int * mu_sizevec;
+  int index_z,index_k,index_mu;
+  double ** out_pkmu;
+
+  class_alloc(kvec,z_size*sizeof(double*),peft0->error_message);
+  class_alloc(k_sizevec,z_size*sizeof(int),peft0->error_message);
+  class_alloc(muvec,z_size*sizeof(double*),peft0->error_message);
+  class_alloc(mu_sizevec,z_size*sizeof(int),peft0->error_message);
+
+  for (index_z=0;index_z<z_size;index_z++) {
+    k_sizevec[index_z]=k_size;
+    class_alloc(kvec[index_z],k_size*mu_size*sizeof(double),peft0->error_message);
+    for (index_k=0;index_k<k_size;index_k++) {
+      for (index_mu=0;index_mu<mu_size;index_mu++) {
+        kvec[index_z][index_mu*k_sizevec[index_z]+index_k] = k[index_z + z_size*(index_mu + mu_size*index_k)];
+      }
+    }
+
+    mu_sizevec[index_z]=mu_size;
+    class_alloc(muvec[index_z],mu_size*sizeof(double),peft0->error_message);
+    for (index_mu=0;index_mu<mu_size;index_mu++) {
+      muvec[index_z][index_mu] = mu[index_z + z_size*index_mu];
+    }
+  }
+
+  class_alloc(out_pkmu,z_size*sizeof(double*),peft0->error_message);
+  for (index_z=0;index_z<z_size;index_z++) {
+    class_alloc(out_pkmu[index_z],k_size*mu_size*sizeof(double),peft0->error_message);
+  }
+
+  class_call(eft_job_powerspectrum_wedges(peft0,
+                                          peft_size,
+                                          pba,
+                                          pfo,
+                                          ppm,
+                                          ppr,
+                                          pk_out_type,
+                                          z,
+                                          peft_ip,
+                                          z_size,
+                                          kvec,
+                                          k_sizevec,
+                                          muvec,
+                                          mu_sizevec,
+                                          out_pkmu
+                                          ),
+             peft0->error_message, peft0->error_message);
+
+  for (index_z=0;index_z<z_size;index_z++) {
+    for (index_k=0;index_k<k_size;index_k++) {
+      for (index_mu=0;index_mu<mu_size;index_mu++) {
+        out_pkmuz[index_z + z_size*(index_mu + mu_size*index_k)]=out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k];
+      }
+    }
+  }
+  for (index_z=0;index_z<z_size;index_z++) {
+      free(out_pkmu[index_z]);
+  }
+  free(out_pkmu);
 
   return _SUCCESS_;
 }
@@ -1759,7 +1847,7 @@ static const double lg_measure[][MULTIPOLE_SIZE] = { {1., -0.5, 0.375}, {1., -0.
 /**
  * @brief Computes power-spectrum multipoles at given redshifts and fiducial wavenumbers
  *        using a given growth rate consistently.
- * 
+ *
  * @param peft0       Input: pointer to the first eft-structure
  * @param peft_size   Input: number of eft-structures
  * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
@@ -1778,9 +1866,9 @@ static const double lg_measure[][MULTIPOLE_SIZE] = { {1., -0.5, 0.375}, {1., -0.
  * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
  * @param ap_parallel Input: parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
  * @param ap_perpendicular  Input: perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z)
- * @param out_pkl     Output: power-spectrum multipoles of order 0,2,4,...,2*(MULTIPOLE_SIZE-1) at zvec,kvec; indexed as out_pkl[index_z][(l/2)*k_sizevec[index_z] + index_k]; 
+ * @param out_pkl     Output: power-spectrum multipoles of order 0,2,4,...,2*(MULTIPOLE_SIZE-1) at zvec,kvec; indexed as out_pkl[index_z][(l/2)*k_sizevec[index_z] + index_k];
  *                            needs to be pre-allocated with size k_sizevec[index_z]*MULTIPOLE_SIZE at each index_z
- * 
+ *
  * @return the error status
  */
 int eft_job_powerspectrum_multipoles_ext_growth_rate(
@@ -1882,7 +1970,7 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
 /**
  * @brief Computes power-spectrum multipoles at given redshifts and fiducial wavenumbers
  *        using a given growth rate consistently.
- * 
+ *
  * @param peft0       Input: pointer to the first eft-structure
  * @param peft_size   Input: number of eft-structures
  * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
@@ -1901,9 +1989,9 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
  * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
  * @param ap_parallel Input: parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
  * @param ap_perpendicular  Input: perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z)
- * @param out_pkl     Output: power-spectrum multipoles of order 0,2,4,...,2*(MULTIPOLE_SIZE-1) at zvec,kvec; indexed as out_pkl[index_z][(l/2)*k_sizevec[index_z] + index_k]; 
+ * @param out_pkl     Output: power-spectrum multipoles of order 0,2,4,...,2*(MULTIPOLE_SIZE-1) at zvec,kvec; indexed as out_pkl[index_z][(l/2)*k_sizevec[index_z] + index_k];
  *                            needs to be pre-allocated with size k_sizevec[index_z]*MULTIPOLE_SIZE at each index_z
- * 
+ *
  * @return the error status
  */
 int eft_job_powerspectrum_multipoles(
