@@ -760,3 +760,20 @@ cdef extern from "class.h":
                                           int mu_size,
                                           double * out_pkmuz
                                           )
+
+    int eft_job_powerspectrum_wedges(void * peft0,
+                                     int peft_size,
+                                     void * pba,
+                                     void * pfo,
+                                     void * ppm,
+                                     void * ppr,
+                                     eft_pk_out_type pk_out_type,
+                                     double * zvec,
+                                     void * peft_ip,
+                                     int z_size,
+                                     double ** kvec,
+                                     int * k_sizevec,
+                                     double ** muvec,
+                                     int * mu_sizevec,
+                                     double ** out_pkmu
+                                     )

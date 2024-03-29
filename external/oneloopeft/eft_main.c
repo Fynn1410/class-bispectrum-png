@@ -1037,28 +1037,32 @@ int eft_fourier_transform_linear_spectra(
   if (peft->hp->use_mu_approximation && (pfo->fourier_verbose > 3)) {
     FILE *ffourier = fopen("output/halo_biased_pk_lin_samples.dat", "w");
 
-    fprintf(ffourier, "# Biased samples of the linear power spectrum at z=%.3f \n", peft->z0);
-    fprintf(ffourier, "# for k=%.4e to %.4e \n", exp(peft->ln_k_fourier[eft_halo][0]), exp(peft->ln_k_fourier[eft_halo][peft->hp->k_size_fourier-1]));
-    fprintf(ffourier, "# number of wavenumbers equal to %d \n", peft->hp->k_size_fourier);
-    fprintf(ffourier, "#    1:k (1/Mpc)            2:P_bias (Mpc)^3        3:d^2P_bias/dln(k)^2 (Mpc)^3 \n");
-    for (int i = 0; i < peft->hp->k_size_fourier; i++)
-      fprintf(ffourier, "  %.16e       %.16e       %+.16e \n", \
-              exp(peft->ln_k_fourier[eft_halo][i]), peft->pk_l_biased[pk_lin*eft_tracer_num + eft_halo][i], peft->ddpk_l_biased[pk_lin*eft_tracer_num + eft_halo][i]);
+    if (ffourier) {
+      fprintf(ffourier, "# Biased samples of the linear power spectrum at z=%.3f \n", peft->z0);
+      fprintf(ffourier, "# for k=%.4e to %.4e \n", exp(peft->ln_k_fourier[eft_halo][0]), exp(peft->ln_k_fourier[eft_halo][peft->hp->k_size_fourier-1]));
+      fprintf(ffourier, "# number of wavenumbers equal to %d \n", peft->hp->k_size_fourier);
+      fprintf(ffourier, "#    1:k (1/Mpc)            2:P_bias (Mpc)^3        3:d^2P_bias/dln(k)^2 (Mpc)^3 \n");
+      for (int i = 0; i < peft->hp->k_size_fourier; i++)
+        fprintf(ffourier, "  %.16e       %.16e       %+.16e \n", \
+                exp(peft->ln_k_fourier[eft_halo][i]), peft->pk_l_biased[pk_lin*eft_tracer_num + eft_halo][i], peft->ddpk_l_biased[pk_lin*eft_tracer_num + eft_halo][i]);
 
-    fclose(ffourier);
+      fclose(ffourier);
+    }
 
     ffourier = fopen("output/halo_pk_lin_fourier_coefficients.dat", "w");
 
-    fprintf(ffourier, "# Fourier coefficients of the linear power spectrum at z=%.3f \n", peft->z0);
-    fprintf(ffourier, "# for omega=%.3f to %.3f \n", peft->fourier_frequencies[eft_halo][num_independent_coefficients], peft->fourier_frequencies[eft_halo][num_independent_coefficients-1]);
-    fprintf(ffourier, "# number of frequencies equal to %d \n", peft->hp->fourier_coeff_size);
-    fprintf(ffourier, "#    1:omega                  2:Re c (Mpc)^3                  3:Im c (Mpc)^3                  4:Cond[Re c]                  5:Cond[Im c] \n");
-    for (int i = 0; i < peft->hp->fourier_coeff_size; i++)
-      fprintf(ffourier, "  %.16e       %+.16e       %+.16e       %+.16e       %+.16e \n", \
-              peft->fourier_frequencies[eft_halo][i], creal(peft->fourier_coeff[pk_lin*eft_tracer_num + eft_halo][i]), cimag(peft->fourier_coeff[pk_lin*eft_tracer_num + eft_halo][i]),     \
-              creal(peft->fourier_condition_num[pk_lin*eft_tracer_num + eft_halo][i]), cimag(peft->fourier_condition_num[pk_lin*eft_tracer_num + eft_halo][i]));
+    if (ffourier) {
+      fprintf(ffourier, "# Fourier coefficients of the linear power spectrum at z=%.3f \n", peft->z0);
+      fprintf(ffourier, "# for omega=%.3f to %.3f \n", peft->fourier_frequencies[eft_halo][num_independent_coefficients], peft->fourier_frequencies[eft_halo][num_independent_coefficients-1]);
+      fprintf(ffourier, "# number of frequencies equal to %d \n", peft->hp->fourier_coeff_size);
+      fprintf(ffourier, "#    1:omega                  2:Re c (Mpc)^3                  3:Im c (Mpc)^3                  4:Cond[Re c]                  5:Cond[Im c] \n");
+      for (int i = 0; i < peft->hp->fourier_coeff_size; i++)
+        fprintf(ffourier, "  %.16e       %+.16e       %+.16e       %+.16e       %+.16e \n", \
+                peft->fourier_frequencies[eft_halo][i], creal(peft->fourier_coeff[pk_lin*eft_tracer_num + eft_halo][i]), cimag(peft->fourier_coeff[pk_lin*eft_tracer_num + eft_halo][i]),     \
+                creal(peft->fourier_condition_num[pk_lin*eft_tracer_num + eft_halo][i]), cimag(peft->fourier_condition_num[pk_lin*eft_tracer_num + eft_halo][i]));
 
-    fclose(ffourier);
+      fclose(ffourier);
+    }
   }
 
 
@@ -1240,16 +1244,16 @@ int eft_get_loop_matrices(struct eft * peft,
         for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
           if (peft->loop_matrices_size[index_moment] == 0) { continue; }
           sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
-          class_call_parallel(eft_read_matrix_from_file(peft->loop_matrices[index_moment],
-                                                        peft->loop_matrices_size[index_moment],
-                                                        peft->symmetry[index_moment],
-                                                        peft->use_tracer[index_moment],
-                                                        peft->hp->period[peft->use_tracer[index_moment]],
-                                                        filename,
-                                                        peft->error_message,
-                                                        (peft->hp->eft_verbose > 2) ? _TRUE_ : _FALSE_),
-                              peft->error_message,
-                              peft->error_message);
+          // class_call_parallel(eft_read_matrix_from_file(peft->loop_matrices[index_moment],
+          //                                               peft->loop_matrices_size[index_moment],
+          //                                               peft->symmetry[index_moment],
+          //                                               peft->use_tracer[index_moment],
+          //                                               peft->hp->period[peft->use_tracer[index_moment]],
+          //                                               filename,
+          //                                               peft->error_message,
+          //                                               (peft->hp->eft_verbose > 2) ? _TRUE_ : _FALSE_),
+          //                     peft->error_message,
+          //                     peft->error_message);
 
           if (!abort) {
             if (eft_read_matrix_from_file(peft->loop_matrices[index_moment],

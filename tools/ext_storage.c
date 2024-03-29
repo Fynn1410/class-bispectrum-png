@@ -112,6 +112,8 @@ int ext_save(struct ext_storage * pext,
       (pfo->peft + i)->spectra_contributions_dimension = NULL;
     }
   }
+
+  pext->loop_matrices_stored = _TRUE_;
   /**-----------------------------------------------------*/
 
 
@@ -160,6 +162,10 @@ int ext_insert_eft(struct ext_storage * pext,
         /** - write the number of matrices copied */
         peft->moments_allocated = pext->eft_index_num[index_eft];
         pext->eft_index_num[index_eft] = 0;
+
+        if (peft->hp->eft_verbose > 0) {
+          printf("Loop matrices inserted from external storage for index = %d. \n", index_eft);
+        }
       }
       else {  /** - mismatch btw. periods */
         /** TODO: cleanup (dump memory) */

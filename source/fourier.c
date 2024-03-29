@@ -1377,7 +1377,7 @@ int fourier_init(
   }
   else {
     if (pfo->fourier_verbose > 0)
-      printf("Computing linear Fourier spectra.\n");
+      printf("Computing linear Fourier spectra. \n");
   }
 
   /** --> check applicability of Halofit and HMcode */
@@ -1504,7 +1504,9 @@ int fourier_init(
 
   /** - get the dewiggled power spectrum at each time in ln_tau */
   if (pfo->has_pk_nw) {
-
+    if (pfo->fourier_verbose > 2)
+      printf("Computing nowiggle Fourier spectra.\n");
+    
     double ln_k0 = log( ppr->nowiggle_filter_pivot_k );
     // double ln_k_nw_min = log( ppr->nowiggle_k_min );
     // double ln_k_nw_max = log( ppr->nowiggle_k_max );
@@ -1720,18 +1722,21 @@ int fourier_init(
     /** - debug output */
     if (pfo->fourier_verbose > 2) {
       FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
+      if (fpknw) {
+        fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
+        fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
+        fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
+        fprintf(fpknw, "#    1:k (1/Mpc)              2:P_nw (Mpc)^3          3:P_lin (Mpc)^3 \n");
+        for (int i = 0; i < pfo->k_size_extra; i++)
+          fprintf(fpknw, "  %.12e       %.12e       %.12e \n", \
+                  exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]),
+                  exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]));
 
-      fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
-      fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
-      fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
-      fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
-      for (int i = 0; i < pfo->k_size_extra; i++)
-        fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
-                exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]),
-                exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]));
-                //pm_nowiggle_gfilter(pba, ppm, pfo, exp(pfo->ln_k[i]), 0., 0));
-
-      fclose(fpknw);
+        fclose(fpknw);
+      }
+      else {
+        printf("Could not open file for nowiggle powerspectrum output.\n");
+      }
 
       /** - kmin at different z */
       // double z = 1.;

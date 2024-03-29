@@ -14,6 +14,7 @@ extract cosmological parameters.
 from math import exp,log
 import numpy as np
 cimport numpy as np
+np.import_array()
 from libc.stdlib cimport *
 from libc.stdio cimport *
 from libc.string cimport *
@@ -3009,5 +3010,126 @@ make        nonlinear_scale_cb(z, z_size)
                                           <double*> mu.data,
                                           mu_size,
                                           <double*>out_pkmuz.data)
+
+        return out_pkmuz
+
+    def eft_pkmu_rsd_grid(self,   \
+                  np.ndarray[DTYPE_t, ndim=2] mu,  \
+                  np.ndarray[DTYPE_t, ndim=3] k,   \
+                  np.ndarray[DTYPE_t, ndim=1] z,   \
+                  np.ndarray[DTYPE_t, ndim=2] biases,         \
+                  np.ndarray[DTYPE_t, ndim=2] counterterms,   \
+                  pkmu_type):
+        """
+        eft_job_powerspectrum_wedges_grid(mu, k, z, z_size, mu_size, k_size, pkmu_type, biases, counterterms)
+
+        Returns the oneloop power spectrum P_oneloop(k,mu,z)
+
+        Input parameters
+        ----------------
+        mu      : numpy array of mu values, indexed as mu[index_z, index_mu]
+        k       : numpy array of k values, indexed as k[index_z, index_mu, index_k]
+        z       : numpy array of z values, indexed as z[index_z]
+        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
+        biases : input: numpy array of biases [b1,b2,bG2,btd]
+        counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+
+        Returns:
+        --------
+        out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z, index_mu, index_k]
+
+        """
+
+        # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
+
+        if not mu.flags['C_CONTIGUOUS']:
+            mu = np.ascontiguousarray(mu)
+        if not k.flags['C_CONTIGUOUS']:
+            k = np.ascontiguousarray(k)
+        if not z.flags['C_CONTIGUOUS']:
+            z = np.ascontiguousarray(z)
+
+        cdef int z_size = <int>z.shape[0]
+        cdef int mu_size = <int>mu.shape[1]
+        cdef int k_size = <int>k.shape[2]
+
+        cdef int index_z
+        cdef np.intp_t[:] mu_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef np.intp_t[:] k_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef np.intp_t[:] out_pkmuz_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef double** muvec_pp = <double**>(<void*> &mu_pointer_arr[0])
+        cdef double** kvec_pp = <double**>(<void*> &k_pointer_arr[0])
+        cdef double** out_pkmuz_pp = <double**>(<void*> &out_pkmuz_pointer_arr[0])
+
+        # allocate input/output array
+        cdef int* mu_sizevec = <int*>malloc(z_size * sizeof(int))
+        cdef int* k_sizevec  = <int*>malloc(z_size * sizeof(int))
+        cdef np.ndarray[DTYPE_t, ndim=3] out_pkmuz = np.zeros((z_size, mu_size, k_size), dtype='float64', order='C')
+
+        cdef double[::1] z_view = z
+        cdef double[:, ::1] mu_view = mu
+        cdef double[:, :, ::1] k_view = k
+        cdef double[:, :, ::1] out_pkmuz_view = out_pkmuz
+
+        # allocate input structure
+        cdef eft_input_parameters* eft_ip = <eft_input_parameters*>malloc(z_size * sizeof(eft_input_parameters))
+
+        # fill input type enum
+        cdef eft_pk_out_type pk_output_type
+
+        if pkmu_type == 'Pdd_mm_rsd':
+            pk_output_type = Pdd_mm_rsd
+        elif pkmu_type == 'Pdd_hh_rsd':
+            pk_output_type = Pdd_hh_rsd
+        else:
+            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
+
+        # check input consistency
+        if (mu.shape[0] != z_size) or (k.shape[0] != z_size) or (k.shape[1] != mu_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}) for z, ({1:d}, {2:d}) for mu and ({3:d}, {4:d}, {5:d}) for k.".format(z.shape[0], mu.shape[0], mu.shape[1], k.shape[0], k.shape[1], k.shape[2]))
+        if (biases.shape[0] != z_size) or (counterterms.shape[0] != z_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}, {1:d}) for biases and ({2:d}, {3:d}) for counterterms.".format(biases.shape[0], biases.shape[1], counterterms.shape[0], counterterms.shape[1]))
+
+
+        for index_z in range(z_size):
+            # fill input structures
+            eft_ip[index_z].b1 = biases[index_z, 0]
+            eft_ip[index_z].b2 = biases[index_z, 1]
+            eft_ip[index_z].bG2 = biases[index_z, 2]
+            eft_ip[index_z].btd = biases[index_z, 3]
+            eft_ip[index_z].c00 = counterterms[index_z, 0]
+            eft_ip[index_z].c10 = counterterms[index_z, 1]
+            eft_ip[index_z].c20 = counterterms[index_z, 2]
+            eft_ip[index_z].c22 = counterterms[index_z, 3]
+            eft_ip[index_z].c30 = counterterms[index_z, 4]
+            eft_ip[index_z].c32 = counterterms[index_z, 5]
+            eft_ip[index_z].c42 = counterterms[index_z, 6]
+            eft_ip[index_z].has_rsd = 1
+            # assign pointers
+            muvec_pp[index_z] = &mu_view[index_z, 0]
+            mu_sizevec[index_z] = mu_size
+            kvec_pp[index_z] = &k_view[index_z, 0, 0]
+            k_sizevec[index_z] = k_size
+            out_pkmuz_pp[index_z] = &out_pkmuz_view[index_z, 0, 0]
+
+        eft_job_powerspectrum_wedges(self.fo.peft,
+                                     self.fo.eft_size,
+                                     &self.ba,
+                                     &self.fo,
+                                     &self.pm,
+                                     &self.pr,
+                                     pk_output_type,
+                                     <double*> z.data,
+                                     eft_ip,
+                                     z_size,
+                                     kvec_pp,
+                                     k_sizevec,
+                                     muvec_pp,
+                                     mu_sizevec,
+                                     out_pkmuz_pp)
+        
+        free(mu_sizevec)
+        free(k_sizevec)
+        free(eft_ip)
 
         return out_pkmuz
