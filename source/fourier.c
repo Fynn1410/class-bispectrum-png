@@ -2153,6 +2153,10 @@ int fourier_init(
       class_call(eft_init(ppr, pba, pfo->peft + index_eft, &(pfo->eft_hp), pfo->eft_ip + index_eft, pext, eft_role, index_eft),
                   pfo->peft[index_eft].error_message,
                   pfo->error_message);
+
+      class_call(eft_get_loop_matrices(pfo->peft + index_eft, pext, index_eft),
+                  pfo->peft[index_eft].error_message,
+                  pfo->error_message);
     }
 
     // /** - if we want to use the mu-approximation of the spectra, load the linear and nowiggle spectrum at this point
@@ -2184,11 +2188,11 @@ int fourier_init(
     //   }
     // }
 
-    for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
-      class_call(eft_get_loop_matrices(pfo->peft + index_eft, pext, index_eft),
-                  pfo->peft[index_eft].error_message,
-                  pfo->error_message);
-    }
+    // for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
+    //   class_call(eft_get_loop_matrices(pfo->peft + index_eft, pext, index_eft),
+    //               pfo->peft[index_eft].error_message,
+    //               pfo->error_message);
+    // }
 
     // test zone to illustrate how to get some output (will need to be used toi store results in the fourier structure like with other moethods)
     /*
@@ -2299,7 +2303,7 @@ int fourier_free(
 
   if (pfo->method == nl_oneloopPT) {
     for (i = pfo->eft_size-1; i >= 0; i--) {
-      eft_free(pfo->peft);
+      eft_free(pfo->peft + i);
     }
     free(pfo->peft);
   }
