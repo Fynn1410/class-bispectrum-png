@@ -50,7 +50,7 @@ static double complex eft_mat_M1(const double complex nu1, const double complex 
 
 /**
  * Analytic expression of the integrals of the form
- * M2 = k^(-3 + 2 nu12) * int_q q|| q|| /(q^(2 nu1) kmq^(2 nu2)
+ * M2 = k^(-3 + 2 nu12) * int_q  q|| q|| /(q^(2 nu1) kmq^(2 nu2)
  *
  * @param nu1   Input: power of q^2
  * @param nu2   Input: power of |k - q|^2
@@ -74,7 +74,7 @@ static double complex eft_mat_M2(const double complex nu1, const double complex 
 
 /**
  * Analytic expression of the integrals of the form
- * M3 = k^(-3 + 2 nu12) * int_q q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2)
+ * M3 = k^(-3 + 2 nu12) * int_q  q|| q|| q|| /(q^(2 nu1) kmq^(2 nu2)
  *
  * @param nu1   Input: power of q^2
  * @param nu2   Input: power of |k - q|^2

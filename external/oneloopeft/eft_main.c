@@ -109,7 +109,7 @@ int eft_allocate_loop_matrices(struct eft * peft) {
 
   if (peft->hp->has_rsd) {
     peft->symmetry[peft->index_I2201]     = sym_mat_symmetric; peft->use_tracer[peft->index_I2201]     = eft_matter;
-    peft->symmetry[peft->index_I1301p3101]= sym_mat_none;      peft->use_tracer[peft->index_I1301p3101]= eft_matter;
+    peft->symmetry[peft->index_I1301p3101]= sym_vec;           peft->use_tracer[peft->index_I1301p3101]= eft_matter;
     peft->symmetry[peft->index_Idelta201] = sym_mat_symmetric; peft->use_tracer[peft->index_Idelta201] = eft_halo;
     peft->symmetry[peft->index_IG201]     = sym_mat_symmetric; peft->use_tracer[peft->index_IG201]     = eft_halo;
     peft->symmetry[peft->index_FG201]     = sym_vec;           peft->use_tracer[peft->index_FG201]     = eft_halo;

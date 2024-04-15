@@ -864,10 +864,16 @@ int eft_compute_divergences(struct eft * peft,
           }
         }
         else if (index_moment == peft->index_Idelta2delta200) {
-          if (bias >= -1.5) {
-            add_shot_contribution(peft, 0, 0, shot_sq(peft, -2, 0, index_pk_type),
+          if (bias < -1.5) { /** TODO: decide on shot noise removal */
+            add_shot_contribution(peft, 0, 0, -shot_sq(peft, -2, 0, index_pk_type),
                                   peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
                                   moment_list[index_list]);
+          }
+          else if (bias >= -1.5) {
+            /* add_shot_contribution(peft, 0, 0, shot_sq(peft, -2, 0, index_pk_type),
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  moment_list[index_list]); */
+            /** - cancel with the contribution before */
           }
           if (bias >= -0.5) {
             add_shot_contribution(peft, 2, 0, (2.*shot_sq(peft, -2, 1, index_pk_type) + shot_sq(peft, -4, 2, index_pk_type))/6.,
@@ -1184,14 +1190,14 @@ int eft_compute_divergences(struct eft * peft,
         if (index_moment == peft->index_I2200) {
           if (bias <= -1.) {
             add_plin_contribution(peft, 2, 0, 0, sigma_sq(peft, -1, index_pk_type)/12.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
         else if (index_moment == peft->index_I1300) { // * P_lin(k)
           if (bias <= -1.) {
             add_shot_contribution(peft, 2, 0, -sigma_sq(peft, -1, index_pk_type)/18.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1217,14 +1223,14 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_I2201) {
           if (bias <= -1.) {
             add_plin_contribution(peft, 2, 0, 0, sigma_sq(peft, -1, index_pk_type)/12.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
         else if (index_moment == peft->index_I1301p3101) {  // * P_lin(k)
           if (bias <= -1.) {
             add_shot_contribution(peft, 2, 0, -sigma_sq(peft, -1, index_pk_type)/9.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1243,14 +1249,14 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_J11201) {  // * P_lin(k) mu
           if (bias < -1.) {
             add_shot_contribution(peft, 1, 1, -sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
         else if (index_moment == peft->index_J21101) {  // * mu
           if (bias <= -1.) {
             add_plin_contribution(peft, 1, 1, 0, sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1267,7 +1273,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_J12102y) { // * P_lin(k) mu^2
           if (bias <= -1.) {
             add_shot_contribution(peft, 0, 2, -sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1277,7 +1283,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_J21102y) { // * mu^2
           if (bias <= -1.) {
             add_plin_contribution(peft, 0, 2, 0, sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1296,14 +1302,14 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_I2211) {
           if (bias <= -1.) {
             add_plin_contribution(peft, 2, 0, 0, sigma_sq(peft, -1, index_pk_type)/12.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
         else if (index_moment == peft->index_I1311) { // * P_lin(k)
           if (bias < -1.) {
             add_shot_contribution(peft, 2, 0, -sigma_sq(peft, -1, index_pk_type)/18.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1313,21 +1319,21 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_J11211) {  // * P_lin(k) mu
           if (bias < -1.) {
             add_shot_contribution(peft, 1, 1, -sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
         else if (index_moment == peft->index_J21111) {  // * mu
           if (bias <= -1.) {
             add_plin_contribution(peft, 1, 1, 0, sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
         else if (index_moment == peft->index_N11x) {
           if (bias <= -1.) {
             add_plin_contribution(peft, 0, 0, 0, sigma_sq(peft, -1, index_pk_type)/3.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1341,7 +1347,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_J21112y) { // * mu^2
           if (bias <= -1.) {
             add_plin_contribution(peft, 0, 2, 0, sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1351,14 +1357,14 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_J12112y) { // * P_lin(k) mu^2
           if (bias <= -1.) {
             add_shot_contribution(peft, 0, 2, -sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
         else if (index_moment == peft->index_N12x) {  // * mu
           if (bias <= -1.) {
             add_plin_contribution(peft, -1, 1, 0, sigma_sq(peft, -1, index_pk_type)/3.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1372,7 +1378,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_N22y) {  // * mu^2
           if (bias <= -1.) {
             add_plin_contribution(peft, -2, 2, 0, sigma_sq(peft, -1, index_pk_type)/3.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1392,7 +1398,7 @@ int eft_compute_divergences(struct eft * peft,
         if (index_moment == peft->index_I2200) {
           if (bias <= -1.) {
             add_plin_contribution(peft, 2, 0, 0, sigma_sq(peft, -1, index_pk_type)/12.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1421,7 +1427,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_I2201) {
           if (bias <= -1.) {
             add_plin_contribution(peft, 2, 0, 0, sigma_sq(peft, -1, index_pk_type)/12.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1465,7 +1471,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_J21102y) { // * mu^2
           if (bias <= -1.) {
             add_plin_contribution(peft, 0, 2, 0, sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1484,7 +1490,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_I2211) {
           if (bias <= -1.) {
             add_plin_contribution(peft, 2, 0, 0, sigma_sq(peft, -1, index_pk_type)/12.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1513,7 +1519,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_J21112y) { // * mu^2
           if (bias <= -1.) {
             add_plin_contribution(peft, 0, 2, 0, sigma_sq(peft, -1, index_pk_type)/6.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence],
                                   moment_list[index_list]);
           }
         }
@@ -1536,7 +1542,7 @@ int eft_compute_divergences(struct eft * peft,
         else if (index_moment == peft->index_N22y) {  // * mu^2
           if (bias <= -1.) {
             add_plin_contribution(peft, -2, 2, 0, sigma_sq(peft, -1, index_pk_type)/3.,
-                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence],
+                                  peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence],
                                   moment_list[index_list]);
           }
         }
