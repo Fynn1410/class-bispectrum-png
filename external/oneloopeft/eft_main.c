@@ -322,6 +322,8 @@ int eft_free(struct eft * peft) {
       free(peft->fourier_frequencies[index_tracer]);
     }
     free(peft->ln_k_moments);
+    free(peft->mu);
+    free(peft->ln_k);
 
     if (peft->hp->fourier_mode == fourier_mode_fft) {
       FFT_planner_free(&(peft->fft_plan));
@@ -1643,6 +1645,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     free(list_pk_types_loops);
     free(list_pk_types_loops_not_loaded);
     free(list_spectra_contributions);
+    free(list_spectra_contributions_not_loaded);
 
   } /** - end of z-loop */
 

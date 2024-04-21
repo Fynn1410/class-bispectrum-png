@@ -3491,7 +3491,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       if (flag1 == _TRUE_) {
         /** - discrete list of z was given, therefore initialize an appropriate amount of eft structs */
         pfo->z_pk_eft_num = size;
-        class_alloc(pfo->z_pk_eft, size, errmsg);
+        class_alloc(pfo->z_pk_eft, size*sizeof(double), errmsg);
         class_protect_memcpy(pfo->z_pk_eft, plist, size*sizeof(double));
         free(plist);
 
@@ -3499,7 +3499,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       }
       else {
         pfo->z_pk_eft_num = 1;
-        class_alloc(pfo->z_pk_eft, 1, errmsg);
+        class_alloc(pfo->z_pk_eft, sizeof(double), errmsg);
         pfo->z_pk_eft[0] = 0.;
       }
 
