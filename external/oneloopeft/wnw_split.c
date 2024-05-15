@@ -1,12 +1,12 @@
 
-/** @file wnw_split.c 
- * 
- * Documented wiggle-nowiggle split based on 1d Gaussian filter in logarithmic k, 
- * and using the Eisentein-Hu wiggle-nowiggle template arXiv:astro-ph/9709112 
- * 
+/** @file wnw_split.c
+ *
+ * Documented wiggle-nowiggle split based on 1d Gaussian filter in logarithmic k,
+ * and using the Eisentein-Hu wiggle-nowiggle template arXiv:astro-ph/9709112
+ *
  * Azadeh Moradinezhad Dizgah, June 16th 2021
  * Christian Radermacher, December 2023
- * 
+ *
  * The algorithm closely follows Ref. arXiv:1509.02120 by Vlah et al. (described in Appendix A)
  */
 
@@ -36,7 +36,7 @@ int eft_ln_pk_nw_gfilter(
                       const int index_kmin,
                       const int k_size,
                       double * ln_pknw_array) {
-  
+
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, last_index;
   double ln_pk0_z, k0, smoothing_scale;
   double *pk_approx_f, *intg_splines, *intg_result;
@@ -56,12 +56,12 @@ int eft_ln_pk_nw_gfilter(
   /** - compute the Eisenstein-Hu approximation to the nowiggle power spectrum */
   for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
     pk_approx_f[it_q] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_q], k0);
-    
+
     /** - also write the array of x-values for splining */
     intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
   }
 
-  
+
   /** - compute the gaussian window integral at every tau */
   for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++)
   {
@@ -89,7 +89,7 @@ int eft_ln_pk_nw_gfilter(
     for (it_k = 0; it_k < k_size; it_k++)
     {
       /** - compute the running smoothing scale */
-      smoothing_scale = eft_gfilter_smoothing_scale(pfo->ln_k[index_kmin + it_k]);
+      smoothing_scale = gfilter_smoothing_scale(pfo->ln_k[index_kmin + it_k]);
       // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((pfo->ln_k[index_kmin + it_k] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
 
       /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
@@ -113,7 +113,7 @@ int eft_ln_pk_nw_gfilter(
     }
 
     /** - write to output array */
-    memcpy(ln_pknw_array + it_tau*pfo->k_size_extra + index_kmin, 
+    memcpy(ln_pknw_array + it_tau*pfo->k_size_extra + index_kmin,
             intg_result,
             k_size * sizeof(double));
   }
@@ -146,7 +146,7 @@ int eft_ln_pk_nw_gfilter_parallel(
                       const int index_kmin,
                       const int k_size,
                       double * ln_pknw_array) {
-  
+
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, abort = _FALSE_;
   double ln_pk0_z, k0, smoothing_scale;
   double *pk_approx_f, *intg_splines, *intg_result;
@@ -166,10 +166,10 @@ int eft_ln_pk_nw_gfilter_parallel(
   class_define_index(index_y, _TRUE_, it_q, 1);
   class_define_index(index_ddy, _TRUE_, it_q, 1);
   index_num = it_q;
-  
+
   class_alloc_parallel(intg_splines, pfo->k_size_extra * index_num * sizeof(double), pfo->error_message);
   class_alloc_parallel(intg_result, k_size * sizeof(double), pfo->error_message);
-  
+
   if (!abort) {
   #pragma omp for schedule(static), nowait
   for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
@@ -209,7 +209,7 @@ int eft_ln_pk_nw_gfilter_parallel(
     for (it_k = 0; it_k < k_size; it_k++)
     {
       /** - compute the running smoothing scale */
-      smoothing_scale = eft_gfilter_smoothing_scale(intg_splines[(index_kmin + it_k)*index_num + index_x]);
+      smoothing_scale = gfilter_smoothing_scale(intg_splines[(index_kmin + it_k)*index_num + index_x]);
       // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((intg_splines[(index_kmin + it_k)*index_num + index_x] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
 
       /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
@@ -234,7 +234,7 @@ int eft_ln_pk_nw_gfilter_parallel(
     }
 
     /** - write to output array */
-    memcpy(ln_pknw_array + it_tau*pfo->k_size_extra + index_kmin, 
+    memcpy(ln_pknw_array + it_tau*pfo->k_size_extra + index_kmin,
             intg_result,
             k_size * sizeof(double));
   }
@@ -272,7 +272,7 @@ int eft_ln_pk_nw_gfilter_3d(
                       const int index_kmin,
                       const int k_size,
                       double *ln_pknw_array) {
-  
+
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, last_index;
   double ln_pk0_z, k0, smoothing_scale;
   double *pk_approx_f, *intg_splines, *intg_result1, *intg_result2;
@@ -293,12 +293,12 @@ int eft_ln_pk_nw_gfilter_3d(
   /** - compute the Eisenstein-Hu approximation to the nowiggle power spectrum */
   for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
     pk_approx_f[it_q] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_q], k0);
-    
+
     /** - also write the array of x-values for splining */
     intg_splines[it_q*index_num + index_x] = pfo->k[it_q];
   }
 
-  
+
   /** - compute the gaussian window integral at every tau */
   for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++)
   {
@@ -357,7 +357,7 @@ int eft_ln_pk_nw_gfilter_3d(
                   pfo->error_message,
                   pfo->error_message);
 
-      
+
       fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num - index_ddy], intg_result1[it_k] + intg_result2[it_k]);
 
       /** - multiply with prefactors and take log */
@@ -367,7 +367,7 @@ int eft_ln_pk_nw_gfilter_3d(
     }
 
     /** - write to output array */
-    memcpy(ln_pknw_array + it_tau*pfo->k_size_extra + index_kmin, 
+    memcpy(ln_pknw_array + it_tau*pfo->k_size_extra + index_kmin,
             intg_result1,
             k_size * sizeof(double));
   }
@@ -399,7 +399,7 @@ int eft_ln_pk_nw_gfilter_3d(
 //                       const int index_k0,
 //                       const int index_pk,
 //                       double *ln_pknw_array) {
-  
+
 //   int it_k, it_tau, last_index;
 //   double pk0_z, pk0, growthD, *bg_vec;
 
@@ -410,28 +410,28 @@ int eft_ln_pk_nw_gfilter_3d(
 //                                             ln_pknw_array + (pfo->ln_tau_size-1)*pfo->k_size_extra),
 //               pfo->error_message,
 //               pfo->error_message);
-  
+
 //   /** - power spectrum at fixing scale today */
 //   pk0 = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0];
 
 //   for (it_tau = pfo->ln_tau_size - 2; it_tau >= 0; it_tau--)
 //   {
 //     /** - get the linear growth factor */
-//     class_call(background_at_tau(pba, 
-//                                 exp(pfo->ln_tau[it_tau]), 
-//                                 long_info, 
-//                                 inter_normal, 
-//                                 &last_index, 
+//     class_call(background_at_tau(pba,
+//                                 exp(pfo->ln_tau[it_tau]),
+//                                 long_info,
+//                                 inter_normal,
+//                                 &last_index,
 //                                 bg_vec),
 //                 pba->error_message,
 //                 pfo->error_message)
 
 //     /** - power spectrum at fixing scale at tau */
 //     pk0_z = pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + index_k0];
-    
+
 //     /** - copy array to the former time point */
-//     memcpy(ln_pknw_array + it_tau*pfo->k_size_extra, 
-//             ln_pknw_array + (pfo->ln_tau_size-1)*pfo->k_size_extra, 
+//     memcpy(ln_pknw_array + it_tau*pfo->k_size_extra,
+//             ln_pknw_array + (pfo->ln_tau_size-1)*pfo->k_size_extra,
 //             pfo->k_size_extra * sizeof(double));
 
 //     /** - multiply with the correct time dependence */
@@ -448,27 +448,27 @@ int eft_ln_pk_nw_gfilter_3d(
 
 // /**
 //  * @brief Compute the nowiggle component of linear matter power spectrum using 1d logarithmic Gaussian filter.
-//  * Time dependence (D(z)^2 * Plin(k0, z)/Plin(k0, 0)) has been factorised and needs to be multiplied separately. 
+//  * Time dependence (D(z)^2 * Plin(k0, z)/Plin(k0, 0)) has been factorised and needs to be multiplied separately.
 //  * Computing the nowiggle component involves calculating an integral (Eq. A3 of Vlah et al)
-//  * 
+//  *
 //  * @param pba         Input: pointer to background structure
 //  * @param ppm         Input: pointer to primordial structure
 //  * @param pfo         Input: pointer to fourier structure
 //  * @param k0          Input: fixing scale k in pfo->k, i.e. the largest usable scale
-//  * @param ln_pknw_array  Output: Dewiggled power spectrum for every pfo->k without the time dependence (D(z)^2 * Plin(k0, z)/Plin(k0, 0)) 
+//  * @param ln_pknw_array  Output: Dewiggled power spectrum for every pfo->k without the time dependence (D(z)^2 * Plin(k0, z)/Plin(k0, 0))
 //  *                            in units of (Mpc)^3 [size = pfo->k_size_extra]
 //  * @return the error status
 //  */
 // int eft_ln_pk_nw_gfilter_time_indep(
-//                                 struct background *pba, 
-//                                 struct primordial *ppm, 
-//                                 struct fourier *pfo, 
+//                                 struct background *pba,
+//                                 struct primordial *ppm,
+//                                 struct fourier *pfo,
 //                                 const int index_k0,
 //                                 const int index_pk,
 //                                 double *ln_pknw_array) {
 
 //   const double smoothing_scale = 0.25 * log(10); // lambda * (1 Mpc)
-  
+
 //   double *pk_approx_f, *intg_splines, k0;
 //   int index_x, index_y, index_ddy;
 //   int it_k = 0, it_q = 0, index_num;
@@ -489,13 +489,13 @@ int eft_ln_pk_nw_gfilter_3d(
 //   {
 //     pk_approx_f[it_k] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, exp(pfo->ln_k[it_k]), k0);
 //   }
-  
+
 //   /** Prepare the integrand for every ln(k) */
 //   for (it_k = 0; it_k < pfo->k_size_extra; it_k++)
 //   {
 //     for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
 //     {
-      
+
 //       intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
 //       intg_splines[it_q*index_num + index_y] = exp( pfo->ln_pk_l_extra[index_pk][it_q] - pow((pfo->ln_k[it_k] - pfo->ln_k[it_q])/smoothing_scale, 2.)/2. ) / pk_approx_f[it_q];
 //     }
@@ -547,12 +547,12 @@ int eft_ln_pk_nw_gfilter_3d(
  * @return Approximate dewiggled power spectrum at z divided by the original linear spectrum
  */
 double eft_pk_nw_eisenstein_hu_factor(
-                                      struct background *pba, 
-                                      struct primordial *ppm, 
-                                      struct fourier *pfo, 
-                                      const double k, 
+                                      struct background *pba,
+                                      struct primordial *ppm,
+                                      struct fourier *pfo,
+                                      const double k,
                                       const double k0) {
-  
+
     return pow(k/k0, ppm->n_s) * pow(T0(pba, ppm, pfo, k)/T(pba, ppm, pfo, k0), 2.);
 }
 
@@ -568,12 +568,12 @@ double eft_pk_nw_eisenstein_hu_factor(
  * @return Approximate wiggle power spectrum at z divided by the original linear spectrum
  */
 double eft_pk_w_eisenstein_hu_factor(
-                                      struct background *pba, 
-                                      struct primordial *ppm, 
-                                      struct fourier *pfo, 
-                                      const double k, 
+                                      struct background *pba,
+                                      struct primordial *ppm,
+                                      struct fourier *pfo,
+                                      const double k,
                                       const double k0) {
-  
+
     return pow(k/k0, ppm->n_s) * pow(T(pba, ppm, pfo, k)/T(pba, ppm, pfo, k0), 2.);
 }
 
@@ -588,20 +588,20 @@ double eft_pk_w_eisenstein_hu_factor(
  * @return value of nor-baryon transfer fit
  */
 double T0(
-          struct background *pba, 
-          struct primordial *ppm, 
-          struct fourier *pfo, 
+          struct background *pba,
+          struct primordial *ppm,
+          struct fourier *pfo,
           double k) {
 
   double h     = pba->h;
-  double ombh2 = pow(h,2.) * pba->Omega0_b; 
-  double omch2 = pow(h,2.) * pba->Omega0_cdm; 
+  double ombh2 = pow(h,2.) * pba->Omega0_b;
+  double omch2 = pow(h,2.) * pba->Omega0_cdm;
   double om0h2 = ombh2 + omch2;
   double om0   = om0h2/pow(h,2.);
-  double theta = 2.728/2.7;    //OBBE-FIRAS value 
+  double theta = 2.728/2.7;    //OBBE-FIRAS value
 
   double s     = 44.5 * log(9.83/om0h2)/sqrt(1.+10.*pow(ombh2,3./4.));    ///approximate sound speed given in Eq. (26) of EH
-  double AG    = 1. - 0.328*log(431.*om0h2)*ombh2/om0h2 + 0.38*log(22.3*om0h2)*pow(ombh2/om0h2,2.);                                            
+  double AG    = 1. - 0.328*log(431.*om0h2)*ombh2/om0h2 + 0.38*log(22.3*om0h2)*pow(ombh2/om0h2,2.);
   double Gamma = om0 * h * (AG + (1. - AG)/(1.+pow(0.43*k*s,4.)));
   double q     = k/h *pow(theta,2.)/Gamma ;
   double L0    = log(2.*exp(1.) + 1.8 * q);
@@ -611,7 +611,7 @@ double T0(
   return out;
 }
 
-/** 
+/**
  * Compute the total baryon+CDM transfer function
  *
  * @param pba     Input: pointer to background structure
@@ -621,9 +621,9 @@ double T0(
  * @return value of baryon+cdm transfer function
  */
 double T(
-          struct background *pba, 
-          struct primordial *ppm, 
-          struct fourier *pfo, 
+          struct background *pba,
+          struct primordial *ppm,
+          struct fourier *pfo,
           double k) {
 
   double h     = pba->h;
@@ -631,13 +631,13 @@ double T(
   double omch2 = pow(h,2.) * pba->Omega0_cdm;
   double om0h2 = ombh2 + omch2;
   double om0   = om0h2/pow(h,2.);
-  double theta = 2.728/2.7;    //OBBE-FIRAS value 
+  double theta = 2.728/2.7;    //OBBE-FIRAS value
 
   double HH0     = 1.e3*1.e2*h/299792458.;   ///H0 value devided by the speed of light
   double zeq     = 2.5e4 * om0h2 * pow(theta,-4.);
   double keq     = sqrt(2.*om0*pow(HH0,2.)*zeq);
   double k_silk  = 1.6*pow(ombh2,0.52)*pow(om0h2,0.73)*(1.+pow(10.4*om0h2,-0.95));  ////in 1/Mpc
-  
+
   double beta_node = 8.41*pow(om0h2,0.435);
   double s         = 44.5 * log(9.83/om0h2)/sqrt(1.+10.*pow(ombh2,3./4.));    ///approximate sound speed given in Eq. (26) of EH
   double st        = s/pow(1.+ pow(beta_node/(k*s),3.),1./3.);
@@ -657,16 +657,16 @@ double T(
   double betac  = pow(1. + b1*(pow(omch2/om0h2,b2)-1.),-1.);
 
   double alphab = 2.07*keq*s*pow(1.+Rd,-3./4.)*G;
-  double betab  = 0.5 + ombh2/om0h2 + (3.-2.*ombh2/om0h2) * sqrt(pow(17.2*om0h2,2.)+1.); 
+  double betab  = 0.5 + ombh2/om0h2 + (3.-2.*ombh2/om0h2) * sqrt(pow(17.2*om0h2,2.)+1.);
   double f      = 1./(1.+pow(k*s/5.4, 4.));
 
   double Tb = (Tt0(pba,ppm,pfo,k,1.,1.)/(1.+pow(k*s/5.2,2.)) + alphab/(1.+pow(betab/(k*s),3.)) * exp(-pow(k/k_silk,1.4)))* sin(k*st) / (k*st); ///Eq. 21 of EH ref.
-  double Tc = f*Tt0(pba,ppm,pfo,k,1.,betac) + (1.-f) *Tt0(pba,ppm,pfo,k,alphac,betac);       ///Eq. 17 of EH ref                                    
+  double Tc = f*Tt0(pba,ppm,pfo,k,1.,betac) + (1.-f) *Tt0(pba,ppm,pfo,k,alphac,betac);       ///Eq. 17 of EH ref
 
   double out = ombh2/om0h2 * Tb + omch2/om0h2 * Tc;
 
   return out;
-}    
+}
 
 
 /**
@@ -675,29 +675,28 @@ double T(
  * @param pba     Input: pointer to background structure
  * @param ppm     Input: pointer to primordial structure
  * @param pfo     Input: pointer to fourier structure
- * @param k       Input: wavenumber in unit of 1/Mpc. 
+ * @param k       Input: wavenumber in unit of 1/Mpc.
  * @param x1      Input: alpha_c
  * @param x2      Input: beta_c
  * @return value of the function
  */
 double Tt0(
-            struct background *pba, 
-            struct primordial *ppm, 
-            struct fourier *pfo, 
-            double k, 
-            double x1, 
+            struct background *pba,
+            struct primordial *ppm,
+            struct fourier *pfo,
+            double k,
+            double x1,
             double x2) {
 
   double h     = pba->h;
   double ombh2 = pow(h,2.) * pba->Omega0_b;
   double omch2 = pow(h,2.) * pba->Omega0_cdm;
   double om0h2 = ombh2 + omch2;
-  double theta = 2.728/2.7;    //OBBE-FIRAS value 
+  double theta = 2.728/2.7;    //OBBE-FIRAS value
 
   double qq  = k*pow(theta,2.)*pow(om0h2,-1.);
   double C   = 14.2/x1+386./(1.+69.9*pow(qq,1.08));
   double out = log(exp(1.)+1.8*x2*qq)/(log(exp(1.)+1.8*x2*qq)+C*pow(qq,2.));
 
   return out;
-}     
-
+}

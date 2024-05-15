@@ -1531,12 +1531,12 @@ int fourier_init(
 
     for (index_k_min = 0; index_k_min < pfo->k_size_extra; index_k_min++) {
       ln_k_nw_min = pfo->ln_k[index_k_min];
-      smoothing_scale = eft_gfilter_smoothing_scale(ln_k_nw_min);
+      smoothing_scale = gfilter_smoothing_scale(ln_k_nw_min);
       if (ln_k_nw_min - pfo->ln_k[0] > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
     }
     for (index_k_max = pfo->k_size_extra-1; index_k_max >= 0; index_k_max--) {
       ln_k_nw_max = pfo->ln_k[index_k_max];
-      smoothing_scale = eft_gfilter_smoothing_scale(ln_k_nw_max);
+      smoothing_scale = gfilter_smoothing_scale(ln_k_nw_max);
       if (pfo->ln_k[pfo->k_size_extra-1] - ln_k_nw_max > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
     }
     k_nw_size = index_k_max - index_k_min + 1;
