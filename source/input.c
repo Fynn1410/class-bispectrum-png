@@ -5727,6 +5727,7 @@ int input_default_params(struct background *pba,
   pfo->eft_hp.use_time_independent_kernels = _TRUE_;
   pfo->eft_hp.compute_loop_matrices = _TRUE_;
   pfo->eft_hp.use_mu_approximation = _TRUE_;
+  pfo->eft_hp.write_loop_matrices = _FALSE_;
   sprintf(pfo->eft_hp.eft_loop_matrix_directory, "loop_matrices/");
   pfo->eft_hp.use_interpolation = _TRUE_;
   pfo->eft_hp.integration_mode = fftlog;
