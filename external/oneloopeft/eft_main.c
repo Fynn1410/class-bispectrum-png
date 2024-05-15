@@ -308,6 +308,7 @@ int eft_free(struct eft * peft) {
   if (peft->role == eft_master) {
     free(peft->symmetry);
     free(peft->use_tracer);
+    free(peft->spectra_contributions_dimension);
 
     if (peft->loop_matrices) {
       for (index_moment = 0; index_moment < peft->index_num; index_moment++) {
@@ -1219,7 +1220,7 @@ int eft_get_loop_matrices(struct eft * peft,
       if (peft->hp->compute_loop_matrices) {  /** - compute the loop matrices or */
         class_call(eft_compute_loop_matrices(peft), peft->error_message, peft->error_message);
 
-        if (peft->hp->write_loop_matrices) {  /** - and save them if flag is set */
+        if (peft->hp->write_loop_matrices == _TRUE_) {  /** - and save them if flag is set */
           #pragma omp parallel for schedule(dynamic), shared(peft, index, abort), private(index_moment, filename), default(none), num_threads(num_parallel_files)
           for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
             if (peft->loop_matrices_size[index_moment] == 0) { continue; }

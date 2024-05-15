@@ -1506,7 +1506,7 @@ int fourier_init(
   if (pfo->has_pk_nw) {
     if (pfo->fourier_verbose > 2)
       printf("Computing nowiggle Fourier spectra.\n");
-    
+
     double ln_k0 = log( ppr->nowiggle_filter_pivot_k );
     // double ln_k_nw_min = log( ppr->nowiggle_k_min );
     // double ln_k_nw_max = log( ppr->nowiggle_k_max );
@@ -2311,6 +2311,8 @@ int fourier_free(
       eft_free(pfo->peft + i);
     }
     free(pfo->peft);
+    free(pfo->z_pk_eft);
+    free(pfo->eft_ip);
   }
 
   if ((pfo->has_pk_matter == _TRUE_) || (pfo->method > nl_none)) {
