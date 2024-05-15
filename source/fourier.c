@@ -2143,8 +2143,8 @@ int fourier_init(
     pfo->eft_hp.k_size_nl = 200;
 
 
-    printf("compute_loop_matrices = %d \n", pfo->eft_hp.compute_loop_matrices);
-    printf("compute mu approximation = %d \n", pfo->eft_hp.use_mu_approximation);
+    //printf("compute_loop_matrices = %d \n", pfo->eft_hp.compute_loop_matrices);
+    //printf("compute mu approximation = %d \n", pfo->eft_hp.use_mu_approximation);
 
     for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
       index_ip = ((pfo->z_pk_eft_num == 1) && !(pfo->eft_hp.use_EdS_time_scaling)) ? 0 : index_eft;
