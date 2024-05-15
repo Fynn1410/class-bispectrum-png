@@ -3466,23 +3466,21 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
       ppt->k_max_for_pk = MAX(ppt->k_max_for_pk, ppr->nonlinear_min_k_max);
 
-      class_call(parser_read_string(pfc, "has_rsd", &string1, &flag1, errmsg),
-                  errmsg,
-                  errmsg);
-
-      class_read_double("eft_ir_resummation_k_split_h/Mpc", pfo->eft_hp.ir_resummation_k_split);
-      class_read_double("eft_ir_resummation_k_bao_h/Mpc", pfo->eft_hp.ir_resummation_k_feature);
-
-      if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-        //pfo->eft_hp.has_rsd = _TRUE_;
-      }
-
       class_read_flag("has_rsd", pfo->eft_hp.has_rsd);
       class_read_flag("eft_use_eds_scaling", pfo->eft_hp.use_EdS_time_scaling);
       //class_read_flag("eft_time_independent_kernels", pfo->eft_hp.use_time_independent_kernels);
       class_read_flag("eft_write_loop_matrices", pfo->eft_hp.write_loop_matrices);
       class_read_string("eft_loop_matrix_dir", pfo->eft_hp.eft_loop_matrix_directory);
       class_read_flag("eft_use_interpolation", pfo->eft_hp.use_interpolation);
+      class_read_flag("eft_compute_loop_matrices", pfo->eft_hp.compute_loop_matrices);
+      class_read_flag("eft_enable_mu_approximation", pfo->eft_hp.use_mu_approximation);
+      class_read_flag("eft_direct_integration", pfo->eft_hp.integration_mode);
+      /** - if Direct integration is selected, deactivate the approximate mu-dependence used with FFTLog */
+      if (pfo->eft_hp.integration_mode == direct_integration) {
+        #ifndef DIRECT_INTEGRATION
+        class_stop(errmsg, "You have requested direct integration, but the associated module was not compiled!");
+        #endif
+      }
 
       /** Read list of redshift at which to evaluate nonlinear spectra */
       class_call(parser_read_list_of_doubles(pfc, "z_pk_eft", &size, &plist, &flag1, errmsg),
@@ -3558,6 +3556,8 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
         }
       }
 
+      class_read_double("eft_ir_resummation_k_split_h/Mpc", pfo->eft_hp.ir_resummation_k_split);
+      class_read_double("eft_ir_resummation_k_bao_h/Mpc", pfo->eft_hp.ir_resummation_k_feature);
       class_read_double("eft_kmin_matter", pfo->eft_hp.kmin_lin[eft_matter]);
       class_read_double("eft_kmin_halo", pfo->eft_hp.kmin_lin[eft_halo]);
       class_read_double("eft_kmax_matter", pfo->eft_hp.kmax_lin[eft_matter]);
@@ -3566,15 +3566,6 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       class_read_double("eft_log_period_halo", pfo->eft_hp.period[eft_halo]);
       class_read_double("eft_bias_matter", pfo->eft_hp.bias[eft_matter]);
       class_read_double("eft_bias_halo", pfo->eft_hp.bias[eft_halo]);
-      class_read_flag("eft_compute_loop_matrices", pfo->eft_hp.compute_loop_matrices);
-      class_read_flag("eft_enable_mu_approximation", pfo->eft_hp.use_mu_approximation);
-      class_read_flag("eft_direct_integration", pfo->eft_hp.integration_mode);
-      /** - if Direct integration is selected, deactivate the approximate mu-dependence used with FFTLog */
-      if (pfo->eft_hp.integration_mode == direct_integration) {
-        #ifndef DIRECT_INTEGRATION
-        class_stop(errmsg, "You have requested direct integration, but the associated module was not compiled!");
-        #endif
-      }
     }
     else if(strstr(string1,"no")!=NULL){
       pfo->method=nl_none;
@@ -4693,7 +4684,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
       class_call(parser_read_string(pfc,"nowiggle_pk_species",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
-      
+
       if (flag1 == _TRUE_) {
         if (strstr(string1, "total") || strstr(string1, "TOTAL") || strstr(string1, "matter") || strstr(string1, "MATTER")) {
           pfo->nowiggle_pk_index = &(pfo->index_pk_total);
@@ -5711,9 +5702,9 @@ int input_default_params(struct background *pba,
   pfo->feedback = nl_emu_dmonly;
   pfo->z_infinity = 10.;
 
-  pfo->eft_hp.ir_resummation_k_split = 0.2; 
+  pfo->eft_hp.ir_resummation_k_split = 0.2;
   pfo->eft_hp.ir_resummation_k_feature = 1./110.;
-  
+
   pfo->eft_hp.has_rsd = _FALSE_;  /**< RSD moments should be computed */
   pfo->eft_hp.kmin_lin[eft_matter] = 1.e-6;
   pfo->eft_hp.kmin_lin[eft_halo]   = 1.e-6;
