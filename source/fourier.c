@@ -88,12 +88,13 @@ int fourier_pk_at_z(
 
   class_test((pk_output == pk_nonlinear) && (pfo->method == nl_oneloopPT),
              pfo->error_message,
-             "This function is not yet compatible with the oneloop method - this is no problem as long as you wish to get P_NL from the python wrapper, but it may have to be implemented for writting P_NL in output file \n");
+             "This function is not yet compatible with the oneloop method - this is no problem as long as you wish to get P_NL from the python wrapper, but it will have to be implemented at some point for writting P_NL in output file \n");
 
   /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
 
     if (pk_output == pk_linear) {
+      /** --> linear spectrum including extrapolated scales */
       for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
         out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
 
@@ -106,6 +107,7 @@ int fourier_pk_at_z(
       }
     }
     else {
+      /*** --> non-linear spectrum (without extrapolated scales) */
       for (index_k=0; index_k<pfo->k_size; index_k++) {
         out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1)*pfo->k_size+index_k];
       }
@@ -142,7 +144,8 @@ int fourier_pk_at_z(
       ln_tau = pfo->ln_tau[0];
 
       if (pk_output == pk_linear) {
-	for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
+        /** --> linear spectrum including extrapolated scales */
+        for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
           out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][index_k];
           if (do_ic == _TRUE_) {
             for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
@@ -152,7 +155,8 @@ int fourier_pk_at_z(
         }
       }
       else {
-	for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
+        /** --> non-linear spectrum (without extrapolated scales) */
+        for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
           out_pk[index_k] = pfo->ln_pk_nl[index_pk][index_k];
         }
       }
@@ -169,7 +173,8 @@ int fourier_pk_at_z(
       ln_tau = pfo->ln_tau[pfo->ln_tau_size-1];
 
       if (pk_output == pk_linear) {
-	for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
+        /** --> linear spectrum including extrapolated scales */
+        for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
           out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1) * pfo->k_size_extra + index_k];
           if (do_ic == _TRUE_) {
             for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
@@ -179,7 +184,8 @@ int fourier_pk_at_z(
         }
       }
       else {
-	for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
+        /** --> non-linear spectrum (without extrapolated scales) */
+        for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
           out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1) * pfo->k_size + index_k];
         }
       }
@@ -189,7 +195,7 @@ int fourier_pk_at_z(
     else {
 
       if (pk_output == pk_linear) {
-
+        /** --> linear spectrum including extrapolated scales */
         /** --> interpolate P_l(k) at tau from pre-computed array */
         class_call(array_interpolate_spline(pfo->ln_tau,
                                             pfo->ln_tau_size,
@@ -204,6 +210,7 @@ int fourier_pk_at_z(
                    pfo->error_message,
                    pfo->error_message);
 
+        /** --> linear spectrum decomposed in IC contributions (without extrapolated scales) */
         /** --> interpolate P_ic_l(k) at tau from pre-computed array */
         if (do_ic == _TRUE_) {
           class_call(array_interpolate_spline(pfo->ln_tau,
@@ -221,7 +228,7 @@ int fourier_pk_at_z(
         }
       }
       else {
-
+        /** --> non-linear spectrum (without extrapolated scales) */
         /** --> interpolate P_nl(k) at tau from pre-computed array */
         class_call(array_interpolate_spline(pfo->ln_tau,
                                             pfo->ln_tau_size,
@@ -231,7 +238,7 @@ int fourier_pk_at_z(
                                             ln_tau,
                                             &last_index,
                                             out_pk,
-                                            pfo->k_size_extra,
+                                            pfo->k_size,
                                             pfo->error_message),
                    pfo->error_message,
                    pfo->error_message);
@@ -243,34 +250,46 @@ int fourier_pk_at_z(
 
   if (mode == linear) {
 
-    /** --> loop over k */
-    for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
+    if (pk_output == pk_linear) {
 
-      /** --> convert total spectrum */
-      out_pk[index_k] = exp(out_pk[index_k]);
+      /** --> linear spectrum including extrapolated scales */
+      for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
+        out_pk[index_k] = exp(out_pk[index_k]);
+      }
 
       if (do_ic == _TRUE_) {
-        /** --> convert contribution of each ic (diagonal elements) */
-        for (index_ic1=0; index_ic1 < pfo->ic_size; index_ic1++) {
-          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pfo->ic_size);
+        /** --> linear spectrum decomposed in IC contributions (without extrapolated scales) */
+        for (index_k=0; index_k<pfo->k_size; index_k++) {
 
-          out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1] = exp(out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1]);
-        }
-
-        /** --> convert contribution of each ic (non-diagonal elements) */
-        for (index_ic1=0; index_ic1 < pfo->ic_size; index_ic1++) {
-          for (index_ic2=index_ic1+1; index_ic2 < pfo->ic_size; index_ic2++) {
+          /** --> convert contribution of each ic (diagonal elements) */
+          for (index_ic1=0; index_ic1 < pfo->ic_size; index_ic1++) {
             index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pfo->ic_size);
-            index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pfo->ic_size);
-            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pfo->ic_size);
 
-            /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
-            out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
-              = out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
-              *sqrt(out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1]
-                    *out_pk_ic[index_k * pfo->ic_ic_size + index_ic2_ic2]);
+            out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1] = exp(out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1]);
+          }
+
+          /** --> convert contribution of each ic (non-diagonal elements) */
+          for (index_ic1=0; index_ic1 < pfo->ic_size; index_ic1++) {
+            for (index_ic2=index_ic1+1; index_ic2 < pfo->ic_size; index_ic2++) {
+              index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pfo->ic_size);
+              index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pfo->ic_size);
+              index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pfo->ic_size);
+
+              /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
+              out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
+                = out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
+                *sqrt(out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1]
+                      *out_pk_ic[index_k * pfo->ic_ic_size + index_ic2_ic2]);
+            }
           }
         }
+      }
+    }
+
+    else {
+      /** --> non-linear spectrum (without extrapolated scales) */
+      for (index_k=0; index_k<pfo->k_size; index_k++) {
+        out_pk[index_k] = exp(out_pk[index_k]);
       }
     }
   }
@@ -382,6 +401,7 @@ int fourier_pks_at_z(
  * @param out_pk_ic   Ouput:  P_ic returned as out_pk_ic_l[index_ic1_ic2]
  * @return the error status
  */
+
 int fourier_pk_at_k_and_z(
                           struct background * pba,
                           struct primordial * ppm,
@@ -417,6 +437,7 @@ int fourier_pk_at_k_and_z(
   /** - first step: check that k is in valid range [0:kmax]
       (the test for z will be done when calling fourier_pk_linear_at_z()) */
 
+  // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
   class_test((k < 0.) || (k > exp(pfo->ln_k[pfo->k_size_extra-1])),
              pfo->error_message,
              "k=%e out of bounds [%e:%e]",k,0.,exp(pfo->ln_k[pfo->k_size_extra-1]));
@@ -438,10 +459,12 @@ int fourier_pk_at_k_and_z(
 
   else {
 
+    // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
     class_alloc(out_pk_at_z,
                 pfo->k_size_extra*sizeof(double),
                 pfo->error_message);
 
+    // JL: should probably use pfo->k_size here
     if (do_ic == _TRUE_) {
       class_alloc(out_pk_ic_at_z,
                   pfo->k_size_extra*pfo->ic_ic_size*sizeof(double),
@@ -468,10 +491,12 @@ int fourier_pk_at_k_and_z(
 
       /** --> interpolate total spectrum */
 
+      // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
       class_alloc(ddout_pk_at_z,
                   pfo->k_size_extra*sizeof(double),
                   pfo->error_message);
 
+      // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
       class_call(array_spline_table_lines(pfo->ln_k,
                                           pfo->k_size_extra,
                                           out_pk_at_z,
@@ -482,6 +507,7 @@ int fourier_pk_at_k_and_z(
                  pfo->error_message,
                  pfo->error_message);
 
+      // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
       class_call(array_interpolate_spline(pfo->ln_k,
                                           pfo->k_size_extra,
                                           out_pk_at_z,
@@ -500,6 +526,7 @@ int fourier_pk_at_k_and_z(
       // uncomment this part if you prefer a linear interpolation
 
       /*
+      // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
       class_call(array_interpolate_linear(pfo->ln_k,
                                             pfo->k_size_extra,
                                             out_pk_at_z,
@@ -679,6 +706,7 @@ int fourier_pk_at_k_and_z(
  * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pfo->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
+
 int fourier_pks_at_k_and_z(
                            struct background * pba,
                            struct primordial * ppm,
@@ -726,6 +754,8 @@ int fourier_pks_at_k_and_z(
   return _SUCCESS_;
 }
 
+
+// JL: in this new function, are we really returning P_nw? I would sya, as usual, either P_l or P_NL?
 /**
  * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
  * either linear or logarithmic.
@@ -743,6 +773,7 @@ int fourier_pks_at_k_and_z(
  * @param out_pk      Output: P_nw(k_i,z) for total matter in Mpc^3
  * @return the error status
  */
+
 int fourier_pk_at_kvec_and_z(
                     struct background * pba,
                     struct primordial * ppm,
@@ -1176,7 +1207,8 @@ int fourier_sigmas_at_z(
   double * out_pk;
   double * ddout_pk;
 
-  /** - allocate temporary array for P(k,z) as a function of k */
+  /** - allocate temporary array for P(k,z) as a function of k (since
+        this is for the linear spectrum, we use k_size_extra) */
 
   class_alloc(out_pk, pfo->k_size_extra*sizeof(double), pfo->error_message);
   class_alloc(ddout_pk, pfo->k_size_extra*sizeof(double), pfo->error_message);
@@ -1352,6 +1384,16 @@ int fourier_init(
   struct fourier_workspace nw;
   struct fourier_workspace * pnw;
 
+  // for oneloop method:
+  double ln_k0 = log( ppr->nowiggle_filter_pivot_k );
+  // double ln_k_nw_min = log( ppr->nowiggle_k_min );
+  // double ln_k_nw_max = log( ppr->nowiggle_k_max );
+  double ln_k_nw_min, ln_k_nw_max;
+  double smoothing_scale;
+  int index_k0 = 0, index_k_min = 0, index_k_max = 0, k_nw_size;
+  int index_eft, index_pk_type, index_moment, index_ip, last_index;
+  short eft_role;
+
   /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
         from the perturbations structure to the fourier structure */
   pfo->has_pk_matter = ppt->has_pk_matter;
@@ -1377,24 +1419,22 @@ int fourier_init(
   }
   else {
     if (pfo->fourier_verbose > 0)
-      printf("Computing linear Fourier spectra. \n");
+      printf("Computing linear Fourier spectra.\n");
   }
 
   /** --> check applicability of Halofit and HMcode */
-  if ((pfo->method == nl_halofit) || (pfo->method == nl_HMcode)) {
+  if (pfo->method == nl_halofit > nl_none) {
 
     if (pba->has_ncdm == _TRUE_) {
       for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
         if (pba->m_ncdm_in_eV[index_ncdm] >  _M_EV_TOO_BIG_FOR_HALOFIT_)
-          fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
+          fprintf(stdout,"Warning: Halofit, HMcode and OneLoop are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes their use unreliable.\n",pba->m_ncdm_in_eV[index_ncdm]);
       }
     }
     if (pba->has_idm_dr == _TRUE_){
-      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm_dr), which makes the use of Halofit or HMCode unreliable.\n");
+      fprintf(stdout,"Warning: Halofit, HMcode and OneLoop are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm_dr), which makes their use unreliable.\n");
     }
   }
-
-  //TODO: implement similar checks for the applicability of the one loop PT method
 
   /** - define indices in fourier structure (and allocate some arrays in the structure) */
 
@@ -1409,6 +1449,7 @@ int fourier_init(
 
   /** - get the linear power spectrum at each time */
 
+  //JL the loops over index-pk and index_tau has been swapped; reason?
   /** --> loop over required pk types (_m, _cb) */
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
 
@@ -1465,8 +1506,8 @@ int fourier_init(
     }
 
     /** --> if interpolation of \f$P(k,\tau)\f$ will be needed (as a
-   function of tau), compute array of second derivatives in view of
-    spline interpolation */
+        function of tau), compute array of second derivatives in view of
+        spline interpolation */
 
     if (pfo->ln_tau_size > 1) {
 
@@ -1504,22 +1545,20 @@ int fourier_init(
 
   /** - get the dewiggled power spectrum at each time in ln_tau */
   if (pfo->has_pk_nw) {
+
     if (pfo->fourier_verbose > 2)
-      printf("Computing nowiggle Fourier spectra.\n");
+      printf("Computing nowiggle power spectra.\n");
 
-    double ln_k0 = log( ppr->nowiggle_filter_pivot_k );
-    // double ln_k_nw_min = log( ppr->nowiggle_k_min );
-    // double ln_k_nw_max = log( ppr->nowiggle_k_max );
-    double ln_k_nw_min, ln_k_nw_max;
-    double smoothing_scale;
-    int index_k0 = 0, index_k_min = 0, index_k_max = 0, k_nw_size;
+    // JL: Maybe all this could be deferred to a function
 
-    /** - find indices of k0, k_nw_min, k_nw_max in pfo->ln_k */
+    // JL: need to add comments to explain what k0 is
+    /** - find indices of k0 in pfo->ln_k */
     class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
                                     ln_k0, &index_k0, pfo->error_message),
                 pfo->error_message,
                 pfo->error_message);
 
+    // find indices of k_nw_min, k_nw_max in pfo->ln_k */
     // class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
     //                                 ln_k_nw_min, &index_k_min, pfo->error_message),
     //             pfo->error_message,
@@ -1529,6 +1568,7 @@ int fourier_init(
     //             pfo->error_message,
     //             pfo->error_message);
 
+    // JL: need to add comments to explain the strategy for defining ln_k_nw_min, max
     for (index_k_min = 0; index_k_min < pfo->k_size_extra; index_k_min++) {
       ln_k_nw_min = pfo->ln_k[index_k_min];
       smoothing_scale = gfilter_smoothing_scale(ln_k_nw_min);
@@ -1541,9 +1581,9 @@ int fourier_init(
     }
     k_nw_size = index_k_max - index_k_min + 1;
 
-
     /** - fill the nowiggle array with the original linear spectrum
-     * and overwrite only values between index_kmin and index_kmax*/
+          and overwrite only values between index_kmin and
+          index_kmax*/
     memcpy(pfo->ln_pk_l_nw_extra, pfo->ln_pk_l_extra[*(pfo->nowiggle_pk_index)],
             pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
 
@@ -1570,6 +1610,7 @@ int fourier_init(
                   pfo->error_message);
     }
 
+    // JL: can I remove it now?
     /** TODO: test splines -> done -> to be removed */
     // #define NSPLINE 9
     // double x[NSPLINE] = {-4., -3., -2., -1., 0., 1., 2., 3., 4.};
@@ -1675,6 +1716,7 @@ int fourier_init(
     // }
     // printf("%.16e        %.16e \n", cimag(result[1]), cimag(cond_num[1]));
 
+    // JL: also for testing? remove?
     double x[4] = {-_PI_, -_PI_/2., _PI_/2., _PI_};
     double y[4] = {0., -1., 1., 0.};
     double ddy[4] = {0., 12./(_PI_*_PI_), -12./(_PI_*_PI_), 0.};
@@ -1687,6 +1729,7 @@ int fourier_init(
       array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, test_func_vals + i, 1, pfo->error_message);
     }
 
+    // JL: more comments and explanations?
     // compute Spline Fourier
     #define NFREQ 256
     double complex fourier_coeff[NFREQ];
@@ -1699,6 +1742,7 @@ int fourier_init(
       fourier_coeff[i] /= 2.*_PI_;
     }
 
+    // JL: more comments and explanations?
     #define NFFT 256
     double samples[NFFT], zero[NFFT];
     double fft_coeff_real[NFFT], fft_coeff_imag[NFFT], zero_coeff_real[NFFT], zero_coeff_imag[NFFT];
@@ -1737,6 +1781,8 @@ int fourier_init(
       else {
         printf("Could not open file for nowiggle powerspectrum output.\n");
       }
+
+      // JL: remove following commented lines?
 
       /** - kmin at different z */
       // double z = 1.;
@@ -1801,7 +1847,6 @@ int fourier_init(
       // fprintf(stderr, "# Smallest allowed variation: %.3e", ppr->smallest_allowed_variation);
     }
   }
-
 
   /** - compute and store sigma8 (variance of density fluctuations in
         spheres of radius 8/h Mpc at z=0, always computed by
@@ -2098,18 +2143,17 @@ int fourier_init(
     }
   }
 
-  else if (pfo->method == nl_oneloopPT) {
-    if (pfo->fourier_verbose > 0)
-      printf("Computing one-loop power spectrum including EFT terms (proper credits to Azadeh et al. will have to be added here)\n");
+  /** --> oneloop method */
 
-    int index_eft, index_pk_type, index_moment, index_ip, last_index;
-    short eft_role;
+  else if (pfo->method == nl_oneloopPT) {
+
+    if (pfo->fourier_verbose > 0)
+      printf("Computing one-loop power spectrum including EFT terms (see arxiv:2402.09778)\n");
 
     /** - fill in hyperparameters from precision */
     pfo->eft_hp.linear_spectrum_index = pfo->index_pk_cluster;
 
     pfo->eft_hp.fourier_mode = ppr->eft_fourier_mode;
-    //pfo->eft_hp.integration_mode = fftlog;
     pfo->eft_hp.k_size_fourier = ppr->eft_num_sample_points + 1;
     pfo->eft_hp.bao_oversampling = ppr->eft_bao_oversampling;
     pfo->eft_hp.ln_k_oversampling_width = ppr->k_bao_width;
@@ -2119,14 +2163,18 @@ int fourier_init(
     pfo->eft_hp.k_IR_cutoff = ppr->eft_ir_cutoff;
     pfo->eft_hp.k_pole_cutoff = ppr->eft_pole_cutoff;
     pfo->eft_hp.k_size_moments = ppr->eft_pk_moments_points;
+    // JL: I think we want to remove this line because parameter was passed as input parameter
     pfo->eft_hp.use_interpolation = ppr->eft_interpolate_spectra_contributions;
     pfo->eft_hp.ignore_missing_files = _FALSE_;
+    // JL: check if some of these are redundent with input.c (or whether we could then remove things from input.c)
     if (pfo->eft_hp.integration_mode == direct_integration) {
       pfo->eft_hp.use_mu_approximation = _FALSE_;
       pfo->eft_hp.use_interpolation = _FALSE_;
       pfo->eft_hp.compute_loop_matrices = _FALSE_;
     }
     class_test((pfo->eft_hp.integration_mode == fftlog) && (pfo->eft_hp.use_mu_approximation == _FALSE_), pfo->error_message, "The evaluation of loop integrals using Fourier decomposition requires the analytic mu-dependence!");
+
+    // JL shouldn't we do this only if (eft_write_loop_matrices == _TRUE_) ||  (eft_compute_loop_matrices == FALSE) ?
     for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
       if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
         strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
@@ -2136,19 +2184,34 @@ int fourier_init(
         class_stop(pfo->error_message, "Kernel matrix filename %s%s_000.mat is too long", pfo->eft_hp.eft_loop_matrix_directory, eft_loop_matrix_files_default[index_moment]);
       }
     }
+
+    // JL: remove hard-coding. input or precision parameters?
     pfo->eft_hp.kmin_nl = 1.e-3;
     pfo->eft_hp.kmax_nl = 1.;
     pfo->eft_hp.k_feature_nl = 0.1;
     pfo->eft_hp.ln_k_oversampling_width_nl = 1.6;
     pfo->eft_hp.k_size_nl = 200;
 
-
+    //JL: shall we replace everywhere loop matrices by kernels, or kernel_matrices?
     //printf("compute_loop_matrices = %d \n", pfo->eft_hp.compute_loop_matrices);
     //printf("compute mu approximation = %d \n", pfo->eft_hp.use_mu_approximation);
 
     for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
-      index_ip = ((pfo->z_pk_eft_num == 1) && !(pfo->eft_hp.use_EdS_time_scaling)) ? 0 : index_eft;
-      eft_role = ((index_eft > 0) && pfo->eft_hp.use_time_independent_kernels) ? eft_slave : eft_master;
+
+      // JL: index_ip is the index of the set of bias/counter-terms to be used.
+      // We use the same index as for our redshift bin (index_ip = index_eft) unless we are in the case
+      // without use_EdS_time_scaling for wich only one set of bias/counter-terms is defined so far.
+      if ((pfo->z_pk_eft_num == 1) && (pfo->eft_hp.use_EdS_time_scaling == _FALSE_))
+        index_ip = 0;
+      else
+        index_ip = index_eft;
+      // JL: but index_ip is never used. remove??
+
+      // Do we want to keep this option use_time_independent_kernels?
+      if ((index_eft > 0) && (pfo->eft_hp.use_time_independent_kernels == _TRUE_))
+        eft_role = eft_slave;
+      else
+        eft_role = eft_master;
 
       /** - if role is eft_slave, copy the master structure and then allocate only the fields that will not be shared */
       if (eft_role == eft_slave) {
@@ -2164,6 +2227,7 @@ int fourier_init(
                   pfo->error_message);
     }
 
+    // JL: may remove this?
     // /** - if we want to use the mu-approximation of the spectra, load the linear and nowiggle spectrum at this point
     //  *    otherwise the IR-resummed spectrum will be loaded on demand from the python interface */
     // if (pfo->eft_hp.use_mu_approximation) {
@@ -2301,19 +2365,12 @@ int fourier_init(
  * @param pfo Input: pointer to fourier structure (to be freed)
  * @return the error status
  */
+
 int fourier_free(
                  struct fourier *pfo
                  ) {
-  int i, index_pk;
-
-  if (pfo->method == nl_oneloopPT) {
-    for (i = pfo->eft_size-1; i >= 0; i--) {
-      eft_free(pfo->peft + i);
-    }
-    free(pfo->peft);
-    free(pfo->z_pk_eft);
-    free(pfo->eft_ip);
-  }
+  int index_pk;
+  int index_eft;
 
   if ((pfo->has_pk_matter == _TRUE_) || (pfo->method > nl_none)) {
 
@@ -2375,6 +2432,15 @@ int fourier_free(
       free(pfo->ddln_pk_l_nw_extra);
   }
 
+  if (pfo->method == nl_oneloopPT) {
+    for (index_eft = pfo->eft_size-1; index_eft >= 0; index_eft--) {
+      eft_free(pfo->peft[index_eft]);
+    }
+    free(pfo->peft);
+    free(pfo->z_pk_eft);
+    free(pfo->eft_ip);
+  }
+
   return _SUCCESS_;
 }
 
@@ -2389,6 +2455,7 @@ int fourier_free(
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
 */
+
 int fourier_indices(
                     struct precision *ppr,
                     struct background *pba,
@@ -2452,14 +2519,14 @@ int fourier_indices(
 
   /** - given previous indices, we can allocate the array of linear power spectrum values */
 
-  class_alloc(pfo->ln_pk_ic_l,pfo->pk_size*sizeof(double*),pfo->error_message);
-  class_alloc(pfo->ln_pk_l   ,pfo->pk_size*sizeof(double*),pfo->error_message);
-  class_alloc(pfo->ln_pk_l_extra   ,pfo->pk_size*sizeof(double*),pfo->error_message);
+  class_alloc(pfo->ln_pk_ic_l,   pfo->pk_size*sizeof(double*),pfo->error_message);
+  class_alloc(pfo->ln_pk_l,      pfo->pk_size*sizeof(double*),pfo->error_message);
+  class_alloc(pfo->ln_pk_l_extra,pfo->pk_size*sizeof(double*),pfo->error_message);
 
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
-    class_alloc(pfo->ln_pk_ic_l[index_pk],pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
-    class_alloc(pfo->ln_pk_l[index_pk]   ,pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
-    class_alloc(pfo->ln_pk_l_extra[index_pk]   ,pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ln_pk_ic_l[index_pk],   pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ln_pk_l[index_pk],      pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ln_pk_l_extra[index_pk],pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
   }
 
   /** - if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
@@ -2467,14 +2534,14 @@ int fourier_indices(
 
   if (pfo->ln_tau_size > 1) {
 
-    class_alloc(pfo->ddln_pk_ic_l,    pfo->pk_size*sizeof(double*),pfo->error_message);
-    class_alloc(pfo->ddln_pk_l,       pfo->pk_size*sizeof(double*),pfo->error_message);
-    class_alloc(pfo->ddln_pk_l_extra, pfo->pk_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ddln_pk_ic_l,   pfo->pk_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ddln_pk_l,      pfo->pk_size*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ddln_pk_l_extra,pfo->pk_size*sizeof(double*),pfo->error_message);
 
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
-      class_alloc(pfo->ddln_pk_ic_l[index_pk],    pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
-      class_alloc(pfo->ddln_pk_l[index_pk],       pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
-      class_alloc(pfo->ddln_pk_l_extra[index_pk], pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ddln_pk_ic_l[index_pk],   pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ddln_pk_l[index_pk],      pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ddln_pk_l_extra[index_pk],pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
     }
   }
 
@@ -2510,9 +2577,9 @@ int fourier_indices(
 
   }
 
-  /** - Oneloop EFT will require the dewiggled linear power spectrum.
-   *    allocate arrays for P_nw(k,z) and its splines in log(tau)
-  */
+  /** - Oneloop EFT requires the dewiggled linear power
+        spectrum. Allocate arrays for P_nw(k,z) and its splines in
+        log(tau) */
 
   if (pfo->has_pk_nw) {
     class_alloc(pfo->ln_pk_l_nw_extra, pfo->ln_tau_size*pfo->k_size_extra*sizeof(double), pfo->error_message);
@@ -2523,8 +2590,9 @@ int fourier_indices(
 
   if (pfo->method == nl_oneloopPT) {
     // TODO: move to main and disentangle with fourier
+    // JL: then, remember to move also the line pfo->eft_size = size; in input.c
     if (pfo->z_pk_eft_num == 1) {
-      if (pfo->eft_hp.use_EdS_time_scaling) {
+      if (pfo->eft_hp.use_EdS_time_scaling == _TRUE_) {
         pfo->eft_size = 1;
       }
       else {
@@ -2547,6 +2615,7 @@ int fourier_indices(
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
 */
+
 int fourier_get_k_list(
                        struct precision *ppr,
                        struct perturbations * ppt,
@@ -2560,6 +2629,7 @@ int fourier_get_k_list(
   pfo->k_size = ppt->k_size[pfo->index_md_scalars];
   k_max = ppt->k[pfo->index_md_scalars][pfo->k_size-1];
 
+  // JL: de we really want to rely on ppr->hmcode_max_k_extra to find the k_max of the oneloop method?
   /** - if k extrapolation necessary, compute number of required extra values */
   if (pfo->method == nl_HMcode || pfo->method == nl_oneloopPT){
     index_k=0;
@@ -2607,6 +2677,7 @@ int fourier_get_k_list(
  * @param pfo Input/Output: pointer to fourier structure
  * @return the error status
 */
+
 int fourier_get_tau_list(
                          struct perturbations * ppt,
                          struct fourier * pfo
@@ -2656,6 +2727,7 @@ int fourier_get_tau_list(
  * @param source          Output: desired value of source
  * @return the error status
  */
+
 int fourier_get_source(
                        struct background * pba,
                        struct perturbations * ppt,
@@ -2808,6 +2880,7 @@ int fourier_get_source(
  * @param lnpk_ic      Output: log of matter power spectrum for given type/time, for all wavenumbers and initial conditions
  * @return the error status
  */
+
 int fourier_pk_linear(
                       struct background *pba,
                       struct perturbations *ppt,
@@ -2978,6 +3051,7 @@ int fourier_pk_linear(
  * @param result       Output: result
  * @return the error status
  */
+
 int fourier_sigmas(
                    struct fourier * pfo,
                    double R,
@@ -3153,6 +3227,7 @@ int fourier_sigmas(
  * @param result       Output: result
  * @return the error status
  */
+
 int fourier_sigma_at_z(
                        struct background * pba,
                        struct fourier * pfo,
@@ -3241,6 +3316,7 @@ int fourier_sigma_at_z(
  * @param nl_corr_not_computable_at_this_k Ouput: flag concerning the status of the calculation (_TRUE_ if not possible)
  * @return the error status
  */
+
 int fourier_halofit(
                     struct precision *ppr,
                     struct background *pba,
@@ -3706,6 +3782,7 @@ int fourier_halofit(
  * @param sum             Output: result of the integral
  * @return the error status
  */
+
 int fourier_halofit_integrate(
                               struct fourier *pfo,
                               double * integrand_array,
@@ -3783,6 +3860,7 @@ int fourier_halofit_integrate(
  * @param pnw        Input/Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode(
                    struct precision *ppr,
                    struct background *pba,
@@ -4283,6 +4361,7 @@ int fourier_hmcode(
  * @param pnw         Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode_workspace_init(
                                   struct precision *ppr,
                                   struct background *pba,
@@ -4373,6 +4452,7 @@ int fourier_hmcode_workspace_free(
  * @param pnw         Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode_dark_energy_correction(
                                           struct precision *ppr,
                                           struct background *pba,
@@ -4435,6 +4515,7 @@ int fourier_hmcode_dark_energy_correction(
  * @param pfo   Output: pointer to fourier structure
  * @return the error status
  */
+
 int fourier_hmcode_baryonic_feedback(
                                      struct fourier *pfo
                                      ) {
@@ -4502,6 +4583,7 @@ int fourier_hmcode_baryonic_feedback(
  * @param pnw Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode_fill_sigtab(
                                struct precision * ppr,
                                struct background * pba,
@@ -4594,6 +4676,7 @@ int fourier_hmcode_fill_sigtab(
  * @param pnw Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode_fill_growtab(
                                 struct precision * ppr,
                                 struct background * pba,
@@ -4655,6 +4738,7 @@ int fourier_hmcode_fill_growtab(
  * @param growth Output: scale independent growth factor at a
  * @return the error status
  */
+
 int fourier_hmcode_growint(
                            struct precision * ppr,
                            struct background * pba,
@@ -4761,6 +4845,7 @@ int fourier_hmcode_growint(
  * @param window_nfw Output: Window Function of the NFW profile
  * @return the error status
  */
+
 int fourier_hmcode_window_nfw(
                               struct fourier * pfo,
                               double k,
@@ -4818,6 +4903,7 @@ int fourier_hmcode_window_nfw(
  * @param hmf  Output: Value of the halo mass function at this \f$ \nu \f$
  * @return the error status
  */
+
 int fourier_hmcode_halomassfunction(
                                     double nu,
                                     double * hmf
@@ -4845,6 +4931,7 @@ int fourier_hmcode_halomassfunction(
  * @param pnw        Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode_sigma8_at_z(
                                struct background *pba,
                                struct fourier * pfo,
@@ -4922,6 +5009,7 @@ int fourier_hmcode_sigma8_at_z(
  * @param pnw           Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode_sigmadisp_at_z(
                                   struct background *pba,
                                   struct fourier * pfo,
@@ -4998,6 +5086,7 @@ int fourier_hmcode_sigmadisp_at_z(
  * @param pnw           Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode_sigmadisp100_at_z(
                                      struct background *pba,
                                      struct fourier * pfo,
@@ -5073,6 +5162,7 @@ int fourier_hmcode_sigmadisp100_at_z(
  * @param pnw            Output: pointer to nonlinear workspace
  * @return the error status
  */
+
 int fourier_hmcode_sigmaprime_at_z(
                                    struct background *pba,
                                    struct fourier * pfo,
@@ -5155,6 +5245,7 @@ int fourier_hmcode_sigmaprime_at_z(
  * @param out_pk      Output: P_nw(k) returned as out_pk_l[index_k]
  * @return the error status
  */
+
 int fourier_pk_nw_at_z(
                         struct background * pba,
                         struct fourier * pfo,
@@ -5248,6 +5339,8 @@ int fourier_pk_nw_at_z(
   return _SUCCESS_;
 }
 
+// JL: move this to top (external functions)
+
 /**
  * Return the linear nowiggle spectrum P_nw(k,z) for a given (k,z)
 
@@ -5264,6 +5357,7 @@ int fourier_pk_nw_at_z(
  * @param out_pk      Output: pointer to P
  * @return the error status
  */
+
 int fourier_pk_nw_at_k_and_z(
                               struct background * pba,
                               struct primordial * ppm,
@@ -5434,7 +5528,7 @@ int fourier_pk_nw_at_k_and_z(
   return _SUCCESS_;
 }
 
-
+// JL: move this to top (external functions)
 /**
  * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
  * either linear or logarithmic.
@@ -5452,6 +5546,7 @@ int fourier_pk_nw_at_k_and_z(
  * @param out_pk      Output: P_nw(k_i,z) for total matter in Mpc^3
  * @return the error status
  */
+
 int fourier_pk_nw_at_kvec_and_z(
                                 struct background * pba,
                                 struct primordial * ppm,
