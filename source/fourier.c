@@ -1449,7 +1449,7 @@ int fourier_init(
 
   /** - get the linear power spectrum at each time */
 
-  //JL the loops over index-pk and index_tau has been swapped; reason?
+  //JL the loops over index-pk and index_tau has been swapped; reason: avoid unecessary work, TBC
   /** --> loop over required pk types (_m, _cb) */
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
 
@@ -1551,7 +1551,7 @@ int fourier_init(
 
     // JL: Maybe all this could be deferred to a function
 
-    // JL: need to add comments to explain what k0 is
+    // JL: need to add comments to explain what k0 is: CR will explain better
     /** - find indices of k0 in pfo->ln_k */
     class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
                                     ln_k0, &index_k0, pfo->error_message),
@@ -1568,7 +1568,7 @@ int fourier_init(
     //             pfo->error_message,
     //             pfo->error_message);
 
-    // JL: need to add comments to explain the strategy for defining ln_k_nw_min, max
+    // JL: need to add comments to explain the strategy for defining ln_k_nw_min, max: CR will explain better
     for (index_k_min = 0; index_k_min < pfo->k_size_extra; index_k_min++) {
       ln_k_nw_min = pfo->ln_k[index_k_min];
       smoothing_scale = gfilter_smoothing_scale(ln_k_nw_min);
@@ -1610,7 +1610,7 @@ int fourier_init(
                   pfo->error_message);
     }
 
-    // JL: can I remove it now?
+    // JL: can I remove it now? Let's wait a bit!
     /** TODO: test splines -> done -> to be removed */
     // #define NSPLINE 9
     // double x[NSPLINE] = {-4., -3., -2., -1., 0., 1., 2., 3., 4.};
@@ -1716,7 +1716,7 @@ int fourier_init(
     // }
     // printf("%.16e        %.16e \n", cimag(result[1]), cimag(cond_num[1]));
 
-    // JL: also for testing? remove?
+    // JL: also for testing? remove? Tests, will be removed at some point
     double x[4] = {-_PI_, -_PI_/2., _PI_/2., _PI_};
     double y[4] = {0., -1., 1., 0.};
     double ddy[4] = {0., 12./(_PI_*_PI_), -12./(_PI_*_PI_), 0.};
@@ -1729,7 +1729,7 @@ int fourier_init(
       array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, test_func_vals + i, 1, pfo->error_message);
     }
 
-    // JL: more comments and explanations?
+    // JL: more comments and explanations? Tests, will be removed at some point
     // compute Spline Fourier
     #define NFREQ 256
     double complex fourier_coeff[NFREQ];
@@ -1742,7 +1742,7 @@ int fourier_init(
       fourier_coeff[i] /= 2.*_PI_;
     }
 
-    // JL: more comments and explanations?
+    // JL: more comments and explanations? Tests, will be removed at some point
     #define NFFT 256
     double samples[NFFT], zero[NFFT];
     double fft_coeff_real[NFFT], fft_coeff_imag[NFFT], zero_coeff_real[NFFT], zero_coeff_imag[NFFT];
@@ -1782,7 +1782,7 @@ int fourier_init(
         printf("Could not open file for nowiggle powerspectrum output.\n");
       }
 
-      // JL: remove following commented lines?
+      // JL: remove following commented lines? Will remove at some point, or put an option to do the test
 
       /** - kmin at different z */
       // double z = 1.;
@@ -2163,7 +2163,7 @@ int fourier_init(
     pfo->eft_hp.k_IR_cutoff = ppr->eft_ir_cutoff;
     pfo->eft_hp.k_pole_cutoff = ppr->eft_pole_cutoff;
     pfo->eft_hp.k_size_moments = ppr->eft_pk_moments_points;
-    // JL: I think we want to remove this line because parameter was passed as input parameter
+    // JL: I think we want to remove this line because parameter was passed as input parameter, CR agrees
     pfo->eft_hp.use_interpolation = ppr->eft_interpolate_spectra_contributions;
     pfo->eft_hp.ignore_missing_files = _FALSE_;
     // JL: check if some of these are redundent with input.c (or whether we could then remove things from input.c)
@@ -2174,7 +2174,7 @@ int fourier_init(
     }
     class_test((pfo->eft_hp.integration_mode == fftlog) && (pfo->eft_hp.use_mu_approximation == _FALSE_), pfo->error_message, "The evaluation of loop integrals using Fourier decomposition requires the analytic mu-dependence!");
 
-    // JL shouldn't we do this only if (eft_write_loop_matrices == _TRUE_) ||  (eft_compute_loop_matrices == FALSE) ?
+    // JL shouldn't we do this only if (eft_write_loop_matrices == _TRUE_) ||  (eft_compute_loop_matrices == FALSE) ? CR agrees
     for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
       if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
         strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
@@ -2205,9 +2205,9 @@ int fourier_init(
         index_ip = 0;
       else
         index_ip = index_eft;
-      // JL: but index_ip is never used. remove??
+      // JL: but index_ip is never used. remove?? CR will check it
 
-      // Do we want to keep this option use_time_independent_kernels?
+      // JL: Do we want to keep this option use_time_independent_kernels? -> will be removed
       if ((index_eft > 0) && (pfo->eft_hp.use_time_independent_kernels == _TRUE_))
         eft_role = eft_slave;
       else
@@ -2227,7 +2227,7 @@ int fourier_init(
                   pfo->error_message);
     }
 
-    // JL: may remove this?
+    // JL: may remove this? -> we remove it
     // /** - if we want to use the mu-approximation of the spectra, load the linear and nowiggle spectrum at this point
     //  *    otherwise the IR-resummed spectrum will be loaded on demand from the python interface */
     // if (pfo->eft_hp.use_mu_approximation) {
@@ -2589,8 +2589,7 @@ int fourier_indices(
   }
 
   if (pfo->method == nl_oneloopPT) {
-    // TODO: move to main and disentangle with fourier
-    // JL: then, remember to move also the line pfo->eft_size = size; in input.c
+    // JL: move here the line pfo->eft_size = size; in input.c
     if (pfo->z_pk_eft_num == 1) {
       if (pfo->eft_hp.use_EdS_time_scaling == _TRUE_) {
         pfo->eft_size = 1;
@@ -2629,7 +2628,7 @@ int fourier_get_k_list(
   pfo->k_size = ppt->k_size[pfo->index_md_scalars];
   k_max = ppt->k[pfo->index_md_scalars][pfo->k_size-1];
 
-  // JL: de we really want to rely on ppr->hmcode_max_k_extra to find the k_max of the oneloop method?
+  // JL: de we really want to rely on ppr->hmcode_max_k_extra to find the k_max of the oneloop method? -> no, define a ppr->oneloop_max_k_extra
   /** - if k extrapolation necessary, compute number of required extra values */
   if (pfo->method == nl_HMcode || pfo->method == nl_oneloopPT){
     index_k=0;
