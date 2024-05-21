@@ -1384,14 +1384,14 @@ int fourier_init(
   struct fourier_workspace nw;
   struct fourier_workspace * pnw;
 
-  // for oneloop method:
+  /** - variables and indexes for the oneloop method */
   double ln_k0 = log( ppr->nowiggle_filter_pivot_k );
   // double ln_k_nw_min = log( ppr->nowiggle_k_min );
   // double ln_k_nw_max = log( ppr->nowiggle_k_max );
   double ln_k_nw_min, ln_k_nw_max;
   double smoothing_scale;
   int index_k0 = 0, index_k_min = 0, index_k_max = 0, k_nw_size;
-  int index_eft, index_pk_type, index_moment, index_ip, last_index;
+  int index_eft, index_pk_type, index_moment, index_ip;
   short eft_role;
 
   /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
@@ -1551,8 +1551,11 @@ int fourier_init(
 
     // JL: Maybe all this could be deferred to a function
 
-    // JL: need to add comments to explain what k0 is: CR will explain better
-    /** - find indices of k0 in pfo->ln_k */
+    /** - find indices of the pivot scale k0 in pfo->ln_k: 
+     *    it is the wavenumber at which the analytical Eisenstein-Hu dewiggled
+     *    power spectrum, that is used to reduce the low-frequency dynamics of
+     *    the linear power spectrum before filtering, is matched to the CLASS-
+     *    computed one */
     class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
                                     ln_k0, &index_k0, pfo->error_message),
                 pfo->error_message,
@@ -1569,6 +1572,12 @@ int fourier_init(
     //             pfo->error_message);
 
     // JL: need to add comments to explain the strategy for defining ln_k_nw_min, max: CR will explain better
+    /** - find the index range, in which the dewiggled power spectrum is computed:
+     *    Since the filter has a finitely-extended support, it cannot be applied 
+     *    very close to the boundaries. Therefore we find the indices on both sides,
+     *    at which the end of the ln(k)-range is further away than
+     *    ppr->nowiggle_boundary_dist_sigma_units times the smoothing scale.
+     */
     for (index_k_min = 0; index_k_min < pfo->k_size_extra; index_k_min++) {
       ln_k_nw_min = pfo->ln_k[index_k_min];
       smoothing_scale = gfilter_smoothing_scale(ln_k_nw_min);
@@ -1583,7 +1592,7 @@ int fourier_init(
 
     /** - fill the nowiggle array with the original linear spectrum
           and overwrite only values between index_kmin and
-          index_kmax*/
+          index_kmax */
     memcpy(pfo->ln_pk_l_nw_extra, pfo->ln_pk_l_extra[*(pfo->nowiggle_pk_index)],
             pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
 
@@ -1717,70 +1726,81 @@ int fourier_init(
     // printf("%.16e        %.16e \n", cimag(result[1]), cimag(cond_num[1]));
 
     // JL: also for testing? remove? Tests, will be removed at some point
-    double x[4] = {-_PI_, -_PI_/2., _PI_/2., _PI_};
-    double y[4] = {0., -1., 1., 0.};
-    double ddy[4] = {0., 12./(_PI_*_PI_), -12./(_PI_*_PI_), 0.};
-    int last_index = 0;
-    double p;
-    #define NPOINTS 200
-    double test_func_vals[NPOINTS];
-    for (int i = 0; i < NPOINTS; i++) {
-      p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NPOINTS - 1);
-      array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, test_func_vals + i, 1, pfo->error_message);
-    }
+    // double x[4] = {-_PI_, -_PI_/2., _PI_/2., _PI_};
+    // double y[4] = {0., -1., 1., 0.};
+    // double ddy[4] = {0., 12./(_PI_*_PI_), -12./(_PI_*_PI_), 0.};
+    // int last_index = 0;
+    // double p;
+    // #define NPOINTS 200
+    // double test_func_vals[NPOINTS];
+    // for (int i = 0; i < NPOINTS; i++) {
+    //   p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NPOINTS - 1);
+    //   array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, test_func_vals + i, 1, pfo->error_message);
+    // }
 
-    // JL: more comments and explanations? Tests, will be removed at some point
-    // compute Spline Fourier
-    #define NFREQ 256
-    double complex fourier_coeff[NFREQ];
-    double complex cond_num[NFREQ];
-    fourier_coeff[0] = class_complex(0., 0.);
-    array_integrate_all_spline_table_lines_compensated(x, 4, y, 1, ddy, fourier_coeff, 0., cond_num, pfo->error_message);
-    for (int i = 1; i < NFREQ; i++) {
-      p = (double)i;
-      array_integrate_all_spline_table_lines_fourier_compensated(x, 4, y, 1, ddy, p, fourier_coeff + i, 0., cond_num + i, pfo->error_message);
-      fourier_coeff[i] /= 2.*_PI_;
-    }
+    // // JL: more comments and explanations? Tests, will be removed at some point
+    // // compute Spline Fourier
+    // #define NFREQ 256
+    // double complex fourier_coeff[NFREQ];
+    // double complex cond_num[NFREQ];
+    // fourier_coeff[0] = class_complex(0., 0.);
+    // array_integrate_all_spline_table_lines_compensated(x, 4, y, 1, ddy, fourier_coeff, 0., cond_num, pfo->error_message);
+    // for (int i = 1; i < NFREQ; i++) {
+    //   p = (double)i;
+    //   array_integrate_all_spline_table_lines_fourier_compensated(x, 4, y, 1, ddy, p, fourier_coeff + i, 0., cond_num + i, pfo->error_message);
+    //   fourier_coeff[i] /= 2.*_PI_;
+    // }
 
-    // JL: more comments and explanations? Tests, will be removed at some point
-    #define NFFT 256
-    double samples[NFFT], zero[NFFT];
-    double fft_coeff_real[NFFT], fft_coeff_imag[NFFT], zero_coeff_real[NFFT], zero_coeff_imag[NFFT];
-    double fft_coeff_mag[NFFT];
-    struct FFT_plan * fft_plan;
-    FFT_planner_init(NFFT, &fft_plan);
-    //FFT_planner_alloc(NFFT, &fft_plan);
-    last_index = 0;
-    for (int i = 0; i < NFFT; i++) {
-      p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NFFT);
-      array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, samples + i, 1, pfo->error_message);
-      zero[i] = 0.;
-    }
-    FFT_real_planned(samples, zero, fft_coeff_real, fft_coeff_imag, zero_coeff_real, zero_coeff_imag, fft_plan);
-    FFT_planner_free(&fft_plan);
-    for (int i = 0; i < NFFT; i++) {
-      fft_coeff_mag[i] = sqrt(fft_coeff_real[i]*fft_coeff_real[i] + fft_coeff_imag[i]*fft_coeff_imag[i])/(double)NFFT;
-    }
+    // // JL: more comments and explanations? Tests, will be removed at some point
+    // #define NFFT 256
+    // double samples[NFFT], zero[NFFT];
+    // double fft_coeff_real[NFFT], fft_coeff_imag[NFFT], zero_coeff_real[NFFT], zero_coeff_imag[NFFT];
+    // double fft_coeff_mag[NFFT];
+    // struct FFT_plan * fft_plan;
+    // FFT_planner_init(NFFT, &fft_plan);
+    // //FFT_planner_alloc(NFFT, &fft_plan);
+    // last_index = 0;
+    // for (int i = 0; i < NFFT; i++) {
+    //   p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NFFT);
+    //   array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, samples + i, 1, pfo->error_message);
+    //   zero[i] = 0.;
+    // }
+    // FFT_real_planned(samples, zero, fft_coeff_real, fft_coeff_imag, zero_coeff_real, zero_coeff_imag, fft_plan);
+    // FFT_planner_free(&fft_plan);
+    // for (int i = 0; i < NFFT; i++) {
+    //   fft_coeff_mag[i] = sqrt(fft_coeff_real[i]*fft_coeff_real[i] + fft_coeff_imag[i]*fft_coeff_imag[i])/(double)NFFT;
+    // }
+
+    // FILE *fpknw = fopen("output/spline_fourier_test.dat", "w");
+    // if (fpknw) {
+    //   fprintf(fpknw, "# Spline Fourier Test against FFT with %d coefficients \n", NFFT);
+    //   fprintf(fpknw, "#  0: frequency       1:spline real        2:spline imag        3:fft real           4:fft imag \n");
+    //   for (int i = 0; i < NFFT; i++)
+    //     fprintf(fpknw, " %d       %.12e       %.12e       %.12e       %.12e \n", \
+    //             i, creal(fourier_coeff[i]), cimag(fourier_coeff[i]), fft_coeff_real[i]/(double)NFFT, fft_coeff_imag[i]/(double)NFFT);
+
+    //   fclose(fpknw);
+    // }
 
 
     /** - debug output */
     if (pfo->fourier_verbose > 2) {
-      FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
-      if (fpknw) {
-        fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
-        fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
-        fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
-        fprintf(fpknw, "#    1:k (1/Mpc)              2:P_nw (Mpc)^3          3:P_lin (Mpc)^3 \n");
-        for (int i = 0; i < pfo->k_size_extra; i++)
-          fprintf(fpknw, "  %.12e       %.12e       %.12e \n", \
-                  exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]),
-                  exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]));
+      // FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
+      // if (fpknw) {
+      //   fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
+      //   fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
+      //   fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
+      //   fprintf(fpknw, "#    1:k (1/Mpc)              2:P_nw (Mpc)^3          3:P_lin (Mpc)^3 \n");
+      //   for (int i = 0; i < pfo->k_size_extra; i++)
+      //     fprintf(fpknw, "  %.12e       %.12e       %.12e \n", \
+      //             exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]),
+      //             exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]));
 
-        fclose(fpknw);
-      }
-      else {
-        printf("Could not open file for nowiggle powerspectrum output.\n");
-      }
+      //   fclose(fpknw);
+      // }
+      // else {
+      //   printf("Could not open file for nowiggle powerspectrum output.\n");
+      // }
 
       // JL: remove following commented lines? Will remove at some point, or put an option to do the test
 
@@ -2264,88 +2284,167 @@ int fourier_init(
     // }
 
     // test zone to illustrate how to get some output (will need to be used toi store results in the fourier structure like with other moethods)
-    /*
-    #define TEST_Z_SIZE 2
-    #define TEST_K_SIZE 100
-    #define TEST_MU_SIZE 3
-    double k_min,k_max;
-    k_min = pfo->eft_hp.kmin_nl;
-    k_max = pfo->eft_hp.kmax_nl;
-    double zvec[TEST_Z_SIZE] = {0., 1.};
+    
+    // #define TEST_Z_SIZE 1
+    // #define TEST_K_SIZE 500
+    // #define TEST_K_SIZE_REAL 200
+    // #define TEST_MU_SIZE 5
+    // double k_min,k_max;
+    // k_min = pfo->eft_hp.kmin_nl;
+    // k_max = pfo->eft_hp.kmax_nl;
+    // double zvec[TEST_Z_SIZE] = {0.5};
 
 
-    struct eft_input_parameters eft_ip_test[TEST_Z_SIZE];
-    double **kvec;
-    double **muvec;
-    int k_sizevec[TEST_Z_SIZE], mu_sizevec[TEST_Z_SIZE];
-    int index_z, index_k, index_mu;
-    double **out_pkmu;
+    // struct eft_input_parameters eft_ip_test[TEST_Z_SIZE];
+    // double **kvec;
+    // double **muvec;
+    // int k_sizevec[TEST_Z_SIZE], mu_sizevec[TEST_Z_SIZE];
+    // double **kvec_real;
+    // double **muvec_real;
+    // int k_sizevec_real[TEST_Z_SIZE], mu_sizevec_real[TEST_Z_SIZE];
+    // int index_z, index_k, index_mu;
+    // double **out_pkmu;
+    // double **out_pkmu_real;
 
-    kvec = malloc(TEST_Z_SIZE*sizeof(double *));
-    muvec = malloc(TEST_Z_SIZE*sizeof(double *));
-    out_pkmu = malloc(TEST_Z_SIZE*sizeof(double *));
-    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-      kvec[index_z] = malloc(TEST_MU_SIZE*TEST_K_SIZE*sizeof(double));
-      muvec[index_z] = malloc(TEST_MU_SIZE*sizeof(double));
-      out_pkmu[index_z] = malloc(TEST_K_SIZE*TEST_MU_SIZE*sizeof(double));
-    }
+    // kvec = malloc(TEST_Z_SIZE*sizeof(double *));
+    // muvec = malloc(TEST_Z_SIZE*sizeof(double *));
+    // kvec_real = malloc(TEST_Z_SIZE*sizeof(double *));
+    // muvec_real = malloc(TEST_Z_SIZE*sizeof(double *));
+    // out_pkmu = malloc(TEST_Z_SIZE*sizeof(double *));
+    // out_pkmu_real = malloc(TEST_Z_SIZE*sizeof(double *));
+    // for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+    //   kvec[index_z] = malloc(TEST_MU_SIZE*TEST_K_SIZE*sizeof(double));
+    //   muvec[index_z] = malloc(TEST_MU_SIZE*sizeof(double));
+    //   kvec_real[index_z] = malloc(TEST_K_SIZE_REAL*sizeof(double));
+    //   muvec_real[index_z] = malloc(sizeof(double));
+    //   out_pkmu[index_z] = malloc(TEST_K_SIZE*TEST_MU_SIZE*sizeof(double));
+    //   out_pkmu_real[index_z] = malloc(TEST_K_SIZE*sizeof(double));
+    // }
 
-    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-      k_sizevec[index_z] = TEST_K_SIZE;
-      mu_sizevec[index_z] = TEST_MU_SIZE;
-      for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-        for (index_k = 0; index_k < TEST_K_SIZE; index_k++) {
-          kvec[index_z][index_mu*TEST_K_SIZE + index_k] = exp( log(pfo->eft_hp.kmin_nl) + log(pfo->eft_hp.kmax_nl/pfo->eft_hp.kmin_nl) * index_k / (double)TEST_K_SIZE );
-        }
-      }
-      for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-        muvec[index_z][index_mu] = index_mu / (double)(TEST_MU_SIZE-1);
-      }
-    }
+    // for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+    //   k_sizevec[index_z] = TEST_K_SIZE;
+    //   mu_sizevec[index_z] = TEST_MU_SIZE;
+    //   k_sizevec_real[index_z] = TEST_K_SIZE_REAL;
+    //   mu_sizevec_real[index_z] = 1;
+    //   for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+    //     for (index_k = 0; index_k < TEST_K_SIZE; index_k++) {
+    //       kvec[index_z][index_mu*TEST_K_SIZE + index_k] = exp( log(pfo->eft_hp.kmin_nl) + log(pfo->eft_hp.kmax_nl/pfo->eft_hp.kmin_nl) * index_k / (double)TEST_K_SIZE );
+    //     }
+    //   }
+    //   for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+    //     muvec[index_z][index_mu] = index_mu / (double)(TEST_MU_SIZE-1);
+    //   }
+    //   for (index_k = 0; index_k < TEST_K_SIZE_REAL; index_k++) {
+    //     kvec_real[index_z][index_k] = exp( log(pfo->eft_hp.kmin_nl) + log(pfo->eft_hp.kmax_nl/pfo->eft_hp.kmin_nl) * index_k / (double)TEST_K_SIZE_REAL );
+    //   }
+    //   muvec_real[index_z][0] = 0.;
+    // }
 
-    eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = -0.5, .bG2 = 0.3, .btd = 0.8, .has_rsd = 1, .c00 = -10., .c10 = 20., .c22 = 20., .c32 = 20., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 10., .R2 = 5. };
-    //eft_ip_test[1] = (struct eft_input_parameters){ .b1 = 1., .b2 = -0.5, .bG2 = 0.3, .btd = 0.8, .has_rsd = 1, .c00 = -10., .c10 = 20., .c22 = 20., .c32 = 20., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 10., .R2 = 5. };
+    // eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1.14, .b2 = -0.767, .bG2 = -0.04, .btd = 0.077, .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+    // //eft_ip_test[1] = (struct eft_input_parameters){ .b1 = 1., .b2 = -0.5, .bG2 = 0.3, .btd = 0.8, .has_rsd = 1, .c00 = -10., .c10 = 20., .c22 = 20., .c32 = 20., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 10., .R2 = 5. };
 
-    fprintf(stderr,"Calling eft_job_powerspectrum_wedges() with eft_size=%d\n",pfo->eft_size);
+    // fprintf(stderr,"Calling eft_job_powerspectrum_wedges() with eft_size=%d\n",pfo->eft_size);
 
-    class_call(eft_job_powerspectrum_wedges(pfo->peft,
-                                            pfo->eft_size,
-                                            pba,
-                                            pfo,
-                                            ppm,
-                                            ppr,
-                                            Pdd_hh_rsd,
-                                            zvec,
-                                            eft_ip_test,
-                                            TEST_Z_SIZE,
-                                            kvec,
-                                            k_sizevec,
-                                            muvec,
-                                            mu_sizevec,
-                                            out_pkmu),
-                pfo->peft->error_message, pfo->error_message);
+    // class_call(eft_job_powerspectrum_wedges(pfo->peft,
+    //                                         pfo->eft_size,
+    //                                         pba,
+    //                                         pfo,
+    //                                         ppm,
+    //                                         ppr,
+    //                                         Pdd_hh_rsd,
+    //                                         zvec,
+    //                                         eft_ip_test,
+    //                                         TEST_Z_SIZE,
+    //                                         kvec,
+    //                                         k_sizevec,
+    //                                         muvec,
+    //                                         mu_sizevec,
+    //                                         out_pkmu),
+    //             pfo->peft->error_message, pfo->error_message);
 
-    FILE * out=fopen("output/pkmuz.dat","w");
-    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-      for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-        for (index_k = 0; index_k < TEST_K_SIZE; index_k++) {
-          fprintf(out,"%e %e\n",
-                  kvec[index_z][k_sizevec[index_z]*index_mu+index_k],
-                  out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
-        }
-      }
-    }
-    fclose(out);
+    // FILE * out=fopen("output/pkmuz.dat","w");
+    // for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+    //   for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+    //     for (index_k = 0; index_k < TEST_K_SIZE; index_k++) {
+    //       fprintf(out,"%e %e\n",
+    //               kvec[index_z][k_sizevec[index_z]*index_mu+index_k],
+    //               out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
+    //     }
+    //   }
+    // }
+    // fclose(out);
 
-    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-      free(kvec[index_z]);
-      free(muvec[index_z]);
-      free(out_pkmu[index_z]);
-    }
-    free(kvec);
-    free(muvec);
-    free(out_pkmu);
-    */
+    // class_call(eft_job_powerspectrum_wedges(pfo->peft,
+    //                                         pfo->eft_size,
+    //                                         pba,
+    //                                         pfo,
+    //                                         ppm,
+    //                                         ppr,
+    //                                         Pdd_mm_real,
+    //                                         zvec,
+    //                                         eft_ip_test,
+    //                                         TEST_Z_SIZE,
+    //                                         kvec_real,
+    //                                         k_sizevec_real,
+    //                                         muvec_real,
+    //                                         mu_sizevec_real,
+    //                                         out_pkmu_real),
+    //             pfo->peft->error_message, pfo->error_message);
+
+    // out=fopen("output/pkz_real.dat","w");
+    // for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+    //   for (index_k = 0; index_k < TEST_K_SIZE_REAL; index_k++) {
+    //     fprintf(out,"%e %e\n",
+    //             kvec_real[index_z][index_k],
+    //             out_pkmu_real[index_z][index_k]);
+    //   }
+    // }
+    // fclose(out);
+
+    // class_call(eft_job_powerspectrum_wedges(pfo->peft,
+    //                                         pfo->eft_size,
+    //                                         pba,
+    //                                         pfo,
+    //                                         ppm,
+    //                                         ppr,
+    //                                         Pdd_hh_rsd,
+    //                                         zvec,
+    //                                         eft_ip_test,
+    //                                         TEST_Z_SIZE,
+    //                                         kvec,
+    //                                         k_sizevec,
+    //                                         muvec,
+    //                                         mu_sizevec,
+    //                                         out_pkmu),
+    //             pfo->peft->error_message, pfo->error_message);
+
+    // out=fopen("output/pkmuz_again.dat","w");
+    // for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+    //   for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+    //     for (index_k = 0; index_k < TEST_K_SIZE; index_k++) {
+    //       fprintf(out,"%e %e\n",
+    //               kvec[index_z][k_sizevec[index_z]*index_mu+index_k],
+    //               out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
+    //     }
+    //   }
+    // }
+    // fclose(out);
+
+    // for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+    //   free(kvec[index_z]);
+    //   free(muvec[index_z]);
+    //   free(out_pkmu[index_z]);
+    //   free(kvec_real[index_z]);
+    //   free(muvec_real[index_z]);
+    //   free(out_pkmu_real[index_z]);
+    // }
+    // free(kvec);
+    // free(muvec);
+    // free(out_pkmu);
+    // free(kvec_real);
+    // free(muvec_real);
+    // free(out_pkmu_real);
+    
 
   }
 
@@ -2434,7 +2533,7 @@ int fourier_free(
 
   if (pfo->method == nl_oneloopPT) {
     for (index_eft = pfo->eft_size-1; index_eft >= 0; index_eft--) {
-      eft_free(pfo->peft[index_eft]);
+      eft_free(pfo->peft + index_eft);
     }
     free(pfo->peft);
     free(pfo->z_pk_eft);
