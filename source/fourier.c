@@ -2623,7 +2623,7 @@ int fourier_init(
     class_test((pfo->eft_hp.integration_mode == fftlog) && (pfo->eft_hp.use_mu_approximation == _FALSE_), pfo->error_message, "The evaluation of loop integrals using Fourier decomposition requires the analytic mu-dependence!");
 
     /** - build the name of the files in wich loop matrices will be written or read */
-    if ((pfo->eft_hp.write_loop_matrices == _TRUE_) || (pfo->eft_hp.compute_loop_matrices == FALSE)) {
+    if (pfo->eft_hp.write_loop_matrices == _TRUE_) {
       for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
         if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
           strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
@@ -2648,8 +2648,7 @@ int fourier_init(
 
     for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
 
-      // JL: Do we want to keep this option use_time_independent_kernels? -> will be removed
-      if ((index_eft > 0) && (pfo->eft_hp.use_time_independent_kernels == _TRUE_))
+      if (index_eft > 0)
         eft_role = eft_slave;
       else
         eft_role = eft_master;

@@ -3468,7 +3468,6 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
 
       class_read_flag("has_rsd", pfo->eft_hp.has_rsd);
       class_read_flag("eft_use_eds_scaling", pfo->eft_hp.use_EdS_time_scaling);
-      //class_read_flag("eft_time_independent_kernels", pfo->eft_hp.use_time_independent_kernels);
       class_read_flag("eft_write_loop_matrices", pfo->eft_hp.write_loop_matrices);
       class_read_string("eft_loop_matrix_dir", pfo->eft_hp.eft_loop_matrix_directory);
       class_read_flag("eft_use_interpolation", pfo->eft_hp.use_interpolation);
@@ -5715,7 +5714,6 @@ int input_default_params(struct background *pba,
   pfo->eft_hp.bias[eft_matter]     = -0.3;
   pfo->eft_hp.bias[eft_halo]       = -1.55;
   pfo->eft_hp.use_EdS_time_scaling = _TRUE_;
-  pfo->eft_hp.use_time_independent_kernels = _TRUE_;
   pfo->eft_hp.compute_loop_matrices = _TRUE_;
   pfo->eft_hp.use_mu_approximation = _TRUE_;
   pfo->eft_hp.write_loop_matrices = _FALSE_;

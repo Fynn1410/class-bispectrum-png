@@ -1515,18 +1515,10 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
       }
     }
 
-    /* if the kernels have been precomputed for a specific redshift, we have to load spectra at this exact redshift */
-    if (!eft_hp->use_time_independent_kernels) {
-      z = pfo->z_pk_eft[index_eft];
-      f_z = f_z_pk_eft[index_eft];
-      D_z = D_z_pk_eft[index_eft];
-    }
-    /* else, load the spectra at the latest redshift in sub_zvec */
-    else {
-      z = zvec[index_z];
-      f_z = f_zvec[index_z];
-      D_z = D_zvec[index_z];
-    }
+    /* load the spectra at the latest redshift in sub_zvec */
+    z = zvec[index_z];
+    f_z = f_zvec[index_z];
+    D_z = D_zvec[index_z];
 
     if (list_pk_types_loops_not_loaded_size > 0 && peft->hp->integration_mode == fftlog) {
       /** - load the real-space linear spectra */
