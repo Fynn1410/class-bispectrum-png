@@ -87,10 +87,6 @@ int fourier_pk_at_z(
   if ((pk_output == pk_linear) && (pfo->ic_size > 1) && (out_pk_ic != NULL))
     do_ic = _TRUE_;
 
-  class_test((pk_output == pk_nonlinear) && (pfo->method == nl_oneloopPT),
-             pfo->error_message,
-             "This function is not yet compatible with the oneloop method - this is no problem as long as you wish to get P_NL from the python wrapper, but it will have to be implemented at some point for writting P_NL in output file \n");
-
   /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
 
@@ -2825,6 +2821,150 @@ int fourier_init(
     // free(muvec_real);
     // free(out_pkmu_real);
 
+    /* one z */
+    #define TEST_Z_SIZE 1
+    double * zvec;
+    class_alloc(zvec,TEST_Z_SIZE*sizeof(double),pfo->error_message);
+
+    /* a few mu for testing*/
+    #define TEST_MU_SIZE 5
+    double **muvec;
+    int index_z,index_mu;
+    class_alloc(muvec,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
+    int mu_sizevec[TEST_Z_SIZE];
+    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+      class_alloc(muvec[index_z],TEST_MU_SIZE*sizeof(double),pfo->error_message);
+      mu_sizevec[index_z] = TEST_MU_SIZE;
+      for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+        muvec[index_z][index_mu] = index_mu / (double)(TEST_MU_SIZE-1);
+      }
+    }
+
+    /* values of k taken from fourier structure */
+    double **kvec;
+    class_alloc(kvec,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
+    int k_sizevec[TEST_Z_SIZE];
+    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+      class_alloc(kvec[index_z],pfo->k_size*TEST_MU_SIZE*sizeof(double),pfo->error_message);
+      k_sizevec[index_z] = pfo->k_size;
+      for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+        for (index_k = 0; index_k < pfo->k_size; index_k++) {
+          kvec[index_z][index_mu*pfo->k_size+index_k] = pfo->k[index_k];
+        }
+      }
+    }
+
+    /* array to write the output */
+    double **out_pkmu;
+    class_alloc(out_pkmu,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
+    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+      class_alloc(out_pkmu[index_z],pfo->k_size*TEST_MU_SIZE*sizeof(double),pfo->error_message);
+    }
+
+    struct eft_input_parameters eft_ip_test[TEST_Z_SIZE];
+
+    //eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1.14, .b2 = -0.767, .bG2 = -0.04, .btd = 0.077, .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+    eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+
+  /* write P_NL in fourier structure (temporary version) */
+
+    fprintf(stderr,"%e %e %e %e\n",pfo->eft_hp.kmin_nl,pfo->eft_hp.kmax_nl,pfo->k[0],pfo->k[pfo->k_size-1]);
+
+    for (index_tau = pfo->tau_size-1; index_tau>=0; index_tau--) {
+
+      class_call(background_z_of_tau(pba,pfo->tau[index_tau],zvec),
+                 pba->error_message,
+                 pfo->error_message);
+
+      fprintf(stderr,"Call eft_job_powerspectrum_wedges() at z=%e\n",zvec[0]);
+
+      class_call(eft_job_powerspectrum_wedges(pfo->peft,
+                                              pfo->eft_size,
+                                              pba,
+                                              pfo,
+                                              ppm,
+                                              ppr,
+                                              Pdd_hh_rsd,
+                                              zvec,
+                                              eft_ip_test,
+                                              TEST_Z_SIZE,
+                                              kvec,
+                                              k_sizevec,
+                                              muvec,
+                                              mu_sizevec,
+                                              out_pkmu),
+                 pfo->peft->error_message,
+                 pfo->error_message);
+
+      /*
+      index_z=0;
+      for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+        for (index_k = 0; index_k < pfo->k_size; index_k++) {
+          fprintf(stderr,"%e %e %e\n",
+                  muvec[index_z][index_mu],
+                  kvec[index_z][k_sizevec[index_z]*index_mu+index_k],
+                  out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
+        }
+      }
+      */
+
+
+      index_z=0;
+      index_mu=0;
+      /* so far, the oneloop method will write identical output for _m and _cb since we did not code the difference */
+      for (index_pk=0; index_pk<pfo->pk_size; index_pk++){
+        for (index_k=0; index_k<pfo->k_size; index_k++) {
+          /* if k is in the range where oneloop works, P_NL = result of oneloop */
+          if ((pfo->k[index_k] > pfo->eft_hp.kmin_nl) && (pfo->k[index_k] < pfo->eft_hp.kmax_nl))
+            pfo->ln_pk_nl[index_pk][index_tau*pfo->k_size+index_k] = log(out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
+          /* otherwise, P_NL = P_L */
+          else
+            pfo->ln_pk_nl[index_pk][index_tau*pfo->k_size+index_k] = pfo->ln_pk_l[index_pk][index_tau*pfo->k_size+index_k];
+          //fprintf(stderr,"%e\n",pfo->ln_pk_nl[index_pk][index_tau * pfo->k_size + index_k]);
+        }
+      }
+    }
+
+    for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+      free(out_pkmu[index_z]);
+      free(kvec[index_z]);
+      free(muvec[index_z]);
+    }
+    free(out_pkmu);
+    free(kvec);
+    free(muvec);
+    free(zvec);
+
+    /** --> spline the array of nonlinear power spectrum */
+    if (pfo->ln_tau_size > 1) {
+      for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
+
+        class_call(array_spline_table_lines_parallel(pfo->ln_tau,
+                                                     pfo->ln_tau_size,
+                                                     pfo->ln_pk_nl[index_pk],
+                                                     pfo->k_size,
+                                                     pfo->ddln_pk_nl[index_pk],
+                                                     _SPLINE_EST_DERIV_,
+                                                     pfo->error_message),
+                   pfo->error_message,
+                   pfo->error_message);
+      }
+    }
+
+    /*
+    for (index_tau = pfo->tau_size-1; index_tau>=0; index_tau--) {
+      for (index_k=0; index_k<pfo->k_size; index_k++) {
+        for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
+          fprintf(stderr,"%e %e %d %e %e\n",
+                  exp(pfo->ln_tau[index_tau]),
+                  pfo->k[index_pk],
+                  index_pk,
+                  pfo->ln_pk_nl[index_pk][index_tau * pfo->k_size + index_k],
+                  pfo->ddln_pk_nl[index_pk][index_tau * pfo->k_size + index_k]);
+        }
+      }
+    }
+    */
 
   }
 
