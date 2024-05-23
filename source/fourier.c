@@ -2616,11 +2616,9 @@ int fourier_init(
     pfo->eft_hp.ignore_missing_files = _FALSE_;
     // JL: check if some of these are redundent with input.c (or whether we could then remove things from input.c)
     if (pfo->eft_hp.integration_mode == direct_integration) {
-      pfo->eft_hp.use_mu_approximation = _FALSE_;
       pfo->eft_hp.use_interpolation = _FALSE_;
       pfo->eft_hp.compute_loop_matrices = _FALSE_;
     }
-    class_test((pfo->eft_hp.integration_mode == fftlog) && (pfo->eft_hp.use_mu_approximation == _FALSE_), pfo->error_message, "The evaluation of loop integrals using Fourier decomposition requires the analytic mu-dependence!");
 
     /** - build the name of the files in wich loop matrices will be written or read */
     if (pfo->eft_hp.write_loop_matrices == _TRUE_) {
@@ -2642,9 +2640,7 @@ int fourier_init(
     pfo->eft_hp.ln_k_oversampling_width_nl = 1.6;
     pfo->eft_hp.k_size_nl = 200;
 
-    //JL: shall we replace everywhere loop matrices by kernels, or kernel_matrices?
-    //printf("compute_loop_matrices = %d \n", pfo->eft_hp.compute_loop_matrices);
-    //printf("compute mu approximation = %d \n", pfo->eft_hp.use_mu_approximation);
+    //JL: shall we replace everywhere loop matrices by kernels, or kernel_matrices? yes
 
     for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
 

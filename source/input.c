@@ -3472,7 +3472,6 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       class_read_string("eft_loop_matrix_dir", pfo->eft_hp.eft_loop_matrix_directory);
       class_read_flag("eft_use_interpolation", pfo->eft_hp.use_interpolation);
       class_read_flag("eft_compute_loop_matrices", pfo->eft_hp.compute_loop_matrices);
-      class_read_flag("eft_enable_mu_approximation", pfo->eft_hp.use_mu_approximation);
       class_read_flag("eft_direct_integration", pfo->eft_hp.integration_mode);
       /** - if Direct integration is selected, deactivate the approximate mu-dependence used with FFTLog */
       if (pfo->eft_hp.integration_mode == direct_integration) {
@@ -5715,7 +5714,6 @@ int input_default_params(struct background *pba,
   pfo->eft_hp.bias[eft_halo]       = -1.55;
   pfo->eft_hp.use_EdS_time_scaling = _TRUE_;
   pfo->eft_hp.compute_loop_matrices = _TRUE_;
-  pfo->eft_hp.use_mu_approximation = _TRUE_;
   pfo->eft_hp.write_loop_matrices = _FALSE_;
   sprintf(pfo->eft_hp.eft_loop_matrix_directory, "loop_matrices/");
   pfo->eft_hp.use_interpolation = _TRUE_;
