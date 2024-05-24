@@ -1,5 +1,3 @@
-
-
 /** @file header.h
  *
  * contains the eft module and parameter struct definitions and includes all other source files needed for CLASS-OneLoop
@@ -13,19 +11,6 @@
 #include "../../include/background.h"
 #include "../../include/primordial.h"
 #include "../../include/fft.h"
-//#include "../../include/ext_storage.h"
-
-//TODO: get rid of forward declarations
-// struct ext_storage
-// {
-//   /** - EFT loop matrix pointers */
-//   double complex *** loop_matrices;
-//   int ** loop_matrices_size;
-//   short ** symmetry;
-//   int loop_matrices_stored; // = _FALSE_;
-//   int eft_index_num; // = 0;
-//   int eft_size; // = 0;
-// };
 
 #include <limits.h>
 
@@ -309,12 +294,12 @@ struct eft
 
 
 /** - forward declaration of ext_storage methods */
-//extern struct ext_storage;
-// extern int ext_insert_eft(struct ext_storage * pext,
-//                           struct eft * peft,
-//                           const int index,
-//                           const int num_matrices,
-//                           ErrorMsg errmsg);
+struct ext_storage;
+int ext_insert_eft(struct ext_storage * pext,
+                   struct eft * peft,
+                   const int index_eft,
+                   const int num_matrices,
+                   ErrorMsg errmsg);
 /** -------------------------------------------- */
 
 

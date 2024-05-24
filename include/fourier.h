@@ -8,7 +8,6 @@
 
 /** - definitions for usage of EFT */
 #include "../external/oneloopeft/header.h"
-#include "ext_storage.h"
 
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
@@ -277,8 +276,8 @@ struct fourier_workspace {
 
 };
 
-// unnecessary if we included ext_storage.h
-//extern struct ext_storage;
+/** - forward declaration of ext_storage */
+struct ext_storage;
 
 
 /********************************************************************************/

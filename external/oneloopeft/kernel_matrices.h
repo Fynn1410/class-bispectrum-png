@@ -10,7 +10,7 @@
 
 const static double complex (*loop_mat[NUM_MOMENTS])(const double complex * const n);
 
-extern struct eft;
+struct eft;
 int eft_compute_loop_matrices(struct eft * peft);
 
 #endif
