@@ -403,7 +403,7 @@ int eft_init(struct precision * ppr,
                                           peft->hp->bao_oversampling, peft->hp->ln_k_oversampling_width_nl,   \
                                           peft->hp->k_size_nl, peft->ln_k, peft->hp->eft_verbose);
     }
-    /** - initialize the mu-grid to real-space, but will not be read if use_mu_approximation = _TRUE_ */
+    /** - initialize the mu-grid to real-space */
     peft->mu_size = 1;
     class_alloc(peft->mu, 1*sizeof(double), peft->error_message);
     peft->mu[0] = 0.;
@@ -665,7 +665,7 @@ int eft_fourier_transform_linear_spectra(
   { /** , last_index, ln_k_fft, pk_l_biased_fft, fft_plan, fourier_coeff_real, fourier_coeff_imag */
 
   /** Retrieve the power spectra */
-  if (peft->hp->use_mu_approximation) {
+  if (peft->hp->integration_mode == fftlog) {
     /** ----------------- Load requested linear spectra w/o mu dependence ---------------------- */
     /** - for the Fourier components */
     #pragma omp for schedule(static, 1), collapse(2)
@@ -839,7 +839,16 @@ int eft_fourier_transform_linear_spectra(
   case fourier_mode_spline:
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
       index_pk_type = index_pk_types[index_list];
-      mu_size = (peft->hp->use_mu_approximation) ? 1 : peft->mu_size;
+      switch (peft->hp->integration_mode)
+        {
+        case fftlog:
+          mu_size=1;
+          break;
+        case direct_integration:
+          mu_size = peft->mu_size;
+          break;
+        }
+
       for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
         for (index_mu = 0; index_mu < mu_size; index_mu++) {
 
@@ -966,7 +975,15 @@ int eft_fourier_transform_linear_spectra(
     class_protect_memcpy(fft_plan->cos_vals, peft->fft_plan->cos_vals, peft->fft_plan->N * sizeof(double));
     class_protect_memcpy(fft_plan->sin_vals, peft->fft_plan->sin_vals, peft->fft_plan->N * sizeof(double));
 
-    mu_size = (peft->hp->use_mu_approximation) ? 1 : peft->mu_size;
+    switch (peft->hp->integration_mode)
+      {
+      case fftlog:
+        mu_size=1;
+        break;
+      case direct_integration:
+        mu_size = peft->mu_size;
+        break;
+      }
 
     #pragma omp for schedule(static, 1), collapse(2)
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
@@ -1037,7 +1054,7 @@ int eft_fourier_transform_linear_spectra(
 
   } /** - end of parallel region */
 
-  if (peft->hp->use_mu_approximation && (pfo->fourier_verbose > 3)) {
+  if ((peft->hp->integration_mode == fftlog) && (pfo->fourier_verbose > 3)) {
     FILE *ffourier = fopen("output/halo_biased_pk_lin_samples.dat", "w");
 
     if (ffourier) {
@@ -1475,7 +1492,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                          mu_sizevec[index_z]),
                   peft->error_message, peft->error_message);
     }
-    else if (!eft_hp->use_mu_approximation) {
+    else if (eft_hp->integration_mode == direct_integration) {
       class_call(eft_set_sampling_points_mu_only(peft,
                                                  muvec[index_z],
                                                  mu_sizevec[index_z]),
@@ -1515,18 +1532,10 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
       }
     }
 
-    /* if the kernels have been precomputed for a specific redshift, we have to load spectra at this exact redshift */
-    if (!eft_hp->use_time_independent_kernels) {
-      z = pfo->z_pk_eft[index_eft];
-      f_z = f_z_pk_eft[index_eft];
-      D_z = D_z_pk_eft[index_eft];
-    }
-    /* else, load the spectra at the latest redshift in sub_zvec */
-    else {
-      z = zvec[index_z];
-      f_z = f_zvec[index_z];
-      D_z = D_zvec[index_z];
-    }
+    /* load the spectra at the latest redshift in sub_zvec */
+    z = zvec[index_z];
+    f_z = f_zvec[index_z];
+    D_z = D_zvec[index_z];
 
     if (list_pk_types_loops_not_loaded_size > 0 && peft->hp->integration_mode == fftlog) {
       /** - load the real-space linear spectra */

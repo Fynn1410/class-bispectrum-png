@@ -141,9 +141,7 @@ struct eft_hyper_parameters
   enum eft_integration_mode integration_mode; /**< either FFTLog or Direct integration using Cuba */
   short has_rsd; /**< if set, all RSD moments will be allocated */
   short use_EdS_time_scaling; /**< if set, use EdS scaling relations for the time-dependence of the non-linear spectra, otherwise interpolate btw. z_pk_eft */
-  short use_time_independent_kernels; /**< if set, use EdS approximation for the loop matrices [time-dependence is not yet implemented] */
   short compute_loop_matrices;  /**< if set, compute all loop matrices from scratch, otherwise load them from file */
-  short use_mu_approximation; /**< if set, compute the halo power spectrum corrections on P_lin(k, z0) and P_nw(k, z0) only, else on P_mm^RSD,LO(k, z0, mu) for different mu */
   short reload_linear_spectra;  /**< if set, reload the linear spectra at each evaluation, not compatible with use_interpolation */
 
   short write_loop_matrices;

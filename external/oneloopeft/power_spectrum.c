@@ -40,7 +40,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
     break;
 
   case Pdd_hh_rsd:
-    if (peft->hp->use_mu_approximation) {
+    if (peft->hp->integration_mode == fftlog) {
       num_moments = peft->index_N22z - peft->index_I2200 + 1;
       *list_spectra_contributions_size = 2 * num_moments;
       class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
@@ -102,7 +102,7 @@ int eft_necessary_pk_types_loops(struct eft * peft,
     break;
 
   case Pdd_hh_rsd:
-    if (peft->hp->use_mu_approximation) {
+    if (peft->hp->integration_mode == fftlog) {
       *list_pk_types_size = 2;
       class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
       (*list_pk_types)[0] = pk_lin;
@@ -154,7 +154,7 @@ int eft_necessary_pk_types_total(struct eft * peft,
     break;
 
   case Pdd_hh_rsd:
-    if (peft->hp->use_mu_approximation) {
+    if (peft->hp->integration_mode == fftlog) {
       *list_pk_types_size = 3;
       class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
       (*list_pk_types)[0] = pk_lin;
@@ -188,14 +188,22 @@ int eft_set_sampling_points(struct eft * peft,
 
   /** - set the k(mu) and mu arrays where spectra_contributions (and the nonlinear spectrum) shall be evaluated */
   peft->k_size = k_size;
-  peft->mu_size = (peft->hp->use_mu_approximation) ? 1 : mu_size;
+  switch (peft->hp->integration_mode)
+    {
+    case fftlog:
+      peft->mu_size = 1;
+      break;
+    case direct_integration:
+      peft->mu_size = mu_size;
+      break;
+    }
 
   /** - allocate (non)linear spectra and wavenumber arrays and copy from input */
   class_realloc(peft->ln_k, peft->ln_k, peft->mu_size*peft->k_size*sizeof(double), peft->error_message);
   for (it = 0; it < peft->mu_size*peft->k_size; it++) {
     peft->ln_k[it] = log( kvec_Mpc[it] );
   }
-  if (!peft->hp->use_mu_approximation) {
+  if (peft->hp->integration_mode == direct_integration) {
     class_realloc(peft->mu, peft->mu, peft->mu_size*sizeof(double), peft->error_message);
     class_protect_memcpy(peft->mu, muvec, peft->mu_size*sizeof(double));
   }
@@ -219,10 +227,18 @@ int eft_set_sampling_points_mu_only(struct eft * peft,
   int it;
 
   /** - set the mu arrays where spectra_contributions (and the nonlinear spectrum) shall be evaluated */
-  peft->mu_size = (peft->hp->use_mu_approximation) ? 1 : mu_size;
+  switch (peft->hp->integration_mode)
+    {
+    case fftlog:
+      peft->mu_size=1;
+      break;
+    case direct_integration:
+      peft->mu_size = mu_size;
+      break;
+    }
 
   /** - allocate mu arrays and copy from input */
-  if (!peft->hp->use_mu_approximation) {
+  if (peft->hp->integration_mode == direct_integration) {
     class_realloc(peft->mu, peft->mu, peft->mu_size*sizeof(double), peft->error_message);
     class_protect_memcpy(peft->mu, muvec, peft->mu_size*sizeof(double));
   }
@@ -757,7 +773,7 @@ int add_plin_contribution(struct eft * peft,
   }
 
   /** - multiply by the mu-factor if the mu-dependencies are not added later */
-  if (!peft->hp->use_mu_approximation) {
+  if (peft->hp->integration_mode == direct_integration) {
     for (it_mu = 0; it_mu < peft->mu_size; it_mu++) {
       for (it_k = 0; it_k < peft->k_size; it_k++) {
         /** - prefactor * k^(k_power) * mu^(mu_power) * P^(m)_lin(ln(k)) */
@@ -788,7 +804,7 @@ int add_shot_contribution(struct eft * peft,
   }
 
   /** - multiply by the mu-factor if the mu-dependencies are not added later */
-  if (!peft->hp->use_mu_approximation) {
+  if (peft->hp->integration_mode == direct_integration) {
     for (it_mu = 0; it_mu < mu_size; it_mu++) {
       for (it_k = 0; it_k < peft->k_size; it_k++) {
         /** - prefactor * k^(k_power) * mu^(mu_power) */
@@ -1674,7 +1690,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
 
           k = exp(peft->ln_k[index_mu_k]);
           mu = muvec[index_mu];
-          Plin = peft->pk_l[index_pk_type][index_mu_k];  /** TODO: only handles non-RSD spectra at the moment since use_mu_approximation = _FALSE_ is not yet implemented */
+          Plin = peft->pk_l[index_pk_type][index_mu_k];
 
           switch (index_pk_out_type)
           {
@@ -1783,7 +1799,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
             }
 
             if (index_part == finite_part) {
-              if (peft->hp->use_mu_approximation) {
+              if (peft->hp->integration_mode == fftlog) {
                 Prsd2_loop += -D4*f_z*f_z * eft_ip.b1*eft_ip.b1 * sigma_sq(peft, -1, index_pk_type)/3. * mu*mu*k*k * Plin;
                 Prsd3_loop += -2.*D4*f_z*f_z*f_z * eft_ip.b1 * sigma_sq(peft, -1, index_pk_type)/3. * mu*mu*mu*mu*k*k * Plin;
                 Prsd4_loop += -D4*f_z*f_z*f_z*f_z * sigma_sq(peft, -1, index_pk_type)/3. * mu*mu*mu*mu*mu*mu*k*k * Plin;
@@ -1850,7 +1866,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
         break;
 
       case Pdd_hh_rsd:
-        if (peft->hp->use_mu_approximation) {
+        if (peft->hp->integration_mode == fftlog) {
           sigma2_tot_z0 = (1. + f_z*mu*mu*(2. + f_z)) * peft->Sigma2_ir + f_z*f_z*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
           pkmu[index_mu*peft->k_size + index_k] = pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
                                                   + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
@@ -1992,7 +2008,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
 
           k = exp(peft->ln_k[index_mu_k]);
           mu = muvec[index_mu];
-          Plin = peft->pk_l[index_pk_type][index_mu_k];  /** TODO: only handles non-RSD spectra at the moment since use_mu_approximation = _FALSE_ is not yet implemented */
+          Plin = peft->pk_l[index_pk_type][index_mu_k];
 
           switch (index_pk_out_type)
           {

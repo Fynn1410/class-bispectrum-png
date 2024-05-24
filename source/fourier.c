@@ -60,6 +60,7 @@
  * @param out_pk_ic   Output:  P_ic(k) returned as  out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
+
 int fourier_pk_at_z(
                     struct background * pba,
                     struct fourier *pfo,
@@ -85,10 +86,6 @@ int fourier_pk_at_z(
 
   if ((pk_output == pk_linear) && (pfo->ic_size > 1) && (out_pk_ic != NULL))
     do_ic = _TRUE_;
-
-  class_test((pk_output == pk_nonlinear) && (pfo->method == nl_oneloopPT),
-             pfo->error_message,
-             "This function is not yet compatible with the oneloop method - this is no problem as long as you wish to get P_NL from the python wrapper, but it will have to be implemented at some point for writting P_NL in output file \n");
 
   /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
@@ -754,10 +751,9 @@ int fourier_pks_at_k_and_z(
   return _SUCCESS_;
 }
 
-
-// JL: in this new function, are we really returning P_nw? I would sya, as usual, either P_l or P_NL?
 /**
- * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
+ * Return the P(k,z) for a vector of (k_i), a redshift z and pk type (_m, _cb)
+ * (linear if pk_output = pk_linear, nonlinear if pk_output = pk_nonlinear)
  * either linear or logarithmic.
  *
  * The main goal of this routine is speed. If the input k_i
@@ -1107,6 +1103,437 @@ int fourier_pks_at_kvec_and_zvec(
 }
 
 /**
+ * Return the linear nowiggle spectrum P_nw(k,z) for a given redshift z
+ *
+ * Output format:
+ *
+ * 1. if mode = logarithmic (most straightforward for the code):
+ *     out_pk = ln(P_nw(k))
+ *
+ * 2. if mode = linear (a conversion is done internally in this function)
+ *     out_pk = P_nw(k)
+ *
+ * @param pba         Input: pointer to background structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param mode        Input: linear or logarithmic
+ * @param z           Input: redshift
+ * @param out_pk      Output: P_nw(k) returned as out_pk_l[index_k]
+ * @return the error status
+ */
+
+int fourier_pk_nw_at_z(
+                        struct background * pba,
+                        struct fourier * pfo,
+                        enum linear_or_logarithmic mode,
+                        const double z,
+                        double * out_pk) {
+
+  double tau;
+  double ln_tau;
+  int index_k;
+  int last_index;
+
+  /** - case z=0 requiring no interpolation in z */
+  if (fabs(z) < _EPSILON_) {
+    memcpy(out_pk, pfo->ln_pk_l_nw_extra + (pfo->ln_tau_size-1)*pfo->k_size_extra,
+            pfo->k_size_extra * sizeof(double));
+  }
+
+  /** - interpolation in z */
+  else {
+    class_test(pfo->ln_tau_size == 1,
+                pfo->error_message,
+                "You are asking for the matter power spectrum at z=%e but the code was asked to store it only at z=0. You probably forgot to pass the input parameter z_max_pk (see explanatory.ini)",z);
+
+    /** --> get value of contormal time tau */
+    class_call(background_tau_of_z(pba,
+                                    z,
+                                    &tau),
+                pba->error_message,
+                pfo->error_message);
+
+    ln_tau = log(tau);
+    last_index = pfo->ln_tau_size-1;
+
+    /** -> check that tau is in pre-computed table */
+
+    if (ln_tau <= pfo->ln_tau[0]) {
+
+      /** --> if ln(tau) much too small, raise an error */
+      class_test(ln_tau<pfo->ln_tau[0]-_EPSILON_,
+                  pfo->error_message,
+                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pfo->ln_tau[0]);
+
+      /** --> if ln(tau) too small but within tolerance, round it and get right values without interpolating */
+      ln_tau = pfo->ln_tau[0];
+      memcpy(out_pk, pfo->ln_pk_l_nw_extra, pfo->k_size_extra * sizeof(double));
+    }
+
+    else if (ln_tau >= pfo->ln_tau[pfo->ln_tau_size-1]) {
+
+      /** --> if ln(tau) much too large, raise an error */
+      class_test(ln_tau>pfo->ln_tau[pfo->ln_tau_size-1]+_EPSILON_,
+                  pfo->error_message,
+                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Max %.10e) ",ln_tau,pfo->ln_tau[pfo->ln_tau_size-1]);
+
+      /** --> if ln(tau) too large but within tolerance, round it and get right values without interpolating */
+      ln_tau = pfo->ln_tau[pfo->ln_tau_size-1];
+      memcpy(out_pk, pfo->ln_pk_l_nw_extra + (pfo->ln_tau_size-1)*pfo->k_size_extra,
+              pfo->k_size_extra * sizeof(double));
+    }
+
+    /** -> tau is in pre-computed table: interpolate */
+    else {
+
+      /** --> interpolate P_nw(k) at tau from pre-computed array */
+      class_call(array_interpolate_spline(pfo->ln_tau,
+                                          pfo->ln_tau_size,
+                                          pfo->ln_pk_l_nw_extra,
+                                          pfo->ddln_pk_l_nw_extra,
+                                          pfo->k_size_extra,
+                                          ln_tau,
+                                          &last_index,
+                                          out_pk,
+                                          pfo->k_size_extra,
+                                          pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
+    }
+  }
+
+  /** - so far, all output stored in logarithmic format. Eventually, convert to linear one. */
+  if (mode == linear) {
+
+    /** --> loop over k */
+    for (index_k=0; index_k < pfo->k_size_extra; index_k++) {
+      /** --> convert total spectrum */
+      out_pk[index_k] = exp(out_pk[index_k]);
+    }
+  }
+
+  return _SUCCESS_;
+}
+
+// JL: move this to top (external functions)
+
+/**
+ * Return the linear nowiggle spectrum P_nw(k,z) for a given (k,z)
+
+ * Output format:
+ *
+ *     out_pk = P_nw(k,z)
+ *
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param mode        Input: linear or logarithmic
+ * @param k           Input: wavenumber in 1/Mpc
+ * @param z           Input: redshift
+ * @param out_pk      Output: pointer to P
+ * @return the error status
+ */
+
+int fourier_pk_nw_at_k_and_z(
+                              struct background * pba,
+                              struct primordial * ppm,
+                              struct fourier * pfo,
+                              enum linear_or_logarithmic mode,
+                              const double k,
+                              const double z,
+                              double * out_pk) {
+
+  double * out_pk_at_z;
+  double * ddout_pk_at_z;
+  int last_index;
+  double kmin;
+  double * ln_pk_primordial_k;
+  double * ln_pk_primordial_kmin;
+
+
+  /** - first step: check that k is in valid range [0:kmax]
+      (the test for z will be done when calling fourier_pk_linear_at_z()) */
+  class_test((k < 0.) || (k > exp(pfo->ln_k[pfo->k_size_extra-1])),
+             pfo->error_message,
+             "k=%e out of bounds [%e:%e]",k,0.,exp(pfo->ln_k[pfo->k_size_extra-1]));
+
+
+  /** - deal with 0 < k <= kmax */
+
+  class_alloc(out_pk_at_z,
+              pfo->k_size_extra*sizeof(double),
+              pfo->error_message);
+
+  /** - deal with standard case kmin <= k <= kmax */
+
+  if (k > exp(pfo->ln_k[0])) {
+
+    /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
+
+    class_call(fourier_pk_nw_at_z(pba,
+                                  pfo,
+                                  logarithmic,
+                                  z,
+                                  out_pk_at_z
+                                  ),
+                pfo->error_message,
+                pfo->error_message);
+
+    /** --> interpolate total spectrum */
+
+    class_alloc(ddout_pk_at_z,
+                pfo->k_size_extra*sizeof(double),
+                pfo->error_message);
+
+    class_call(array_spline_table_lines(pfo->ln_k,
+                                        pfo->k_size_extra,
+                                        out_pk_at_z,
+                                        1,
+                                        ddout_pk_at_z,
+                                        _SPLINE_NATURAL_,
+                                        pfo->error_message),
+                pfo->error_message,
+                pfo->error_message);
+
+    class_call(array_interpolate_spline(pfo->ln_k,
+                                        pfo->k_size_extra,
+                                        out_pk_at_z,
+                                        ddout_pk_at_z,
+                                        1,
+                                        log(k),
+                                        &last_index,
+                                        out_pk,
+                                        1,
+                                        pfo->error_message),
+                pfo->error_message,
+                pfo->error_message);
+
+    free(ddout_pk_at_z);
+
+    // uncomment this part if you prefer a linear interpolation
+
+    /*
+    class_call(array_interpolate_linear(pfo->ln_k,
+                                          pfo->k_size_extra,
+                                          out_pk_at_z,
+                                          1,
+                                          log(k),
+                                          &last_index,
+                                          out_pk,
+                                          1,
+                                          pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
+    */
+  }
+
+  /** --> deal with case 0 < k < kmin that requires extrapolation
+   *    P(k) = [some number] * k  * P_primordial(k)
+   *    so
+   *    P(k) = P(kmin) * (k P_primordial(k)) / (kmin P_primordial(kmin))
+   *    (note that the result is accurate only if kmin is such that [a0 kmin] << H0)
+   *
+   *    This is accurate for the synchronous gauge; TODO: write
+   *    newtonian gauge case. Also, In presence of isocurvature
+   *    modes, we assumes for simplicity that the mode with
+   *    index_ic1_ic2=0 dominates at small k: exact treatment should be
+   *    written if needed.
+   */
+
+  else {
+
+    /** --> First, get ln P(k) at the right z */
+
+    class_call(fourier_pk_nw_at_z(pba,
+                                  pfo,
+                                  logarithmic,
+                                  z,
+                                  out_pk_at_z
+                                  ),
+                pfo->error_message,
+                pfo->error_message);
+
+    /* get P(kmin) / first element in pk_l_extra */
+    *out_pk = out_pk_at_z[0];
+
+    /* compute ln P_primordial(k) */
+
+    class_alloc(ln_pk_primordial_k,
+                pfo->ic_ic_size*sizeof(double),
+                pfo->error_message);
+
+    class_call(primordial_spectrum_at_k(ppm,
+                                        pfo->index_md_scalars,
+                                        logarithmic,
+                                        k,
+                                        ln_pk_primordial_k),
+                ppm->error_message,
+                pfo->error_message);
+
+    /* compute ln P_primordial(kmin) */
+
+    kmin = exp(pfo->ln_k[0]); /**< much less than H0 ~ 2e-4 1/Mpc */
+
+    class_alloc(ln_pk_primordial_kmin,
+                sizeof(double)*pfo->ic_ic_size,
+                pfo->error_message);
+
+    class_call(primordial_spectrum_at_k(ppm,
+                                        pfo->index_md_scalars,
+                                        logarithmic,
+                                        kmin,
+                                        ln_pk_primordial_kmin),
+                ppm->error_message,
+                pfo->error_message);
+
+    /* finally, infer ln P(k) */
+
+    *out_pk += log(k) - pfo->ln_k[0] + ln_pk_primordial_k[0] - ln_pk_primordial_kmin[0];
+
+    free(ln_pk_primordial_k);
+    free(ln_pk_primordial_kmin);
+  }
+
+  free(out_pk_at_z);
+
+  if (mode == linear) {
+    /** --> convert from logarithmic to linear format */
+    *out_pk = exp(*out_pk);
+  }
+
+  return _SUCCESS_;
+}
+
+// JL: move this to top (external functions)
+/**
+ * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
+ * either linear or logarithmic.
+ *
+ * The main goal of this routine is speed. If the input k_i
+ * falls outside the pre-computed range [kmin,kmax],
+ * the power spectrum is extrapolated from the primordial spectrum.
+ *
+ * @param pba         Input: pointer to background structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param mode        Input: linear or logarithmic
+ * @param ln_kvec     Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
+ * @param kvec_size   Input: size of array of wavenumbers
+ * @param z           Input: redshift
+ * @param out_pk      Output: P_nw(k_i,z) for total matter in Mpc^3
+ * @return the error status
+ */
+
+int fourier_pk_nw_at_kvec_and_z(
+                                struct background * pba,
+                                struct primordial * ppm,
+                                struct fourier * pfo,
+                                enum linear_or_logarithmic mode,
+                                double * ln_kvec, // log(kvec[index_kvec])
+                                const int kvec_size,
+                                const double z,
+                                double * out_pk) {
+
+  int index_k, index_kvec, last_index = 0;
+  double * out_pk_at_z;
+  double * ddout_pk_at_z;
+  double * ln_pk_primordial = NULL;
+  double extrapol_const;
+
+
+  class_alloc(out_pk_at_z, pfo->k_size_extra*sizeof(double),
+              pfo->error_message);
+
+  /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
+
+  class_call(fourier_pk_nw_at_z(pba,
+                                pfo,
+                                logarithmic,
+                                z,
+                                out_pk_at_z
+                                ),
+              pfo->error_message,
+              pfo->error_message);
+
+  /** --> interpolate total spectrum */
+
+  class_alloc(ddout_pk_at_z,
+              pfo->k_size_extra*sizeof(double),
+              pfo->error_message);
+
+  class_call(array_spline_table_lines(pfo->ln_k,
+                                      pfo->k_size_extra,
+                                      out_pk_at_z,
+                                      1,
+                                      ddout_pk_at_z,
+                                      _SPLINE_NATURAL_,
+                                      pfo->error_message),
+              pfo->error_message,
+              pfo->error_message);
+
+
+  /** - Loop over first k values. If k<kmin, extrapolate using the primordial spectrum. */
+  if (ln_kvec[0] < pfo->ln_k[0]) {
+    class_alloc(ln_pk_primordial, pfo->ic_ic_size * sizeof(double), pfo->error_message);
+    class_call(primordial_spectrum_at_k(ppm,
+                                        pfo->index_md_scalars,
+                                        logarithmic,
+                                        exp(pfo->ln_k[0]),
+                                        ln_pk_primordial),
+                  ppm->error_message,
+                  pfo->error_message);
+    extrapol_const = out_pk_at_z[0] - pfo->ln_k[0] - ln_pk_primordial[0];
+  }
+
+  for(index_kvec = 0; index_kvec < kvec_size && ln_kvec[index_kvec] < pfo->ln_k[0]; index_kvec++) {
+    /** - get the primordial spectrum at k */
+    class_call(primordial_spectrum_at_k(ppm,
+                                        pfo->index_md_scalars,
+                                        logarithmic,
+                                        exp(ln_kvec[index_kvec]),
+                                        ln_pk_primordial),
+                ppm->error_message,
+                pfo->error_message);
+
+    /** - write to output: P(k) = P(kmin) * (k*P_R(k) / kmin*P_R(kmin)) */
+    out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
+  }
+
+  if (ln_pk_primordial) free(ln_pk_primordial);
+
+  for (index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
+    /** - Deal with case kmin<=k<=kmax */
+    class_call(array_interpolate_spline_growing_closeby(pfo->ln_k,
+                                                        pfo->k_size_extra,
+                                                        out_pk_at_z,
+                                                        ddout_pk_at_z,
+                                                        1,
+                                                        ln_kvec[index_kvec],
+                                                        &last_index,
+                                                        out_pk + index_kvec,
+                                                        1,
+                                                        pfo->error_message),
+                  pfo->error_message,
+                  pfo->error_message);
+  }
+
+  for (index_kvec; index_kvec < kvec_size; index_kvec++) {
+    /** - for k higher than kmax in pfo->ln_k, write zero to output */
+    out_pk[index_kvec] = 0.;
+  }
+
+  free(out_pk_at_z);
+  free(ddout_pk_at_z);
+
+  /** - convert to linear output if needed */
+  if (mode == linear)
+  {
+    for (index_kvec = 0; index_kvec < kvec_size; index_kvec++)
+      out_pk[index_kvec] = exp(out_pk[index_kvec]);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
  * Return the logarithmic slope of P(k,z) for a given (k,z), a given pk type (_m, _cb)
  * (computed with linear P_L if pk_output = pk_linear, nonlinear P_NL if pk_output = pk_nonlinear)
  *
@@ -1391,8 +1818,20 @@ int fourier_init(
   double ln_k_nw_min, ln_k_nw_max;
   double smoothing_scale;
   int index_k0 = 0, index_k_min = 0, index_k_max = 0, k_nw_size;
-  int index_eft, index_pk_type, index_moment, index_ip;
+  int index_eft, index_pk_type, index_moment;
   short eft_role;
+
+  // JL: additional variables for preliminary version of oneloop:
+#define TEST_Z_SIZE 1
+#define TEST_MU_SIZE 5
+  double * zvec;
+  double ** muvec;
+  double ** kvec;
+  double ** out_pkmu;
+  int mu_sizevec[TEST_Z_SIZE];
+  int k_sizevec[TEST_Z_SIZE];
+  int index_z,index_mu;
+  struct eft_input_parameters eft_ip_test[TEST_Z_SIZE];
 
   /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
         from the perturbations structure to the fourier structure */
@@ -1551,7 +1990,7 @@ int fourier_init(
 
     // JL: Maybe all this could be deferred to a function
 
-    /** - find indices of the pivot scale k0 in pfo->ln_k: 
+    /** - find indices of the pivot scale k0 in pfo->ln_k:
      *    it is the wavenumber at which the analytical Eisenstein-Hu dewiggled
      *    power spectrum, that is used to reduce the low-frequency dynamics of
      *    the linear power spectrum before filtering, is matched to the CLASS-
@@ -1571,10 +2010,9 @@ int fourier_init(
     //             pfo->error_message,
     //             pfo->error_message);
 
-    // JL: need to add comments to explain the strategy for defining ln_k_nw_min, max: CR will explain better
-    /** - find the index range, in which the dewiggled power spectrum is computed:
-     *    Since the filter has a finitely-extended support, it cannot be applied 
-     *    very close to the boundaries. Therefore we find the indices on both sides,
+    /** - find the index range in which the dewiggled power spectrum is computed:
+     *    Since the filter has a finitely-extended support, it cannot be applied
+     *    very close to the boundaries. Therefore we find the indices on both sides
      *    at which the end of the ln(k)-range is further away than
      *    ppr->nowiggle_boundary_dist_sigma_units times the smoothing scale.
      */
@@ -1619,7 +2057,7 @@ int fourier_init(
                   pfo->error_message);
     }
 
-    // JL: can I remove it now? Let's wait a bit!
+    // JL: we will remove it once we have implemented these tests as an option
     /** TODO: test splines -> done -> to be removed */
     // #define NSPLINE 9
     // double x[NSPLINE] = {-4., -3., -2., -1., 0., 1., 2., 3., 4.};
@@ -1909,13 +2347,16 @@ int fourier_init(
   }
 
   /** --> Then go through common preliminary steps to the HALOFIT and HMcode methods */
-  else if ((pfo->method == nl_halofit) || (pfo->method == nl_HMcode)) {
+  else if ((pfo->method == nl_halofit) || (pfo->method == nl_HMcode) || (pfo->method == nl_oneloopPT)) {
 
     if ((pfo->fourier_verbose > 0) && (pfo->method == nl_halofit))
       printf("Computing non-linear matter power spectrum with Halofit (including update Takahashi et al. 2012 and Bird 2014)\n");
 
     if ((pfo->fourier_verbose > 0) && (pfo->method == nl_HMcode))
         printf("Computing non-linear matter power spectrum with HMcode \n");
+
+    if ((pfo->fourier_verbose > 0) && (pfo->method == nl_oneloopPT))
+        printf("Computing non-linear matter power spectrum at one loop including EFT terms (see arxiv:2402.09778) \n");
 
     /** --> allocate temporary arrays for spectra at each given time/redshift */
 
@@ -1954,6 +2395,112 @@ int fourier_init(
       class_call(fourier_hmcode_baryonic_feedback(pfo),
                  pfo->error_message,
                  pfo->error_message);
+    }
+
+    /** --> or through preliminary steps specific to OneLoop */
+
+    if (pfo->method == nl_oneloopPT) {
+
+      /********************** PRELIMINARY ZONE 1 ************************/
+      /** - fill in hyperparameters from precision */
+      pfo->eft_hp.linear_spectrum_index = pfo->index_pk_cluster;
+
+      pfo->eft_hp.fourier_mode = ppr->eft_fourier_mode;
+      pfo->eft_hp.k_size_fourier = ppr->eft_num_sample_points + 1;
+      pfo->eft_hp.bao_oversampling = ppr->eft_bao_oversampling;
+      pfo->eft_hp.ln_k_oversampling_width = ppr->k_bao_width;
+      pfo->eft_hp.num_positive_fourier_freq = ppr->eft_num_positive_frequencies;
+      pfo->eft_hp.fourier_coeff_size = 2*pfo->eft_hp.num_positive_fourier_freq + 1;
+      pfo->eft_hp.k_UV_cutoff = ppr->eft_uv_cutoff;
+      pfo->eft_hp.k_IR_cutoff = ppr->eft_ir_cutoff;
+      pfo->eft_hp.k_pole_cutoff = ppr->eft_pole_cutoff;
+      pfo->eft_hp.k_size_moments = ppr->eft_pk_moments_points;
+      pfo->eft_hp.ignore_missing_files = _FALSE_;
+      // JL: check if some of these are redundent with input.c (or whether we could then remove things from input.c)
+      if (pfo->eft_hp.integration_mode == direct_integration) {
+        pfo->eft_hp.use_interpolation = _FALSE_;
+        pfo->eft_hp.compute_loop_matrices = _FALSE_;
+      }
+
+      /** - build the name of the files in wich loop matrices will be written or read */
+      if (pfo->eft_hp.write_loop_matrices == _TRUE_) {
+        for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
+          if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
+            strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
+            strcat(pfo->eft_hp.eft_loop_matrix_files[index_moment], eft_loop_matrix_files_default[index_moment]);
+          }
+          else {
+            class_stop(pfo->error_message, "Kernel matrix filename %s%s_000.mat is too long", pfo->eft_hp.eft_loop_matrix_directory, eft_loop_matrix_files_default[index_moment]);
+          }
+        }
+      }
+
+      // JL: remove hard-coding. input or precision parameters?
+      pfo->eft_hp.kmin_nl = 1.e-3;
+      pfo->eft_hp.kmax_nl = 1.;
+      pfo->eft_hp.k_feature_nl = 0.1;
+      pfo->eft_hp.ln_k_oversampling_width_nl = 1.6;
+      pfo->eft_hp.k_size_nl = 200;
+
+      //JL: shall we replace everywhere loop matrices by kernels, or kernel_matrices? yes
+
+      for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
+
+        if (index_eft > 0)
+          eft_role = eft_slave;
+        else
+          eft_role = eft_master;
+
+        /** - if role is eft_slave, copy the master structure and then allocate only the fields that will not be shared */
+        if (eft_role == eft_slave) {
+          class_protect_memcpy(pfo->peft + index_eft, pfo->peft, sizeof(struct eft));
+        }
+
+        class_call(eft_init(ppr, pba, pfo->peft + index_eft, &(pfo->eft_hp), pfo->eft_ip + index_eft, pext, eft_role, index_eft),
+                   pfo->peft[index_eft].error_message,
+                   pfo->error_message);
+
+        class_call(eft_get_loop_matrices(pfo->peft + index_eft, pext, index_eft),
+                   pfo->peft[index_eft].error_message,
+                   pfo->error_message);
+      }
+
+      /* one z */
+      class_alloc(zvec,TEST_Z_SIZE*sizeof(double),pfo->error_message);
+
+      /* a few mu for testing*/
+      class_alloc(muvec,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
+      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+        class_alloc(muvec[index_z],TEST_MU_SIZE*sizeof(double),pfo->error_message);
+        mu_sizevec[index_z] = TEST_MU_SIZE;
+        for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+          muvec[index_z][index_mu] = index_mu / (double)(TEST_MU_SIZE-1);
+        }
+      }
+
+      /* values of k taken from fourier structure */
+      class_alloc(kvec,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
+      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+        class_alloc(kvec[index_z],pfo->k_size*TEST_MU_SIZE*sizeof(double),pfo->error_message);
+        k_sizevec[index_z] = pfo->k_size;
+        for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+          for (index_k = 0; index_k < pfo->k_size; index_k++) {
+            kvec[index_z][index_mu*pfo->k_size+index_k] = pfo->k[index_k];
+          }
+        }
+      }
+
+      /* array to write the output */
+      class_alloc(out_pkmu,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
+      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+        class_alloc(out_pkmu[index_z],pfo->k_size*TEST_MU_SIZE*sizeof(double),pfo->error_message);
+      }
+
+      //eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1.14, .b2 = -0.767, .bG2 = -0.04, .btd = 0.077, .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+      eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+
+    /************************ END PRELIMINARY ZONE 1 **********************/
+
     }
 
     /** --> Loop over decreasing time/growing redhsift. For each
@@ -2064,6 +2611,68 @@ int fourier_init(
                        pfo->error_message);
           }
 
+          else if (pfo->method == nl_oneloopPT) {
+
+            /*************** PRELIMINARY ZONE 2 *****************/
+            class_call(background_z_of_tau(pba,pfo->tau[index_tau],zvec),
+                       pba->error_message,
+                       pfo->error_message);
+
+            //fprintf(stderr,"Call eft_job_powerspectrum_wedges() at z=%e\n",zvec[0]);
+
+            class_call(eft_job_powerspectrum_wedges(pfo->peft,
+                                                    pfo->eft_size,
+                                                    pba,
+                                                    pfo,
+                                                    ppm,
+                                                    ppr,
+                                                    Pdd_hh_rsd,
+                                                    zvec,
+                                                    eft_ip_test,
+                                                    TEST_Z_SIZE,
+                                                    kvec,
+                                                    k_sizevec,
+                                                    muvec,
+                                                    mu_sizevec,
+                                                    out_pkmu),
+                       pfo->peft->error_message,
+                       pfo->error_message);
+
+            /*
+              index_z=0;
+              for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
+              for (index_k = 0; index_k < pfo->k_size; index_k++) {
+              fprintf(stderr,"%e %e %e\n",
+              muvec[index_z][index_mu],
+              kvec[index_z][k_sizevec[index_z]*index_mu+index_k],
+              out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
+              }
+              }
+            */
+
+
+            index_z=0;
+            /* so far, we only write the spectrum at mu=0 (real-space power spectrum) */
+            index_mu=0;
+            /* so far, the oneloop method will write identical output for _m and _cb since we did not code the difference */
+            for (index_k=0; index_k<pfo->k_size; index_k++) {
+              /* if k is in the range where oneloop works, P_NL = result of oneloop */
+              if ((pfo->k[index_k] > pfo->eft_hp.kmin_nl) && (pfo->k[index_k] < pfo->eft_hp.kmax_nl)) {
+                //pfo->ln_pk_nl[index_pk][index_tau*pfo->k_size+index_k] = log(out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
+                pk_nl[index_pk][index_k] = out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k];
+              }
+              /* otherwise, P_NL = P_L */
+              else {
+                //pfo->ln_pk_nl[index_pk][index_tau*pfo->k_size+index_k] = pfo->ln_pk_l[index_pk][index_tau*pfo->k_size+index_k];
+                //pk_nl[index_pk][index_k] = exp(pfo->ln_pk_l[index_pk][index_tau*pfo->k_size+index_k]);
+                pk_nl[index_pk][index_k] = exp(lnpk_l[index_pk][index_k]);
+              }
+            }
+
+            /*************** END PRELIMINARY ZONE 2 *****************/
+
+          }
+
           /* infer and store R_NL=(P_NL/P_L)^1/2 */
           if (nl_corr_not_computable_at_this_k == _FALSE_) {
             for (index_k=0; index_k<pfo->k_size; index_k++) {
@@ -2161,130 +2770,28 @@ int fourier_init(
                  pfo->error_message,
                  pfo->error_message);
     }
+
+    if (pfo->method == nl_oneloopPT) {
+      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
+        free(out_pkmu[index_z]);
+        free(kvec[index_z]);
+        free(muvec[index_z]);
+      }
+      free(out_pkmu);
+      free(kvec);
+      free(muvec);
+      free(zvec);
+    }
   }
 
-  /** --> oneloop method */
-
-  else if (pfo->method == nl_oneloopPT) {
-
-    if (pfo->fourier_verbose > 0)
-      printf("Computing one-loop power spectrum including EFT terms (see arxiv:2402.09778)\n");
-
-    /** - fill in hyperparameters from precision */
-    pfo->eft_hp.linear_spectrum_index = pfo->index_pk_cluster;
-
-    pfo->eft_hp.fourier_mode = ppr->eft_fourier_mode;
-    pfo->eft_hp.k_size_fourier = ppr->eft_num_sample_points + 1;
-    pfo->eft_hp.bao_oversampling = ppr->eft_bao_oversampling;
-    pfo->eft_hp.ln_k_oversampling_width = ppr->k_bao_width;
-    pfo->eft_hp.num_positive_fourier_freq = ppr->eft_num_positive_frequencies;
-    pfo->eft_hp.fourier_coeff_size = 2*pfo->eft_hp.num_positive_fourier_freq + 1;
-    pfo->eft_hp.k_UV_cutoff = ppr->eft_uv_cutoff;
-    pfo->eft_hp.k_IR_cutoff = ppr->eft_ir_cutoff;
-    pfo->eft_hp.k_pole_cutoff = ppr->eft_pole_cutoff;
-    pfo->eft_hp.k_size_moments = ppr->eft_pk_moments_points;
-    // JL: I think we want to remove this line because parameter was passed as input parameter, CR agrees
-    pfo->eft_hp.use_interpolation = ppr->eft_interpolate_spectra_contributions;
-    pfo->eft_hp.ignore_missing_files = _FALSE_;
-    // JL: check if some of these are redundent with input.c (or whether we could then remove things from input.c)
-    if (pfo->eft_hp.integration_mode == direct_integration) {
-      pfo->eft_hp.use_mu_approximation = _FALSE_;
-      pfo->eft_hp.use_interpolation = _FALSE_;
-      pfo->eft_hp.compute_loop_matrices = _FALSE_;
-    }
-    class_test((pfo->eft_hp.integration_mode == fftlog) && (pfo->eft_hp.use_mu_approximation == _FALSE_), pfo->error_message, "The evaluation of loop integrals using Fourier decomposition requires the analytic mu-dependence!");
-
-    // JL shouldn't we do this only if (eft_write_loop_matrices == _TRUE_) ||  (eft_compute_loop_matrices == FALSE) ? CR agrees
-    for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
-      if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
-        strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
-        strcat(pfo->eft_hp.eft_loop_matrix_files[index_moment], eft_loop_matrix_files_default[index_moment]);
-      }
-      else {
-        class_stop(pfo->error_message, "Kernel matrix filename %s%s_000.mat is too long", pfo->eft_hp.eft_loop_matrix_directory, eft_loop_matrix_files_default[index_moment]);
-      }
-    }
-
-    // JL: remove hard-coding. input or precision parameters?
-    pfo->eft_hp.kmin_nl = 1.e-3;
-    pfo->eft_hp.kmax_nl = 1.;
-    pfo->eft_hp.k_feature_nl = 0.1;
-    pfo->eft_hp.ln_k_oversampling_width_nl = 1.6;
-    pfo->eft_hp.k_size_nl = 200;
-
-    //JL: shall we replace everywhere loop matrices by kernels, or kernel_matrices?
-    //printf("compute_loop_matrices = %d \n", pfo->eft_hp.compute_loop_matrices);
-    //printf("compute mu approximation = %d \n", pfo->eft_hp.use_mu_approximation);
-
-    for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
-
-      // JL: index_ip is the index of the set of bias/counter-terms to be used.
-      // We use the same index as for our redshift bin (index_ip = index_eft) unless we are in the case
-      // without use_EdS_time_scaling for wich only one set of bias/counter-terms is defined so far.
-      if ((pfo->z_pk_eft_num == 1) && (pfo->eft_hp.use_EdS_time_scaling == _FALSE_))
-        index_ip = 0;
-      else
-        index_ip = index_eft;
-      // JL: but index_ip is never used. remove?? CR will check it
-
-      // JL: Do we want to keep this option use_time_independent_kernels? -> will be removed
-      if ((index_eft > 0) && (pfo->eft_hp.use_time_independent_kernels == _TRUE_))
-        eft_role = eft_slave;
-      else
-        eft_role = eft_master;
-
-      /** - if role is eft_slave, copy the master structure and then allocate only the fields that will not be shared */
-      if (eft_role == eft_slave) {
-        class_protect_memcpy(pfo->peft + index_eft, pfo->peft, sizeof(struct eft));
-      }
-
-      class_call(eft_init(ppr, pba, pfo->peft + index_eft, &(pfo->eft_hp), pfo->eft_ip + index_eft, pext, eft_role, index_eft),
-                  pfo->peft[index_eft].error_message,
-                  pfo->error_message);
-
-      class_call(eft_get_loop_matrices(pfo->peft + index_eft, pext, index_eft),
-                  pfo->peft[index_eft].error_message,
-                  pfo->error_message);
-    }
-
-    // JL: may remove this? -> we remove it
-    // /** - if we want to use the mu-approximation of the spectra, load the linear and nowiggle spectrum at this point
-    //  *    otherwise the IR-resummed spectrum will be loaded on demand from the python interface */
-    // if (pfo->eft_hp.use_mu_approximation) {
-    //   double pvecback[pba->bg_size];
-    //   double z_nl;
-
-    //   for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
-    //     if (pfo->peft[index_eft].role > eft_master) { continue; }
-
-    //     z_nl = ((pfo->z_pk_eft_num == 1) && !(pfo->eft_hp.use_EdS_time_scaling)) ? pfo->z_pk_eft[0] : pfo->z_pk_eft[index_eft];
-    //     last_index = 0;
-    //     class_call(background_at_z(pba, z_nl,
-    //                               long_info,
-    //                               inter_normal,
-    //                               &last_index,
-    //                               &pvecback),
-    //                 pba->error_message,
-    //                 pfo->error_message);
-    //     class_call(eft_fourier_transform_linear_spectra(ppr, pba, pfo, ppm, pfo->peft + index_eft,
-    //                                                     z_nl,
-    //                                                     pvecback[pba->index_bg_f],  /** TODO: external growth rate, e.g. Omega_m^gamma */
-    //                                                     pvecback[pba->index_bg_D],
-    //                                                     use_pk_types,
-    //                                                     _TRUE_),
-    //                pfo->peft[index_eft].error_message,
-    //                pfo->error_message);
-    //   }
-    // }
-
-    // for (index_eft = 0; index_eft < pfo->eft_size; index_eft++) {
-    //   class_call(eft_get_loop_matrices(pfo->peft + index_eft, pext, index_eft),
-    //               pfo->peft[index_eft].error_message,
-    //               pfo->error_message);
-    // }
+  /** - if the nl_method could not be identified */
+  else {
+    class_stop(pfo->error_message,
+               "Your non-linear method variable is set to %d, out of the range defined in fourier.h",pfo->method);
+  }
 
     // test zone to illustrate how to get some output (will need to be used toi store results in the fourier structure like with other moethods)
-    
+
     // #define TEST_Z_SIZE 1
     // #define TEST_K_SIZE 500
     // #define TEST_K_SIZE_REAL 200
@@ -2444,15 +2951,6 @@ int fourier_init(
     // free(kvec_real);
     // free(muvec_real);
     // free(out_pkmu_real);
-    
-
-  }
-
-  /** - if the nl_method could not be identified */
-  else {
-    class_stop(pfo->error_message,
-               "Your non-linear method variable is set to %d, out of the range defined in fourier.h",pfo->method);
-  }
 
   return _SUCCESS_;
 }
@@ -5321,437 +5819,6 @@ int fourier_hmcode_sigmaprime_at_z(
     *sigma_prime_cb = *sigma_prime;
   }
 
-
-  return _SUCCESS_;
-}
-
-/**
- * Return the linear nowiggle spectrum P_nw(k,z) for a given redshift z
- *
- * Output format:
- *
- * 1. if mode = logarithmic (most straightforward for the code):
- *     out_pk = ln(P_nw(k))
- *
- * 2. if mode = linear (a conversion is done internally in this function)
- *     out_pk = P_nw(k)
- *
- * @param pba         Input: pointer to background structure
- * @param pfo         Input: pointer to fourier structure
- * @param mode        Input: linear or logarithmic
- * @param z           Input: redshift
- * @param out_pk      Output: P_nw(k) returned as out_pk_l[index_k]
- * @return the error status
- */
-
-int fourier_pk_nw_at_z(
-                        struct background * pba,
-                        struct fourier * pfo,
-                        enum linear_or_logarithmic mode,
-                        const double z,
-                        double * out_pk) {
-
-  double tau;
-  double ln_tau;
-  int index_k;
-  int last_index;
-
-  /** - case z=0 requiring no interpolation in z */
-  if (fabs(z) < _EPSILON_) {
-    memcpy(out_pk, pfo->ln_pk_l_nw_extra + (pfo->ln_tau_size-1)*pfo->k_size_extra,
-            pfo->k_size_extra * sizeof(double));
-  }
-
-  /** - interpolation in z */
-  else {
-    class_test(pfo->ln_tau_size == 1,
-                pfo->error_message,
-                "You are asking for the matter power spectrum at z=%e but the code was asked to store it only at z=0. You probably forgot to pass the input parameter z_max_pk (see explanatory.ini)",z);
-
-    /** --> get value of contormal time tau */
-    class_call(background_tau_of_z(pba,
-                                    z,
-                                    &tau),
-                pba->error_message,
-                pfo->error_message);
-
-    ln_tau = log(tau);
-    last_index = pfo->ln_tau_size-1;
-
-    /** -> check that tau is in pre-computed table */
-
-    if (ln_tau <= pfo->ln_tau[0]) {
-
-      /** --> if ln(tau) much too small, raise an error */
-      class_test(ln_tau<pfo->ln_tau[0]-_EPSILON_,
-                  pfo->error_message,
-                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pfo->ln_tau[0]);
-
-      /** --> if ln(tau) too small but within tolerance, round it and get right values without interpolating */
-      ln_tau = pfo->ln_tau[0];
-      memcpy(out_pk, pfo->ln_pk_l_nw_extra, pfo->k_size_extra * sizeof(double));
-    }
-
-    else if (ln_tau >= pfo->ln_tau[pfo->ln_tau_size-1]) {
-
-      /** --> if ln(tau) much too large, raise an error */
-      class_test(ln_tau>pfo->ln_tau[pfo->ln_tau_size-1]+_EPSILON_,
-                  pfo->error_message,
-                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Max %.10e) ",ln_tau,pfo->ln_tau[pfo->ln_tau_size-1]);
-
-      /** --> if ln(tau) too large but within tolerance, round it and get right values without interpolating */
-      ln_tau = pfo->ln_tau[pfo->ln_tau_size-1];
-      memcpy(out_pk, pfo->ln_pk_l_nw_extra + (pfo->ln_tau_size-1)*pfo->k_size_extra,
-              pfo->k_size_extra * sizeof(double));
-    }
-
-    /** -> tau is in pre-computed table: interpolate */
-    else {
-
-      /** --> interpolate P_nw(k) at tau from pre-computed array */
-      class_call(array_interpolate_spline(pfo->ln_tau,
-                                          pfo->ln_tau_size,
-                                          pfo->ln_pk_l_nw_extra,
-                                          pfo->ddln_pk_l_nw_extra,
-                                          pfo->k_size_extra,
-                                          ln_tau,
-                                          &last_index,
-                                          out_pk,
-                                          pfo->k_size_extra,
-                                          pfo->error_message),
-                  pfo->error_message,
-                  pfo->error_message);
-    }
-  }
-
-  /** - so far, all output stored in logarithmic format. Eventually, convert to linear one. */
-  if (mode == linear) {
-
-    /** --> loop over k */
-    for (index_k=0; index_k < pfo->k_size_extra; index_k++) {
-      /** --> convert total spectrum */
-      out_pk[index_k] = exp(out_pk[index_k]);
-    }
-  }
-
-  return _SUCCESS_;
-}
-
-// JL: move this to top (external functions)
-
-/**
- * Return the linear nowiggle spectrum P_nw(k,z) for a given (k,z)
-
- * Output format:
- *
- *     out_pk = P_nw(k,z)
- *
- * @param pba         Input: pointer to background structure
- * @param ppm         Input: pointer to primordial structure
- * @param pfo         Input: pointer to fourier structure
- * @param mode        Input: linear or logarithmic
- * @param k           Input: wavenumber in 1/Mpc
- * @param z           Input: redshift
- * @param out_pk      Output: pointer to P
- * @return the error status
- */
-
-int fourier_pk_nw_at_k_and_z(
-                              struct background * pba,
-                              struct primordial * ppm,
-                              struct fourier * pfo,
-                              enum linear_or_logarithmic mode,
-                              const double k,
-                              const double z,
-                              double * out_pk) {
-
-  double * out_pk_at_z;
-  double * ddout_pk_at_z;
-  int last_index;
-  double kmin;
-  double * ln_pk_primordial_k;
-  double * ln_pk_primordial_kmin;
-
-
-  /** - first step: check that k is in valid range [0:kmax]
-      (the test for z will be done when calling fourier_pk_linear_at_z()) */
-  class_test((k < 0.) || (k > exp(pfo->ln_k[pfo->k_size_extra-1])),
-             pfo->error_message,
-             "k=%e out of bounds [%e:%e]",k,0.,exp(pfo->ln_k[pfo->k_size_extra-1]));
-
-
-  /** - deal with 0 < k <= kmax */
-
-  class_alloc(out_pk_at_z,
-              pfo->k_size_extra*sizeof(double),
-              pfo->error_message);
-
-  /** - deal with standard case kmin <= k <= kmax */
-
-  if (k > exp(pfo->ln_k[0])) {
-
-    /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
-
-    class_call(fourier_pk_nw_at_z(pba,
-                                  pfo,
-                                  logarithmic,
-                                  z,
-                                  out_pk_at_z
-                                  ),
-                pfo->error_message,
-                pfo->error_message);
-
-    /** --> interpolate total spectrum */
-
-    class_alloc(ddout_pk_at_z,
-                pfo->k_size_extra*sizeof(double),
-                pfo->error_message);
-
-    class_call(array_spline_table_lines(pfo->ln_k,
-                                        pfo->k_size_extra,
-                                        out_pk_at_z,
-                                        1,
-                                        ddout_pk_at_z,
-                                        _SPLINE_NATURAL_,
-                                        pfo->error_message),
-                pfo->error_message,
-                pfo->error_message);
-
-    class_call(array_interpolate_spline(pfo->ln_k,
-                                        pfo->k_size_extra,
-                                        out_pk_at_z,
-                                        ddout_pk_at_z,
-                                        1,
-                                        log(k),
-                                        &last_index,
-                                        out_pk,
-                                        1,
-                                        pfo->error_message),
-                pfo->error_message,
-                pfo->error_message);
-
-    free(ddout_pk_at_z);
-
-    // uncomment this part if you prefer a linear interpolation
-
-    /*
-    class_call(array_interpolate_linear(pfo->ln_k,
-                                          pfo->k_size_extra,
-                                          out_pk_at_z,
-                                          1,
-                                          log(k),
-                                          &last_index,
-                                          out_pk,
-                                          1,
-                                          pfo->error_message),
-                  pfo->error_message,
-                  pfo->error_message);
-    */
-  }
-
-  /** --> deal with case 0 < k < kmin that requires extrapolation
-   *    P(k) = [some number] * k  * P_primordial(k)
-   *    so
-   *    P(k) = P(kmin) * (k P_primordial(k)) / (kmin P_primordial(kmin))
-   *    (note that the result is accurate only if kmin is such that [a0 kmin] << H0)
-   *
-   *    This is accurate for the synchronous gauge; TODO: write
-   *    newtonian gauge case. Also, In presence of isocurvature
-   *    modes, we assumes for simplicity that the mode with
-   *    index_ic1_ic2=0 dominates at small k: exact treatment should be
-   *    written if needed.
-   */
-
-  else {
-
-    /** --> First, get ln P(k) at the right z */
-
-    class_call(fourier_pk_nw_at_z(pba,
-                                  pfo,
-                                  logarithmic,
-                                  z,
-                                  out_pk_at_z
-                                  ),
-                pfo->error_message,
-                pfo->error_message);
-
-    /* get P(kmin) / first element in pk_l_extra */
-    *out_pk = out_pk_at_z[0];
-
-    /* compute ln P_primordial(k) */
-
-    class_alloc(ln_pk_primordial_k,
-                pfo->ic_ic_size*sizeof(double),
-                pfo->error_message);
-
-    class_call(primordial_spectrum_at_k(ppm,
-                                        pfo->index_md_scalars,
-                                        logarithmic,
-                                        k,
-                                        ln_pk_primordial_k),
-                ppm->error_message,
-                pfo->error_message);
-
-    /* compute ln P_primordial(kmin) */
-
-    kmin = exp(pfo->ln_k[0]); /**< much less than H0 ~ 2e-4 1/Mpc */
-
-    class_alloc(ln_pk_primordial_kmin,
-                sizeof(double)*pfo->ic_ic_size,
-                pfo->error_message);
-
-    class_call(primordial_spectrum_at_k(ppm,
-                                        pfo->index_md_scalars,
-                                        logarithmic,
-                                        kmin,
-                                        ln_pk_primordial_kmin),
-                ppm->error_message,
-                pfo->error_message);
-
-    /* finally, infer ln P(k) */
-
-    *out_pk += log(k) - pfo->ln_k[0] + ln_pk_primordial_k[0] - ln_pk_primordial_kmin[0];
-
-    free(ln_pk_primordial_k);
-    free(ln_pk_primordial_kmin);
-  }
-
-  free(out_pk_at_z);
-
-  if (mode == linear) {
-    /** --> convert from logarithmic to linear format */
-    *out_pk = exp(*out_pk);
-  }
-
-  return _SUCCESS_;
-}
-
-// JL: move this to top (external functions)
-/**
- * Return the P_nw(k,z) for a vector of (k_i) at z passed in input,
- * either linear or logarithmic.
- *
- * The main goal of this routine is speed. If the input k_i
- * falls outside the pre-computed range [kmin,kmax],
- * the power spectrum is extrapolated from the primordial spectrum.
- *
- * @param pba         Input: pointer to background structure
- * @param pfo         Input: pointer to fourier structure
- * @param mode        Input: linear or logarithmic
- * @param ln_kvec     Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
- * @param kvec_size   Input: size of array of wavenumbers
- * @param z           Input: redshift
- * @param out_pk      Output: P_nw(k_i,z) for total matter in Mpc^3
- * @return the error status
- */
-
-int fourier_pk_nw_at_kvec_and_z(
-                                struct background * pba,
-                                struct primordial * ppm,
-                                struct fourier * pfo,
-                                enum linear_or_logarithmic mode,
-                                double * ln_kvec, // log(kvec[index_kvec])
-                                const int kvec_size,
-                                const double z,
-                                double * out_pk) {
-
-  int index_k, index_kvec, last_index = 0;
-  double * out_pk_at_z;
-  double * ddout_pk_at_z;
-  double * ln_pk_primordial = NULL;
-  double extrapol_const;
-
-
-  class_alloc(out_pk_at_z, pfo->k_size_extra*sizeof(double),
-              pfo->error_message);
-
-  /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
-
-  class_call(fourier_pk_nw_at_z(pba,
-                                pfo,
-                                logarithmic,
-                                z,
-                                out_pk_at_z
-                                ),
-              pfo->error_message,
-              pfo->error_message);
-
-  /** --> interpolate total spectrum */
-
-  class_alloc(ddout_pk_at_z,
-              pfo->k_size_extra*sizeof(double),
-              pfo->error_message);
-
-  class_call(array_spline_table_lines(pfo->ln_k,
-                                      pfo->k_size_extra,
-                                      out_pk_at_z,
-                                      1,
-                                      ddout_pk_at_z,
-                                      _SPLINE_NATURAL_,
-                                      pfo->error_message),
-              pfo->error_message,
-              pfo->error_message);
-
-
-  /** - Loop over first k values. If k<kmin, extrapolate using the primordial spectrum. */
-  if (ln_kvec[0] < pfo->ln_k[0]) {
-    class_alloc(ln_pk_primordial, pfo->ic_ic_size * sizeof(double), pfo->error_message);
-    class_call(primordial_spectrum_at_k(ppm,
-                                        pfo->index_md_scalars,
-                                        logarithmic,
-                                        exp(pfo->ln_k[0]),
-                                        ln_pk_primordial),
-                  ppm->error_message,
-                  pfo->error_message);
-    extrapol_const = out_pk_at_z[0] - pfo->ln_k[0] - ln_pk_primordial[0];
-  }
-
-  for(index_kvec = 0; index_kvec < kvec_size && ln_kvec[index_kvec] < pfo->ln_k[0]; index_kvec++) {
-    /** - get the primordial spectrum at k */
-    class_call(primordial_spectrum_at_k(ppm,
-                                        pfo->index_md_scalars,
-                                        logarithmic,
-                                        exp(ln_kvec[index_kvec]),
-                                        ln_pk_primordial),
-                ppm->error_message,
-                pfo->error_message);
-
-    /** - write to output: P(k) = P(kmin) * (k*P_R(k) / kmin*P_R(kmin)) */
-    out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
-  }
-
-  if (ln_pk_primordial) free(ln_pk_primordial);
-
-  for (index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
-    /** - Deal with case kmin<=k<=kmax */
-    class_call(array_interpolate_spline_growing_closeby(pfo->ln_k,
-                                                        pfo->k_size_extra,
-                                                        out_pk_at_z,
-                                                        ddout_pk_at_z,
-                                                        1,
-                                                        ln_kvec[index_kvec],
-                                                        &last_index,
-                                                        out_pk + index_kvec,
-                                                        1,
-                                                        pfo->error_message),
-                  pfo->error_message,
-                  pfo->error_message);
-  }
-
-  for (index_kvec; index_kvec < kvec_size; index_kvec++) {
-    /** - for k higher than kmax in pfo->ln_k, write zero to output */
-    out_pk[index_kvec] = 0.;
-  }
-
-  free(out_pk_at_z);
-  free(ddout_pk_at_z);
-
-  /** - convert to linear output if needed */
-  if (mode == linear)
-  {
-    for (index_kvec = 0; index_kvec < kvec_size; index_kvec++)
-      out_pk[index_kvec] = exp(out_pk[index_kvec]);
-  }
 
   return _SUCCESS_;
 }

@@ -151,15 +151,9 @@ int output_init(
                pop->error_message);
 
     if (pfo->method != nl_none) {
-
-      if (pfo->method == nl_oneloopPT) {
-        fprintf(stdout,"[Warning:] with the oneloop method, we didn't impelemented yet the writting of P_NL in an output file (but you can still get it from the python wrapper).");
-      }
-      else {
-        class_call(output_pk(pba,ppt,pfo,pop,pk_nonlinear),
+      class_call(output_pk(pba,ppt,pfo,pop,pk_nonlinear),
                    pop->error_message,
                    pop->error_message);
-      }
     }
   }
 
@@ -663,10 +657,6 @@ int output_pk(
 
   if ((pk_output == pk_linear) && (pfo->ic_size > 1))
     do_ic = _TRUE_;
-
-  class_test((pk_output == pk_nonlinear) && (pfo->method == nl_oneloopPT),
-             pfo->error_message,
-             "This function is not yet compatible with the oneloop method - this is no problem as long as you wish to get P_NL from the python wrapper, but it may have to be implemented for writting P_NL in output file \n");
 
   /** - allocate arrays to store the P(k) */
 
