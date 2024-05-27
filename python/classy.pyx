@@ -212,10 +212,14 @@ cdef class Class:
 
     # Called at the end of a run, to free memory
     def struct_cleanup(self):
-        if(self.allocated != True):
-          return
-        ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm,
-                 &self.fo, &self.tr, &self.hr, &self.le, &self.sd)
+        if (self.allocated != True): return
+        
+        if self.computed: # if computation was not aborted, store important quantities in ext. storage
+            ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm, 
+                     &self.fo, &self.tr, &self.hr, &self.le, &self.sd)
+        else:             # else, get rid of residual memory
+            ext_cleanup(&self.ex)
+
         if "distortions" in self.ncp:
             distortions_free(&self.sd)
         if "lensing" in self.ncp:

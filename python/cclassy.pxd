@@ -564,15 +564,6 @@ cdef extern from "class.h":
         FileArg * value
         short * read
 
-    cdef struct ext_storage:
-        double complex *** loop_matrices
-        int ** loop_matrices_size
-        short ** symmetry
-        int loop_matrices_stroed
-        int eft_index_num
-        int eft_size
-        short update_required
-
     void lensing_free(void*)
     void harmonic_free(void*)
     void transfer_free(void*)
@@ -722,28 +713,6 @@ cdef extern from "class.h":
                   double * pk_cb_tot_out,
                   int nonlinear)
 
-    int ext_init(void * pext)
-
-    int ext_cleanup(void * pext)
-
-    int ext_save( void * pext,
-                  void * pba,
-                  void * pth,
-                  void * ppt,
-                  void * ppm,
-                  void * pfo,
-                  void * ptr,
-                  void * phr,
-                  void * ple,
-                  void * psd)
-
-    int ext_insert_eft(
-                  void * pext,
-                  void * peft,
-                  const int index_eft,
-                  const int num_matrices,
-                  ErrorMsg errmsg)
-
     int eft_job_powerspectrum_wedges_grid(void * peft0,
                                           int peft_size,
                                           void * pba,
@@ -777,3 +746,40 @@ cdef extern from "class.h":
                                      int * mu_sizevec,
                                      double ** out_pkmu
                                      )
+
+
+cdef extern from "ext_storage.h":
+    cdef struct ext_storage:
+        double complex *** loop_matrices
+        int ** loop_matrices_size
+        short ** symmetry
+        short ** use_tracer
+        short ** spectra_contributions_dimension
+        int loop_matrices_stored
+        int * eft_index_num
+        int eft_size
+        double ** period
+        ErrorMsg error_message
+
+    int ext_init(void * pext)
+
+    int ext_cleanup(void * pext)
+
+    int ext_save( void * pext,
+                  void * pba,
+                  void * pth,
+                  void * ppt,
+                  void * ppm,
+                  void * pfo,
+                  void * ptr,
+                  void * phr,
+                  void * ple,
+                  void * psd)
+
+    int ext_insert_eft(
+                  void * pext,
+                  void * peft,
+                  const int index_eft,
+                  const int num_matrices,
+                  ErrorMsg errmsg)
+                  
