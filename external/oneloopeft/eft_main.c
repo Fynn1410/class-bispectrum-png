@@ -910,10 +910,10 @@ int eft_fourier_transform_linear_spectra(
              *    the magnitude of its Fourier coefficients is bounded by pi/2 * L / frequency^3 */
             #pragma omp for schedule(static) reduction(max:spline_lipschitz_const)
             for (it = 0; it <= peft->hp->k_size_fourier; it++) {
-              h1 = peft->ln_k_fourier[index_tracer][it % peft->hp->k_size_fourier] - peft->ln_k_fourier[index_tracer][(it-1) % peft->hp->k_size_fourier];
-              h2 = peft->ln_k_fourier[index_tracer][(it+1) % peft->hp->k_size_fourier] - peft->ln_k_fourier[index_tracer][it % peft->hp->k_size_fourier];
-              spline_gradient_change = fabs((M0[(it+1) % peft->hp->k_size_fourier] - M0[it % peft->hp->k_size_fourier])*h1    \
-                                          - (M0[it % peft->hp->k_size_fourier] - M0[(it-1) % peft->hp->k_size_fourier])*h2) / (h1*h2);
+              h1 = peft->ln_k_fourier[index_tracer][abs(it % peft->hp->k_size_fourier)] - peft->ln_k_fourier[index_tracer][abs((it-1) % peft->hp->k_size_fourier)];
+              h2 = peft->ln_k_fourier[index_tracer][abs((it+1) % peft->hp->k_size_fourier)] - peft->ln_k_fourier[index_tracer][abs(it % peft->hp->k_size_fourier)];
+              spline_gradient_change = fabs((M0[abs((it+1) % peft->hp->k_size_fourier)] - M0[abs(it % peft->hp->k_size_fourier)])*h1    \
+                                          - (M0[abs(it % peft->hp->k_size_fourier)] - M0[abs((it-1) % peft->hp->k_size_fourier)])*h2) / (h1*h2);
               if (spline_gradient_change > spline_lipschitz_const) { spline_lipschitz_const = spline_gradient_change; }
             }
             /** - compute the l2 norm of its Fourier coefficients: Because of Parseval's theorem,
