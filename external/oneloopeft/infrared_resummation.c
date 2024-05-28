@@ -65,14 +65,16 @@ double eft_ir_sigma2(
   ln_q[split_index] = log(k_split);
 
   /** - get the nowiggle spectrum at ln_q and z */
-  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
-                                        linear,
-                                        ln_q,
-                                        split_index+1,
-                                        z,
-                                        pk_nw),
-            pfo->error_message,
-            pfo->error_message);
+  class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
+                                                 ppm,
+                                                 pfo,
+                                                 linear,
+                                                 ln_q,
+                                                 split_index+1,
+                                                 z,
+                                                 pk_nw),
+             pfo->error_message,
+             pfo->error_message);
 
   /** - prepare the integrand */
   for (it_q = 0; it_q < split_index+1; it_q++)
@@ -178,14 +180,16 @@ double eft_ir_dsigma2(
   ln_q[split_index] = log(k_split);
 
   /** - get the nowiggle spectrum at ln_q and z */
-  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
-                                        linear,
-                                        ln_q,
-                                        split_index+1,
-                                        z,
-                                        pk_nw),
-            pfo->error_message,
-            pfo->error_message);
+  class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
+                                                 ppm,
+                                                 pfo,
+                                                 linear,
+                                                 ln_q,
+                                                 split_index+1,
+                                                 z,
+                                                 pk_nw),
+             pfo->error_message,
+             pfo->error_message);
 
   /** - prepare the integrand */
   for (it_q = 0; it_q < split_index+1; it_q++)
@@ -311,7 +315,7 @@ int eft_ir_pk_lo(
   class_call(fourier_pk_l_extra_at_kvec_and_z(pba,
                                               ppm,
                                               pfo,
-                                              pk_linear,
+                                              linear,
                                               ln_kvec_sorted,
                                               vec_size,
                                               z,
@@ -321,12 +325,14 @@ int eft_ir_pk_lo(
              pfo->error_message);
 
   /** - get the nowiggle power spectrum at z */
-  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
-                                        linear,
-                                        ln_kvec_sorted,
-                                        vec_size,
-                                        z,
-                                        pk_nw),
+  class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
+                                                 ppm,
+                                                 pfo,
+                                                 linear,
+                                                 ln_kvec_sorted,
+                                                 vec_size,
+                                                 z,
+                                                 pk_nw),
              pfo->error_message,
              pfo->error_message);
 
@@ -405,12 +411,14 @@ int eft_ir_pk_nlo(
              pfo->error_message);
 
   /** - get the nowiggle power spectrum at z */
-  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
-                                        linear,
-                                        ln_kvec_sorted,
-                                        vec_size,
-                                        z,
-                                        pk_nw),
+  class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
+                                                 ppm,
+                                                 pfo,
+                                                 linear,
+                                                 ln_kvec_sorted,
+                                                 vec_size,
+                                                 z,
+                                                 pk_nw),
              pfo->error_message,
              pfo->error_message);
 
@@ -567,14 +575,16 @@ int eft_ir_pk_rsd_lo(
              pfo->error_message);
 
   /** - get the nowiggle power spectrum at z */
-  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
-                                        linear,
-                                        ln_kvec_sorted,
-                                        vec_size,
-                                        z,
-                                        pk_nw),
-            pfo->error_message,
-            pfo->error_message);
+  class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
+                                                 ppm,
+                                                 pfo,
+                                                 linear,
+                                                 ln_kvec_sorted,
+                                                 vec_size,
+                                                 z,
+                                                 pk_nw),
+             pfo->error_message,
+             pfo->error_message);
 
   for (it = 0; it < vec_size; it++) {
     /** - compute the total mu-dependent suppression factor */
@@ -661,14 +671,16 @@ int eft_ir_pk_rsd_nlo(
              pfo->error_message);
 
   /** - get the nowiggle power spectrum at z */
-  class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
-                                        linear,
-                                        ln_kvec_sorted,
-                                        vec_size,
-                                        z,
-                                        pk_nw),
-            pfo->error_message,
-            pfo->error_message);
+  class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
+                                                 ppm,
+                                                 pfo,
+                                                 linear,
+                                                 ln_kvec_sorted,
+                                                 vec_size,
+                                                 z,
+                                                 pk_nw),
+             pfo->error_message,
+             pfo->error_message);
 
   for (it = 0; it < vec_size; it++) {
     /** - compute the total mu-dependent suppression factor */
@@ -809,7 +821,7 @@ int eft_ir_pk_rsd_nlo(
 //     break;
 
 //   case pk_nowiggle:
-//     class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
+//     class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo,
 //                                           linear,
 //                                           ln_k,
 //                                           ppr->eft_pk_moments_points,

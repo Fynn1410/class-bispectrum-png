@@ -214,7 +214,6 @@ int fourier_pk_at_z(
                      pfo->error_message);
         }
       }
-
       else {
 
         /** --> interpolate P_nl(k) at tau from pre-computed array */
@@ -230,7 +229,6 @@ int fourier_pk_at_z(
                                             pfo->error_message),
                    pfo->error_message,
                    pfo->error_message);
-
       }
     }
   }
@@ -1195,6 +1193,7 @@ int fourier_pks_at_kvec_and_zvec(
 
 /**
  * Return the linear nowiggle spectrum P_nw(k,z) for a given redshift z
+ * including high-k extrapolated vaklues
  *
  * Output format:
  *
@@ -1208,16 +1207,16 @@ int fourier_pks_at_kvec_and_zvec(
  * @param pfo         Input: pointer to fourier structure
  * @param mode        Input: linear or logarithmic
  * @param z           Input: redshift
- * @param out_pk      Output: P_nw(k) returned as out_pk_l[index_k]
+ * @param out_pk      Output: P_nw(k) returned as out_pk[index_k]
  * @return the error status
  */
 
-int fourier_pk_nw_at_z(
-                        struct background * pba,
-                        struct fourier * pfo,
-                        enum linear_or_logarithmic mode,
-                        const double z,
-                        double * out_pk) {
+int fourier_pk_l_nw_extra_at_z(
+                               struct background * pba,
+                               struct fourier * pfo,
+                               enum linear_or_logarithmic mode,
+                               const double z,
+                               double * out_pk) {
 
   double tau;
   double ln_tau;
@@ -1324,14 +1323,14 @@ int fourier_pk_nw_at_z(
  * @return the error status
  */
 
-int fourier_pk_nw_at_k_and_z(
-                              struct background * pba,
-                              struct primordial * ppm,
-                              struct fourier * pfo,
-                              enum linear_or_logarithmic mode,
-                              const double k,
-                              const double z,
-                              double * out_pk) {
+int fourier_pk_l_nw_extra_at_k_and_z(
+                                     struct background * pba,
+                                     struct primordial * ppm,
+                                     struct fourier * pfo,
+                                     enum linear_or_logarithmic mode,
+                                     const double k,
+                                     const double z,
+                                     double * out_pk) {
 
   double * out_pk_at_z;
   double * ddout_pk_at_z;
@@ -1360,14 +1359,14 @@ int fourier_pk_nw_at_k_and_z(
 
     /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
 
-    class_call(fourier_pk_nw_at_z(pba,
-                                  pfo,
-                                  logarithmic,
-                                  z,
-                                  out_pk_at_z
-                                  ),
-                pfo->error_message,
-                pfo->error_message);
+    class_call(fourier_pk_l_nw_extra_at_z(pba,
+                                          pfo,
+                                          logarithmic,
+                                          z,
+                                          out_pk_at_z
+                                          ),
+               pfo->error_message,
+               pfo->error_message);
 
     /** --> interpolate total spectrum */
 
@@ -1434,14 +1433,14 @@ int fourier_pk_nw_at_k_and_z(
 
     /** --> First, get ln P(k) at the right z */
 
-    class_call(fourier_pk_nw_at_z(pba,
-                                  pfo,
-                                  logarithmic,
-                                  z,
-                                  out_pk_at_z
-                                  ),
-                pfo->error_message,
-                pfo->error_message);
+    class_call(fourier_pk_l_nw_extra_at_z(pba,
+                                          pfo,
+                                          logarithmic,
+                                          z,
+                                          out_pk_at_z
+                                          ),
+               pfo->error_message,
+               pfo->error_message);
 
     /* get P(kmin) / first element in pk_l_extra */
     *out_pk = out_pk_at_z[0];
@@ -1513,15 +1512,15 @@ int fourier_pk_nw_at_k_and_z(
  * @return the error status
  */
 
-int fourier_pk_nw_at_kvec_and_z(
-                                struct background * pba,
-                                struct primordial * ppm,
-                                struct fourier * pfo,
-                                enum linear_or_logarithmic mode,
-                                double * ln_kvec, // log(kvec[index_kvec])
-                                const int kvec_size,
-                                const double z,
-                                double * out_pk) {
+int fourier_pk_l_nw_extra_at_kvec_and_z(
+                                        struct background * pba,
+                                        struct primordial * ppm,
+                                        struct fourier * pfo,
+                                        enum linear_or_logarithmic mode,
+                                        double * ln_kvec, // log(kvec[index_kvec])
+                                        const int kvec_size,
+                                        const double z,
+                                        double * out_pk) {
 
   int index_k, index_kvec, last_index = 0;
   double * out_pk_at_z;
@@ -1535,14 +1534,14 @@ int fourier_pk_nw_at_kvec_and_z(
 
   /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
 
-  class_call(fourier_pk_nw_at_z(pba,
-                                pfo,
-                                logarithmic,
-                                z,
-                                out_pk_at_z
-                                ),
-              pfo->error_message,
-              pfo->error_message);
+  class_call(fourier_pk_l_nw_extra_at_z(pba,
+                                        pfo,
+                                        logarithmic,
+                                        z,
+                                        out_pk_at_z
+                                        ),
+             pfo->error_message,
+             pfo->error_message);
 
   /** --> interpolate total spectrum */
 
@@ -2345,10 +2344,10 @@ int fourier_init(
       // double lnk[NTEST], singleNW[NTEST], vectorNW[NTEST];
       // for (int i = 0; i < NTEST; i++) {
       //   lnk[i] = -16.1 + (16.1 - (-16.1)) * i/(NTEST-1);
-      //   if (fourier_pk_nw_at_k_and_z(pba, ppm, pfo, linear, exp(lnk[i]), z, singleNW+i) == _FAILURE_)
+      //   if (fourier_pk_l_nw_extra_at_k_and_z(pba, ppm, pfo, linear, exp(lnk[i]), z, singleNW+i) == _FAILURE_)
       //     fprintf(stderr, "k=%.5e is out of bounds\n", exp(lnk[i]));
       // }
-      // fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo, linear, lnk, NTEST, z, vectorNW);
+      // fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, lnk, NTEST, z, vectorNW);
 
 
       // fpknw = fopen("output/nowiggle_pk_interface.dat", "w");

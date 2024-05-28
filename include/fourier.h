@@ -373,34 +373,34 @@ extern "C" {
                                      double * out_pk_cb
                                      );
 
-  int fourier_pk_nw_at_z(
-                          struct background * pba,
-                          struct fourier * pfo,
-                          enum linear_or_logarithmic mode,
-                          const double z,
-                          double * out_pk
-                          );
+  int fourier_pk_l_nw_extra_at_z(
+                                 struct background * pba,
+                                 struct fourier * pfo,
+                                 enum linear_or_logarithmic mode,
+                                 const double z,
+                                 double * out_pk
+                                 );
 
-  int fourier_pk_nw_at_k_and_z(
-                                struct background * pba,
-                                struct primordial * ppm,
-                                struct fourier *pfo,
-                                enum linear_or_logarithmic mode,
-                                const double k,
-                                const double z,
-                                double * out_pk
-                                );
+  int fourier_pk_l_nw_extra_at_k_and_z(
+                                       struct background * pba,
+                                       struct primordial * ppm,
+                                       struct fourier *pfo,
+                                       enum linear_or_logarithmic mode,
+                                       const double k,
+                                       const double z,
+                                       double * out_pk
+                                       );
 
-  int fourier_pk_nw_at_kvec_and_z(
-                                    struct background * pba,
-                                    struct primordial * ppm,
-                                    struct fourier * pfo,
-                                    enum linear_or_logarithmic mode,
-                                    double * ln_kvec,
-                                    const int kvec_size,
-                                    const double z,
-                                    double * out_pk
-                                    );
+  int fourier_pk_l_nw_extra_at_kvec_and_z(
+                                          struct background * pba,
+                                          struct primordial * ppm,
+                                          struct fourier * pfo,
+                                          enum linear_or_logarithmic mode,
+                                          double * ln_kvec,
+                                          const int kvec_size,
+                                          const double z,
+                                          double * out_pk
+                                          );
 
   int fourier_sigmas_at_z(
                             struct precision * ppr,
