@@ -303,6 +303,15 @@ extern "C" {
                         double * out_pk_ic
                         );
 
+  int fourier_pk_l_extra_at_z(
+                              struct background * pba,
+                              struct fourier *pfo,
+                              enum linear_or_logarithmic mode,
+                              double z,
+                              int index_pk,
+                              double * out_pk
+                              );
+
   int fourier_pks_at_z(
                          struct background * pba,
                          struct fourier *pfo,

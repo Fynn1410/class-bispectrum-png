@@ -630,6 +630,8 @@ int eft_fourier_transform_linear_spectra(
   const int num_independent_coefficients = peft->hp->num_positive_fourier_freq + 1;
   double ** pk_l_biased_p;
   double spline_lipschitz_const = 0., spline_gradient_change, spline_L2_norm, series_l2_norm = 0.;
+  double h1, h2;
+  double * M0;
 
   /** if the list is empty there is nothing to do */
   if (index_pk_types_size < 1) { return _SUCCESS_; }
@@ -660,7 +662,7 @@ int eft_fourier_transform_linear_spectra(
 
 
   #pragma omp parallel shared(ppr, pba, ppm, pfo, peft, abort, stderr, num_independent_coefficients, index_pk_types, index_pk_types_size, spline_lipschitz_const, spline_gradient_change, spline_L2_norm, series_l2_norm), \
-                       private(it, index_mu, index_tracer, index_pk_type, index_list, mu_size, pk_l_biased_p), \
+    private(it, index_mu, index_tracer, index_pk_type, index_list, mu_size, pk_l_biased_p, h1, h2, M0), \
                        default(none)
   { /** , last_index, ln_k_fft, pk_l_biased_fft, fft_plan, fourier_coeff_real, fourier_coeff_imag */
 
@@ -902,8 +904,7 @@ int eft_fourier_transform_linear_spectra(
             spline_lipschitz_const = 0.;
             series_l2_norm = 0.;
             }
-            double h1, h2;
-            double * M0 = peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier;
+            M0 = peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier;
             #pragma omp barrier
             /** - compute the Lipschitz constant L of the second derivative: since the (biased) spline is a C^2 Lipschitz-continuous function,
              *    the magnitude of its Fourier coefficients is bounded by pi/2 * L / frequency^3 */

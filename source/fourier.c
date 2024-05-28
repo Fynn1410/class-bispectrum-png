@@ -87,13 +87,15 @@ int fourier_pk_at_z(
   if ((pk_output == pk_linear) && (pfo->ic_size > 1) && (out_pk_ic != NULL))
     do_ic = _TRUE_;
 
+  class_test(pk_output == pk_nonlinear && pfo->method == nl_none, pfo->error_message, "Cannot get nonlinear power spectrum when no nonlinear method is employed");
+
   /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
 
-    if (pk_output == pk_linear) {
-      /** --> linear spectrum including extrapolated scales */
-      for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
-        out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
+    for (index_k=0; index_k<pfo->k_size; index_k++) {
+
+      if (pk_output == pk_linear) {
+        out_pk[index_k] = pfo->ln_pk_l[index_pk][(pfo->ln_tau_size-1)*pfo->k_size+index_k];
 
         if (do_ic == _TRUE_) {
           for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
@@ -102,10 +104,7 @@ int fourier_pk_at_z(
           }
         }
       }
-    }
-    else {
-      /*** --> non-linear spectrum (without extrapolated scales) */
-      for (index_k=0; index_k<pfo->k_size; index_k++) {
+      else {
         out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1)*pfo->k_size+index_k];
       }
     }
@@ -133,27 +132,23 @@ int fourier_pk_at_z(
     if (ln_tau <= pfo->ln_tau[0]) {
 
       /** --> if ln(tau) much too small, raise an error */
-      class_test(ln_tau<pfo->ln_tau[0]-_EPSILON_,
+      class_test(ln_tau<pfo->ln_tau[0]-100.*_EPSILON_,
                  pfo->error_message,
                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pfo->ln_tau[0]);
 
       /** --> if ln(tau) too small but within tolerance, round it and get right values without interpolating */
       ln_tau = pfo->ln_tau[0];
 
-      if (pk_output == pk_linear) {
-        /** --> linear spectrum including extrapolated scales */
-        for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
-          out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][index_k];
+      for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
+        if (pk_output == pk_linear) {
+          out_pk[index_k] = pfo->ln_pk_l[index_pk][index_k];
           if (do_ic == _TRUE_) {
             for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
               out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2] = pfo->ln_pk_ic_l[index_pk][index_k * pfo->ic_ic_size + index_ic1_ic2];
             }
           }
         }
-      }
-      else {
-        /** --> non-linear spectrum (without extrapolated scales) */
-        for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
+        else {
           out_pk[index_k] = pfo->ln_pk_nl[index_pk][index_k];
         }
       }
@@ -169,20 +164,16 @@ int fourier_pk_at_z(
       /** --> if ln(tau) too large but within tolerance, round it and get right values without interpolating */
       ln_tau = pfo->ln_tau[pfo->ln_tau_size-1];
 
-      if (pk_output == pk_linear) {
-        /** --> linear spectrum including extrapolated scales */
-        for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
-          out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1) * pfo->k_size_extra + index_k];
+      for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
+        if (pk_output == pk_linear) {
+          out_pk[index_k] = pfo->ln_pk_l[index_pk][(pfo->ln_tau_size-1) * pfo->k_size + index_k];
           if (do_ic == _TRUE_) {
             for (index_ic1_ic2 = 0; index_ic1_ic2 < pfo->ic_ic_size; index_ic1_ic2++) {
-              out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2] = pfo->ln_pk_ic_l[index_pk][((pfo->ln_tau_size-1) * pfo->k_size_extra + index_k) * pfo->ic_ic_size + index_ic1_ic2];
+              out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2] = pfo->ln_pk_ic_l[index_pk][((pfo->ln_tau_size-1) * pfo->k_size + index_k) * pfo->ic_ic_size + index_ic1_ic2];
             }
           }
         }
-      }
-      else {
-        /** --> non-linear spectrum (without extrapolated scales) */
-        for (index_k = 0 ; index_k < pfo->k_size; index_k++) {
+        else {
           out_pk[index_k] = pfo->ln_pk_nl[index_pk][(pfo->ln_tau_size-1) * pfo->k_size + index_k];
         }
       }
@@ -192,22 +183,21 @@ int fourier_pk_at_z(
     else {
 
       if (pk_output == pk_linear) {
-        /** --> linear spectrum including extrapolated scales */
+
         /** --> interpolate P_l(k) at tau from pre-computed array */
         class_call(array_interpolate_spline(pfo->ln_tau,
                                             pfo->ln_tau_size,
-                                            pfo->ln_pk_l_extra[index_pk],
-                                            pfo->ddln_pk_l_extra[index_pk],
-                                            pfo->k_size_extra,
+                                            pfo->ln_pk_l[index_pk],
+                                            pfo->ddln_pk_l[index_pk],
+                                            pfo->k_size,
                                             ln_tau,
                                             &last_index,
                                             out_pk,
-                                            pfo->k_size_extra,
+                                            pfo->k_size,
                                             pfo->error_message),
                    pfo->error_message,
                    pfo->error_message);
 
-        /** --> linear spectrum decomposed in IC contributions (without extrapolated scales) */
         /** --> interpolate P_ic_l(k) at tau from pre-computed array */
         if (do_ic == _TRUE_) {
           class_call(array_interpolate_spline(pfo->ln_tau,
@@ -224,13 +214,14 @@ int fourier_pk_at_z(
                      pfo->error_message);
         }
       }
+
       else {
-        /** --> non-linear spectrum (without extrapolated scales) */
+
         /** --> interpolate P_nl(k) at tau from pre-computed array */
         class_call(array_interpolate_spline(pfo->ln_tau,
                                             pfo->ln_tau_size,
-                                            pfo->ln_pk_nl[index_pk],
-                                            pfo->ddln_pk_nl[index_pk],
+                                            pfo->ln_pk_l[index_pk],
+                                            pfo->ddln_pk_l[index_pk],
                                             pfo->k_size,
                                             ln_tau,
                                             &last_index,
@@ -239,6 +230,7 @@ int fourier_pk_at_z(
                                             pfo->error_message),
                    pfo->error_message,
                    pfo->error_message);
+
       }
     }
   }
@@ -247,47 +239,152 @@ int fourier_pk_at_z(
 
   if (mode == linear) {
 
-    if (pk_output == pk_linear) {
+    /** --> loop over k */
+    for (index_k=0; index_k<pfo->k_size; index_k++) {
 
-      /** --> linear spectrum including extrapolated scales */
-      for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
-        out_pk[index_k] = exp(out_pk[index_k]);
-      }
+      /** --> convert total spectrum */
+      out_pk[index_k] = exp(out_pk[index_k]);
 
       if (do_ic == _TRUE_) {
-        /** --> linear spectrum decomposed in IC contributions (without extrapolated scales) */
-        for (index_k=0; index_k<pfo->k_size; index_k++) {
+        /** --> convert contribution of each ic (diagonal elements) */
+        for (index_ic1=0; index_ic1 < pfo->ic_size; index_ic1++) {
+          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pfo->ic_size);
 
-          /** --> convert contribution of each ic (diagonal elements) */
-          for (index_ic1=0; index_ic1 < pfo->ic_size; index_ic1++) {
+          out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1] = exp(out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1]);
+        }
+
+        /** --> convert contribution of each ic (non-diagonal elements) */
+        for (index_ic1=0; index_ic1 < pfo->ic_size; index_ic1++) {
+          for (index_ic2=index_ic1+1; index_ic2 < pfo->ic_size; index_ic2++) {
             index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pfo->ic_size);
+            index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pfo->ic_size);
+            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pfo->ic_size);
 
-            out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1] = exp(out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1]);
-          }
-
-          /** --> convert contribution of each ic (non-diagonal elements) */
-          for (index_ic1=0; index_ic1 < pfo->ic_size; index_ic1++) {
-            for (index_ic2=index_ic1+1; index_ic2 < pfo->ic_size; index_ic2++) {
-              index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pfo->ic_size);
-              index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pfo->ic_size);
-              index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pfo->ic_size);
-
-              /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
-              out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
-                = out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
-                *sqrt(out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1]
-                      *out_pk_ic[index_k * pfo->ic_ic_size + index_ic2_ic2]);
-            }
+            /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
+            out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
+              = out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic2]
+              *sqrt(out_pk_ic[index_k * pfo->ic_ic_size + index_ic1_ic1]
+                    *out_pk_ic[index_k * pfo->ic_ic_size + index_ic2_ic2]);
           }
         }
       }
     }
+  }
 
-    else {
-      /** --> non-linear spectrum (without extrapolated scales) */
-      for (index_k=0; index_k<pfo->k_size; index_k++) {
-        out_pk[index_k] = exp(out_pk[index_k]);
+  return _SUCCESS_;
+}
+
+/**
+ * Same as fourier_pk_at_z but only for the linear power spectrum
+ * summed over initial conditions, and including high-k extrapolated
+ * wavenumbers.
+ *
+ * @param pba         Input: pointer to background structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param mode        Input: linear or logarithmic
+ * @param z           Input: redshift
+ * @param index_pk    Input: index of pk type (_m, _cb)
+ * @param out_pk      Output: P(k) returned as out_pk_l[index_k]
+ * @return the error status
+ */
+
+int fourier_pk_l_extra_at_z(
+                            struct background * pba,
+                            struct fourier *pfo,
+                            enum linear_or_logarithmic mode,
+                            double z,
+                            int index_pk,
+                            double * out_pk // array out_pk[index_k]
+                            ) {
+  double tau;
+  double ln_tau;
+  int index_k;
+  int last_index;
+
+  /** - case z=0 requiring no interpolation in z */
+  if (z == 0) {
+    for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
+      out_pk[index_k] = pfo->ln_pk_l_extra[index_pk][(pfo->ln_tau_size-1)*pfo->k_size_extra+index_k];
+    }
+  }
+
+  /** - interpolation in z */
+  else {
+
+    class_test(pfo->ln_tau_size == 1,
+               pfo->error_message,
+               "You are asking for the matter power spectrum at z=%e but the code was asked to store it only at z=0. You probably forgot to pass the input parameter z_max_pk (see explanatory.ini)",z);
+
+    /** --> get value of contormal time tau */
+    class_call(background_tau_of_z(pba,
+                                   z,
+                                   &tau),
+               pba->error_message,
+               pfo->error_message);
+
+    ln_tau = log(tau);
+    last_index = pfo->ln_tau_size-1;
+
+    /** -> check that tau is in pre-computed table */
+
+    if (ln_tau <= pfo->ln_tau[0]) {
+
+      /** --> if ln(tau) much too small, raise an error */
+      class_test(ln_tau<pfo->ln_tau[0]-100.*_EPSILON_,
+                 pfo->error_message,
+                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pfo->ln_tau[0]);
+
+      /** --> if ln(tau) too small but within tolerance, round it and get right values without interpolating */
+      ln_tau = pfo->ln_tau[0];
+
+      for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
+        out_pk[index_k] = pfo->ln_pk_l[index_pk][index_k];
       }
+    }
+
+    else if (ln_tau >= pfo->ln_tau[pfo->ln_tau_size-1]) {
+
+      /** --> if ln(tau) much too large, raise an error */
+      class_test(ln_tau>pfo->ln_tau[pfo->ln_tau_size-1]+_EPSILON_,
+                 pfo->error_message,
+                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Max %.10e) ",ln_tau,pfo->ln_tau[pfo->ln_tau_size-1]);
+
+      /** --> if ln(tau) too large but within tolerance, round it and get right values without interpolating */
+      ln_tau = pfo->ln_tau[pfo->ln_tau_size-1];
+
+      for (index_k = 0 ; index_k < pfo->k_size_extra; index_k++) {
+        out_pk[index_k] = pfo->ln_pk_l[index_pk][(pfo->ln_tau_size-1) * pfo->k_size_extra + index_k];
+      }
+    }
+
+    /** -> tau is in pre-computed table: interpolate */
+    else {
+
+      /** --> interpolate P_l(k) at tau from pre-computed array */
+      class_call(array_interpolate_spline(pfo->ln_tau,
+                                          pfo->ln_tau_size,
+                                          pfo->ln_pk_l_extra[index_pk],
+                                          pfo->ddln_pk_l_extra[index_pk],
+                                          pfo->k_size_extra,
+                                          ln_tau,
+                                          &last_index,
+                                          out_pk,
+                                          pfo->k_size_extra,
+                                          pfo->error_message),
+                 pfo->error_message,
+                 pfo->error_message);
+    }
+  }
+
+  /** - so far, all output stored in logarithmic format. Eventually, convert to linear one. */
+
+  if (mode == linear) {
+
+    /** --> loop over k */
+    for (index_k=0; index_k<pfo->k_size_extra; index_k++) {
+
+      /** --> convert total spectrum */
+      out_pk[index_k] = exp(out_pk[index_k]);
     }
   }
 
@@ -752,6 +849,8 @@ int fourier_pks_at_k_and_z(
 }
 
 /**
+ * JL TODO: UPDATE THIS DESCRIPTION. remove  input "pk_output" becuase always used in linear case.
+ *
  * Return the P(k,z) for a vector of (k_i), a redshift z and pk type (_m, _cb)
  * (linear if pk_output = pk_linear, nonlinear if pk_output = pk_nonlinear)
  * either linear or logarithmic.
@@ -794,16 +893,14 @@ int fourier_pk_at_kvec_and_z(
 
   /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation) */
 
-  class_call(fourier_pk_at_z(pba,
-                             pfo,
-                             logarithmic,
-                             pk_output,
-                             z,
-                             index_pk,
-                             out_pk_at_z,
-                             NULL),
-              pfo->error_message,
-              pfo->error_message);
+  class_call(fourier_pk_l_extra_at_z(pba,
+                                     pfo,
+                                     logarithmic,
+                                     z,
+                                     index_pk,
+                                     out_pk_at_z),
+             pfo->error_message,
+             pfo->error_message);
 
   /** --> interpolate total spectrum */
 
@@ -1642,14 +1739,12 @@ int fourier_sigmas_at_z(
 
   /** - get P(k,z) as a function of k, for the right z */
 
-  class_call(fourier_pk_at_z(pba,
-                             pfo,
-                             logarithmic,
-                             pk_linear,
-                             z,
-                             index_pk,
-                             out_pk,
-                             NULL),
+  class_call(fourier_pk_l_extra_at_z(pba,
+                                     pfo,
+                                     logarithmic,
+                                     z,
+                                     index_pk,
+                                     out_pk),
              pfo->error_message,
              pfo->error_message);
 
@@ -1862,7 +1957,7 @@ int fourier_init(
   }
 
   /** --> check applicability of Halofit and HMcode */
-  if (pfo->method == nl_halofit > nl_none) {
+  if (pfo->method > nl_none) {
 
     if (pba->has_ncdm == _TRUE_) {
       for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
@@ -3844,14 +3939,12 @@ int fourier_sigma_at_z(
 
   /** - get P(k,z) as a function of k, for the right z */
 
-  class_call(fourier_pk_at_z(pba,
-                             pfo,
-                             logarithmic,
-                             pk_linear,
-                             z,
-                             index_pk,
-                             out_pk,
-                             NULL),
+  class_call(fourier_pk_l_extra_at_z(pba,
+                                     pfo,
+                                     logarithmic,
+                                     z,
+                                     index_pk,
+                                     out_pk),
              pfo->error_message,
              pfo->error_message);
 
