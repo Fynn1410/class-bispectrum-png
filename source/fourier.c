@@ -220,8 +220,8 @@ int fourier_pk_at_z(
         /** --> interpolate P_nl(k) at tau from pre-computed array */
         class_call(array_interpolate_spline(pfo->ln_tau,
                                             pfo->ln_tau_size,
-                                            pfo->ln_pk_l[index_pk],
-                                            pfo->ddln_pk_l[index_pk],
+                                            pfo->ln_pk_nl[index_pk],
+                                            pfo->ddln_pk_nl[index_pk],
                                             pfo->k_size,
                                             ln_tau,
                                             &last_index,
@@ -409,6 +409,7 @@ int fourier_pk_l_extra_at_z(
  * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pfo->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
+
 int fourier_pks_at_z(
                      struct background * pba,
                      struct fourier * pfo,
@@ -531,10 +532,9 @@ int fourier_pk_at_k_and_z(
   /** - first step: check that k is in valid range [0:kmax]
       (the test for z will be done when calling fourier_pk_linear_at_z()) */
 
-  // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
-  class_test((k < 0.) || (k > exp(pfo->ln_k[pfo->k_size_extra-1])),
+  class_test((k < 0.) || (k > exp(pfo->ln_k[pfo->k_size-1])),
              pfo->error_message,
-             "k=%e out of bounds [%e:%e]",k,0.,exp(pfo->ln_k[pfo->k_size_extra-1]));
+             "k=%e out of bounds [%e:%e]",k,0.,exp(pfo->ln_k[pfo->k_size-1]));
 
   /** - deal with case k = 0 for which P(k) is set to zero
       (this non-physical result can be useful for interpolations) */
@@ -553,15 +553,13 @@ int fourier_pk_at_k_and_z(
 
   else {
 
-    // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
     class_alloc(out_pk_at_z,
-                pfo->k_size_extra*sizeof(double),
+                pfo->k_size*sizeof(double),
                 pfo->error_message);
 
-    // JL: should probably use pfo->k_size here
     if (do_ic == _TRUE_) {
       class_alloc(out_pk_ic_at_z,
-                  pfo->k_size_extra*pfo->ic_ic_size*sizeof(double),
+                  pfo->k_size*pfo->ic_ic_size*sizeof(double),
                   pfo->error_message);
     }
 
@@ -585,14 +583,12 @@ int fourier_pk_at_k_and_z(
 
       /** --> interpolate total spectrum */
 
-      // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
       class_alloc(ddout_pk_at_z,
-                  pfo->k_size_extra*sizeof(double),
+                  pfo->k_size*sizeof(double),
                   pfo->error_message);
 
-      // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
       class_call(array_spline_table_lines(pfo->ln_k,
-                                          pfo->k_size_extra,
+                                          pfo->k_size,
                                           out_pk_at_z,
                                           1,
                                           ddout_pk_at_z,
@@ -601,9 +597,8 @@ int fourier_pk_at_k_and_z(
                  pfo->error_message,
                  pfo->error_message);
 
-      // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
       class_call(array_interpolate_spline(pfo->ln_k,
-                                          pfo->k_size_extra,
+                                          pfo->k_size,
                                           out_pk_at_z,
                                           ddout_pk_at_z,
                                           1,
@@ -620,9 +615,8 @@ int fourier_pk_at_k_and_z(
       // uncomment this part if you prefer a linear interpolation
 
       /*
-      // JL: should probably use pfo->k_size_extra for linear and pfo->k_size for nonlinear
       class_call(array_interpolate_linear(pfo->ln_k,
-                                            pfo->k_size_extra,
+                                            pfo->k_size,
                                             out_pk_at_z,
                                             1,
                                             log(k),
@@ -849,44 +843,42 @@ int fourier_pks_at_k_and_z(
 }
 
 /**
- * JL TODO: UPDATE THIS DESCRIPTION. remove  input "pk_output" becuase always used in linear case.
  *
- * Return the P(k,z) for a vector of (k_i), a redshift z and pk type (_m, _cb)
- * (linear if pk_output = pk_linear, nonlinear if pk_output = pk_nonlinear)
- * either linear or logarithmic.
+ * Return the linear P_l(k,z) for a vector of (k_i), a redshift z and pk type (_m, _cb)
+ * Uses the spectrum extrapolated to high-k values.
+ * If k<k_min, extrapolates using information on primordial sepctrum.
+ * Return either P_l (linear mode) or ln(P_l) (logarithmic mode).
  *
- * The main goal of this routine is speed. If the input k_i
- * falls outside the pre-computed range [kmin,kmax],
- * the power spectrum is extrapolated from the primordial spectrum.
+ * The main goal of this routine is speed.
  *
  * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
  * @param pfo         Input: pointer to fourier structure
  * @param mode        Input: linear or logarithmic
- * @param ln_kvec     Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc)
+ * @param ln_kvec     Input: array of logarithmic wavenumbers log(kvec[index_kvec]) in ascending order (in 1/Mpc)
  * @param kvec_size   Input: size of array of wavenumbers
  * @param z           Input: redshift
- * @param out_pk      Output: P_nw(k_i,z) for total matter in Mpc^3
+ * @param index_pk    Input: index of pk type (_m, _cb)
+ * @param out_pk      Output: P(k_i,z) for total matter in Mpc^3
  * @return the error status
  */
 
-int fourier_pk_at_kvec_and_z(
-                    struct background * pba,
-                    struct primordial * ppm,
-                    struct fourier * pfo,
-                    enum linear_or_logarithmic mode,
-                    enum pk_outputs pk_output,
-                    double * ln_kvec, // log(kvec[index_kvec])
-                    const int kvec_size,
-                    const double z,
-                    const int index_pk,
-                    double * out_pk) {
+int fourier_pk_l_extra_at_kvec_and_z(
+                                     struct background * pba,
+                                     struct primordial * ppm,
+                                     struct fourier * pfo,
+                                     enum linear_or_logarithmic mode,
+                                     double * ln_kvec,
+                                     const int kvec_size,
+                                     const double z,
+                                     const int index_pk,
+                                     double * out_pk) {
 
   int index_k, index_kvec, last_index = 0;
   double * out_pk_at_z;
   double * ddout_pk_at_z;
   double * ln_pk_primordial = NULL;
   double extrapol_const;
-
 
   class_alloc(out_pk_at_z, pfo->k_size_extra*sizeof(double),
               pfo->error_message);
@@ -946,7 +938,9 @@ int fourier_pk_at_kvec_and_z(
     out_pk[index_kvec] = extrapol_const + ln_kvec[index_kvec] + ln_pk_primordial[0];
   }
 
-  if (ln_pk_primordial) free(ln_pk_primordial);
+  if (ln_kvec[0] < pfo->ln_k[0]) {
+    free(ln_pk_primordial);
+  }
 
   for (index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
     /** - Deal with case kmin<=k<=kmax */

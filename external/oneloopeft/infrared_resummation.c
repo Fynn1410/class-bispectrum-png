@@ -1,15 +1,15 @@
-/** @file infrared_resummation.c 
- * 
+/** @file infrared_resummation.c
+ *
  * author: Christian Radermacher, 2024
  * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
- * 
+ *
  * this module can be used by others without ever referencing eft structures
  * contains infrared-resummed linear matter power spectra while the wiggle-nowiggle separation is performed in wnw_split.c
 */
 
 #include "infrared_resummation.h"
 
-/** Integration measure for Sigma^2(z):  1 - j_0(q_osc) + 2 j_2(q_osc) 
+/** Integration measure for Sigma^2(z):  1 - j_0(q_osc) + 2 j_2(q_osc)
  * error is always below 1e-10
 */
 static inline double ir_sigma2_measure(const double q_osc) {
@@ -32,8 +32,8 @@ static inline double ir_sigma2_measure(const double q_osc) {
 double eft_ir_sigma2(
               struct background * pba,
               struct primordial * ppm,
-              struct fourier * pfo, 
-              const double z, 
+              struct fourier * pfo,
+              const double z,
               const double k_split,
               const double k_bao) {
 
@@ -49,7 +49,7 @@ double eft_ir_sigma2(
                                   pfo->error_message),
             pfo->error_message,
             pfo->error_message);
-  
+
   class_define_index(index_y, _TRUE_, index_num, 1);
   class_define_index(index_ddy, _TRUE_, index_num, 1);
 
@@ -145,8 +145,8 @@ static inline double ir_dsigma2_measure(const double q_osc) {
 double eft_ir_dsigma2(
               struct background * pba,
               struct primordial * ppm,
-              struct fourier * pfo, 
-              const double z, 
+              struct fourier * pfo,
+              const double z,
               const double k_split,
               const double k_bao) {
 
@@ -162,7 +162,7 @@ double eft_ir_dsigma2(
                                   pfo->error_message),
             pfo->error_message,
             pfo->error_message);
-  
+
   class_define_index(index_y, _TRUE_, index_num, 1);
   class_define_index(index_ddy, _TRUE_, index_num, 1);
 
@@ -251,7 +251,7 @@ int eft_real_argument_list_rect(const double * const ln_kvec,
                                 ErrorMsg errmsg) {
 
   int it_k, it_mu;
-  
+
   /** - allocate the output list */
   class_alloc(*vec, n_columns*k_size*sizeof(struct indexed_real_arg), errmsg);
 
@@ -294,7 +294,7 @@ int eft_ir_pk_lo(
             const int linear_spectrum_index,
             const double sigma2_ir_at_z,
             double * out_pk) {
-  
+
   int it;
   double pk_w, k;
   double *ln_kvec_sorted, *pk_lin, *pk_nw;
@@ -308,16 +308,17 @@ int eft_ir_pk_lo(
   }
 
   /** - get the linear power spectrum at z */
-  class_call(fourier_pk_at_kvec_and_z(pba, ppm, pfo,
-                                      linear,
-                                      pk_linear,
-                                      ln_kvec_sorted,
-                                      vec_size,
-                                      z,
-                                      linear_spectrum_index,
-                                      pk_lin),
-              pfo->error_message,
-              pfo->error_message);
+  class_call(fourier_pk_l_extra_at_kvec_and_z(pba,
+                                              ppm,
+                                              pfo,
+                                              pk_linear,
+                                              ln_kvec_sorted,
+                                              vec_size,
+                                              z,
+                                              linear_spectrum_index,
+                                              pk_lin),
+             pfo->error_message,
+             pfo->error_message);
 
   /** - get the nowiggle power spectrum at z */
   class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
@@ -328,7 +329,7 @@ int eft_ir_pk_lo(
                                         pk_nw),
              pfo->error_message,
              pfo->error_message);
-  
+
   for (it = 0; it < vec_size; it++)
   {
     /** - compute the IR resummed spectrum */
@@ -377,7 +378,7 @@ int eft_ir_pk_nlo(
             const int linear_spectrum_index,
             const double sigma2_ir_at_z,
             double * out_pk) {
-  
+
   int it;
   double pk_w, k;
   double *ln_kvec_sorted, *pk_lin, *pk_nw;
@@ -391,16 +392,17 @@ int eft_ir_pk_nlo(
   }
 
   /** - get the linear power spectrum at z */
-  class_call(fourier_pk_at_kvec_and_z(pba, ppm, pfo,
-                                      linear,
-                                      pk_linear,
-                                      ln_kvec_sorted,
-                                      vec_size,
-                                      z,
-                                      linear_spectrum_index,
-                                      pk_lin),
-              pfo->error_message,
-              pfo->error_message);
+  class_call(fourier_pk_l_extra_at_kvec_and_z(pba,
+                                              ppm,
+                                              pfo,
+                                              linear,
+                                              ln_kvec_sorted,
+                                              vec_size,
+                                              z,
+                                              linear_spectrum_index,
+                                              pk_lin),
+             pfo->error_message,
+             pfo->error_message);
 
   /** - get the nowiggle power spectrum at z */
   class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
@@ -411,7 +413,7 @@ int eft_ir_pk_nlo(
                                         pk_nw),
              pfo->error_message,
              pfo->error_message);
-  
+
   for (it = 0; it < vec_size; it++)
   {
     /** - compute the IR resummed spectrum */
@@ -452,8 +454,8 @@ static int indexed_rsd_arg_cmp_k(const void * a, const void * b) {
  * @param muvec     Input: array of line-of-sight angles w.r.t. the RSD direction (cos(theta))
  * @param mu_size   Input: size of the line-of-sight angle array
  * @param vec       Output: argument list
- * @param errmsg 
- * 
+ * @param errmsg
+ *
  * @return the error status
  */
 int eft_rsd_argument_list_rect(const double * const ln_kvec,
@@ -464,7 +466,7 @@ int eft_rsd_argument_list_rect(const double * const ln_kvec,
                                ErrorMsg errmsg) {
 
   int it_k, it_mu;
-  
+
   /** - allocate the output list */
   class_alloc(*vec, mu_size*k_size*sizeof(struct indexed_rsd_arg), errmsg);
 
@@ -489,7 +491,7 @@ int eft_rsd_argument_list(const double * const ln_kvec,
                           ErrorMsg errmsg) {
 
   int it;
-  
+
   /** - allocate the output list */
   class_alloc(*vec, size*sizeof(struct indexed_rsd_arg), errmsg);
 
@@ -538,7 +540,7 @@ int eft_ir_pk_rsd_lo(
             const double sigma2_ir_at_z,
             const double dsigma2_ir_at_z,
             double * out_pk) {
-  
+
   int it;
   double pk_w, k, mu, sigma2_tot;
   double *ln_kvec_sorted, *pk_lin, *pk_nw;
@@ -552,16 +554,17 @@ int eft_ir_pk_rsd_lo(
   }
 
   /** - get the linear power spectrum at z */
-  class_call(fourier_pk_at_kvec_and_z(pba, ppm, pfo,
-                                      linear,
-                                      pk_linear,
-                                      ln_kvec_sorted,
-                                      vec_size,
-                                      z,
-                                      linear_spectrum_index,
-                                      pk_lin),
-              pfo->error_message,
-              pfo->error_message);
+  class_call(fourier_pk_l_extra_at_kvec_and_z(pba,
+                                              ppm,
+                                              pfo,
+                                              linear,
+                                              ln_kvec_sorted,
+                                              vec_size,
+                                              z,
+                                              linear_spectrum_index,
+                                              pk_lin),
+             pfo->error_message,
+             pfo->error_message);
 
   /** - get the nowiggle power spectrum at z */
   class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
@@ -572,7 +575,7 @@ int eft_ir_pk_rsd_lo(
                                         pk_nw),
             pfo->error_message,
             pfo->error_message);
-  
+
   for (it = 0; it < vec_size; it++) {
     /** - compute the total mu-dependent suppression factor */
     k = exp( vec[it].ln_k );
@@ -631,7 +634,7 @@ int eft_ir_pk_rsd_nlo(
             const double sigma2_ir_at_z,
             const double dsigma2_ir_at_z,
             double * out_pk) {
-  
+
   int it;
   double pk_w, k, mu, sigma2_tot;
   double *ln_kvec_sorted, *pk_lin, *pk_nw;
@@ -645,16 +648,17 @@ int eft_ir_pk_rsd_nlo(
   }
 
   /** - get the linear power spectrum at z */
-  class_call(fourier_pk_at_kvec_and_z(pba, ppm, pfo,
-                                      linear,
-                                      pk_linear,
-                                      ln_kvec_sorted,
-                                      vec_size,
-                                      z,
-                                      linear_spectrum_index,
-                                      pk_lin),
-              pfo->error_message,
-              pfo->error_message);
+  class_call(fourier_pk_l_extra_at_kvec_and_z(pba,
+                                              ppm,
+                                              pfo,
+                                              linear,
+                                              ln_kvec_sorted,
+                                              vec_size,
+                                              z,
+                                              linear_spectrum_index,
+                                              pk_lin),
+             pfo->error_message,
+             pfo->error_message);
 
   /** - get the nowiggle power spectrum at z */
   class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
@@ -665,7 +669,7 @@ int eft_ir_pk_rsd_nlo(
                                         pk_nw),
             pfo->error_message,
             pfo->error_message);
-  
+
   for (it = 0; it < vec_size; it++) {
     /** - compute the total mu-dependent suppression factor */
     k = exp( vec[it].ln_k );
@@ -713,10 +717,10 @@ int eft_ir_pk_rsd_nlo(
 //     if (biases[j] > max_bias) { max_bias = biases[j]; }
 //   }
 
-//   /** TODO: find the function momentum range dependent on min- and max-bias 
+//   /** TODO: find the function momentum range dependent on min- and max-bias
 //    *  currently just fixed for the preset biases: sigma_0^2 and sigma_(-1)^2 = 3 sigma_v^2
 //   */
-  
+
 //   *moments_size = 2;
 //   class_alloc(moments_n, (*moments_size)*sizeof(int), errmsg);
 //   moments_n[0] = -1;
@@ -751,12 +755,12 @@ int eft_ir_pk_rsd_nlo(
 //               struct precision * ppr,
 //               struct background * pba,
 //               struct primordial * ppm,
-//               struct fourier * pfo, 
+//               struct fourier * pfo,
 //               const struct eft_hyper_parameters hp,
 //               struct eft * peft,
 //               double * biases,
 //               int biases_size,
-//               const double z, 
+//               const double z,
 //               const int linear_spectrum_index,
 //               const double sigma2_ir_at_z,
 //               enum eft_pk_type use_pk_type,
@@ -773,7 +777,7 @@ int eft_ir_pk_rsd_nlo(
 //                 pfo->error_message, pfo->error_message);
 //     class_alloc(moments, (*moments_size)*sizeof(double), pfo->error_message);
 //   }
-  
+
 //   class_define_index(index_y, _TRUE_, intg_size, ppr->eft_pk_moments_points);
 //   class_define_index(index_ddy, _TRUE_, intg_size, ppr->eft_pk_moments_points);
 
@@ -793,9 +797,8 @@ int eft_ir_pk_rsd_nlo(
 //   switch (use_pk_type)
 //   {
 //   case pk_linear:
-//     class_call(fourier_pk_at_kvec_and_z(pba, ppm, pfo,
+//     class_call(fourier_pk_l_extra_at_kvec_and_z(pba, ppm, pfo,
 //                                         linear,
-//                                         pk_linear,
 //                                         ln_k,
 //                                         ppr->eft_pk_moments_points,
 //                                         z,
@@ -804,7 +807,7 @@ int eft_ir_pk_rsd_nlo(
 //                 pfo->error_message,
 //                 pfo->error_message);
 //     break;
-  
+
 //   case pk_nowiggle:
 //     class_call(fourier_pk_nw_at_kvec_and_z(pba, ppm, pfo,
 //                                           linear,
@@ -882,7 +885,7 @@ int eft_ir_pk_rsd_nlo(
 //     moments[j] = 1./(2.*_PI_*_PI_) * result;
 //   }
 
-//   /** - if eft struct is given, also compute shot-noise part of Idelta2delta200, 
+//   /** - if eft struct is given, also compute shot-noise part of Idelta2delta200,
 //    *    assumes that spectra_contributions is allocated for the given pk_type */
 //   if (peft) {
 //     /** - prepare the integrand */
@@ -926,4 +929,3 @@ int eft_ir_pk_rsd_nlo(
 
 //   return _SUCCESS_;
 // }
-

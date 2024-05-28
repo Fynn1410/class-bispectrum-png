@@ -448,12 +448,15 @@ int eft_linear_spectrum_real(
     for (it = 0; it < kvec_size*n_columns; it++) {
       ln_kvec_sorted[it] = vec[it].ln_k;
     }
-    class_call_parallel(fourier_pk_at_kvec_and_z(pba, ppm, pfo, mode, pk_linear,
-                                                 ln_kvec_sorted,
-                                                 kvec_size*n_columns,
-                                                 z,
-                                                 peft->hp->linear_spectrum_index,
-                                                 pk_l),
+    class_call_parallel(fourier_pk_l_extra_at_kvec_and_z(pba,
+                                                         ppm,
+                                                         pfo,
+                                                         mode,
+                                                         ln_kvec_sorted,
+                                                         kvec_size*n_columns,
+                                                         z,
+                                                         peft->hp->linear_spectrum_index,
+                                                         pk_l),
                         pfo->error_message,
                         peft->error_message);
     for (it = 0; it < kvec_size*n_columns; it++) {

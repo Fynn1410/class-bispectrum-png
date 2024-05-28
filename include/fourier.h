@@ -349,18 +349,17 @@ extern "C" {
                                double * out_pk_cb_ic
                                );
 
-  int fourier_pk_at_kvec_and_z(
-                        struct background * pba,
-                        struct primordial * ppm,
-                        struct fourier * pfo,
-                        enum linear_or_logarithmic mode,
-                        enum pk_outputs pk_output,
-                        double * ln_kvec, // log(kvec[index_kvec])
-                        const int kvec_size,
-                        const double z,
-                        const int index_pk,
-                        double * out_pk
-                        );
+  int fourier_pk_l_extra_at_kvec_and_z(
+                                       struct background * pba,
+                                       struct primordial * ppm,
+                                       struct fourier * pfo,
+                                       enum linear_or_logarithmic mode,
+                                       double * ln_kvec,
+                                       const int kvec_size,
+                                       const double z,
+                                       const int index_pk,
+                                       double * out_pk
+                                       );
 
   int fourier_pks_at_kvec_and_zvec(
                                      struct background * pba,
