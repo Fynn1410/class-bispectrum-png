@@ -455,7 +455,6 @@ int eft_linear_spectrum_real(
                                                             ln_kvec_sorted,
                                                             kvec_size*n_columns,
                                                             z,
-                                                            peft->hp->linear_spectrum_index,
                                                             pk_l),
                         pfo->error_message,
                         peft->error_message);
