@@ -199,16 +199,16 @@ int eft_set_sampling_points(struct eft * peft,
     }
 
   /** - allocate (non)linear spectra and wavenumber arrays and copy from input */
-  class_realloc(peft->ln_k, peft->ln_k, peft->mu_size*peft->k_size*sizeof(double), peft->error_message);
+  class_realloc(peft->ln_k, peft->mu_size*peft->k_size*sizeof(double), peft->error_message);
   for (it = 0; it < peft->mu_size*peft->k_size; it++) {
     peft->ln_k[it] = log( kvec_Mpc[it] );
   }
   if (peft->hp->integration_mode == direct_integration) {
-    class_realloc(peft->mu, peft->mu, peft->mu_size*sizeof(double), peft->error_message);
-    class_protect_memcpy(peft->mu, muvec, peft->mu_size*sizeof(double));
+    class_realloc(peft->mu, peft->mu_size*sizeof(double), peft->error_message);
+    memcpy(peft->mu, muvec, peft->mu_size*sizeof(double));
   }
   else {
-    class_realloc(peft->mu, peft->mu, 1*sizeof(double), peft->error_message);
+    class_realloc(peft->mu, 1*sizeof(double), peft->error_message);
     peft->mu[0] = 0.;
   }
 
@@ -239,11 +239,11 @@ int eft_set_sampling_points_mu_only(struct eft * peft,
 
   /** - allocate mu arrays and copy from input */
   if (peft->hp->integration_mode == direct_integration) {
-    class_realloc(peft->mu, peft->mu, peft->mu_size*sizeof(double), peft->error_message);
-    class_protect_memcpy(peft->mu, muvec, peft->mu_size*sizeof(double));
+    class_realloc(peft->mu, peft->mu_size*sizeof(double), peft->error_message);
+    memcpy(peft->mu, muvec, peft->mu_size*sizeof(double));
   }
   else {
-    class_realloc(peft->mu, peft->mu, 1*sizeof(double), peft->error_message);
+    class_realloc(peft->mu, 1*sizeof(double), peft->error_message);
     peft->mu[0] = 0.;
   }
 
@@ -290,7 +290,6 @@ int eft_allocate_spectra_contributions(struct eft * peft,
       for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
         /** - realloc is okay here, since every spectra_contributions[pk_type][index_moment*eft_spectra_contribution_num + index_part] is initialized as NULL */
         class_realloc(peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + index_part],
-                      peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + index_part],
                       peft->spectra_contributions_size[moment_list[index_list]]*sizeof(double), peft->error_message);
       }
     } /** - else: correct size allocated (no-op) */
@@ -304,7 +303,7 @@ int eft_compute_spectra_contributions(struct eft * peft,
                                       const int * const moment_list,
                                       const int moment_list_size) {
 
-  int abort = _FALSE_, index_k, index_list, index_pk_type, index_tracer, index_freq1, index_freq2, index_moment, index_k_loaded = -1, pk_type_loaded = -1;
+  int index_k, index_list, index_pk_type, index_tracer, index_freq1, index_freq2, index_moment, index_k_loaded = -1, pk_type_loaded = -1;
   div_t list_elem;
   double complex * vec[eft_tracer_num]; /**< Fourier basis elements vec[index_tracer][index_freq1] */
   // double complex * vec_IR;
@@ -312,39 +311,34 @@ int eft_compute_spectra_contributions(struct eft * peft,
 
   if (moment_list_size < 1) { return _SUCCESS_; }
 
-  #pragma omp parallel shared(peft, abort, moment_list, moment_list_size), default(none)   \
-                       private(vec, index_k, index_tracer, index_freq1, index_freq2, index_pk_type, index_moment, list_elem, sum1, sum2, index_k_loaded, pk_type_loaded)
-  {
   for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
-    class_alloc_parallel(vec[index_tracer], peft->hp->fourier_coeff_size * sizeof(double complex), peft->error_message);
+    class_alloc(vec[index_tracer], peft->hp->fourier_coeff_size * sizeof(double complex), peft->error_message);
   }
 
   index_k_loaded = -1; pk_type_loaded = -1;
 
-  if (!abort) {
-    /** - main loop over momenta: parallelized */
-    #pragma omp for schedule(static), collapse(2)
-    for (index_k = 0; index_k < peft->mu_size*peft->k_size; index_k++) {
-      for (index_list = 0; index_list < moment_list_size; index_list++) {
-        list_elem = div(moment_list[index_list], peft->index_num);
-        index_pk_type = list_elem.quot;
-        index_moment = list_elem.rem;
+  /** - main loop over momenta: parallelized */
+  for (index_k = 0; index_k < peft->mu_size*peft->k_size; index_k++) {
+    for (index_list = 0; index_list < moment_list_size; index_list++) {
+      list_elem = div(moment_list[index_list], peft->index_num);
+      index_pk_type = list_elem.quot;
+      index_moment = list_elem.rem;
 
-        /** - compute Fourier basis elements */
-        if (index_k_loaded != index_k || pk_type_loaded != index_pk_type) {
-          index_k_loaded = index_k; pk_type_loaded = index_pk_type;
-          for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
-            for (index_freq1 = 0; index_freq1 < peft->hp->fourier_coeff_size; index_freq1++) {
-              vec[index_tracer][index_freq1] = peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_freq1]    \
-                                              * cexp((peft->hp->bias[index_tracer] + _Complex_I * peft->fourier_frequencies[index_tracer][index_freq1]) * peft->ln_k[index_k]);
-            }
+      /** - compute Fourier basis elements */
+      if (index_k_loaded != index_k || pk_type_loaded != index_pk_type) {
+        index_k_loaded = index_k; pk_type_loaded = index_pk_type;
+        for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
+          for (index_freq1 = 0; index_freq1 < peft->hp->fourier_coeff_size; index_freq1++) {
+            vec[index_tracer][index_freq1] = peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_freq1] \
+              * cexp((peft->hp->bias[index_tracer] + _Complex_I * peft->fourier_frequencies[index_tracer][index_freq1]) * peft->ln_k[index_k]);
           }
         }
+      }
 
-        /** - multiply with matrices dependent on symmetry type */
-        sum1 = 0.;
+      /** - multiply with matrices dependent on symmetry type */
+      sum1 = 0.;
 
-        switch (peft->symmetry[index_moment])
+      switch (peft->symmetry[index_moment])
         {
         case no_finite_part:
           /** - sum1 = 0.; */
@@ -360,8 +354,8 @@ int eft_compute_spectra_contributions(struct eft * peft,
           for (index_freq2 = 0; index_freq2 < peft->hp->fourier_coeff_size; index_freq2++) {
             sum2 = 0.;
             for (index_freq1 = 0; index_freq1 < peft->hp->fourier_coeff_size; index_freq1++) {
-              sum2 += peft->loop_matrices[index_moment][index_freq1 + index_freq2*peft->hp->fourier_coeff_size]     \
-                      * vec[peft->use_tracer[index_moment]][index_freq1];
+              sum2 += peft->loop_matrices[index_moment][index_freq1 + index_freq2*peft->hp->fourier_coeff_size] \
+                * vec[peft->use_tracer[index_moment]][index_freq1];
             }
             sum1 += sum2 * vec[peft->use_tracer[index_moment]][index_freq2];
           }
@@ -372,40 +366,34 @@ int eft_compute_spectra_contributions(struct eft * peft,
           for (index_freq2 = 0; index_freq2 < peft->hp->fourier_coeff_size; index_freq2++) {
             sum2 = 0.;
             for (index_freq1 = 0; index_freq1 < index_freq2; index_freq1++) {
-              sum2 += peft->loop_matrices[index_moment][index_freq1 + index_freq2*(index_freq2+1)/2]                \
-                        * vec[peft->use_tracer[index_moment]][index_freq1];
+              sum2 += peft->loop_matrices[index_moment][index_freq1 + index_freq2*(index_freq2+1)/2] \
+                * vec[peft->use_tracer[index_moment]][index_freq1];
             }
             sum1 += 2. * sum2 * vec[peft->use_tracer[index_moment]][index_freq2];
           }
           /** - diagonal */
           for (index_freq1 = 0; index_freq1 < peft->hp->fourier_coeff_size; index_freq1++) {
-            sum1 += peft->loop_matrices[index_moment][index_freq1*(index_freq1+3)/2]                                \
-                      * vec[peft->use_tracer[index_moment]][index_freq1] * vec[peft->use_tracer[index_moment]][index_freq1];
+            sum1 += peft->loop_matrices[index_moment][index_freq1*(index_freq1+3)/2] \
+              * vec[peft->use_tracer[index_moment]][index_freq1] * vec[peft->use_tracer[index_moment]][index_freq1];
           }
           break;
 
         default:
-          if (!abort) {
-            class_protect_sprintf(peft->error_message, "Invalid symmetry type for index_moment = %d at index_k = %d", index_moment, index_k);
-          }
-          abort = _TRUE_;
+          class_sprintf(peft->error_message, "Invalid symmetry type for index_moment = %d at index_k = %d", index_moment, index_k);
           break;
         }
 
-        /** write the sum into the spectra_contributions array and apply the wavenumber dimension, this throws away any residual imaginary part */
-        peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + finite_part][index_k]    \
-            = exp(peft->spectra_contributions_dimension[index_moment] * peft->ln_k[index_k]) * creal(sum1);
-      } /** - end of loop over moment_list */
-    } /** - end of k-loop */
-  }
+      /** write the sum into the spectra_contributions array and apply the wavenumber dimension, this throws away any residual imaginary part */
+      peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + finite_part][index_k] \
+        = exp(peft->spectra_contributions_dimension[index_moment] * peft->ln_k[index_k]) * creal(sum1);
+    } /** - end of loop over moment_list */
+  } /** - end of k-loop */
 
   for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
     free(vec[index_tracer]);
   }
 
-  } /** - end of parallel region */
-
-  return abort;
+  return _SUCCESS_;
 }
 
 int eft_load_linear_spectra(struct background * pba,
@@ -420,21 +408,21 @@ int eft_load_linear_spectra(struct background * pba,
                             const double * const muvec,
                             const int mu_size) {
 
-  int index_list, index_mu, index_pk_type, size, rsd_indicator, abort = _FALSE_;
+  int index_list, index_mu, index_pk_type, size, rsd_indicator;
   double * ln_k;
 
   /** - allocate arrays for the linear spectra in this list */
   for (index_list = 0; index_list < pk_types_size; index_list++) {
     index_pk_type = pk_types[index_list];
-    class_realloc(peft->pk_l[index_pk_type], peft->pk_l[index_pk_type], mu_size*peft->k_size*sizeof(double), peft->error_message);
-    class_realloc(peft->ddpk_l[index_pk_type], peft->ddpk_l[index_pk_type], mu_size*peft->k_size*sizeof(double), peft->error_message);
+    class_realloc(peft->pk_l[index_pk_type], mu_size*peft->k_size*sizeof(double), peft->error_message);
+    class_realloc(peft->ddpk_l[index_pk_type], mu_size*peft->k_size*sizeof(double), peft->error_message);
   }
 
   /** - if we want to use interpolation, repeat the ln_k array mu_size times */
   if (peft->hp->use_interpolation) {
     class_alloc(ln_k, mu_size*peft->k_size*sizeof(double), peft->error_message);
     for (index_mu = 0; index_mu < mu_size; index_mu++) {
-      class_protect_memcpy(ln_k + index_mu*peft->k_size, peft->ln_k, peft->k_size*sizeof(double));
+      memcpy(ln_k + index_mu*peft->k_size, peft->ln_k, peft->k_size*sizeof(double));
     }
   }
   else {
@@ -442,48 +430,46 @@ int eft_load_linear_spectra(struct background * pba,
   }
 
   /** - load the spectra into the arrays */
-  #pragma omp parallel for schedule(static, 1), shared(peft, pba, pfo, ppm, z, f, D, pk_types, pk_types_size, ln_k, muvec, mu_size, abort),  \
-                           private(index_list, index_mu, index_pk_type, rsd_indicator), default(none)
   for (index_list = 0; index_list < pk_types_size; index_list++) {
     index_pk_type = pk_types[index_list];
     rsd_indicator = eft_rsd_indicator(index_pk_type);
     if (rsd_indicator) {
-      class_call_parallel(eft_linear_spectrum_rsd(pba, ppm, pfo, peft,
-                                                  linear,
-                                                  ln_k,
-                                                  peft->k_size,
-                                                  muvec,
-                                                  mu_size,
-                                                  z,
-                                                  f,
-                                                  D,
-                                                  index_pk_type,
-                                                  peft->pk_l[index_pk_type]),
-                          peft->error_message, peft->error_message);
+      class_call(eft_linear_spectrum_rsd(pba, ppm, pfo, peft,
+                                         linear,
+                                         ln_k,
+                                         peft->k_size,
+                                         muvec,
+                                         mu_size,
+                                         z,
+                                         f,
+                                         D,
+                                         index_pk_type,
+                                         peft->pk_l[index_pk_type]),
+                 peft->error_message, peft->error_message);
     }
     else {
-      class_call_parallel(eft_linear_spectrum_real(pba, ppm, pfo, peft,
-                                                  linear,
-                                                  ln_k,
-                                                  peft->k_size,
-                                                  mu_size,
-                                                  z,
-                                                  f,
-                                                  D,
-                                                  index_pk_type,
-                                                  peft->pk_l[index_pk_type]),
-                          peft->error_message, peft->error_message);
+      class_call(eft_linear_spectrum_real(pba, ppm, pfo, peft,
+                                          linear,
+                                          ln_k,
+                                          peft->k_size,
+                                          mu_size,
+                                          z,
+                                          f,
+                                          D,
+                                          index_pk_type,
+                                          peft->pk_l[index_pk_type]),
+                 peft->error_message, peft->error_message);
     }
 
     for (index_mu = 0; index_mu < (rsd_indicator ? mu_size : 1); index_mu++) {
-      class_call_parallel(array_spline_table_columns(ln_k + index_mu*peft->k_size,
-                                                     peft->k_size,
-                                                     peft->pk_l[index_pk_type] + index_mu*peft->k_size,
-                                                     1,
-                                                     peft->ddpk_l[index_pk_type] + index_mu*peft->k_size,
-                                                     _SPLINE_EST_DERIV_,
-                                                     peft->error_message),
-                          peft->error_message, peft->error_message);
+      class_call(array_spline_table_columns(ln_k + index_mu*peft->k_size,
+                                            peft->k_size,
+                                            peft->pk_l[index_pk_type] + index_mu*peft->k_size,
+                                            1,
+                                            peft->ddpk_l[index_pk_type] + index_mu*peft->k_size,
+                                            _SPLINE_EST_DERIV_,
+                                            peft->error_message),
+                 peft->error_message, peft->error_message);
     }
   }
 
@@ -510,7 +496,7 @@ double sigma_sq(struct eft * peft, const short n, enum eft_pk_type pk_type) {
   }
   else if (index_moment >= EFT_DISPERSION_SIZE)
   {
-    class_protect_sprintf(peft->error_message, "%s(L:%d) : not enough storage capacity in dispersion for index_moment = %d", __func__, __LINE__, index_moment);
+    class_sprintf(peft->error_message, "%s(L:%d) : not enough storage capacity in dispersion for index_moment = %d", __func__, __LINE__, index_moment);
     return 0.;
   }
   else {
@@ -551,7 +537,7 @@ double shot_sym_sq(struct eft * peft, const short n, const short m, enum eft_pk_
   }
   else if (index_moment >= EFT_UV_CORRECTIONS_UNDERLYING_SIZE)
   {
-    class_protect_sprintf(peft->error_message, "%s(L:%d) : not enough storage capacity in dispersion for index_moment = %d", __func__, __LINE__, index_moment);
+    class_sprintf(peft->error_message, "%s(L:%d) : not enough storage capacity in dispersion for index_moment = %d", __func__, __LINE__, index_moment);
     return 0.;
   }
   else {
@@ -638,7 +624,7 @@ double shot_sq(struct eft * peft, const short n, const short m, enum eft_pk_type
   }
   else if (index_moment >= EFT_UV_CORRECTIONS_SIZE)
   {
-    class_protect_sprintf(peft->error_message, "%s(L:%d) : not enough storage capacity in dispersion for index_moment = %d", __func__, __LINE__, index_moment);
+    class_sprintf(peft->error_message, "%s(L:%d) : not enough storage capacity in dispersion for index_moment = %d", __func__, __LINE__, index_moment);
     return 0.;
   }
   else {
@@ -824,18 +810,14 @@ int eft_compute_divergences(struct eft * peft,
   int index_pk_type, index_list, index_moment, index_part, it, max_moments = 0;
   div_t list_elem;
   double bias;
-  short abort = _FALSE_;
 
   if (moment_list_size < 1) { return _SUCCESS_; }
 
-  #pragma omp parallel for shared(peft, moment_list, moment_list_size, abort), private(index_pk_type, index_moment, index_list, list_elem, index_part, it, bias), default(none),  \
-                           schedule(static), collapse(2)
   for (index_list = 0; index_list < moment_list_size; index_list++) {
     for (index_part = 1; index_part < eft_spectra_contribution_num; index_part++) {
       list_elem = div(moment_list[index_list], peft->index_num);
       index_pk_type = list_elem.quot;
       index_moment = list_elem.rem;
-      if (abort) { continue; }
       /** - initialize the spectra contribution array */
       for (it = 0; it < peft->mu_size*peft->k_size; it++) {
         peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + index_part][it] = 0.;
@@ -1194,9 +1176,8 @@ int eft_compute_divergences(struct eft * peft,
           /** - nothing for bias < 1 */
         }
         else {
-          abort = _TRUE_;
           ErrorMsg errmsg;
-          class_protect_sprintf(errmsg, "index_moment = %d is out of range for uv_divergence part.", index_moment);
+          class_sprintf(errmsg, "index_moment = %d is out of range for uv_divergence part.", index_moment);
           class_build_error_string(peft->error_message, "error; %s", errmsg);
         }
         break;
@@ -1402,9 +1383,8 @@ int eft_compute_divergences(struct eft * peft,
           /** - nothing for bias > -3 */
         }
         else {
-          abort = _TRUE_;
           ErrorMsg errmsg;
-          class_protect_sprintf(errmsg, "index_moment = %d is out of range for ir_divergence part.", index_moment);
+          class_sprintf(errmsg, "index_moment = %d is out of range for ir_divergence part.", index_moment);
           class_build_error_string(peft->error_message, "error; %s", errmsg);
         }
         break;
@@ -1566,17 +1546,15 @@ int eft_compute_divergences(struct eft * peft,
           /** - nothing for bias > -3 */
         }
         else {
-          abort = _TRUE_;
           ErrorMsg errmsg;
-          class_protect_sprintf(errmsg, "index_moment = %d is out of range for pole_divergence part.", index_moment);
+          class_sprintf(errmsg, "index_moment = %d is out of range for pole_divergence part.", index_moment);
           class_build_error_string(peft->error_message, "error; %s", errmsg);
         }
         break;
 
       default:
-        abort = _TRUE_;
         ErrorMsg errmsg;
-        class_protect_sprintf(errmsg, "divergence identifier = %d not recognized.", index_part);
+        class_sprintf(errmsg, "divergence identifier = %d not recognized.", index_part);
         class_build_error_string(peft->error_message, "error; %s", errmsg);
         break;
       }
@@ -1605,7 +1583,6 @@ int eft_build_nonlinear_power_spectrum_wedges(
   int * pk_types_loops, pk_types_loops_size = 0, * pk_types, pk_types_size = 0, * pk_types_outside_loops, pk_types_outside_loops_size = 0;
   double * pkmu_loop[pk_type_num*eft_spectra_contribution_num]; /**< nonlinear power spectrum still with separated finite and divergent parts */
   double * mu_real = NULL;
-  short abort = _FALSE_;
   double  k, mu, D2, D4, Plin, I2200, I1300, Idelta200, IG200, Idelta2delta200, IG2G200, Idelta2G200, FG200,  \
           I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
           J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
@@ -1668,17 +1645,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
   D2 = pow(D_z/peft->D_z0, 2.);
   D4 = pow(D_z/peft->D_z0, 4.);
 
-  #pragma omp parallel shared(peft, f_z, D2, D4, pk_types_loops, pk_types_loops_size, muvec, mu_size, index_pk_out_type, eft_ip, pkmu_loop, pkmu),   \
-                       private(index_list, index_part, index_k, index_mu, index_mu_k, index_pk_type,  \
-                               k, mu, Plin, I2200, I1300, Idelta200, IG200, Idelta2delta200, IG2G200, Idelta2G200, FG200,  \
-                               I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
-                               J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
-                               J21112, N12, J12112,                                                                        \
-                               N22, sigmav_mu,                                                                             \
-                               Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0), default(none)
-  {
   /** - compute the loop power spectra of every internal pk_type in the list for every k, mu, still separated into finite, UV, IR and pole parts */
-  #pragma omp for schedule(static), collapse(4)
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
     for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
       for (index_k = 0; index_k < peft->k_size; index_k++) {
@@ -1825,7 +1792,6 @@ int eft_build_nonlinear_power_spectrum_wedges(
 
   /** - sum the parts of the power spectrum and accumulate in the last defined part index,
    *    add the finite part last to utilize cancellations between divergent parts */
-  #pragma omp for schedule(static), collapse(3)
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
     for (index_mu = 0; index_mu < mu_size; index_mu++) {
       for (index_k = 0; index_k < peft->k_size; index_k++) {
@@ -1840,7 +1806,6 @@ int eft_build_nonlinear_power_spectrum_wedges(
   }
 
   /** - combine with the linear spectra to produce the full spectrum with loop corrections */
-  #pragma omp for schedule(static), collapse(2)
   for (index_mu = 0; index_mu < mu_size; index_mu++) {
     for (index_k = 0; index_k < peft->k_size; index_k++) {
       if (peft->hp->use_interpolation) { index_mu_k = index_k; }
@@ -1885,9 +1850,6 @@ int eft_build_nonlinear_power_spectrum_wedges(
     }
   }
 
-  } /** - end of parallel region */
-
-
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
     for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
       index_pk_type = pk_types_loops[index_list];
@@ -1899,7 +1861,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
   free(pk_types_outside_loops);
   free(mu_real);
 
-  return abort;
+  return _SUCCESS_;
 }
 
 //assumes EdS scaling
@@ -1922,7 +1884,6 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
   int * pk_types_loops, pk_types_loops_size = 0, * pk_types, pk_types_size = 0, * pk_types_rsd, pk_types_outside_loops_size = 0;
   double * pkmu_loop[pk_type_num*eft_spectra_contribution_num]; /**< nonlinear power spectrum still with separated finite and divergent parts */
   double * mu_real = NULL, D2[z_size], D4[z_size];
-  short abort = _FALSE_;
   double  k, mu, Plin, I2200, I1300, Idelta200, IG200, Idelta2delta200, IG2G200, Idelta2G200, FG200,  \
           I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
           J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
@@ -1986,17 +1947,7 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
     D4[index_z] = pow(D_z[index_z]/peft->D_z0, 4.);
   }
 
-  #pragma omp parallel shared(peft, f_z, D2, D4, pk_types_loops, pk_types_loops_size, muvec, mu_size, z_size, index_pk_out_type, eft_ip, pkmu_loop, pkmu),   \
-                       private(index_list, index_part, index_k, index_mu, index_mu_k, index_z, index_pk_type,  \
-                               k, mu, Plin, I2200, I1300, Idelta200, IG200, Idelta2delta200, IG2G200, Idelta2G200, FG200,  \
-                               I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
-                               J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
-                               J21112, N12, J12112,                                                                        \
-                               N22,                                                                                        \
-                               Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0), default(none)
-  {
   /** - compute the loop power spectra of every internal pk_type in the list for every k, mu, still separated into finite, UV, IR and pole parts */
-  #pragma omp for schedule(static), collapse(4)
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
     for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
       for (index_k = 0; index_k < peft->k_size; index_k++) {
@@ -2134,7 +2085,6 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
 
   /** - sum the parts of the power spectrum and accumulate in the last defined part index,
    *    add the finite part last to utilize cancellations between divergent parts */
-  #pragma omp for schedule(static), collapse(4)
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
     for (index_z = 0; index_z < z_size; index_z++) {
       for (index_mu = 0; index_mu < mu_size; index_mu++) {
@@ -2151,7 +2101,6 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
   }
 
   /** - combine with the linear spectra to produce the full spectrum with loop corrections */
-  #pragma omp for schedule(static), collapse(3)
   for (index_z = 0; index_z < z_size; index_z++) {
     for (index_mu = 0; index_mu < mu_size; index_mu++) {
       for (index_k = 0; index_k < peft->k_size; index_k++) {
@@ -2192,9 +2141,6 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
     }
   }
 
-  } /** - end of parallel region */
-
-
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
     for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
       index_pk_type = pk_types_loops[index_list];
@@ -2206,5 +2152,5 @@ int eft_build_nonlinear_power_spectrum_wedges_multiple(
   free(pk_types_rsd);
   free(mu_real);
 
-  return abort;
+  return _SUCCESS_;
 }

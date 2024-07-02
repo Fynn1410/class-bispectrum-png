@@ -429,12 +429,12 @@ int eft_linear_spectrum_real(
                   const int index_pk_type,
                   double * out_pk) {
 
-  int it, abort = _FALSE_;
+  int it;
   double * ln_kvec_sorted, * pk_l;
   struct indexed_real_arg * vec;
   const double D2 = pow(D_z/peft->D_z0, 2.);
 
-  class_call_parallel(eft_real_argument_list_rect(ln_kvec, kvec_size,
+  class_call(eft_real_argument_list_rect(ln_kvec, kvec_size,
                                                   n_columns,
                                                   &vec,
                                                   peft->error_message),
@@ -443,12 +443,12 @@ int eft_linear_spectrum_real(
   switch (index_pk_type)
   {
   case pk_lin:
-    class_alloc_parallel(ln_kvec_sorted, kvec_size*n_columns*sizeof(double), peft->error_message);
-    class_alloc_parallel(pk_l, kvec_size*n_columns*sizeof(double), peft->error_message);
+    class_alloc(ln_kvec_sorted, kvec_size*n_columns*sizeof(double), peft->error_message);
+    class_alloc(pk_l, kvec_size*n_columns*sizeof(double), peft->error_message);
     for (it = 0; it < kvec_size*n_columns; it++) {
       ln_kvec_sorted[it] = vec[it].ln_k;
     }
-    class_call_parallel(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
+    class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
                                                             ppm,
                                                             pfo,
                                                             mode,
@@ -466,12 +466,12 @@ int eft_linear_spectrum_real(
     break;
 
   case pk_nowiggle:
-    class_alloc_parallel(ln_kvec_sorted, kvec_size*n_columns*sizeof(double), peft->error_message);
-    class_alloc_parallel(pk_l, kvec_size*n_columns*sizeof(double), peft->error_message);
+    class_alloc(ln_kvec_sorted, kvec_size*n_columns*sizeof(double), peft->error_message);
+    class_alloc(pk_l, kvec_size*n_columns*sizeof(double), peft->error_message);
     for (it = 0; it < kvec_size*n_columns; it++) {
       ln_kvec_sorted[it] = vec[it].ln_k;
     }
-    class_call_parallel(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
+    class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
                                                             ppm,
                                                             pfo,
                                                             mode,
@@ -489,7 +489,7 @@ int eft_linear_spectrum_real(
     break;
 
   case pk_ir_resummed_lo:
-    class_call_parallel(eft_ir_pk_lo(pba, ppm, pfo, mode,
+    class_call(eft_ir_pk_lo(pba, ppm, pfo, mode,
                                      vec,
                                      kvec_size*n_columns,
                                      z,
@@ -501,7 +501,7 @@ int eft_linear_spectrum_real(
     break;
 
   case pk_ir_resummed_nlo:
-    class_call_parallel(eft_ir_pk_nlo(pba, ppm, pfo, mode,
+    class_call(eft_ir_pk_nlo(pba, ppm, pfo, mode,
                                       vec,
                                       kvec_size*n_columns,
                                       z,
@@ -519,7 +519,7 @@ int eft_linear_spectrum_real(
 
   free(vec);
 
-  return abort;
+  return _SUCCESS_;
 }
 
 // TODO: inline this
@@ -539,11 +539,10 @@ int eft_linear_spectrum_rsd(
                   const int index_pk_type,
                   double * out_pk) {
 
-  int abort = _FALSE_;
   const double D2 = pow(D_z/peft->D_z0, 2.);
   struct indexed_rsd_arg * vec;
 
-  class_call_parallel(eft_rsd_argument_list_rect(ln_kvec, kvec_size,
+  class_call(eft_rsd_argument_list_rect(ln_kvec, kvec_size,
                                                  muvec, muvec_size,
                                                  &vec,
                                                  peft->error_message),
@@ -552,7 +551,7 @@ int eft_linear_spectrum_rsd(
   switch (index_pk_type)
   {
   case pkmu_rsd_ir_resummed_lo:
-    class_call_parallel(eft_ir_pk_rsd_lo(pba, ppm, pfo, mode,
+    class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, mode,
                                          vec,
                                          muvec_size*kvec_size,
                                          z,
@@ -566,7 +565,7 @@ int eft_linear_spectrum_rsd(
     break;
 
   case pkmu_rsd_ir_resummed_nlo:
-    class_call_parallel(eft_ir_pk_rsd_nlo(pba, ppm, pfo, mode,
+    class_call(eft_ir_pk_rsd_nlo(pba, ppm, pfo, mode,
                                           vec,
                                           muvec_size*kvec_size,
                                           z,
@@ -586,7 +585,7 @@ int eft_linear_spectrum_rsd(
 
   free(vec);
 
-  return abort;
+  return _SUCCESS_;
 }
 
 /**
@@ -629,7 +628,7 @@ int eft_fourier_transform_linear_spectra(
                             const int * const index_pk_types,
                             const int index_pk_types_size) {
 
-  int it, index_mu, index_tracer, index_pk_type, index_list, abort = _FALSE_;
+  int it, index_mu, index_tracer, index_pk_type, index_list;
   int mu_size;
   // int * index_pk_types, index_pk_types_size = 0;
   const int num_independent_coefficients = peft->hp->num_positive_fourier_freq + 1;
@@ -665,32 +664,25 @@ int eft_fourier_transform_linear_spectra(
   // }
   /** list of indices for the pk_types to compute is prepared externally */
 
-
-  #pragma omp parallel shared(ppr, pba, ppm, pfo, peft, abort, stderr, num_independent_coefficients, index_pk_types, index_pk_types_size, spline_lipschitz_const, spline_gradient_change, spline_L2_norm, series_l2_norm), \
-    private(it, index_mu, index_tracer, index_pk_type, index_list, mu_size, pk_l_biased_p, h1, h2, M0), \
-                       default(none)
-  { /** , last_index, ln_k_fft, pk_l_biased_fft, fft_plan, fourier_coeff_real, fourier_coeff_imag */
-
   /** Retrieve the power spectra */
   if (peft->hp->integration_mode == fftlog) {
     /** ----------------- Load requested linear spectra w/o mu dependence ---------------------- */
     /** - for the Fourier components */
-    #pragma omp for schedule(static, 1), collapse(2)
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
       for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
         index_pk_type = index_pk_types[index_list];
         /** - allocate spectra and fourier coefficient arrays */
-        class_realloc_parallel(peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer], peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer],      \
-                               peft->hp->k_size_fourier*sizeof(double), peft->error_message);
-        class_realloc_parallel(peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer], peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer],  \
-                               peft->hp->k_size_fourier*sizeof(double), peft->error_message);
-        class_realloc_parallel(peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer], peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer],  \
-                               peft->hp->fourier_coeff_size*sizeof(double complex), peft->error_message);
-        class_realloc_parallel(peft->fourier_condition_num[index_pk_type*eft_tracer_num + index_tracer], peft->fourier_condition_num[index_pk_type*eft_tracer_num + index_tracer],  \
-                               peft->hp->fourier_coeff_size*sizeof(double complex), peft->error_message);
+        class_realloc(peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer],
+                      peft->hp->k_size_fourier*sizeof(double), peft->error_message);
+        class_realloc(peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer],
+                      peft->hp->k_size_fourier*sizeof(double), peft->error_message);
+        class_realloc(peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer],
+                      peft->hp->fourier_coeff_size*sizeof(double complex), peft->error_message);
+        class_realloc(peft->fourier_condition_num[index_pk_type*eft_tracer_num + index_tracer],
+                      peft->hp->fourier_coeff_size*sizeof(double complex), peft->error_message);
         memset(peft->fourier_condition_num[index_pk_type*eft_tracer_num + index_tracer], 0, peft->hp->fourier_coeff_size*sizeof(double complex));
         /** - get the linear spectra values */
-        class_call_parallel(eft_linear_spectrum_real(pba, ppm, pfo, peft, linear,
+        class_call(eft_linear_spectrum_real(pba, ppm, pfo, peft, linear,
                                                      peft->ln_k_fourier[index_tracer],
                                                      peft->hp->k_size_fourier-1,
                                                      1,
@@ -704,16 +696,15 @@ int eft_fourier_transform_linear_spectra(
       }
     }
     /** - for the moments of the lin. spectra */
-    #pragma omp for schedule(static, 1)
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
       index_pk_type = index_pk_types[index_list];
       /** - allocate spectra for moments */
-      class_realloc_parallel(peft->pk_l_moments[index_pk_type], peft->pk_l_moments[index_pk_type],      \
-                             peft->hp->k_size_moments*sizeof(double), peft->error_message);
-      class_realloc_parallel(peft->ddpk_l_moments[index_pk_type], peft->ddpk_l_moments[index_pk_type],  \
-                             peft->hp->k_size_moments*sizeof(double), peft->error_message);
+      class_realloc(peft->pk_l_moments[index_pk_type],
+                    peft->hp->k_size_moments*sizeof(double), peft->error_message);
+      class_realloc(peft->ddpk_l_moments[index_pk_type],
+                    peft->hp->k_size_moments*sizeof(double), peft->error_message);
       /** - get the linear spectra values */
-      class_call_parallel(eft_linear_spectrum_real(pba, ppm, pfo, peft, linear,
+      class_call(eft_linear_spectrum_real(pba, ppm, pfo, peft, linear,
                                                     peft->ln_k_moments,
                                                     peft->hp->k_size_moments,
                                                     1,
@@ -726,69 +717,61 @@ int eft_fourier_transform_linear_spectra(
                           peft->error_message);
     }
 
-
-    if (!abort) {
-      #pragma omp for schedule(static, 1), collapse(2)
-      for (index_list = 0; index_list < index_pk_types_size; index_list++) {
-        for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
-          index_pk_type = index_pk_types[index_list];
-          for (it = 0; it < peft->hp->k_size_fourier-1; it++) {
-            /** Apply the bias to the power spectra */
-            peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer][it]      \
-                  *= exp(-peft->hp->bias[index_tracer] * peft->ln_k_fourier[index_tracer][it]);
-          }
-          /** Add the last point to make the spectra periodic: P_bias(ln(k_min) + period) = P_bias(ln(k_min)) */
-          peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer][peft->hp->k_size_fourier-1]    \
-                = peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer][0];
-
-          /** Spline the biased power spectra periodically */
-          class_call_parallel(array_spline_table_columns(peft->ln_k_fourier[index_tracer],
-                                                        peft->hp->k_size_fourier,
-                                                        peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer],
-                                                        1,
-                                                        peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer],
-                                                        _SPLINE_PERIODIC_,
-                                                        peft->error_message),
-                              peft->error_message,
-                              peft->error_message);
-
-        }
-      }
-
-      #pragma omp for schedule(static, 1)
-      for (index_list = 0; index_list < index_pk_types_size; index_list++) {
+    for (index_list = 0; index_list < index_pk_types_size; index_list++) {
+      for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
         index_pk_type = index_pk_types[index_list];
-        /** Spline the power spectra for moments with estimated boundary derivative */
-        class_call_parallel(array_spline_table_columns(peft->ln_k_moments,
-                                                      peft->hp->k_size_moments,
-                                                      peft->pk_l_moments[index_pk_type],
-                                                      1,
-                                                      peft->ddpk_l_moments[index_pk_type],
-                                                      _SPLINE_EST_DERIV_,
-                                                      peft->error_message),
+        for (it = 0; it < peft->hp->k_size_fourier-1; it++) {
+          /** Apply the bias to the power spectra */
+          peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer][it] \
+            *= exp(-peft->hp->bias[index_tracer] * peft->ln_k_fourier[index_tracer][it]);
+        }
+        /** Add the last point to make the spectra periodic: P_bias(ln(k_min) + period) = P_bias(ln(k_min)) */
+        peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer][peft->hp->k_size_fourier-1] \
+          = peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer][0];
+
+        /** Spline the biased power spectra periodically */
+        class_call(array_spline_table_columns(peft->ln_k_fourier[index_tracer],
+                                                       peft->hp->k_size_fourier,
+                                                       peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer],
+                                                       1,
+                                                       peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer],
+                                                       _SPLINE_PERIODIC_,
+                                                       peft->error_message),
                             peft->error_message,
                             peft->error_message);
 
       }
     }
 
+    for (index_list = 0; index_list < index_pk_types_size; index_list++) {
+      index_pk_type = index_pk_types[index_list];
+      /** Spline the power spectra for moments with estimated boundary derivative */
+      class_call(array_spline_table_columns(peft->ln_k_moments,
+                                                     peft->hp->k_size_moments,
+                                                     peft->pk_l_moments[index_pk_type],
+                                                     1,
+                                                     peft->ddpk_l_moments[index_pk_type],
+                                                     _SPLINE_EST_DERIV_,
+                                                     peft->error_message),
+                          peft->error_message,
+                          peft->error_message);
+
+    }
   }
   else {
     // TODO: is this needed?
-    abort = _TRUE_;
     // /** ---------------- Load pk_ir_resummed_lo for different mu -------------- */
     // /** mu_size, mu are set before & dd/pk_l_biased[pk_ir_resummed_lo*eft_tracer_num + index_tracer] needs to be allocated with size peft->mu_size*peft->hp->k_size_fourier */
     // /** fourier_coeff/condition_num[pk_ir_resummed_lo*eft_tracer_num + index_tracer] needs to be allocated with size peft->mu_size*peft->hp->fourier_coeff_size */
-    // class_alloc_parallel(pk_l_biased_p, peft->mu_size*sizeof(double **), peft->error_message);
+    // class_alloc(pk_l_biased_p, peft->mu_size*sizeof(double **), peft->error_message);
 
-    // #pragma omp for schedule(static, 1), collapse(2)
     // for (index_list = 0; index_list < index_pk_types_size; index_list++) {
     //   for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
     //     index_pk_type = index_pk_types[index_list];
     //     for (index_mu = 0; index_mu < peft->mu_size; index_mu++) {
     //       pk_l_biased_p[index_mu] = peft->pk_l_biased[pk_ir_resummed_lo*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier;
     //     }
-    //     class_call_parallel(eft_linear_spectrum_rsd(pba, ppm, pfo, peft, linear,
+    //     class_call(eft_linear_spectrum_rsd(pba, ppm, pfo, peft, linear,
     //                                                 peft->ln_k_fourier[index_tracer],
     //                                                 peft->hp->k_size_fourier-1,
     //                                                 peft->mu,
@@ -805,8 +788,6 @@ int eft_fourier_transform_linear_spectra(
     // free(pk_l_biased_p);
 
 
-    // if (!abort) {
-    //   #pragma omp for schedule(static, 1), collapse(3)
     //   for (index_list = 0; index_list < index_pk_types_size; index_list++) {
     //     for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
     //       for (index_mu = 0; index_mu < peft->mu_size; index_mu++) {
@@ -821,7 +802,7 @@ int eft_fourier_transform_linear_spectra(
     //               = peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer][0];
 
     //         /** Spline the biased power spectra periodically */
-    //         class_call_parallel(array_spline_table_columns(peft->ln_k_fourier[index_tracer],
+    //         class_call(array_spline_table_columns(peft->ln_k_fourier[index_tracer],
     //                                                       peft->hp->k_size_fourier,
     //                                                       peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier,
     //                                                       1,
@@ -837,8 +818,6 @@ int eft_fourier_transform_linear_spectra(
     // }
 
   }
-
-  #pragma omp barrier
 
   /* Compute the Fourier coefficients of the power spectra */
   switch (peft->hp->fourier_mode)
@@ -858,12 +837,9 @@ int eft_fourier_transform_linear_spectra(
 
       for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
         for (index_mu = 0; index_mu < mu_size; index_mu++) {
-
-          #pragma omp master
-          {
           peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + 0] = class_complex(0., 0.);
           /** The DC component has to be treated differently */
-          class_call_parallel(array_integrate_all_spline_table_lines_compensated(
+          class_call(array_integrate_all_spline_table_lines_compensated(
                                       peft->ln_k_fourier[index_tracer],
                                       peft->hp->k_size_fourier,
                                       peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier,
@@ -876,9 +852,7 @@ int eft_fourier_transform_linear_spectra(
                               peft->error_message,
                               peft->error_message);
           peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + 0] /= peft->hp->period[index_tracer];
-          }
 
-          #pragma omp for schedule(static)
           for (it = 1; it < num_independent_coefficients; it++) {
             array_integrate_all_spline_table_lines_fourier_compensated(
                               peft->ln_k_fourier[index_tracer],
@@ -895,7 +869,6 @@ int eft_fourier_transform_linear_spectra(
             peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + it] /= peft->hp->period[index_tracer];
           }
 
-          #pragma omp for schedule(static)
           /** - negative frequency components in standard order are fully dependent on the others */
           for (it = -(num_independent_coefficients-1); it < 0; it++) {
             peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + peft->hp->fourier_coeff_size + it]     \
@@ -904,16 +877,11 @@ int eft_fourier_transform_linear_spectra(
 
           /** - debug information */
           if (peft->hp->eft_verbose > 2) {
-            #pragma omp master
-            {
             spline_lipschitz_const = 0.;
             series_l2_norm = 0.;
-            }
             M0 = peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier;
-            #pragma omp barrier
             /** - compute the Lipschitz constant L of the second derivative: since the (biased) spline is a C^2 Lipschitz-continuous function,
              *    the magnitude of its Fourier coefficients is bounded by pi/2 * L / frequency^3 */
-            #pragma omp for schedule(static) reduction(max:spline_lipschitz_const)
             for (it = 0; it <= peft->hp->k_size_fourier; it++) {
               h1 = peft->ln_k_fourier[index_tracer][abs(it % peft->hp->k_size_fourier)] - peft->ln_k_fourier[index_tracer][abs((it-1) % peft->hp->k_size_fourier)];
               h2 = peft->ln_k_fourier[index_tracer][abs((it+1) % peft->hp->k_size_fourier)] - peft->ln_k_fourier[index_tracer][abs(it % peft->hp->k_size_fourier)];
@@ -924,14 +892,11 @@ int eft_fourier_transform_linear_spectra(
             /** - compute the l2 norm of its Fourier coefficients: Because of Parseval's theorem,
              *    these norms must be equal when taking into account infinite Fourier components.
              *    By truncating the series we generate a loss whose norm we can evaluate. */
-            #pragma omp for schedule(static) reduction(+:series_l2_norm)
             for (it = 0; it < peft->hp->fourier_coeff_size; it++) {
               series_l2_norm += pow(cabs(peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + it]), 2);
             }
             /** - compute the L2 norm of the biased power spectra */
-            #pragma omp master
-            {
-            class_call_parallel(array_square_integrate_all_spline_table_lines(
+            class_call(array_square_integrate_all_spline_table_lines(
                                                                       peft->ln_k_fourier[index_tracer],
                                                                       peft->hp->k_size_fourier,
                                                                       peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier,
@@ -945,21 +910,17 @@ int eft_fourier_transform_linear_spectra(
             double rel_loss_norm = (spline_L2_norm - series_l2_norm) / spline_L2_norm;
             printf("index_pk_type = %d, index_tracer = %d, index_mu = %d: Performed Spline Fourier with bias %.2f and relative power loss of %.3e at frequencies higher than %.3e \n", index_pk_type, index_tracer, index_mu, peft->hp->bias[index_tracer], rel_loss_norm, _TWOPI_*(num_independent_coefficients-1)/peft->hp->period[index_tracer]);
             printf("                                                      Fourier coefficients are bounded by %.3e / frequency^3 \n", _PI_/2.*spline_lipschitz_const);
-            }
-          }
 
+          }
         }
       }
-      if (!abort) { peft->pk_type_loaded[index_pk_type] = _TRUE_; }
+      peft->pk_type_loaded[index_pk_type] = _TRUE_;
     }
 
     break;
 
   default:
-    #pragma omp master
-    {
-    class_protect_fprintf(stderr, "Fourier mode setting is invalid. Defaulting to FFT! \n");
-    }
+    fprintf(stderr, "Fourier mode setting is invalid. Defaulting to FFT! \n");
     /** -------------- fall-through -----------------------*/
   case fourier_mode_fft:
     /** - sample fourier_coeff_size-1 equidistant points for FFT */
@@ -969,17 +930,17 @@ int eft_fourier_transform_linear_spectra(
     struct FFT_plan * fft_plan;
     double * fourier_coeff_real[2], * fourier_coeff_imag[2];
 
-    class_alloc_parallel(pk_l_biased_fft[eft_matter], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
-    class_alloc_parallel(pk_l_biased_fft[eft_halo], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
-    class_alloc_parallel(fourier_coeff_real[0], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
-    class_alloc_parallel(fourier_coeff_imag[0], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
-    class_alloc_parallel(fourier_coeff_real[1], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
-    class_alloc_parallel(fourier_coeff_imag[1], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
+    class_alloc(pk_l_biased_fft[eft_matter], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
+    class_alloc(pk_l_biased_fft[eft_halo], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
+    class_alloc(fourier_coeff_real[0], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
+    class_alloc(fourier_coeff_imag[0], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
+    class_alloc(fourier_coeff_real[1], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
+    class_alloc(fourier_coeff_imag[1], (peft->hp->fourier_coeff_size-1)*sizeof(double), peft->error_message);
 
     /** - copy the master FFT plan */
     FFT_planner_alloc(peft->fft_plan->N, &fft_plan);
-    class_protect_memcpy(fft_plan->cos_vals, peft->fft_plan->cos_vals, peft->fft_plan->N * sizeof(double));
-    class_protect_memcpy(fft_plan->sin_vals, peft->fft_plan->sin_vals, peft->fft_plan->N * sizeof(double));
+    memcpy(fft_plan->cos_vals, peft->fft_plan->cos_vals, peft->fft_plan->N * sizeof(double));
+    memcpy(fft_plan->sin_vals, peft->fft_plan->sin_vals, peft->fft_plan->N * sizeof(double));
 
     switch (peft->hp->integration_mode)
       {
@@ -991,7 +952,6 @@ int eft_fourier_transform_linear_spectra(
         break;
       }
 
-    #pragma omp for schedule(static, 1), collapse(2)
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
       for (index_mu = 0; index_mu < mu_size; index_mu++) {
         index_pk_type = index_pk_types[index_list];
@@ -999,57 +959,53 @@ int eft_fourier_transform_linear_spectra(
           for (it = 0; it < peft->hp->fourier_coeff_size-1; it++) {
             /** - equidistant sample points; last point ln(k_min) + period is left out since it is known by periodicity  */
             ln_k_fft = log(peft->hp->kmin_lin[index_tracer]) + peft->hp->period[index_tracer] * it/(double)(peft->hp->fourier_coeff_size-1);
-            class_call_parallel(array_interpolate_spline_growing_closeby(peft->ln_k_fourier[index_tracer],
-                                                                        peft->hp->k_size_fourier,
-                                                                        peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier,
-                                                                        peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier,
-                                                                        1,
-                                                                        ln_k_fft,
-                                                                        &last_index,
-                                                                        pk_l_biased_fft[index_tracer] + it,
-                                                                        1,
-                                                                        peft->error_message),
-                                peft->error_message,
-                                peft->error_message);
+            class_call(array_interpolate_spline_growing_closeby(peft->ln_k_fourier[index_tracer],
+                                                                peft->hp->k_size_fourier,
+                                                                peft->pk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier,
+                                                                peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier,
+                                                                1,
+                                                                ln_k_fft,
+                                                                &last_index,
+                                                                pk_l_biased_fft[index_tracer] + it,
+                                                                1,
+                                                                peft->error_message),
+                       peft->error_message,
+                       peft->error_message);
           }
         }
 
-        if (!abort) {
-          /** - compute the FFT of the spectra for both tracers simultaneously */
-          if (eft_tracer_num == 2) {
-            FFT_real_planned(pk_l_biased_fft[eft_matter], pk_l_biased_fft[eft_halo],
-                            fourier_coeff_real[0], fourier_coeff_imag[0],
-                            fourier_coeff_real[1], fourier_coeff_imag[1],
-                            fft_plan);
+        /** - compute the FFT of the spectra for both tracers simultaneously */
+        if (eft_tracer_num == 2) {
+          FFT_real_planned(pk_l_biased_fft[eft_matter], pk_l_biased_fft[eft_halo],
+                           fourier_coeff_real[0], fourier_coeff_imag[0],
+                           fourier_coeff_real[1], fourier_coeff_imag[1],
+                           fft_plan);
 
-            for (index_tracer = 0; index_tracer < 2; index_tracer++) {
-              /** - TODO: Not really consistent! DC coefficient is halved to keep the original power while symmetrizing the spectrum btw. -N/2...N/2 */
-              peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + 0]      \
-                    = class_complex(fourier_coeff_real[index_tracer][0], fourier_coeff_imag[index_tracer][0]) / (double)(peft->hp->fourier_coeff_size-1);
-              /** - positive frequency components in standard order, last iteration extends the spectrum symmetrically */
-              for (it = 1; it < num_independent_coefficients; it++) {
-                peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + it]      \
-                    = class_complex(fourier_coeff_real[index_tracer][it], fourier_coeff_imag[index_tracer][it]) * cpow(peft->hp->kmin_lin[index_tracer], -_Complex_I*peft->fourier_frequencies[index_tracer][it]) / (double)(peft->hp->fourier_coeff_size-1);
-              }
-              /** - negative frequency components in standard order are fully dependent on the others */
-              for (it = -(num_independent_coefficients-1); it < 0; it++) {
-                peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + peft->hp->fourier_coeff_size + it]     \
-                    = conj( peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size - it] );
-              }
+          for (index_tracer = 0; index_tracer < 2; index_tracer++) {
+            /** - TODO: Not really consistent! DC coefficient is halved to keep the original power while symmetrizing the spectrum btw. -N/2...N/2 */
+            peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + 0] \
+              = class_complex(fourier_coeff_real[index_tracer][0], fourier_coeff_imag[index_tracer][0]) / (double)(peft->hp->fourier_coeff_size-1);
+            /** - positive frequency components in standard order, last iteration extends the spectrum symmetrically */
+            for (it = 1; it < num_independent_coefficients; it++) {
+              peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + it] \
+                = class_complex(fourier_coeff_real[index_tracer][it], fourier_coeff_imag[index_tracer][it]) * cpow(peft->hp->kmin_lin[index_tracer], -_Complex_I*peft->fourier_frequencies[index_tracer][it]) / (double)(peft->hp->fourier_coeff_size-1);
+            }
+            /** - negative frequency components in standard order are fully dependent on the others */
+            for (it = -(num_independent_coefficients-1); it < 0; it++) {
+              peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + peft->hp->fourier_coeff_size + it] \
+                = conj( peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size - it] );
             }
           }
-          else {
-            abort = _TRUE_;
-            ErrorMsg errmsg;
-            class_protect_sprintf(errmsg, "FFT implementation requires 2 tracers for performance reasons, but the eft_tracer enum contains %d entries. If you need more tracers, implement the FFT schedule here.", eft_tracer_num);
-            class_build_error_string(peft->error_message, "error; %s", errmsg);
-          }
+        }
+        else {
+          ErrorMsg errmsg;
+          class_sprintf(errmsg, "FFT implementation requires 2 tracers for performance reasons, but the eft_tracer enum contains %d entries. If you need more tracers, implement the FFT schedule here.", eft_tracer_num);
+          class_build_error_string(peft->error_message, "error; %s", errmsg);
         }
 
-        if (!abort) { peft->pk_type_loaded[index_pk_type] = _TRUE_; }
+        peft->pk_type_loaded[index_pk_type] = _TRUE_;
       }
     }
-
 
     free(pk_l_biased_fft[eft_matter]); free(pk_l_biased_fft[eft_halo]);
     free(fourier_coeff_real[0]); free(fourier_coeff_imag[0]);
@@ -1057,8 +1013,6 @@ int eft_fourier_transform_linear_spectra(
     FFT_planner_free(&fft_plan);
     break;
   }
-
-  } /** - end of parallel region */
 
   if ((peft->hp->integration_mode == fftlog) && (pfo->fourier_verbose > 3)) {
     FILE *ffourier = fopen("output/halo_biased_pk_lin_samples.dat", "w");
@@ -1091,8 +1045,7 @@ int eft_fourier_transform_linear_spectra(
     }
   }
 
-
-  return abort;
+  return _SUCCESS_;
 }
 
 int eft_save_matrix_to_file(const double complex * matrix,
@@ -1222,7 +1175,7 @@ int eft_get_loop_matrices(struct eft * peft,
                           struct ext_storage * pext,
                           const int index) {
 
-  int index_moment, counter = 0, abort = _FALSE_;  /** - loop matrices for the current eft struct may need to be recomputed independently of the hyperparameters, if stored matrices are invalid */
+  int index_moment, counter = 0;  /** - loop matrices for the current eft struct may need to be recomputed independently of the hyperparameters, if stored matrices are invalid */
   FileName filename;
   ErrorMsg errmsg;
   #ifdef _OPENMP
@@ -1244,11 +1197,10 @@ int eft_get_loop_matrices(struct eft * peft,
         class_call(eft_compute_loop_matrices(peft), peft->error_message, peft->error_message);
 
         if (peft->hp->write_loop_matrices == _TRUE_) {  /** - and save them if flag is set */
-          #pragma omp parallel for schedule(dynamic), shared(peft, index, abort), private(index_moment, filename), default(none), num_threads(num_parallel_files)
           for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
             if (peft->loop_matrices_size[index_moment] == 0) { continue; }
             sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
-            class_call_parallel(eft_save_matrix_to_file(peft->loop_matrices[index_moment],
+            class_call(eft_save_matrix_to_file(peft->loop_matrices[index_moment],
                                                         peft->loop_matrices_size[index_moment],
                                                         peft->symmetry[index_moment],
                                                         peft->use_tracer[index_moment],
@@ -1260,17 +1212,16 @@ int eft_get_loop_matrices(struct eft * peft,
                                 peft->error_message,
                                 peft->error_message);
           }
-          if (!abort && peft->hp->eft_verbose > 1) {
+          if (peft->hp->eft_verbose > 1) {
             printf("Wrote %d loop matrix files to '%s' \n", peft->moments_allocated, peft->hp->eft_loop_matrix_directory);
           }
         }
       }
       else {  /** - load the matrices from files without raising errors at this point if flag is set */
-        #pragma omp parallel for schedule(dynamic), shared(peft, index, abort), private(index_moment, filename), default(none), num_threads(num_parallel_files), reduction(+:counter)
         for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
           if (peft->loop_matrices_size[index_moment] == 0) { continue; }
           sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
-          // class_call_parallel(eft_read_matrix_from_file(peft->loop_matrices[index_moment],
+          // class_call(eft_read_matrix_from_file(peft->loop_matrices[index_moment],
           //                                               peft->loop_matrices_size[index_moment],
           //                                               peft->symmetry[index_moment],
           //                                               peft->use_tracer[index_moment],
@@ -1281,31 +1232,28 @@ int eft_get_loop_matrices(struct eft * peft,
           //                     peft->error_message,
           //                     peft->error_message);
 
-          if (!abort) {
-            if (eft_read_matrix_from_file(peft->loop_matrices[index_moment],
-                                          peft->loop_matrices_size[index_moment],
-                                          peft->symmetry[index_moment],
-                                          peft->use_tracer[index_moment],
-                                          peft->hp->period[peft->use_tracer[index_moment]],
-                                          filename,
-                                          peft->error_message,
-                                          (peft->hp->eft_verbose > 2) ? _TRUE_ : _FALSE_) == _FAILURE_) {
-              if (!peft->hp->ignore_missing_files) {
-                class_call_message(peft->error_message, "eft_get_loop_matrices", peft->error_message);
-                abort = _TRUE_;
-              }
-              else {
-                peft->loop_matrices_size[index_moment] = 0;
-              }
+          if (eft_read_matrix_from_file(peft->loop_matrices[index_moment],
+                                        peft->loop_matrices_size[index_moment],
+                                        peft->symmetry[index_moment],
+                                        peft->use_tracer[index_moment],
+                                        peft->hp->period[peft->use_tracer[index_moment]],
+                                        filename,
+                                        peft->error_message,
+                                        (peft->hp->eft_verbose > 2) ? _TRUE_ : _FALSE_) == _FAILURE_) {
+            if (!peft->hp->ignore_missing_files) {
+              class_call_message(peft->error_message, "eft_get_loop_matrices", peft->error_message);
             }
             else {
-              counter += 1;
+              peft->loop_matrices_size[index_moment] = 0;
             }
+          }
+          else {
+            counter += 1;
           }
         }
         /** - update the number of allocated moments */
         peft->moments_allocated = counter;
-        if (!abort && peft->hp->eft_verbose > 2) {
+        if (peft->hp->eft_verbose > 2) {
           printf("Loaded %d loop matrix files out of %d defined indices from '%s' \n", counter, peft->index_num, peft->hp->eft_loop_matrix_directory);
         }
       }
@@ -1322,7 +1270,7 @@ int eft_get_loop_matrices(struct eft * peft,
     break;
   }
 
-  return abort;
+  return _SUCCESS_;
 }
 
 
@@ -1607,9 +1555,9 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     else { class_stop(peft->error_message, "EFT integration mode not recognized, was %d", eft_hp->integration_mode); }
 
     if (eft_hp->use_interpolation) {
-      class_realloc(pkmu_nl, pkmu_nl, peft->k_size*mu_sizevec[index_z]*sizeof(double),
+      class_realloc(pkmu_nl, peft->k_size*mu_sizevec[index_z]*sizeof(double),
                     peft->error_message);
-      class_realloc(ddpkmu_nl, ddpkmu_nl, peft->k_size*mu_sizevec[index_z]*sizeof(double),
+      class_realloc(ddpkmu_nl, peft->k_size*mu_sizevec[index_z]*sizeof(double),
                     peft->error_message);
       pkmu_out = pkmu_nl;
     }
@@ -1640,7 +1588,6 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                      peft->error_message),
                   peft->error_message, peft->error_message);
 
-      #pragma omp parallel for schedule(static), shared(peft, pkmu_nl, ddpkmu_nl, out_pkmu, kvec, k_sizevec, mu_sizevec, index_z), private(index_mu, index_k, last_index), default(none)
       for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
         last_index = 0;
         for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
@@ -1928,9 +1875,9 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
 
     /** - copy the fiducial wavenumbers and l.o.s. angles */
     for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-      class_protect_memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
+      memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
     }
-    class_protect_memcpy(muvec_true[index_z], gl_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
+    memcpy(muvec_true[index_z], gl_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
   }
 
   /** - apply the AP effect */
@@ -1969,8 +1916,6 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
   }
 
   /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
-  #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu, ap_parallel, ap_perpendicular),   \
-                           private(index_z, index_l, index_k, index_mu), firstprivate(gl_sym_weights, lg_measure), default(none)
   for (index_z = 0; index_z < z_size; index_z++) {
     for (index_l = 0; index_l < MULTIPOLE_SIZE; index_l++) {
       for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
@@ -2049,9 +1994,9 @@ int eft_job_powerspectrum_multipoles(
 
     /** - copy the fiducial wavenumbers and l.o.s. angles */
     for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-      class_protect_memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
+      memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
     }
-    class_protect_memcpy(muvec_true[index_z], gl_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
+    memcpy(muvec_true[index_z], gl_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
   }
 
   /** - apply the AP effect */
@@ -2086,8 +2031,6 @@ int eft_job_powerspectrum_multipoles(
   }
 
   /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
-  #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu, ap_parallel, ap_perpendicular),   \
-                           private(index_z, index_l, index_k, index_mu), firstprivate(gl_sym_weights, lg_measure), default(none)
   for (index_z = 0; index_z < z_size; index_z++) {
     for (index_l = 0; index_l < MULTIPOLE_SIZE; index_l++) {
       for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {

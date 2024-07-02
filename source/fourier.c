@@ -2541,7 +2541,7 @@ int fourier_init(
 
         /** - if role is eft_slave, copy the master structure and then allocate only the fields that will not be shared */
         if (eft_role == eft_slave) {
-          class_protect_memcpy(pfo->peft + index_eft, pfo->peft, sizeof(struct eft));
+          memcpy(pfo->peft + index_eft, pfo->peft, sizeof(struct eft));
         }
 
         class_call(eft_init(ppr, pba, pfo->peft + index_eft, &(pfo->eft_hp), pfo->eft_ip + index_eft, pext, eft_role, index_eft),

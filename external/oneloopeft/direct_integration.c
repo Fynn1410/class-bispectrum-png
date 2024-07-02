@@ -1,8 +1,8 @@
 /** @file direct_integration.c
- * 
+ *
  * author: Christian Radermacher, 2024
  * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
- * 
+ *
  * contains kernel definitions for direct integration of loop terms
  * only compiled if DIRECT_INTEGRATION=yes is given
 */
@@ -72,7 +72,7 @@ static double eft_di_los_kernel_q(const double k_sq, const double q_sq, const do
 
 
 /**
- * @brief 
+ * @brief
  * @param ndim      Input: number of variables to integrate over
  * @param x         Input: array of arguments, indexed as x[index_vec][index_dim]
  * @param ncomp     Input: number of components of the integrand
@@ -80,7 +80,7 @@ static double eft_di_los_kernel_q(const double k_sq, const double q_sq, const do
  * @param userdata  Input: additional constant parameters
  * @param nvec      Input: number of points to evaluate at the same time
  * @param core      Input: id of the core (< 0 for accelerators and > 0 for cores)
- * 
+ *
  * @return the error status (_CUBA_ERROR_ for immediate abortion)
  */
 int eft_di_integrands(const int * ndim,
@@ -126,7 +126,7 @@ int eft_di_integrands(const int * ndim,
     kmq_sq[it] = kmq*kmq;
     cos_thetakmq[it] = ((k - q*cos_thetaq[it]) * cos_theta + q*sin_thetaq*cos_phiq[it] * sin_theta) / kmq;
     measure[it] = log(hp->k_UV_cutoff/hp->k_IR_cutoff) * q*q*q / (2.*_PI_*_PI_);  /**< integral measure after transforming to x_i in [0,1], starting from d^3q/(2 pi)^3 */
-    
+
     /** - screen for points close to the pole q=k or the boundaries */
     if ((kmq < hp->k_pole_cutoff) || (kmq > hp->k_UV_cutoff)) {
       ln_kmq[it] = -4.; /** just an arbitrary default value inside the interpolation range */
@@ -151,7 +151,7 @@ int eft_di_integrands(const int * ndim,
                                    &argkmqvec,
                                    errmsg),
              errmsg, errmsg);
-  
+
   /** - get the (IR-resummed) linear power spectrum */
   class_call(eft_ir_pk_rsd_lo(params->pba,
                               params->ppm,
@@ -372,7 +372,7 @@ int eft_di_integrands(const int * ndim,
       /** - abort immediately */
       return _FAILURE_;
     }
-  
+
     index_comp++;
   }
 
@@ -396,7 +396,7 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
                                          const double f,
                                          const double D) {
 
-  int index_k, index_mu, index_list, index_pk_type, index_moment, nregions, neval, fail, abort;
+  int index_k, index_mu, index_list, index_pk_type, index_moment, nregions, neval, fail;
   int ncores = 0, npoints = ppr->eft_di_vecsize, naccel = 0, npointsaccel = 0, max_error_index;
   double * result, * error, * prob, max_rel_error;
   div_t list_elem;
@@ -418,83 +418,75 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
 
   printf("Starting direct integration.\n");
 
-  #pragma omp parallel shared(peft, ppr, moment_list, moment_list_size, abort), private(index_k, index_mu, index_list, nregions, neval, fail, result, error, prob, list_elem, index_pk_type, index_moment, max_rel_error, max_error_index),  \
-                       firstprivate(di_params), default(none)
-  {
-
-  abort = _FALSE_;
   class_alloc_parallel(result, moment_list_size*sizeof(double), peft->error_message);
   class_alloc_parallel(error,  moment_list_size*sizeof(double), peft->error_message);
   class_alloc_parallel(prob,   moment_list_size*sizeof(double), peft->error_message);
 
-  if (!abort) {
-    #pragma omp for schedule(static), collapse(2)
-    for (index_mu = 0; index_mu < peft->mu_size; index_mu++) {
-      for (index_k = 0; index_k < peft->k_size; index_k++) {
-        /** - load the sampling point */
-        di_params.ln_k = peft->ln_k[index_mu*peft->k_size + index_k];
-        di_params.mu   = peft->mu[index_mu];
+  for (index_mu = 0; index_mu < peft->mu_size; index_mu++) {
+    for (index_k = 0; index_k < peft->k_size; index_k++) {
+      /** - load the sampling point */
+      di_params.ln_k = peft->ln_k[index_mu*peft->k_size + index_k];
+      di_params.mu   = peft->mu[index_mu];
 
-        /** - compute the integral using cubature rules */
-        Cuhre(3, 
-              moment_list_size,
-              eft_di_integrands,
-              &di_params,
-              ppr->eft_di_vecsize,
-              ppr->eft_di_epsrel,
-              ppr->eft_di_epsabs,
-              ppr->eft_di_flags,
-              ppr->eft_di_mineval,
-              ppr->eft_di_maxeval,
-              ppr->eft_di_key,
-              NULL,
-              NULL,
-              &nregions,
-              &neval,
-              &fail,
-              result,
-              error,
-              prob);
+      /** - compute the integral using cubature rules */
+      Cuhre(3,
+            moment_list_size,
+            eft_di_integrands,
+            &di_params,
+            ppr->eft_di_vecsize,
+            ppr->eft_di_epsrel,
+            ppr->eft_di_epsabs,
+            ppr->eft_di_flags,
+            ppr->eft_di_mineval,
+            ppr->eft_di_maxeval,
+            ppr->eft_di_key,
+            NULL,
+            NULL,
+            &nregions,
+            &neval,
+            &fail,
+            result,
+            error,
+            prob);
 
-        // Suave(3,
-        //       moment_list_size,
-        //       eft_di_integrands,
-        //       &di_params,
-        //       ppr->eft_di_vecsize,
-        //       ppr->eft_di_epsrel,
-        //       ppr->eft_di_epsabs,
-        //       ppr->eft_di_flags,
-        //       0,
-        //       ppr->eft_di_mineval,
-        //       ppr->eft_di_maxeval,
-        //       )
+      // Suave(3,
+      //       moment_list_size,
+      //       eft_di_integrands,
+      //       &di_params,
+      //       ppr->eft_di_vecsize,
+      //       ppr->eft_di_epsrel,
+      //       ppr->eft_di_epsabs,
+      //       ppr->eft_di_flags,
+      //       0,
+      //       ppr->eft_di_mineval,
+      //       ppr->eft_di_maxeval,
+      //       )
 
-        /** - copy the result to the spectra_contributions array */
-        for (index_list = 0; index_list < moment_list_size; index_list++) {
-          list_elem = div(moment_list[index_list], peft->index_num);
-          index_pk_type = list_elem.quot;
-          index_moment = list_elem.rem;
-          peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + finite_part][index_mu*peft->k_size + index_k]     = result[index_list];
-          peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence][index_mu*peft->k_size + index_k]   = 0.;
-          peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence][index_mu*peft->k_size + index_k]   = 0.;
-          peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence][index_mu*peft->k_size + index_k] = 0.;
+      /** - copy the result to the spectra_contributions array */
+      for (index_list = 0; index_list < moment_list_size; index_list++) {
+        list_elem = div(moment_list[index_list], peft->index_num);
+        index_pk_type = list_elem.quot;
+        index_moment = list_elem.rem;
+        peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + finite_part][index_mu*peft->k_size + index_k]     = result[index_list];
+        peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + uv_divergence][index_mu*peft->k_size + index_k]   = 0.;
+        peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + ir_divergence][index_mu*peft->k_size + index_k]   = 0.;
+        peft->spectra_contributions[index_pk_type][index_moment*eft_spectra_contribution_num + pole_divergence][index_mu*peft->k_size + index_k] = 0.;
+      }
+
+      if (peft->hp->eft_verbose > 1) {
+        if (fail == 0) {
+          printf("Direct integration (mu = %6.3f, ln(k) = %6.3f): finished in %.2e evaluations \n", di_params.mu, di_params.ln_k, (double)neval);
         }
-
-        if (peft->hp->eft_verbose > 1) {
-          if (fail == 0) {
-            printf("Direct integration (mu = %6.3f, ln(k) = %6.3f): finished in %.2e evaluations \n", di_params.mu, di_params.ln_k, (double)neval);
-          }
-          else if (fail > 0) {
-            max_rel_error = 0.;
-            for (index_list = 0; index_list < moment_list_size; index_list++) {
-              if ((result[index_list] != 0.) && (fabs(error[index_list]/result[index_list]) > max_rel_error)) {
-                max_rel_error = fabs(error[index_list]/result[index_list]);
-                max_error_index = index_list;
-              }
+        else if (fail > 0) {
+          max_rel_error = 0.;
+          for (index_list = 0; index_list < moment_list_size; index_list++) {
+            if ((result[index_list] != 0.) && (fabs(error[index_list]/result[index_list]) > max_rel_error)) {
+              max_rel_error = fabs(error[index_list]/result[index_list]);
+              max_error_index = index_list;
             }
-            index_moment = (moment_list[max_error_index] % peft->index_num);
-            printf("Direct integration (mu = %6.3f, ln(k) = %6.3f): accuracy goal not met in %.2e evaluations; highest rel. error is %.2e for index_moment = %d \n", di_params.mu, di_params.ln_k, (double)neval, max_rel_error, index_moment);
           }
+          index_moment = (moment_list[max_error_index] % peft->index_num);
+          printf("Direct integration (mu = %6.3f, ln(k) = %6.3f): accuracy goal not met in %.2e evaluations; highest rel. error is %.2e for index_moment = %d \n", di_params.mu, di_params.ln_k, (double)neval, max_rel_error, index_moment);
         }
       }
     }
@@ -503,9 +495,6 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
   free(result);
   free(error);
   free(prob);
-
-  } /** - end of parallel region */
-  
 
   return _SUCCESS_;
 }

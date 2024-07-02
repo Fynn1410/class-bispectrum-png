@@ -1,8 +1,8 @@
 /** @file kernel_matrices.c
- * 
+ *
  * author: Christian Radermacher, 2023
  * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
- * 
+ *
  * contains analytic FFTLog kernel definitions using dimensional regularisation with d = 3
 */
 
@@ -19,7 +19,7 @@
  *
  * @param nu1         Input: power of q
  * @param nu2         Input: power of |k - q|
- * 
+ *
  * @return value of I(nu1,nu2)
  */
 static double complex eft_mat_J(const double complex nu1, const double complex nu2)
@@ -38,7 +38,7 @@ static double complex eft_mat_J(const double complex nu1, const double complex n
  *
  * @param nu1         Input: power of q^2
  * @param nu2         Input: power of |k - q|^2
- * 
+ *
  * @return value of M1(nu1,nu2)
  */
 static double complex eft_mat_M1(const double complex nu1, const double complex nu2)
@@ -55,7 +55,7 @@ static double complex eft_mat_M1(const double complex nu1, const double complex 
  * @param nu1   Input: power of q^2
  * @param nu2   Input: power of |k - q|^2
  * @param mu    Input: cos( angle between k and z )
- * 
+ *
  * @return value of M2(nu1,nu2,mu)
  */
 static double complex eft_mat_M2(const double complex nu1, const double complex nu2, const double mu)
@@ -79,7 +79,7 @@ static double complex eft_mat_M2(const double complex nu1, const double complex 
  * @param nu1   Input: power of q^2
  * @param nu2   Input: power of |k - q|^2
  * @param mu    Input: cos( angle between k and z )
- * 
+ *
  * @return value of M3(nu1,nu2,mu)
  */
 static double complex eft_mat_M3(const double complex nu1, const double complex nu2, const double mu)
@@ -107,7 +107,7 @@ static double complex eft_mat_M3(const double complex nu1, const double complex 
  * @param nu1   Input: power of q^2
  * @param nu2   Input: power of |k - q|^2
  * @param mu    Input: cos( angle between k and z )
- * 
+ *
  * @return value of M4(nu1,nu2,mu)
  */
 static double complex eft_mat_M4(const double complex nu1, const double complex nu2, const double mu)
@@ -543,7 +543,7 @@ static double complex eft_mat_N12y(const double complex * const n)
 static double complex eft_mat_N22x(const double complex * const n)
 {
   double complex n12 = n[0] + n[1];
-  
+
   // double complex numerator1   = (-3.*(-1. + 2.*n[0])*(-1. + 2.*n[0] + 2.*n[1])*cGamma(-2.*n[0])*cGamma(-2.*(1 + n[1]))*cGamma(2.*(-1. + n[0] + n[1]))*csin(n[0]*_PI_)*csin(n[1]*_PI_)*csin((n[0] + n[1])*_PI_));
   // double complex denominator1 = (4.*(1. + n[0])*(-2. + n[0] + n[1])*_PI_CUBED_);
 
@@ -650,10 +650,7 @@ const static double complex (*loop_mat[NUM_MOMENTS])(const double complex * cons
 
 int eft_compute_loop_matrices(struct eft * peft) {
 
-  int index_moment, it1, it2, abort = _FALSE_, use_tracer;
-
-  #pragma omp parallel shared(peft, loop_mat, abort), private(index_moment, it1, it2, use_tracer), default(none)
-  {
+  int index_moment, it1, it2, use_tracer;
 
   double complex n[2];
   double * const n1_real = (double *)&(n[0]);
@@ -661,7 +658,6 @@ int eft_compute_loop_matrices(struct eft * peft) {
   double * const n2_real = (double *)&(n[1]);
   double * const n2_imag = (double *)&(n[1]) + 1;
 
-  #pragma omp parallel for schedule(dynamic)
   for (index_moment = 0; index_moment < peft->index_num; index_moment++) {
     use_tracer = peft->use_tracer[index_moment];  // must be set for each individual moment
     /** - generate matrices for different symmetry types in LAPACK-compatible storage schemes */
@@ -702,15 +698,11 @@ int eft_compute_loop_matrices(struct eft * peft) {
         }
       }
       break;
-    
+
     default:
-      abort = _TRUE_;
-      break;
+       break;
     }
   }
 
-  } /** - end of parallel region */
-
-  return abort; /** - abort = _FALSE_ = _SUCCESS_ if no error occurred */
+  return _SUCCESS_;
 }
-

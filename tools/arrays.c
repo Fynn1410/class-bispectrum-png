@@ -836,26 +836,16 @@ int array_spline_table_lines_parallel(
   int index_y;
   double *super, *constants;
   double *constants_aux, *sol_aux;
-  int abort = _FALSE_;
 
   class_test(x_size < 3, errmsg, "%s(L:%d) there is no spline with less than 3 points", __func__, __LINE__);
-
-  #pragma omp parallel shared(x, x_size, y_array, y_size, ddy_array, spline_mode, errmsg, abort), \
-                       private(index_y, super, constants, constants_aux, sol_aux), default(none), \
-                       if(y_size > 1)
-  {
 
   switch (spline_mode)
   {
   case _SPLINE_NATURAL_:
-    class_alloc_parallel(super, (x_size-1)*sizeof(double), errmsg);
-    class_alloc_parallel(constants, (x_size-1)*sizeof(double), errmsg);
-
-    if (!abort) {
-      #pragma omp for schedule(static)
-      for (index_y=0; index_y < y_size; index_y++) {
-        array_spline_internal_natural(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants);
-      }
+    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
+    for (index_y=0; index_y < y_size; index_y++) {
+      array_spline_internal_natural(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants);
     }
 
     free(super);
@@ -863,16 +853,13 @@ int array_spline_table_lines_parallel(
     break;
 
   case _SPLINE_EST_DERIV_:
-    class_alloc_parallel(super, (x_size-1)*sizeof(double), errmsg);
-    class_alloc_parallel(constants, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
     double dy_first, dy_last;
 
-    if (!abort) {
-      #pragma omp for schedule(static)
-      for (index_y=0; index_y < y_size; index_y++) {
-        array_spline_internal_hermite(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants, \
-                                      _TRUE_, &dy_first, &dy_last);
-      }
+    for (index_y=0; index_y < y_size; index_y++) {
+      array_spline_internal_hermite(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants, \
+                                    _TRUE_, &dy_first, &dy_last);
     }
 
     free(super);
@@ -880,17 +867,14 @@ int array_spline_table_lines_parallel(
     break;
 
   case _SPLINE_PERIODIC_:
-    class_alloc_parallel(super, (x_size-2)*sizeof(double), errmsg);
-    class_alloc_parallel(constants, (x_size-2)*sizeof(double), errmsg);
-    class_alloc_parallel(constants_aux, (x_size-2)*sizeof(double), errmsg);
-    class_alloc_parallel(sol_aux, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(super, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(constants_aux, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
 
-    if (!abort) {
-      #pragma omp for schedule(static)
-      for (index_y=0; index_y < y_size; index_y++) {
-        array_spline_internal_periodic(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size-1, super, constants, \
-                                        constants_aux, sol_aux);
-      }
+    for (index_y=0; index_y < y_size; index_y++) {
+      array_spline_internal_periodic(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size-1, super, constants, \
+                                     constants_aux, sol_aux);
     }
 
     free(super);
@@ -900,19 +884,13 @@ int array_spline_table_lines_parallel(
     break;
 
   default:
-    #pragma omp single
-    {
     ErrorMsg errmsg_mode;
-    class_protect_class_sprintf(errmsg_mode, "Spline mode not identified: %d", spline_mode);
+    class_sprintf(errmsg_mode, "Spline mode not identified: %d", spline_mode);
     class_build_error_string(errmsg, "error; %s", errmsg_mode);
-    abort = _TRUE_;
-    }
     break;
   }
 
-  } /** - end of parallel region */
-
-  return abort; /** - abort is _FALSE_ = _SUCCESS_ if operations were successful */
+  return _SUCCESS_;
 }
 
 int array_spline_table_columns(
@@ -994,26 +972,17 @@ int array_spline_table_columns_parallel(
   int index_y;
   double *super, *constants;
   double *constants_aux, *sol_aux;
-  int abort = _FALSE_;
 
   class_test(x_size < 3, errmsg, "%s(L:%d) there is no spline with less than 3 points", __func__, __LINE__);
-
-  #pragma omp parallel shared(x, x_size, y_array, y_size, ddy_array, spline_mode, errmsg, abort), \
-                       private(index_y, super, constants, constants_aux, sol_aux), default(none), \
-                       if(y_size > 1)
-  {
 
   switch (spline_mode)
   {
   case _SPLINE_NATURAL_:
-    class_alloc_parallel(super, (x_size-1)*sizeof(double), errmsg);
-    class_alloc_parallel(constants, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
 
-    if (!abort) {
-      #pragma omp for schedule(static)
-      for (index_y=0; index_y < y_size; index_y++) {
-        array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants);
-      }
+    for (index_y=0; index_y < y_size; index_y++) {
+      array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants);
     }
 
     free(super);
@@ -1021,16 +990,13 @@ int array_spline_table_columns_parallel(
     break;
 
   case _SPLINE_EST_DERIV_:
-    class_alloc_parallel(super, (x_size-1)*sizeof(double), errmsg);
-    class_alloc_parallel(constants, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
     double dy_first, dy_last;
 
-    if (!abort) {
-      #pragma omp for schedule(static)
-      for (index_y=0; index_y < y_size; index_y++) {
-        array_spline_internal_hermite(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, \
-                                      _TRUE_, &dy_first, &dy_last);
-      }
+    for (index_y=0; index_y < y_size; index_y++) {
+      array_spline_internal_hermite(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, \
+                                    _TRUE_, &dy_first, &dy_last);
     }
 
     free(super);
@@ -1038,17 +1004,14 @@ int array_spline_table_columns_parallel(
     break;
 
   case _SPLINE_PERIODIC_:
-    class_alloc_parallel(super, (x_size-2)*sizeof(double), errmsg);
-    class_alloc_parallel(constants, (x_size-2)*sizeof(double), errmsg);
-    class_alloc_parallel(constants_aux, (x_size-2)*sizeof(double), errmsg);
-    class_alloc_parallel(sol_aux, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(super, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(constants_aux, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
 
-    if (!abort) {
-      #pragma omp for schedule(static)
-      for (index_y=0; index_y < y_size; index_y++) {
-        array_spline_internal_periodic(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size-1, super, constants, \
-                                        constants_aux, sol_aux);
-      }
+    for (index_y=0; index_y < y_size; index_y++) {
+      array_spline_internal_periodic(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size-1, super, constants, \
+                                     constants_aux, sol_aux);
     }
 
     free(super);
@@ -1058,19 +1021,13 @@ int array_spline_table_columns_parallel(
     break;
 
   default:
-    #pragma omp single
-    {
     ErrorMsg errmsg_mode;
-    class_protect_class_sprintf(errmsg_mode, "Spline mode not identified: %d", spline_mode);
+    class_sprintf(errmsg_mode, "Spline mode not identified: %d", spline_mode);
     class_build_error_string(errmsg, "error; %s", errmsg_mode);
-    abort = _TRUE_;
-    }
     break;
   }
 
-  } /** - end of parallel region */
-
-  return abort; /** - abort is _FALSE_ = _SUCCESS_ if operations were successful */
+  return _SUCCESS_;
 }
 
 int array_spline_table_one_column(
@@ -1392,11 +1349,6 @@ int array_square_integrate_exponential_internal(
   double h, sy, dy, sM, dM, sx, bias_h;
   register double sum;
 
-  #pragma omp parallel shared(x0, x_size, x_stride, y0, y_stride, ddy0, ddy_stride, bias, derivative_order, result, sum),   \
-                       private(index_x, h, sy, dy, sM, dM, sx, bias_h), default(none),                                    \
-                       if((num_threads > 1)), num_threads(num_threads)
-  {
-
   sum = 0.;
 
   switch (derivative_order)
@@ -1404,7 +1356,6 @@ int array_square_integrate_exponential_internal(
   case 0:
     /** - spline function itself */
     if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
-      #pragma omp for schedule(static), reduction(+:sum)
       for (index_x = 0; index_x < x_size-1; index_x++) {
         sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
         h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
@@ -1421,7 +1372,6 @@ int array_square_integrate_exponential_internal(
       }
     }
     else {
-      #pragma omp for schedule(static), reduction(+:sum)
       for (index_x = 0; index_x < x_size-1; index_x++) {
         sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
         h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
@@ -1445,7 +1395,6 @@ int array_square_integrate_exponential_internal(
   case 1:
     /** - first derivative */
     if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
-      #pragma omp for schedule(static), reduction(+:sum)
       for (index_x = 0; index_x < x_size-1; index_x++) {
         sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
         h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
@@ -1461,7 +1410,6 @@ int array_square_integrate_exponential_internal(
       }
     }
     else {
-      #pragma omp for schedule(static), reduction(+:sum)
       for (index_x = 0; index_x < x_size-1; index_x++) {
         sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
         h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
@@ -1484,7 +1432,6 @@ int array_square_integrate_exponential_internal(
   case 2:
     /** - second derivative */
     if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
-      #pragma omp for schedule(static), reduction(+:sum)
       for (index_x = 0; index_x < x_size-1; index_x++) {
         sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
         h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
@@ -1499,7 +1446,6 @@ int array_square_integrate_exponential_internal(
       }
     }
     else {
-      #pragma omp for schedule(static), reduction(+:sum)
       for (index_x = 0; index_x < x_size-1; index_x++) {
         sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
         h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
@@ -1519,7 +1465,6 @@ int array_square_integrate_exponential_internal(
   case 3:
     /** - third derivative */
     if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
-      #pragma omp for schedule(static), reduction(+:sum)
       for (index_x = 0; index_x < x_size-1; index_x++) {
         sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
         h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
@@ -1532,7 +1477,6 @@ int array_square_integrate_exponential_internal(
       }
     }
     else {
-      #pragma omp for schedule(static), reduction(+:sum)
       for (index_x = 0; index_x < x_size-1; index_x++) {
         sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
         h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
@@ -1551,8 +1495,6 @@ int array_square_integrate_exponential_internal(
     /** - higher derivative vanish */
     break;
   }
-
-  } /** - end of parallel region */
 
   *result = sum;
 
@@ -4541,8 +4483,7 @@ int array_convert_spline_table_columns_to_local_power_basis(
   int index_x, index_y;
   double h;
 
-  class_protect_memcpy(breakpoints, x, x_size*sizeof(double));
-
+  memcpy(breakpoints, x, x_size*sizeof(double));
 
   for (index_x = 0; index_x < x_size-1; index_x++) {
     h = x[index_x + 1] - x[index_x];

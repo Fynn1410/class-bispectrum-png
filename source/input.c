@@ -3806,7 +3806,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
         /** - discrete list of z was given, therefore initialize an appropriate amount of eft structs */
         pfo->z_pk_eft_num = size;
         class_alloc(pfo->z_pk_eft, size*sizeof(double), errmsg);
-        class_protect_memcpy(pfo->z_pk_eft, plist, size*sizeof(double));
+        memcpy(pfo->z_pk_eft, plist, size*sizeof(double));
         free(plist);
 
         pfo->eft_size = size;

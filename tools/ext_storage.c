@@ -1,7 +1,7 @@
 /** @file ext_storage.c
- * 
+ *
  * author: Christian Radermacher, 2024
- * 
+ *
  * this module offers memory storage for pointers that are reused in repeated CLASS evaluations
 */
 
@@ -130,9 +130,9 @@ int ext_insert_eft(struct ext_storage * pext,
 
   if (pext) {
     if (!(pext->loop_matrices_stored)) {  /** - if the matrices are not stored, then return immediately (not considered an error) */
-      class_protect_sprintf(errmsg, "Nothing is stored in pext = %p", pext);
+      class_sprintf(errmsg, "Nothing is stored in pext = %p", pext);
       return _FAILURE_;
-    } 
+    }
     else if (index_eft >= pext->eft_size || pext->eft_index_num[index_eft] < num_matrices) {  /** - if they are stored, but don't conform to the request, return an error message */
       class_test_message(errmsg, "index_eft >= pext->eft_size || pext->eft_index_num[index_eft] < num_matrices", \
                         "Error in ext_insert_eft: pext = %p, stored = %d, stored number of indices = %d, stored number of matrices = %d", \
@@ -179,6 +179,6 @@ int ext_insert_eft(struct ext_storage * pext,
   else {
     return _FAILURE_; /** - not considered an error, therefore no message */
   }
-                   
+
   return _SUCCESS_;
 }

@@ -147,18 +147,13 @@ int eft_ln_pk_nw_gfilter_parallel(
                       const int k_size,
                       double * ln_pknw_array) {
 
-  int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, abort = _FALSE_;
+  int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num;
   double ln_pk0_z, k0, smoothing_scale;
   double *pk_approx_f, *intg_splines, *intg_result;
 
   class_alloc(pk_approx_f, pfo->k_size_extra * sizeof(double), pfo->error_message);
 
   k0 = pfo->k[index_k0];
-
-  #pragma omp parallel shared(pk_approx_f, k0, index_pk, index_k0, index_kmin, k_size, ln_pknw_array, ppr, pba, ppm, pfo, abort), \
-                       private(it_k, it_q, it_tau, ln_pk0_z, smoothing_scale, intg_splines, intg_result, index_x, index_y, index_ddy, index_num), \
-                       default(none), if(pfo->ln_tau_size > 1)
-  {
 
   /** - define indices for the spline array */
   it_q = 0;
@@ -167,11 +162,9 @@ int eft_ln_pk_nw_gfilter_parallel(
   class_define_index(index_ddy, _TRUE_, it_q, 1);
   index_num = it_q;
 
-  class_alloc_parallel(intg_splines, pfo->k_size_extra * index_num * sizeof(double), pfo->error_message);
-  class_alloc_parallel(intg_result, k_size * sizeof(double), pfo->error_message);
+  class_alloc(intg_splines, pfo->k_size_extra * index_num * sizeof(double), pfo->error_message);
+  class_alloc(intg_result, k_size * sizeof(double), pfo->error_message);
 
-  if (!abort) {
-  #pragma omp for schedule(static), nowait
   for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
     pk_approx_f[it_q] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_q], k0);
   }
@@ -179,10 +172,8 @@ int eft_ln_pk_nw_gfilter_parallel(
     /** - also write the array of x-values for splining */
     intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
   }
-  #pragma omp barrier
 
   /** - compute the gaussian window integral at every tau */
-  #pragma omp for schedule(static)
   for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++)
   {
     /** - power spectrum at fixing scale at tau */
@@ -194,16 +185,16 @@ int eft_ln_pk_nw_gfilter_parallel(
                                                   / pk_approx_f[it_q];
 
     /** - spline the integrand function without exponential once */
-    class_call_parallel(array_spline(intg_splines,
-                                     index_num,
-                                     pfo->k_size_extra,
-                                     index_x,
-                                     index_y,
-                                     index_ddy,
-                                     _SPLINE_EST_DERIV_,
-                                     pfo->error_message),
-                  pfo->error_message,
-                  pfo->error_message);
+    class_call(array_spline(intg_splines,
+                            index_num,
+                            pfo->k_size_extra,
+                            index_x,
+                            index_y,
+                            index_ddy,
+                            _SPLINE_EST_DERIV_,
+                            pfo->error_message),
+               pfo->error_message,
+               pfo->error_message);
 
     /** - integrate the same function with different windows */
     for (it_k = 0; it_k < k_size; it_k++)
@@ -213,19 +204,19 @@ int eft_ln_pk_nw_gfilter_parallel(
       // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((intg_splines[(index_kmin + it_k)*index_num + index_x] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
 
       /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
-      class_call_parallel(array_integrate_all_spline_gaussian_window(
-                                                intg_splines,
-                                                index_num,
-                                                pfo->k_size_extra,
-                                                index_x,
-                                                index_y,
-                                                index_ddy,
-                                                intg_splines[(index_kmin + it_k)*index_num + index_x],
-                                                smoothing_scale,
-                                                intg_result + it_k,
-                                                pfo->error_message),
-                          pfo->error_message,
-                          pfo->error_message);
+      class_call(array_integrate_all_spline_gaussian_window(
+                                                            intg_splines,
+                                                            index_num,
+                                                            pfo->k_size_extra,
+                                                            index_x,
+                                                            index_y,
+                                                            index_ddy,
+                                                            intg_splines[(index_kmin + it_k)*index_num + index_x],
+                                                            smoothing_scale,
+                                                            intg_result + it_k,
+                                                            pfo->error_message),
+                 pfo->error_message,
+                 pfo->error_message);
 
       //fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num + index_ddy], intg_result[it_k]);
 
@@ -239,15 +230,12 @@ int eft_ln_pk_nw_gfilter_parallel(
             k_size * sizeof(double));
   }
 
-  } /** - end of enclosing if(!abort) */
   free(intg_splines);
   free(intg_result);
 
-  } /** - end of parallel region */
-
   free(pk_approx_f);
 
-  return abort;
+  return _SUCCESS_;
 }
 
 
