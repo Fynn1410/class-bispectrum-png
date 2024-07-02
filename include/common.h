@@ -22,7 +22,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v3.2.2"
+#define _VERSION_ "v3.2.3"
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 
@@ -86,21 +86,36 @@ typedef char FileName[_FILENAMESIZE_];
 
 /* @endcond */
 
-/* needed because of weird openmp bug on macosx lion... */
 
-void class_protect_sprintf(char* dest, char* tpl,...);
-void class_protect_fprintf(FILE* dest, char* tpl,...);
-void* class_protect_memcpy(void* dest, const void* from, size_t sz);
+#ifdef __cplusplus
+extern "C" {
+#endif
+    /* needed because of weird openmp bug on macosx lion... */
+    void class_protect_sprintf(char* dest, char* tpl, ...);
+    void class_protect_fprintf(FILE* dest, char* tpl, ...);
+    void* class_protect_memcpy(void* dest, const void* from, size_t sz);
 
-/* some general functions */
-
-int get_number_of_titles(char * titlestring);
-int file_exists(const char *fname);
-int compare_doubles(const void * a,
-                    const void * b);
-int string_begins_with(char* thestring, char beginchar);
+    /* some general functions */
+    int get_number_of_titles(char * titlestring);
+    int file_exists(const char *fname);
+    int compare_doubles(const void * a,
+                        const void * b);
+    int string_begins_with(char* thestring, char beginchar);
+#ifdef __cplusplus
+}
+#endif
 
 /* general CLASS macros */
+
+//This macro receives additional 'do {' and '} while(0)' to safeguard
+//in single-line if else clauses without '{' and '}'
+//Also, careful: Since sprintf(NULL,0,x) returns the size of characters
+//that are inside of the string x, then the buffer needs to be
+//actually one character longer to hold also the null character '\0'
+#define class_sprintf(string, format...) do {                                                                       \
+  int _buffer_size_sprintf = snprintf(NULL, 0, format);                                                          \
+  snprintf(string, _buffer_size_sprintf+1, format);                                                                \
+} while (0)
 
 #define class_build_error_string(dest,tmpl,...) {                                                                \
   ErrorMsg FMsg;                                                                                                 \
@@ -135,15 +150,15 @@ int string_begins_with(char* thestring, char beginchar);
 #define class_call(function, error_message_from_function, error_message_output)                                  \
   class_call_except(function, error_message_from_function,error_message_output,)
 
-/* same in parallel region */
-#define class_call_parallel(function, error_message_from_function, error_message_output) {                       \
-  if (abort == _FALSE_) {                                                                                        \
+/* same in parallel region  -- UNUSED NOW */
+/*#define class_call_parallel(function, error_message_from_function, error_message_output) {                       \
+  if (abort_now == _FALSE_) {                                                                                        \
     if (function == _FAILURE_) {                                                                                 \
       class_call_message(error_message_output,#function,error_message_from_function);                            \
-      abort=_TRUE_;                                                                                              \
+      abort_now=_TRUE_;                                                                                              \
     }                                                                                                            \
   }                                                                                                              \
-}
+}*/
 
 
 
@@ -154,7 +169,7 @@ int string_begins_with(char* thestring, char beginchar);
 
 /* macro for allocating memory and returning error if it failed */
 #define class_alloc(pointer, size, error_message_output)  {                                                      \
-  pointer=malloc(size);                                                                                          \
+  pointer=(__typeof__(pointer))malloc(size);                                                                                          \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
@@ -163,23 +178,24 @@ int string_begins_with(char* thestring, char beginchar);
   }                                                                                                              \
 }
 
-/* same inside parallel structure */
+
+/* same inside parallel structure -- UNUSED NOW
 #define class_alloc_parallel(pointer, size, error_message_output)  {                                             \
   pointer=NULL;                                                                                                  \
-  if (abort == _FALSE_) {                                                                                        \
-    pointer=malloc(size);                                                                                        \
+  if (abort_now == _FALSE_) {                                                                                        \
+    pointer=(__typeof__(pointer))malloc(size);                                                                                        \
     if (pointer == NULL) {                                                                                       \
       int size_int;                                                                                              \
       size_int = size;                                                                                           \
       class_alloc_message(error_message_output,#pointer, size_int);                                              \
-      abort=_TRUE_;                                                                                              \
+      abort_now=_TRUE_;                                                                                              \
     }                                                                                                            \
   }                                                                                                              \
-}
+}*/
 
 /* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
 #define class_calloc(pointer, init, size, error_message_output)  {                                                \
-  pointer=calloc(init,size);                                                                                     \
+  pointer=(__typeof__(pointer))calloc(init,size);                                                                                     \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
@@ -203,8 +219,8 @@ int string_begins_with(char* thestring, char beginchar);
 }
 
 /* macro for re-allocating memory, returning error if it failed */
-#define class_realloc(pointer, newname, size, error_message_output)  {                                          \
-  pointer=realloc(newname,size);                                                                               \
+#define class_realloc(pointer, size, error_message_output)  {                                          \
+  pointer=(__typeof__(pointer))realloc(pointer,size);                                                                               \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
@@ -253,14 +269,15 @@ int string_begins_with(char* thestring, char beginchar);
   }                                                                                                              \
 }
 
+/* UNUSED NOW
 #define class_test_parallel(condition, error_message_output, args...) {                                          \
-  if (abort == _FALSE_) {                                                                                        \
+  if (abort_now == _FALSE_) {                                                                                        \
     if (condition) {                                                                                             \
       class_test_message(error_message_output,#condition, args);                                                 \
-      abort=_TRUE_;                                                                                              \
+      abort_now=_TRUE_;                                                                                              \
     }                                                                                                            \
   }                                                                     \
-}
+}*/
 
 /* macro for returning error message;
    args is a variable list of optional arguments, e.g.: args="x=%d",x
@@ -370,6 +387,17 @@ printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->O
 #define class_complex(x, y) \
   (double complex)((double)(x) + _Complex_I * (double)(y))
 
+//Generic evolver prototype
+#define EVOLVER_PROTOTYPE \
+    int (*)(double, double *, double *, void *, ErrorMsg), \
+    double, double, double *, int *, \
+    int, void *, double, double, \
+    int (*)(double, void *, double *, ErrorMsg), \
+    double, double *, int, \
+    int (*)(double, double *, double *, int, void *, ErrorMsg), \
+    int (*)(double, double *, double *, void *, ErrorMsg), \
+    ErrorMsg
+
 /* Forward-Declare the structs of CLASS */
 struct background;
 struct thermodynamics;
@@ -445,5 +473,6 @@ struct precision
   //@}
 
 };
+
 
 #endif
