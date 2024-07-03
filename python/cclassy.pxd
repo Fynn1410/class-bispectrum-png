@@ -74,6 +74,10 @@ cdef extern from "class.h":
         Pdd_hh_rsd
         pk_out_type_num
 
+    cdef enum eft_arg_type:
+        points
+        cartesian_product
+
     cdef enum eft_spectra_contribution:
         finite_part
         uv_divergence
@@ -831,6 +835,39 @@ cdef extern from "class.h":
                   double * pk_tot_out,
                   double * pk_cb_tot_out,
                   int nonlinear)
+
+    int eft_linear_spectrum_real(
+        void * pba,
+        void * ppm,
+        void * pfo,
+        void * peft,
+        linear_or_logarithmic mode,
+        double * ln_kvec,
+        int kvec_size,
+        int n_columns,
+        double z,
+        double f_z,
+        double D_z,
+        int index_pk_type,
+        double * out_pk
+        )
+
+    int eft_linear_spectrum_rsd(void * pba,
+        void * ppm,
+        void * pfo,
+        void * peft,
+        linear_or_logarithmic mode,
+        double * ln_kvec,
+        int kvec_size,
+        double * muvec,
+        int muvec_size,
+        eft_arg_type arg_type,
+        double z,
+        double f_z,
+        double D_z,
+        int index_pk_type,
+        double * out_pk
+        )
 
     int eft_job_powerspectrum_wedges_grid(void * peft0,
                                           int peft_size,

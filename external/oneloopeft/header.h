@@ -21,6 +21,7 @@ enum eft_struct_role {eft_master, eft_slave};
 enum eft_tracer {eft_matter, eft_halo, eft_tracer_num}; /**< nothing more than the number of distinct bias choices we want to use */
 enum eft_pk_type {pk_lin, pk_nowiggle, pk_ir_resummed_lo, pkmu_rsd_ir_resummed_lo, pk_ir_resummed_nlo, pkmu_rsd_ir_resummed_nlo, pk_type_num};
 enum eft_pk_out_type {Pdd_mm_real, Pdd_mm_rsd, Pdd_hh_real, Pdd_hh_rsd, pk_out_type_num};
+enum eft_arg_type {points, cartesian_product};
 enum eft_spectra_contribution {finite_part, uv_divergence, ir_divergence, pole_divergence, eft_spectra_contribution_num};
 enum sym_type {no_finite_part, sym_vec, sym_mat_none, sym_mat_symmetric};
 enum eft_fourier_mode {fourier_mode_fft, fourier_mode_spline};
@@ -374,6 +375,7 @@ int eft_linear_spectrum_rsd(
         const int kvec_size,
         const double * const muvec,
         const int muvec_size,
+        enum eft_arg_type arg_type,
         const double z,
         const double f_z,
         const double D_z,

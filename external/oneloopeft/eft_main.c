@@ -533,28 +533,42 @@ int eft_linear_spectrum_rsd(
                   const int kvec_size,
                   const double * const muvec,
                   const int muvec_size,
+                  enum eft_arg_type arg_type,
                   const double z,
                   const double f_z,
                   const double D_z,
                   const int index_pk_type,
                   double * out_pk) {
 
-  int abort = _FALSE_;
+  int abort = _FALSE_, vec_size = 0;
   const double D2 = pow(D_z/peft->D_z0, 2.);
   struct indexed_rsd_arg * vec;
 
-  class_call_parallel(eft_rsd_argument_list_rect(ln_kvec, kvec_size,
-                                                 muvec, muvec_size,
-                                                 &vec,
-                                                 peft->error_message),
-                      peft->error_message, peft->error_message);
+  if (arg_type == cartesian_product) {
+    vec_size = kvec_size * muvec_size;
+    class_call_parallel(eft_rsd_argument_list_rect(ln_kvec, kvec_size,
+                                                   muvec, muvec_size,
+                                                   &vec,
+                                                   peft->error_message),
+                        peft->error_message, peft->error_message);
+  }
+  else {  /** - arg_type == points */
+    class_test((kvec_size != muvec_size), peft->error_message, "The arguments k and mu have different lengths!");
+    vec_size = kvec_size; /** = muvec_size */
+    class_call_parallel(eft_rsd_argument_list(ln_kvec, 
+                                              muvec, 
+                                              vec_size,
+                                              &vec,
+                                              peft->error_message),
+                        peft->error_message, peft->error_message);
+  }
 
   switch (index_pk_type)
   {
   case pkmu_rsd_ir_resummed_lo:
     class_call_parallel(eft_ir_pk_rsd_lo(pba, ppm, pfo, mode,
                                          vec,
-                                         muvec_size*kvec_size,
+                                         vec_size,
                                          z,
                                          f_z,
                                          peft->hp->linear_spectrum_index,
@@ -568,7 +582,7 @@ int eft_linear_spectrum_rsd(
   case pkmu_rsd_ir_resummed_nlo:
     class_call_parallel(eft_ir_pk_rsd_nlo(pba, ppm, pfo, mode,
                                           vec,
-                                          muvec_size*kvec_size,
+                                          vec_size,
                                           z,
                                           f_z,
                                           peft->hp->linear_spectrum_index,
