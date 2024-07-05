@@ -3654,6 +3654,98 @@ make        nonlinear_scale_cb(z, z_size)
 
         return out_pkmuz
 
+    def eft_pkmu_linear_rsd_grid(self,   \
+        np.ndarray[DTYPE_t, ndim=2] mu,  \
+        np.ndarray[DTYPE_t, ndim=3] k,   \
+        np.ndarray[DTYPE_t, ndim=1] z,   \
+        pkmu_type):
+        """
+        eft_pkmu_linear_rsd_grid(mu, k, z, pkmu_type)
+
+        Returns the IR resummed power spectrum P_linear(k,mu,z)
+        The flag 'pkmu_rsd_ir_resummed_lo' returns the leading order result
+            (Pk_nw + exp(-k^2 Sigma^2) Pk_w).
+        The flag 'pkmu_rsd_ir_resummed_lo' returns the next-to-leading order result
+            (with Pk_w mutiplied by extra factor (1+k^2 Sigma^2) )
+
+        Input parameters
+        ----------------
+        mu      : numpy array of mu values, indexed as mu[index_z,index_mu]
+        k       : numpy array of k values, indexed as k[index_z,index_mu, index_k]
+        z       : numpy array of z values, indexed as z[index_z]
+        pkmu_type: input: one of 'pkmu_rsd_ir_resummed_lo', 'pkmu_rsd_ir_resummed_nlo'
+
+        Returns:
+        --------
+        out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z, index_mu, index_k]
+
+        """
+
+        cdef int index_z,index_k,index_mu,index_pk_type;
+        cdef double zz, D_z, f_z;
+
+        # Allocate output array for the classy function
+        cdef int z_size = <int>z.shape[0]
+        cdef int mu_size = <int>mu.shape[1]
+        cdef int k_size = <int>k.shape[2]
+        cdef np.ndarray[DTYPE_t, ndim=3] out_pkmuz = np.zeros((z_size, mu_size, k_size), dtype='float64', order='C')
+
+        # Allocate input and output arrays for the C function
+        cdef double* ln_kvec = <double*>malloc(mu_size * k_size * sizeof(double))
+        cdef double* muvec = <double*>malloc(mu_size * sizeof(double))
+        cdef double* out_pkmu_pp = <double*>malloc(mu_size * k_size * sizeof(double))
+
+        #if (pkmu_type == 'pkmu_rsd_ir_ressumed_lo')
+        #    index_pk_type = (int)pkmu_rsd_ir_resummed_lo;
+        #else if (pkmu_type == 'pkmu_rsd_ir_ressumed_lo')
+        #    index_pk_type = (int)pkmu_rsd_ir_resummed_nlo;
+        #else:
+        #    printf('Type not recognized')
+            # TODO: proper error
+
+        if pkmu_type == 'pkmu_rsd_ir_resummed_lo':
+            index_pk_type = pkmu_rsd_ir_resummed_lo
+        elif pkmu_type == 'pkmu_rsd_ir_resummed_nlo':
+            index_pk_type = pkmu_rsd_ir_resummed_nlo
+        else:
+            raise CosmoSevereError("%s was not recognized as an eft_pk_type" % pkmu_type)
+
+        # loop over z values (in decreasing order, although the order does not matter)
+        for index_z in reversed(range(z_size)):
+            zz = z[index_z]
+            D_z = self.scale_independent_growth_factor(zz)
+            f_z = self.scale_independent_growth_factor_f(zz)
+
+            # create arrays kvec[...] and muvec[...] for this z
+            # k[index_k=0, index_mu=0], k[1,0], ..., k[(n-1),0], k[0,1], ...
+            for index_mu in range(mu_size):
+                muvec[index_mu] = mu[index_z,index_mu]
+                for index_k in range(k_size):
+                    ln_kvec[index_k+index_mu*k_size] = np.log(k[index_z,index_mu, index_k])
+
+            eft_linear_spectrum_rsd(&self.ba,
+                                    &self.pm,
+                                    &self.fo,
+                                    self.fo.peft, # Will always use the first structure peft[0]
+                                                  # TODO: use instead the closest structure
+                                    linear,
+                                    ln_kvec,
+                                    k_size,
+                                    muvec,
+                                    mu_size,
+                                    cartesian_product,
+                                    zz,
+                                    f_z,
+                                    D_z,
+                                    index_pk_type,
+                                    out_pkmu_pp)
+
+            for index_mu in range(mu_size):
+                for index_k in range(k_size):
+                    out_pkmuz[index_z,index_mu, index_k] = out_pkmu_pp[index_k+index_mu*k_size]
+
+        return out_pkmuz
+
     def eft_pk_real_grid(self,   \
                   np.ndarray[DTYPE_t, ndim=2] k,   \
                   np.ndarray[DTYPE_t, ndim=1] z,   \
