@@ -2,12 +2,10 @@
 
 #include "primordial.h"
 #include "trigonometric_integrals.h"
+#include "../external/oneloopeft/common_header.h"
 
 #ifndef __FOURIER__
 #define __FOURIER__
-
-/** - definitions for usage of EFT */
-#include "../external/oneloopeft/header.h"
 
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 

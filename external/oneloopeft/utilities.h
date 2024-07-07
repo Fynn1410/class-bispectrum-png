@@ -3,10 +3,13 @@
 
 #define _ERR_ARG_OUT_OF_RANGE_ 1
 #define _ERR_RES_OUT_OF_RANGE_ 2
-extern int _errno_util;
-extern double complex _err_last_arg;
 
-double complex cGamma(const double complex z);
+#include "carray.h"
+
+extern int _errno_util;
+extern class_complex _err_last_arg;
+
+class_complex cGamma(const class_complex z);
 double rGamma(const double z);
 
 #endif

@@ -8,12 +8,6 @@
 #include "svnversion.h"
 #include <stdarg.h>
 
-#include <complex.h>
-/* I is a macro defined in complex.h, not needed in CLASS, and
-   conflicting with other functions or variables with the same
-   name. Undefine it. */
-#undef I
-
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -379,13 +373,6 @@ extern "C" {
 //The name for this macro can be at most 30 characters total
 #define class_print_species(name,type) \
 printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
-
-/* the complex module is not very stable with differences between c11
-   and c99 stanbdards. To be robust we define our own macro to build
-   complex numbers, instead of relying on _CMPLX_ wich is not
-   supported by c99 standards. */
-#define class_complex(x, y) \
-  (double complex)((double)(x) + _Complex_I * (double)(y))
 
 //Generic evolver prototype
 #define EVOLVER_PROTOTYPE \

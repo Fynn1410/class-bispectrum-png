@@ -15,11 +15,13 @@
 // extern struct eft;
 
 #include "fourier.h"
+#include "carray.h"
+#include "common_header.h"
 
 struct ext_storage
 {
   /** - EFT loop matrix pointers */
-  double complex *** loop_matrices; /**< pointers to loop_matrices; indexed as loop_matrices[index_eft][index_moment] */
+  class_complex *** loop_matrices; /**< pointers to loop_matrices; indexed as loop_matrices[index_eft][index_moment] */
   int ** loop_matrices_size;  /**< pointers to loop_matrices_size; indexed as loop_matrices_size[index_eft] */
   short ** symmetry;  /**< pointers to symmetry type; indexed as symmetry[index_eft] */
   short ** use_tracer;  /**< pointers to tracer type; indexed as use_tracer[index_eft] */

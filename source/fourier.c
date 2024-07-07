@@ -13,6 +13,7 @@
 
 #include "fourier.h"
 #include <time.h>
+#include "../external/oneloopeft/header.h"
 
 /**
  * Return the P(k,z) for a given redshift z and pk type (_m, _cb)
@@ -2585,7 +2586,7 @@ int fourier_init(
       }
 
       //eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1.14, .b2 = -0.767, .bG2 = -0.04, .btd = 0.077, .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
-      eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+      eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .cs2 = 0., .R2 = 0., .has_rsd = 1, .c00 = 0., .c10 = 0., .c20 = 0., .c22 = 0., .c30 = 0., .c32 = 0., .c42 = 0. };
 
     /************************ END PRELIMINARY ZONE 1 **********************/
 

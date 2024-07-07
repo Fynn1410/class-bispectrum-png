@@ -11,7 +11,7 @@
 
 
 int _errno_util = 0;
-double complex _err_last_arg = class_complex(0., 0.);
+class_complex _err_last_arg = class_complex(0., 0.);
 
 /**
  * @brief Retrieves the error status of the EFT tools module.
@@ -35,7 +35,7 @@ int get_error_status(double * last_argument)
  * @param z     Input: Complex argument
  * @return      value of Gamma(z) / NaN at a singularity
 */
-double complex cGamma(const double complex z)
+class_complex cGamma(const class_complex z)
 {
   const double g = 6.0246800407767295;
   const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
@@ -45,8 +45,8 @@ double complex cGamma(const double complex z)
       -7.347584327845915e-6, 8.208805790146655e-6,
       -5.159543403041225e-6, 2.319631454949221e-6,
       -6.671246136975432e-7, 9.060393467651553e-8};
-  register double complex Lg;
-  double complex t;
+  register class_complex Lg;
+  class_complex t;
   double r;
 
   r = creal(z);
@@ -63,16 +63,18 @@ double complex cGamma(const double complex z)
       #endif
     }
     /** - use mirror identity */
-    return _PI_ / (csin(_PI_ * z) * cGamma(1 - z));
+    return _PI_ / (csin(_PI_ * z) * cGamma(1.0 - z));
   }
 
   Lg = co[0];
   for (int k = 1; k < LANCZOS_GAMMA_N; k++)
-  { Lg += co[k] / (z + k - 1); }  /** Partial fraction sum */
+  { Lg += co[k] / (z + (k - 1.0)); }  /** Partial fraction sum */
   t = z + g - 0.5;
   return cpow(t, z - 0.5) * cexp(-t) * Lg;
 }
 
+
+// Why is this not just tgamma??? 
 
 /**
  * @brief Real Gamma function approximated using the

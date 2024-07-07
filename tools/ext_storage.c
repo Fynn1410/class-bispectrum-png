@@ -6,6 +6,7 @@
 */
 
 #include "ext_storage.h"
+#include "header.h"
 
 int ext_init(struct ext_storage * pext) {
   pext->eft_size = 0;
@@ -73,7 +74,7 @@ int ext_save(struct ext_storage * pext,
   }
 
   /** - allocate pointer arrays */
-  class_alloc(pext->loop_matrices, pext->eft_size*sizeof(double complex **), pext->error_message);
+  class_alloc(pext->loop_matrices, pext->eft_size*sizeof(class_complex **), pext->error_message);
   class_alloc(pext->loop_matrices_size, pext->eft_size*sizeof(int *), pext->error_message);
   class_alloc(pext->symmetry, pext->eft_size*sizeof(short *), pext->error_message);
   class_alloc(pext->use_tracer, pext->eft_size*sizeof(short *), pext->error_message);

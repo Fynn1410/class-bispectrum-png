@@ -150,7 +150,7 @@ int eft_allocate_loop_matrices(struct eft * peft) {
   }
 
   /** - loop kernel matrices */
-  class_alloc(peft->loop_matrices,      peft->index_num*sizeof(double complex *), peft->error_message);
+  class_alloc(peft->loop_matrices,      peft->index_num*sizeof(class_complex *), peft->error_message);
   class_alloc(peft->loop_matrices_size, peft->index_num*sizeof(int), peft->error_message);
   for (i = 0; i < peft->index_num; i++) { /** - i = index_moment */
     switch (peft->symmetry[i]) {
@@ -164,7 +164,7 @@ int eft_allocate_loop_matrices(struct eft * peft) {
       peft->loop_matrices_size[i] = 0; break;
     }
 
-    class_alloc(peft->loop_matrices[i], peft->loop_matrices_size[i]*sizeof(double complex), peft->error_message);
+    class_alloc(peft->loop_matrices[i], peft->loop_matrices_size[i]*sizeof(class_complex), peft->error_message);
   }
 
   peft->moments_allocated = peft->index_num;
@@ -677,10 +677,10 @@ int eft_fourier_transform_linear_spectra(
         class_realloc(peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer],
                       peft->hp->k_size_fourier*sizeof(double), peft->error_message);
         class_realloc(peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer],
-                      peft->hp->fourier_coeff_size*sizeof(double complex), peft->error_message);
+                      peft->hp->fourier_coeff_size*sizeof(class_complex), peft->error_message);
         class_realloc(peft->fourier_condition_num[index_pk_type*eft_tracer_num + index_tracer],
-                      peft->hp->fourier_coeff_size*sizeof(double complex), peft->error_message);
-        memset(peft->fourier_condition_num[index_pk_type*eft_tracer_num + index_tracer], 0, peft->hp->fourier_coeff_size*sizeof(double complex));
+                      peft->hp->fourier_coeff_size*sizeof(class_complex), peft->error_message);
+        memset(peft->fourier_condition_num[index_pk_type*eft_tracer_num + index_tracer], 0, peft->hp->fourier_coeff_size*sizeof(class_complex));
         /** - get the linear spectra values */
         class_call(eft_linear_spectrum_real(pba, ppm, pfo, peft, linear,
                                                      peft->ln_k_fourier[index_tracer],
@@ -1048,7 +1048,7 @@ int eft_fourier_transform_linear_spectra(
   return _SUCCESS_;
 }
 
-int eft_save_matrix_to_file(const double complex * matrix,
+int eft_save_matrix_to_file(const class_complex * matrix,
                             const int size,
                             const short symmetry,
                             const short tracer,
@@ -1102,11 +1102,11 @@ int eft_save_matrix_to_file(const double complex * matrix,
     /** Loop matrix file should contain
      * i. (long) info = (size | symmetry | tracer)
      * ii.(double) period in ln(k)-space used to generate the matrix
-     * iii.(double complex) matrix entries according to LAPACK storage schemes
+     * iii.(class_complex) matrix entries according to LAPACK storage schemes
     */
     write_count += fwrite(&info, sizeof(long), 1, file);
     write_count += fwrite(&period, sizeof(double), 1, file);
-    write_count += fwrite(matrix, sizeof(double complex), size, file);
+    write_count += fwrite(matrix, sizeof(class_complex), size, file);
 
     if (ferror(file) || write_count < size+2) {
       /** - I/O error */
@@ -1122,7 +1122,7 @@ int eft_save_matrix_to_file(const double complex * matrix,
   return _SUCCESS_;
 }
 
-int eft_read_matrix_from_file(double complex * matrix,
+int eft_read_matrix_from_file(class_complex * matrix,
                             const int size,
                             const short symmetry,
                             const short tracer,
@@ -1143,11 +1143,11 @@ int eft_read_matrix_from_file(double complex * matrix,
   /** Loop matrix file should contain
    * i. (long) info = (size | symmetry | tracer)
    * ii.(double) period in ln(k)-space used to generate the matrix
-   * iii.(double complex) matrix entries according to LAPACK storage schemes
+   * iii.(class_complex) matrix entries according to LAPACK storage schemes
   */
   read_count += fread(&read_info, sizeof(long), 1, file);
   read_count += fread(&read_period, sizeof(double), 1, file);
-  read_count += fread(matrix, sizeof(double complex), size, file);
+  read_count += fread(matrix, sizeof(class_complex), size, file);
 
   if (ferror(file) || read_count < size+2) {
     /** - I/O error */

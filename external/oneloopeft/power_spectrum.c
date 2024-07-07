@@ -305,14 +305,14 @@ int eft_compute_spectra_contributions(struct eft * peft,
 
   int index_k, index_list, index_pk_type, index_tracer, index_freq1, index_freq2, index_moment, index_k_loaded = -1, pk_type_loaded = -1;
   div_t list_elem;
-  double complex * vec[eft_tracer_num]; /**< Fourier basis elements vec[index_tracer][index_freq1] */
-  // double complex * vec_IR;
-  register double complex sum1, sum2;
+  class_complex * vec[eft_tracer_num]; /**< Fourier basis elements vec[index_tracer][index_freq1] */
+  // class_complex * vec_IR;
+  register class_complex sum1, sum2;
 
   if (moment_list_size < 1) { return _SUCCESS_; }
 
   for (index_tracer = 0; index_tracer < eft_tracer_num; index_tracer++) {
-    class_alloc(vec[index_tracer], peft->hp->fourier_coeff_size * sizeof(double complex), peft->error_message);
+    class_alloc(vec[index_tracer], peft->hp->fourier_coeff_size * sizeof(class_complex), peft->error_message);
   }
 
   index_k_loaded = -1; pk_type_loaded = -1;
@@ -484,7 +484,7 @@ int eft_load_linear_spectra(struct background * pba,
 double sigma_sq(struct eft * peft, const short n, enum eft_pk_type pk_type) {
   short found = _FALSE_;
   int index_moment;
-  double complex value;
+  class_complex value;
 
   /** - search for the right moment in the storage */
   for (index_moment = 0; (index_moment < EFT_DISPERSION_SIZE) && (peft->dispersion[pk_type][index_moment].index_bias > SHRT_MIN); index_moment++) {
@@ -513,7 +513,8 @@ double sigma_sq(struct eft * peft, const short n, enum eft_pk_type pk_type) {
       value = 0.;
     }
 
-    peft->dispersion[pk_type][index_moment].moment = value / (2.*_PI_*_PI_);
+    //Should this be the real part, or absolute part? Before, it was not well defined
+    peft->dispersion[pk_type][index_moment].moment = creal(value) / (2.*_PI_*_PI_);
     peft->dispersion[pk_type][index_moment].index_bias = n;
     return peft->dispersion[pk_type][index_moment].moment;
   }

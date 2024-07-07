@@ -98,7 +98,7 @@ endif
 # update flags for including oneloopeft
 vpath %.c $(ONELOOPEFT)
 INCLUDES += -I../$(ONELOOPEFT)
-EXTERNAL += eft_main.o kernel_matrices.o wnw_split.o infrared_resummation.o power_spectrum.o utilities.o
+EXTERNAL += eft_main.opp kernel_matrices.opp wnw_split.opp infrared_resummation.opp power_spectrum.opp utilities.opp
 HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)
 # import Cuba library if direct_integration is requested
 ifneq ($(DIRECT_INTEGRATION),)
@@ -114,9 +114,9 @@ endif
 %.opp:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CPP) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.opp
 
-TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.opp parser.o quadrature.o hyperspherical.opp common.o trigonometric_integrals.o ext_storage.o
+TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.opp carray.opp parser.o quadrature.o hyperspherical.opp common.o trigonometric_integrals.o fft.opp ext_storage.opp
 
-SOURCE = input.o background.o thermodynamics.o perturbations.opp primordial.opp fourier.o transfer.opp harmonic.opp lensing.opp distortions.o
+SOURCE = input.o background.o thermodynamics.o perturbations.opp primordial.opp fourier.opp transfer.opp harmonic.opp lensing.opp distortions.o
 
 INPUT = input.o
 

@@ -5,7 +5,6 @@
 
 #include "common.h"
 #include "parser.h"
-#include "../external/oneloopeft/header.h"
 
 #define _N_FILEROOT_ 100 /* Number of files that will be not overwritten for a given root */
 
