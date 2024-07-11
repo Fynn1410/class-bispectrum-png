@@ -49,30 +49,6 @@ cdef extern from "class.h":
         out_sigma_prime
         out_sigma_disp
 
-    cdef enum eft_struct_role:
-        eft_master
-        eft_slave
-
-    cdef enum eft_tracer:
-        eft_matter
-        eft_halo
-        eft_tracer_num
-
-    cdef enum eft_pk_type:
-        pk_lin
-        pk_nowiggle
-        pk_ir_resummed_lo
-        pkmu_rsd_ir_resummed_lo
-        pk_ir_resummed_nlo
-        pkmu_rsd_ir_resummed_nlo
-        pk_type_num
-
-    cdef enum eft_pk_out_type:
-        Pdd_mm_real
-        Pdd_mm_rsd
-        Pdd_hh_real
-        Pdd_hh_rsd
-        pk_out_type_num
 
     cdef enum eft_spectra_contribution:
         finite_part
@@ -831,6 +807,33 @@ cdef extern from "class.h":
                   double * pk_tot_out,
                   double * pk_cb_tot_out,
                   int nonlinear)
+
+cdef extern from "header.h":
+
+    cdef enum eft_struct_role:
+        eft_master
+        eft_slave
+
+    cdef enum eft_tracer:
+        eft_matter
+        eft_halo
+        eft_tracer_num
+
+    cdef enum eft_pk_type:
+        pk_lin
+        pk_nowiggle
+        pk_ir_resummed_lo
+        pkmu_rsd_ir_resummed_lo
+        pk_ir_resummed_nlo
+        pkmu_rsd_ir_resummed_nlo
+        pk_type_num
+
+    cdef enum eft_pk_out_type:
+        Pdd_mm_real
+        Pdd_mm_rsd
+        Pdd_hh_real
+        Pdd_hh_rsd
+        pk_out_type_num
 
     int eft_job_powerspectrum_wedges_grid(void * peft0,
                                           int peft_size,
