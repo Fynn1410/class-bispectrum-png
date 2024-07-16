@@ -448,14 +448,15 @@ int eft_linear_spectrum_real(
     for (it = 0; it < kvec_size*n_columns; it++) {
       ln_kvec_sorted[it] = vec[it].ln_k;
     }
-    class_call_parallel(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
-                                                            ppm,
-                                                            pfo,
-                                                            mode,
-                                                            ln_kvec_sorted,
-                                                            kvec_size*n_columns,
-                                                            z,
-                                                            pk_l),
+    class_call_parallel(fourier_pk_l_extra_at_kvec_and_z(pba,
+                                                         ppm,
+                                                         pfo,
+                                                         mode,
+                                                         ln_kvec_sorted,
+                                                         kvec_size*n_columns,
+                                                         z,
+                                                         peft->hp->linear_spectrum_index,
+                                                         pk_l),
                         pfo->error_message,
                         peft->error_message);
     for (it = 0; it < kvec_size*n_columns; it++) {
@@ -1374,6 +1375,29 @@ double eft_temporal_distance(struct background * pba,
   return fabs(z - z_eft);
 }
 
+int eft_nearest_structure_in_time(struct eft * peft0,
+                                  const int peft_size,
+                                  struct background * pba,
+                                  struct fourier * pfo,
+                                  const double z,
+                                  struct eft * peft_min_dist) {
+
+  int index_eft_min_dist = 0, index_eft;
+  double min_distance, distance;
+
+  /** - find nearest eft structure */
+  index_eft_min_dist = 0;
+  min_distance = eft_temporal_distance(pba, z, pfo->z_pk_eft[0]);
+  for (index_eft = 1; index_eft < pfo->z_pk_eft_num; index_eft++) {
+    distance = eft_temporal_distance(pba, z, pfo->z_pk_eft[index_eft]);
+    if (distance < min_distance) { min_distance = distance; index_eft_min_dist = index_eft; }
+  }
+
+  peft_min_dist = peft0 + index_eft_min_dist;
+
+  return index_eft_min_dist;
+}
+
 static int indexed_double_cmp_inc(const void * a, const void * b) {
   struct indexed_double * a_ = (struct indexed_double *)a;
   struct indexed_double * b_ = (struct indexed_double *)b;
@@ -1440,7 +1464,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
   int * list_spectra_contributions, list_spectra_contributions_size, * list_pk_types_loops, list_pk_types_loops_size;
   int * list_pk_types_loops_not_loaded, list_pk_types_loops_not_loaded_size, * list_spectra_contributions_not_loaded, list_spectra_contributions_not_loaded_size;
   int index_pk_type, index_spectra_contribution, index_list, last_index;
-  double z, f_z, D_z, min_distance, distance, mu_real = 0., * pkmu_nl = NULL, * ddpkmu_nl = NULL, * pkmu_out;
+  double z, f_z, D_z, ln_k, min_distance, distance, mu_real = 0., * pkmu_nl = NULL, * ddpkmu_nl = NULL, * pkmu_out;
   struct eft * peft;
   struct eft_hyper_parameters * eft_hp;
   struct indexed_double sort_arr[z_size];
@@ -1460,17 +1484,10 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     sorted_D_zvec[index_z] = D_zvec[sort_arr[index_z].index];
   }
 
-  /** - find the neasrest eft structures for each redshift */
+  /** - find the nearest eft structures for each redshift */
   for (index_z_sort = 0; index_z_sort < z_size; index_z_sort++) {
     z = sorted_zvec[index_z_sort];
-
-    /** - find nearest eft structure */
-    index_eft_min_dist[index_z_sort] = 0;
-    min_distance = eft_temporal_distance(pba, z, pfo->z_pk_eft[0]);
-    for (index_eft = 1; index_eft < pfo->z_pk_eft_num; index_eft++) {
-      distance = eft_temporal_distance(pba, z, pfo->z_pk_eft[index_eft]);
-      if (distance < min_distance) { min_distance = distance; index_eft_min_dist[index_z_sort] = index_eft; }
-    }
+    index_eft_min_dist[index_z_sort] = eft_nearest_structure_in_time(peft0, peft_size, pba, pfo, z, peft);
   }
 
   for (index_z_sort = z_size-1; index_z_sort >= 0; index_z_sort--) {  /** - main z-loop */
@@ -1654,20 +1671,26 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                      peft->error_message),
                   peft->error_message, peft->error_message);
 
-      #pragma omp parallel for schedule(static), shared(peft, pkmu_nl, ddpkmu_nl, out_pkmu, kvec, k_sizevec, mu_sizevec, index_z), private(index_mu, index_k, last_index), default(none)
+      #pragma omp parallel for schedule(static), shared(peft, pkmu_nl, ddpkmu_nl, out_pkmu, kvec, k_sizevec, mu_sizevec, index_z), private(index_mu, index_k, last_index, ln_k), default(none)
       for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
         last_index = 0;
         for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
-          array_interpolate_spline_growing_closeby(peft->ln_k,
-                                                   peft->k_size,
-                                                   pkmu_nl + index_mu*peft->k_size,
-                                                   ddpkmu_nl + index_mu*peft->k_size,
-                                                   1,
-                                                   log(kvec[index_z][index_mu*k_sizevec[index_z] + index_k]),
-                                                   &last_index,
-                                                   out_pkmu[index_z] + index_mu*k_sizevec[index_z] + index_k,
-                                                   1,
-                                                   peft->error_message);
+          ln_k = log(kvec[index_z][index_mu*k_sizevec[index_z] + index_k]);
+          if ((ln_k >= peft->ln_k[0]) && (ln_k <= peft->ln_k[peft->k_size-1])) {
+            array_interpolate_spline_growing_closeby(peft->ln_k,
+                                                     peft->k_size,
+                                                     pkmu_nl + index_mu*peft->k_size,
+                                                     ddpkmu_nl + index_mu*peft->k_size,
+                                                     1,
+                                                     ln_k,
+                                                     &last_index,
+                                                     out_pkmu[index_z] + index_mu*k_sizevec[index_z] + index_k,
+                                                     1,
+                                                     peft->error_message);
+          }
+          else {
+            out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k] = 0.;
+          }
         }
       }
     }
@@ -1878,7 +1901,7 @@ int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
 // static const double gl_weights[] = {0.027777777777777777778, -0.067801868533905777326, 0.087327403186094540303, -0.098096963223617334406, 0.10158730158730158730, -0.098096963223617334406, 0.087327403186094540303, -0.067801868533905777326, 0.027777777777777777778};
 static const int gl_rule_sym_size = 5;
 static const double gl_sym_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
-static const double gl_sym_weights[] = {0.10158730158730158730, -0.19619392644723466881, 0.17465480637218908061, -0.13560373706781155465, 0.055555555555555555556};
+static const double gl_sym_weights[] = {0.34642851097304634512, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
 static const double lg_measure[][MULTIPOLE_SIZE] = { {1., -0.5, 0.375}, {1., -0.30221856119666629454, -0.043391796245607083376}, {1., 0.18787188573639255829, -0.42463134814493003484}, {1., 0.71434667546027373625, 0.20648468285207557975}, {1., 1., 1.} };
 
 /**
@@ -2012,19 +2035,15 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
  *
  * @param peft0       Input: pointer to the first eft-structure
  * @param peft_size   Input: number of eft-structures
- * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
- * @param D_z_pk_eft  Input: growth rate D(z) at z_pk of each eft-structure
  * @param pba         Input: pointer to the background structure
  * @param pfo         Input: pointer to the fourier structure
  * @param ppm         Input: pointer to the primordial structure
  * @param ppr         Input: pointer to the precisions structure
  * @param pk_out_type Input: type of power-spectrum to compute
  * @param zvec        Input: redshifts at which to compute it
- * @param f_zvec      Input: logarithmic growth rate at each z in zvec
- * @param D_zvec      Input: growth rate D(z) at each z in zvec
  * @param peft_ip     Input: Input parameter structures for each eft-structure
  * @param z_size      Input: size of zvec
- * @param kvec        Input: wavenumbers [in 1/Mpc]; indexed as kvec[index_z][index_k]
+ * @param kvec        Input: fiducial wavenumbers [in 1/Mpc]; indexed as kvec[index_z][index_k]
  * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
  * @param ap_parallel Input: parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
  * @param ap_perpendicular  Input: perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z)

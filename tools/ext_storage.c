@@ -67,53 +67,55 @@ int ext_save(struct ext_storage * pext,
   ext_cleanup(pext);
 
   /**----------------- EFT loop matrices -----------------*/
-  /** - count master eft-structures */
-  for (i = 0; i < pfo->eft_size; i++) {
-    if ((pfo->peft + i)->role == eft_master) { pext->eft_size += 1; }
-  }
-
-  /** - allocate pointer arrays */
-  class_alloc(pext->loop_matrices, pext->eft_size*sizeof(double complex **), pext->error_message);
-  class_alloc(pext->loop_matrices_size, pext->eft_size*sizeof(int *), pext->error_message);
-  class_alloc(pext->symmetry, pext->eft_size*sizeof(short *), pext->error_message);
-  class_alloc(pext->use_tracer, pext->eft_size*sizeof(short *), pext->error_message);
-  class_alloc(pext->spectra_contributions_dimension, pext->eft_size*sizeof(short *), pext->error_message);
-
-  class_alloc(pext->period, pext->eft_size*sizeof(double *), pext->error_message);
-  for (i = 0; i < pext->eft_size; i++) {
-    class_alloc(pext->period[i], eft_tracer_num*sizeof(double), pext->error_message);
-  }
-  class_alloc(pext->eft_index_num, pext->eft_size*sizeof(int), pext->error_message);
-  for (i = 0; i < pfo->eft_size; i++) {
-    if ((pfo->peft + i)->role == eft_master) { pext->eft_index_num[i] = (pfo->peft + i)->index_num; }
-  }
-
-  /** - copy pointers from eft-structures */
-  for (i = 0; i < pfo->eft_size; i++) {
-    if ((pfo->peft + i)->role == eft_master) {
-      pext->loop_matrices[i] = (pfo->peft + i)->loop_matrices;
-      pext->loop_matrices_size[i] = (pfo->peft + i)->loop_matrices_size;
-      pext->symmetry[i] = (pfo->peft + i)->symmetry;
-      pext->use_tracer[i] = (pfo->peft + i)->use_tracer;
-      pext->spectra_contributions_dimension[i] = (pfo->peft + i)->spectra_contributions_dimension;
-
-      for (j = 0; j < eft_tracer_num; j++)
-        pext->period[i][j] = (pfo->peft + i)->hp->period[j];  /** data copied */
+  if (pfo && pfo->method == nl_oneloopPT) {
+    /** - count master eft-structures */
+    for (i = 0; i < pfo->eft_size; i++) {
+      if ((pfo->peft + i)->role == eft_master) { pext->eft_size += 1; }
     }
-  }
 
-  /** - replace with NULL at the original place */
-  for (i = 0; i < pfo->eft_size; i++) {
-    if ((pfo->peft + i)->role == eft_master) {
-      (pfo->peft + i)->loop_matrices = NULL;
-      (pfo->peft + i)->loop_matrices_size = NULL;
-      (pfo->peft + i)->symmetry = NULL;
-      (pfo->peft + i)->use_tracer = NULL;
-      (pfo->peft + i)->spectra_contributions_dimension = NULL;
+    /** - allocate pointer arrays */
+    class_alloc(pext->loop_matrices, pext->eft_size*sizeof(double complex **), pext->error_message);
+    class_alloc(pext->loop_matrices_size, pext->eft_size*sizeof(int *), pext->error_message);
+    class_alloc(pext->symmetry, pext->eft_size*sizeof(short *), pext->error_message);
+    class_alloc(pext->use_tracer, pext->eft_size*sizeof(short *), pext->error_message);
+    class_alloc(pext->spectra_contributions_dimension, pext->eft_size*sizeof(short *), pext->error_message);
+
+    class_alloc(pext->period, pext->eft_size*sizeof(double *), pext->error_message);
+    for (i = 0; i < pext->eft_size; i++) {
+      class_alloc(pext->period[i], eft_tracer_num*sizeof(double), pext->error_message);
     }
-  }
+    class_alloc(pext->eft_index_num, pext->eft_size*sizeof(int), pext->error_message);
+    for (i = 0; i < pfo->eft_size; i++) {
+      if ((pfo->peft + i)->role == eft_master) { pext->eft_index_num[i] = (pfo->peft + i)->index_num; }
+    }
 
-  pext->loop_matrices_stored = _TRUE_;
+    /** - copy pointers from eft-structures */
+    for (i = 0; i < pfo->eft_size; i++) {
+      if ((pfo->peft + i)->role == eft_master) {
+        pext->loop_matrices[i] = (pfo->peft + i)->loop_matrices;
+        pext->loop_matrices_size[i] = (pfo->peft + i)->loop_matrices_size;
+        pext->symmetry[i] = (pfo->peft + i)->symmetry;
+        pext->use_tracer[i] = (pfo->peft + i)->use_tracer;
+        pext->spectra_contributions_dimension[i] = (pfo->peft + i)->spectra_contributions_dimension;
+
+        for (j = 0; j < eft_tracer_num; j++)
+          pext->period[i][j] = (pfo->peft + i)->hp->period[j];  /** data copied */
+      }
+    }
+
+    /** - replace with NULL at the original place */
+    for (i = 0; i < pfo->eft_size; i++) {
+      if ((pfo->peft + i)->role == eft_master) {
+        (pfo->peft + i)->loop_matrices = NULL;
+        (pfo->peft + i)->loop_matrices_size = NULL;
+        (pfo->peft + i)->symmetry = NULL;
+        (pfo->peft + i)->use_tracer = NULL;
+        (pfo->peft + i)->spectra_contributions_dimension = NULL;
+      }
+    }
+
+    pext->loop_matrices_stored = _TRUE_;
+  }
   /**-----------------------------------------------------*/
 
 

@@ -106,6 +106,8 @@ cdef class Class:
 
     # Flag to see if classy has already computed with the given pars
     cdef int computed
+    # same flag, but stays True even if new parameters are set
+    cdef int computed_outdated
     # Flag to see if classy structs are allocated already
     cdef int allocated
     # Dictionary of the parameters
@@ -139,6 +141,7 @@ cdef class Class:
         cdef char* dumc
         self.allocated = False
         self.computed = False
+        self.computed_outdated = False
         self._pars = {}
         self.fc.size=0
         self.fc.filename = <char*>malloc(sizeof(char)*30)
@@ -172,7 +175,7 @@ cdef class Class:
         self._pars.update(kars)
         if viewdictitems(self._pars) <= viewdictitems(oldpars):
           return # Don't change the computed states, if the new dict was already contained in the previous dict
-        self.computed=False
+        self.computed = False
         return True
 
     def empty(self):
@@ -213,9 +216,9 @@ cdef class Class:
 
     # Called at the end of a run, to free memory
     def struct_cleanup(self):
-        if (self.allocated != True): return
+        # if (self.allocated != True): return
 
-        if self.computed: # if computation was not aborted, store important quantities in ext. storage
+        if self.computed_outdated: # if computation was not aborted, store important quantities in ext. storage
             ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm,
                      &self.fo, &self.tr, &self.hr, &self.le, &self.sd)
         else:             # else, get rid of residual memory
@@ -241,6 +244,7 @@ cdef class Class:
             background_free(&self.ba)
         self.allocated = False
         self.computed = False
+        self.computed_outdated = False
 
     def _check_task_dependency(self, level):
         """
@@ -353,6 +357,7 @@ cdef class Class:
 
         # Otherwise, proceed with the normal computation.
         self.computed = False
+        self.computed_outdated = False
 
         # Equivalent of writing a parameter file
         self._fillparfile()
@@ -456,6 +461,7 @@ cdef class Class:
             self.ncp.add("distortions")
 
         self.computed = True
+        self.computed_outdated = True
 
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
@@ -3654,6 +3660,123 @@ make        nonlinear_scale_cb(z, z_size)
 
         return out_pkmuz
 
+    def eft_pkl_rsd_grid(self,   \
+                  np.ndarray[DTYPE_t, ndim=2] k,        \
+                  np.ndarray[DTYPE_t, ndim=1] z,        \
+                  np.ndarray[DTYPE_t, ndim=1] ap_parallel,      \
+                  np.ndarray[DTYPE_t, ndim=1] ap_perpendicular, \
+                  np.ndarray[DTYPE_t, ndim=2] biases,         \
+                  np.ndarray[DTYPE_t, ndim=2] counterterms,   \
+                  pkl_type):
+        """
+        eft_pkl_rsd_grid(k, z, ap_parallel, ap_perpendicular, biases, counterterms, pkl_type)
+
+        Returns the oneloop power spectrum multipoles P_oneloop(k_fid, z)
+
+        Input parameters
+        ----------------
+        k       : numpy array of fiducial k values, indexed as k[index_z, index_k]
+        z       : numpy array of z values, indexed as z[index_z]
+        ap_parallel: numpy array of parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
+        ap_perpendicular: numpy array of perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z)
+        biases : numpy array of biases [b1,b2,bG2,btd]
+        counterterms : numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+        pkl_type: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
+
+        Returns:
+        --------
+        out_pklz : a numpy array of P(k,l/2,z) indexed as out_pklz[index_z, index_l, index_k]
+
+        """
+
+        # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
+
+        if not k.flags['C_CONTIGUOUS']:
+            k = np.ascontiguousarray(k)
+        if not z.flags['C_CONTIGUOUS']:
+            z = np.ascontiguousarray(z)
+        if not ap_parallel.flags['C_CONTIGUOUS']:
+            ap_parallel = np.ascontiguousarray(ap_parallel)
+        if not ap_perpendicular.flags['C_CONTIGUOUS']:
+            ap_perpendicular = np.ascontiguousarray(ap_perpendicular)
+
+        cdef int z_size = <int>z.shape[0]
+        cdef int k_size = <int>k.shape[1]
+
+        cdef int index_z
+        cdef np.intp_t[:] k_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef np.intp_t[:] out_pklz_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef double** kvec_pp = <double**>(<void*> &k_pointer_arr[0])
+        cdef double** out_pklz_pp = <double**>(<void*> &out_pklz_pointer_arr[0])
+
+        # allocate input/output array
+        cdef int* k_sizevec  = <int*>malloc(z_size * sizeof(int))
+        cdef np.ndarray[DTYPE_t, ndim=3] out_pklz = np.zeros((z_size, 3, k_size), dtype='float64', order='C')
+
+        cdef double[::1] z_view = z
+        cdef double[:, ::1] k_view = k
+        cdef double[:, :, ::1] out_pklz_view = out_pklz
+
+        # allocate input structure
+        cdef eft_input_parameters* eft_ip = <eft_input_parameters*>malloc(z_size * sizeof(eft_input_parameters))
+
+        # fill input type enum
+        cdef eft_pk_out_type pk_output_type
+
+        if pkl_type == 'Pdd_mm_rsd':
+            pk_output_type = Pdd_mm_rsd
+        elif pkl_type == 'Pdd_hh_rsd':
+            pk_output_type = Pdd_hh_rsd
+        else:
+            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkl_type)
+
+        # check input consistency
+        if (k.shape[0] != z_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}) for z and ({1:d}, {2:d}) for k.".format(z.shape[0], k.shape[0], k.shape[1]))
+        if (biases.shape[0] != z_size) or (counterterms.shape[0] != z_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}, {1:d}) for biases and ({2:d}, {3:d}) for counterterms.".format(biases.shape[0], biases.shape[1], counterterms.shape[0], counterterms.shape[1]))
+
+
+        for index_z in range(z_size):
+            # fill input structures
+            eft_ip[index_z].b1 = biases[index_z, 0]
+            eft_ip[index_z].b2 = biases[index_z, 1]
+            eft_ip[index_z].bG2 = biases[index_z, 2]
+            eft_ip[index_z].btd = biases[index_z, 3]
+            eft_ip[index_z].c00 = counterterms[index_z, 0]
+            eft_ip[index_z].c10 = counterterms[index_z, 1]
+            eft_ip[index_z].c20 = counterterms[index_z, 2]
+            eft_ip[index_z].c22 = counterterms[index_z, 3]
+            eft_ip[index_z].c30 = counterterms[index_z, 4]
+            eft_ip[index_z].c32 = counterterms[index_z, 5]
+            eft_ip[index_z].c42 = counterterms[index_z, 6]
+            eft_ip[index_z].has_rsd = 1
+            # assign pointers
+            kvec_pp[index_z] = &k_view[index_z, 0]
+            k_sizevec[index_z] = k_size
+            out_pklz_pp[index_z] = &out_pklz_view[index_z, 0, 0]
+
+        eft_job_powerspectrum_multipoles(self.fo.peft,
+                                         self.fo.eft_size,
+                                         &self.ba,
+                                         &self.fo,
+                                         &self.pm,
+                                         &self.pr,
+                                         pk_output_type,
+                                         <double*> z.data,
+                                         eft_ip,
+                                         z_size,
+                                         kvec_pp,
+                                         k_sizevec,
+                                         <double*> ap_parallel.data,
+                                         <double*> ap_perpendicular.data,
+                                         out_pklz_pp)
+
+        free(k_sizevec)
+        free(eft_ip)
+
+        return out_pklz
+
     def eft_pkmu_linear_rsd_grid(self,   \
         np.ndarray[DTYPE_t, ndim=2] mu,  \
         np.ndarray[DTYPE_t, ndim=3] k,   \
@@ -3665,7 +3788,7 @@ make        nonlinear_scale_cb(z, z_size)
         Returns the IR resummed power spectrum P_linear(k,mu,z)
         The flag 'pkmu_rsd_ir_resummed_lo' returns the leading order result
             (Pk_nw + exp(-k^2 Sigma^2) Pk_w).
-        The flag 'pkmu_rsd_ir_resummed_lo' returns the next-to-leading order result
+        The flag 'pkmu_rsd_ir_resummed_nlo' returns the next-to-leading order result
             (with Pk_w mutiplied by extra factor (1+k^2 Sigma^2) )
 
         Input parameters
@@ -3681,7 +3804,7 @@ make        nonlinear_scale_cb(z, z_size)
 
         """
 
-        cdef int index_z,index_k,index_mu,index_pk_type;
+        cdef int index_z,index_k,index_mu,index_pk_type,index_eft;
         cdef double zz, D_z, f_z;
 
         # Allocate output array for the classy function
@@ -3689,19 +3812,13 @@ make        nonlinear_scale_cb(z, z_size)
         cdef int mu_size = <int>mu.shape[1]
         cdef int k_size = <int>k.shape[2]
         cdef np.ndarray[DTYPE_t, ndim=3] out_pkmuz = np.zeros((z_size, mu_size, k_size), dtype='float64', order='C')
+        cdef double[:, :, ::1] out_pkmuz_view = out_pkmuz
 
         # Allocate input and output arrays for the C function
         cdef double* ln_kvec = <double*>malloc(mu_size * k_size * sizeof(double))
         cdef double* muvec = <double*>malloc(mu_size * sizeof(double))
-        cdef double* out_pkmu_pp = <double*>malloc(mu_size * k_size * sizeof(double))
-
-        #if (pkmu_type == 'pkmu_rsd_ir_ressumed_lo')
-        #    index_pk_type = (int)pkmu_rsd_ir_resummed_lo;
-        #else if (pkmu_type == 'pkmu_rsd_ir_ressumed_lo')
-        #    index_pk_type = (int)pkmu_rsd_ir_resummed_nlo;
-        #else:
-        #    printf('Type not recognized')
-            # TODO: proper error
+        # cdef double* out_pkmu_p = <double*>malloc(mu_size * k_size * sizeof(double))
+        cdef void* peft = self.fo.peft
 
         if pkmu_type == 'pkmu_rsd_ir_resummed_lo':
             index_pk_type = pkmu_rsd_ir_resummed_lo
@@ -3716,18 +3833,25 @@ make        nonlinear_scale_cb(z, z_size)
             D_z = self.scale_independent_growth_factor(zz)
             f_z = self.scale_independent_growth_factor_f(zz)
 
+            # find the nearest eft structure
+            eft_nearest_structure_in_time(self.fo.peft,
+                                          self.fo.eft_size,
+                                          &self.ba,
+                                          &self.fo,
+                                          zz,
+                                          peft)
+
             # create arrays kvec[...] and muvec[...] for this z
             # k[index_k=0, index_mu=0], k[1,0], ..., k[(n-1),0], k[0,1], ...
             for index_mu in range(mu_size):
                 muvec[index_mu] = mu[index_z,index_mu]
                 for index_k in range(k_size):
-                    ln_kvec[index_k+index_mu*k_size] = np.log(k[index_z,index_mu, index_k])
+                    ln_kvec[index_k+index_mu*k_size] = log( k[index_z,index_mu, index_k] )
 
             eft_linear_spectrum_rsd(&self.ba,
                                     &self.pm,
                                     &self.fo,
-                                    self.fo.peft, # Will always use the first structure peft[0]
-                                                  # TODO: use instead the closest structure
+                                    peft, 
                                     linear,
                                     ln_kvec,
                                     k_size,
@@ -3738,11 +3862,12 @@ make        nonlinear_scale_cb(z, z_size)
                                     f_z,
                                     D_z,
                                     index_pk_type,
-                                    out_pkmu_pp)
+                                    &out_pkmuz_view[index_z, 0, 0])   # out_pkmu_p
 
-            for index_mu in range(mu_size):
-                for index_k in range(k_size):
-                    out_pkmuz[index_z,index_mu, index_k] = out_pkmu_pp[index_k+index_mu*k_size]
+            # TODO: do this without copying data, just using pointers into out_pkmuz
+            # for index_mu in range(mu_size):
+            #     for index_k in range(k_size):
+            #         out_pkmuz[index_z, index_mu, index_k] = out_pkmu_p[index_k+index_mu*k_size]
 
         return out_pkmuz
 

@@ -324,6 +324,15 @@ int eft_spline_sample_points_nonuniform(
         const short verbosity
         );
 
+int eft_nearest_structure_in_time(
+        struct eft * peft0,
+        const int peft_size,
+        struct background * pba,
+        struct fourier * pfo,
+        const double z,
+        struct eft * peft_min_dist
+        );
+
 int eft_fourier_transform_linear_spectra(
         struct precision * ppr,
         struct background * pba,

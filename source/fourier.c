@@ -1910,16 +1910,13 @@ int fourier_init(
   short eft_role;
 
   // JL: additional variables for preliminary version of oneloop:
-#define TEST_Z_SIZE 1
-#define TEST_MU_SIZE 5
-  double * zvec;
   double ** muvec;
   double ** kvec;
   double ** out_pkmu;
-  int mu_sizevec[TEST_Z_SIZE];
-  int k_sizevec[TEST_Z_SIZE];
+  int mu_size;
+  int k_size;
   int index_z,index_mu;
-  struct eft_input_parameters eft_ip_test[TEST_Z_SIZE];
+  struct eft_input_parameters eft_ip_dummy;
 
   /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
       from the perturbations structure to the fourier structure */
@@ -2266,7 +2263,7 @@ int fourier_init(
 
     // // JL: more comments and explanations? Tests, will be removed at some point
     // // compute Spline Fourier
-    // #define NFREQ 256
+    // #define NFREQ 65536
     // double complex fourier_coeff[NFREQ];
     // double complex cond_num[NFREQ];
     // fourier_coeff[0] = class_complex(0., 0.);
@@ -2278,7 +2275,7 @@ int fourier_init(
     // }
 
     // // JL: more comments and explanations? Tests, will be removed at some point
-    // #define NFFT 256
+    // #define NFFT 65536
     // double samples[NFFT], zero[NFFT];
     // double fft_coeff_real[NFFT], fft_coeff_imag[NFFT], zero_coeff_real[NFFT], zero_coeff_imag[NFFT];
     // double fft_coeff_mag[NFFT];
@@ -2553,45 +2550,29 @@ int fourier_init(
                    pfo->error_message);
       }
 
-      /* one z */
-      class_alloc(zvec,TEST_Z_SIZE*sizeof(double),pfo->error_message);
-
       /* a few mu for testing*/
-      class_alloc(muvec,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
-      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-        class_alloc(muvec[index_z],TEST_MU_SIZE*sizeof(double),pfo->error_message);
-        mu_sizevec[index_z] = TEST_MU_SIZE;
-        for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-          muvec[index_z][index_mu] = index_mu / (double)(TEST_MU_SIZE-1);
-        }
-      }
+      class_alloc(muvec, sizeof(double *), pfo->error_message);
+      class_alloc(*muvec, sizeof(double), pfo->error_message);
+      mu_size = 1;
+      **muvec = 0.;
 
       /* values of k taken from fourier structure */
-      class_alloc(kvec,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
-      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-        class_alloc(kvec[index_z],pfo->k_size*TEST_MU_SIZE*sizeof(double),pfo->error_message);
-        k_sizevec[index_z] = pfo->k_size;
-        for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-          for (index_k = 0; index_k < pfo->k_size; index_k++) {
-            kvec[index_z][index_mu*pfo->k_size+index_k] = pfo->k[index_k];
-          }
-        }
-      }
+      class_alloc(kvec, sizeof(double *), pfo->error_message);
+      class_alloc(*kvec, pfo->k_size*sizeof(double),pfo->error_message);
+      k_size = pfo->k_size;
+      class_protect_memcpy(*kvec, pfo->k, pfo->k_size*sizeof(double));
 
       /* array to write the output */
-      class_alloc(out_pkmu,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
-      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-        class_alloc(out_pkmu[index_z],pfo->k_size*TEST_MU_SIZE*sizeof(double),pfo->error_message);
-      }
+      class_alloc(out_pkmu, sizeof(double *), pfo->error_message);
+      class_alloc(*out_pkmu, pfo->k_size*sizeof(double), pfo->error_message);
 
-      //eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1.14, .b2 = -0.767, .bG2 = -0.04, .btd = 0.077, .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
-      eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+      eft_ip_dummy = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
 
     /************************ END PRELIMINARY ZONE 1 **********************/
 
     }
 
-    /** --> Loop over decreasing time/growing redhsift. For each
+    /** --> Loop over decreasing time/growing redshift. For each
         time/redshift, compute P_NL(k,z) using either Halofit or
         HMcode */
 
@@ -2700,54 +2681,41 @@ int fourier_init(
           }
 
           else if (pfo->method == nl_oneloopPT) {
-
             /*************** PRELIMINARY ZONE 2 *****************/
-            class_call(background_z_of_tau(pba,pfo->tau[index_tau],zvec),
-                       pba->error_message,
-                       pfo->error_message);
+            if (index_pk == 0) {
+              class_call(background_z_of_tau(pba, pfo->tau[index_tau], &z),
+                        pba->error_message,
+                        pfo->error_message);
 
-            //fprintf(stderr,"Call eft_job_powerspectrum_wedges() at z=%e\n",zvec[0]);
+              //fprintf(stderr,"Call eft_job_powerspectrum_wedges() at z=%e\n",zvec[0]);
 
-            class_call(eft_job_powerspectrum_wedges(pfo->peft,
-                                                    pfo->eft_size,
-                                                    pba,
-                                                    pfo,
-                                                    ppm,
-                                                    ppr,
-                                                    Pdd_hh_rsd,
-                                                    zvec,
-                                                    eft_ip_test,
-                                                    TEST_Z_SIZE,
-                                                    kvec,
-                                                    k_sizevec,
-                                                    muvec,
-                                                    mu_sizevec,
-                                                    out_pkmu),
-                       pfo->peft->error_message,
-                       pfo->error_message);
-
-            /*
-              index_z=0;
-              for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-              for (index_k = 0; index_k < pfo->k_size; index_k++) {
-              fprintf(stderr,"%e %e %e\n",
-              muvec[index_z][index_mu],
-              kvec[index_z][k_sizevec[index_z]*index_mu+index_k],
-              out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
-              }
-              }
-            */
+              class_call(eft_job_powerspectrum_wedges(pfo->peft,
+                                                      pfo->eft_size,
+                                                      pba,
+                                                      pfo,
+                                                      ppm,
+                                                      ppr,
+                                                      Pdd_mm_real,
+                                                      &z,
+                                                      &eft_ip_dummy,
+                                                      1,
+                                                      kvec,
+                                                      &k_size,
+                                                      muvec,
+                                                      &mu_size,
+                                                      out_pkmu),
+                          pfo->peft->error_message,
+                          pfo->error_message);
+            }
 
 
-            index_z=0;
             /* so far, we only write the spectrum at mu=0 (real-space power spectrum) */
-            index_mu=0;
             /* so far, the oneloop method will write identical output for _m and _cb since we did not code the difference */
-            for (index_k=0; index_k<pfo->k_size; index_k++) {
+            for (index_k=0; index_k < pfo->k_size; index_k++) {
               /* if k is in the range where oneloop works, P_NL = result of oneloop */
               if ((pfo->k[index_k] > pfo->eft_hp.kmin_nl) && (pfo->k[index_k] < pfo->eft_hp.kmax_nl)) {
                 //pfo->ln_pk_nl[index_pk][index_tau*pfo->k_size+index_k] = log(out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
-                pk_nl[index_pk][index_k] = out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k];
+                pk_nl[index_pk][index_k] = out_pkmu[0][index_k];
               }
               /* otherwise, P_NL = P_L */
               else {
@@ -2860,15 +2828,12 @@ int fourier_init(
     }
 
     if (pfo->method == nl_oneloopPT) {
-      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-        free(out_pkmu[index_z]);
-        free(kvec[index_z]);
-        free(muvec[index_z]);
-      }
+      free(*out_pkmu);
+      free(*kvec);
+      free(*muvec);
       free(out_pkmu);
       free(kvec);
       free(muvec);
-      free(zvec);
     }
   }
 

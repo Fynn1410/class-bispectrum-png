@@ -836,6 +836,15 @@ cdef extern from "class.h":
                   double * pk_cb_tot_out,
                   int nonlinear)
 
+    int eft_nearest_structure_in_time(
+        void * peft0,
+        int peft_size,
+        void * pba,
+        void * pfo,
+        double z,
+        void * peft_min_dist
+        )
+
     int eft_linear_spectrum_real(
         void * pba,
         void * ppm,
@@ -852,7 +861,8 @@ cdef extern from "class.h":
         double * out_pk
         )
 
-    int eft_linear_spectrum_rsd(void * pba,
+    int eft_linear_spectrum_rsd(
+        void * pba,
         void * ppm,
         void * pfo,
         void * peft,
@@ -869,39 +879,59 @@ cdef extern from "class.h":
         double * out_pk
         )
 
-    int eft_job_powerspectrum_wedges_grid(void * peft0,
-                                          int peft_size,
-                                          void * pba,
-                                          void * pfo,
-                                          void * ppm,
-                                          void * ppr,
-                                          eft_pk_out_type pk_out_type,
-                                          double * z,
-                                          void * peft_ip,
-                                          int z_size,
-                                          double * k,
-                                          int k_size,
-                                          double * mu,
-                                          int mu_size,
-                                          double * out_pkmuz
-                                          )
+    int eft_job_powerspectrum_wedges_grid(
+        void * peft0,
+        int peft_size,
+        void * pba,
+        void * pfo,
+        void * ppm,
+        void * ppr,
+        eft_pk_out_type pk_out_type,
+        double * z,
+        void * peft_ip,
+        int z_size,
+        double * k,
+        int k_size,
+        double * mu,
+        int mu_size,
+        double * out_pkmuz
+        )
 
-    int eft_job_powerspectrum_wedges(void * peft0,
-                                     int peft_size,
-                                     void * pba,
-                                     void * pfo,
-                                     void * ppm,
-                                     void * ppr,
-                                     eft_pk_out_type pk_out_type,
-                                     double * zvec,
-                                     void * peft_ip,
-                                     int z_size,
-                                     double ** kvec,
-                                     int * k_sizevec,
-                                     double ** muvec,
-                                     int * mu_sizevec,
-                                     double ** out_pkmu
-                                     )
+    int eft_job_powerspectrum_wedges(
+        void * peft0,
+        int peft_size,
+        void * pba,
+        void * pfo,
+        void * ppm,
+        void * ppr,
+        eft_pk_out_type pk_out_type,
+        double * zvec,
+        void * peft_ip,
+        int z_size,
+        double ** kvec,
+        int * k_sizevec,
+        double ** muvec,
+        int * mu_sizevec,
+        double ** out_pkmu
+        )
+
+    int eft_job_powerspectrum_multipoles(
+        void * peft0,
+        int peft_size,
+        void * pba,
+        void * pfo,
+        void * ppm,
+        void * ppr,
+        eft_pk_out_type pk_out_type,
+        double * zvec,
+        void * peft_ip,
+        int z_size,
+        double ** kvec,
+        int * k_sizevec,
+        double * ap_parallel,
+        double * ap_perpendicular,
+        double ** out_pkl
+        )
 
 
 cdef extern from "ext_storage.h":
