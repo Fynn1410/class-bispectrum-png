@@ -73,6 +73,10 @@ cdef extern from "class.h":
         Pdd_hh_real
         Pdd_hh_rsd
         Pdd_mm_real_no_IR_resum
+        Pdd_mm_22
+        Pdd_mm_13
+        Pdd_mm_22_no_IR_resum
+        Pdd_mm_13_no_IR_resum
         pk_out_type_num
 
     cdef enum eft_arg_type:

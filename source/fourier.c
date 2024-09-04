@@ -2693,7 +2693,7 @@ int fourier_init(
                                                       pfo,
                                                       ppm,
                                                       ppr,
-                                                      Pdd_mm_real_no_IR_resum,
+                                                      Pdd_mm_real,
                                                       &z,
                                                       &eft_ip_dummy,
                                                       1,

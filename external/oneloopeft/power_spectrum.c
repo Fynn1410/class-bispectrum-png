@@ -33,6 +33,30 @@ int eft_necessary_spectra_contributions(struct eft * peft,
     }
     break;
 
+  case Pdd_mm_22:
+    *list_spectra_contributions_size = 1;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    (*list_spectra_contributions)[0] = pk_ir_resummed_lo * peft->index_num + peft->index_I2200;
+    break;
+
+  case Pdd_mm_22_no_IR_resum:
+    *list_spectra_contributions_size = 1;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    (*list_spectra_contributions)[0] = pk_lin * peft->index_num + peft->index_I2200;
+    break;
+
+  case Pdd_mm_13:
+    *list_spectra_contributions_size = 1;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    (*list_spectra_contributions)[0] = pk_ir_resummed_lo * peft->index_num + peft->index_I1300;
+    break;
+
+  case Pdd_mm_13_no_IR_resum:
+    *list_spectra_contributions_size = 1;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    (*list_spectra_contributions)[0] = pk_lin * peft->index_num + peft->index_I1300;
+    break;
+
   case Pdd_mm_rsd:
     /** TODO: */
     *list_spectra_contributions_size = 0;
@@ -92,12 +116,16 @@ int eft_necessary_pk_types_loops(struct eft * peft,
   switch (pk_out_type)
   {
   case Pdd_mm_real:
+  case Pdd_mm_22:
+  case Pdd_mm_13:
     *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
     (*list_pk_types)[0] = pk_ir_resummed_lo;
     break;
 
   case Pdd_mm_real_no_IR_resum:
+  case Pdd_mm_22_no_IR_resum:
+  case Pdd_mm_13_no_IR_resum:
     *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
     (*list_pk_types)[0] = pk_lin;
@@ -154,7 +182,16 @@ int eft_necessary_pk_types_total(struct eft * peft,
     (*list_pk_types)[1] = pk_ir_resummed_nlo;
     break;
 
+  case Pdd_mm_22:
+  case Pdd_mm_13:
+    *list_pk_types_size = 1;
+    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+    (*list_pk_types)[0] = pk_ir_resummed_lo;
+    break;
+
   case Pdd_mm_real_no_IR_resum:
+  case Pdd_mm_22_no_IR_resum:
+  case Pdd_mm_13_no_IR_resum:
     *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
     (*list_pk_types)[0] = pk_lin;
@@ -1749,6 +1786,24 @@ int eft_build_nonlinear_power_spectrum_wedges(
             pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
             break;
 
+          case Pdd_mm_22:
+          case Pdd_mm_22_no_IR_resum:
+            I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
+            
+            Preal_loop = D4 * I2200;
+
+            pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
+            break;
+
+          case Pdd_mm_13:
+          case Pdd_mm_13_no_IR_resum:
+            I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
+
+            Preal_loop = D4 * I1300;
+
+            pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
+            break;
+
           case Pdd_mm_rsd:
             // TODO
             break;
@@ -1902,6 +1957,16 @@ int eft_build_nonlinear_power_spectrum_wedges(
       case Pdd_mm_real_no_IR_resum:
         pkmu[index_mu*peft->k_size + index_k] = peft->pk_l[pk_lin][index_mu_k]   \
                         + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        break;
+      
+      case Pdd_mm_22:
+      case Pdd_mm_13:
+        pkmu[index_mu*peft->k_size + index_k] = pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        break;
+
+      case Pdd_mm_22_no_IR_resum:
+      case Pdd_mm_13_no_IR_resum:
+        pkmu[index_mu*peft->k_size + index_k] = pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_mm_rsd:

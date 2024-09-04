@@ -4106,14 +4106,6 @@ make        nonlinear_scale_cb(z, z_size)
                 eft_ip[index_z].cs2 = counterterms[index_z, 0]
                 eft_ip[index_z].has_rsd = 0
 
-        elif pk_type == 'Pdd_mm_real_no_IR_resummation':
-            pk_output_type = Pdd_mm_real_no_IR_resum
-
-            for index_z in range(z_size):
-                # fill input structures
-                eft_ip[index_z].cs2 = counterterms[index_z, 0]
-                eft_ip[index_z].has_rsd = 0
-
         elif pk_type == 'Pdd_hh_real':
             pk_output_type = Pdd_hh_real
 
@@ -4126,6 +4118,43 @@ make        nonlinear_scale_cb(z, z_size)
                 eft_ip[index_z].cs2 = counterterms[index_z, 0]
                 eft_ip[index_z].R2  = counterterms[index_z, 1]
                 eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_real_no_IR_resummation':
+            pk_output_type = Pdd_mm_real_no_IR_resum
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].cs2 = counterterms[index_z, 0]
+                eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_22':
+            pk_output_type = Pdd_mm_22
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_13':
+            pk_output_type = Pdd_mm_13
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_22_no_IR_resummation':
+            pk_output_type = Pdd_mm_22_no_IR_resum
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].has_rsd = 0
+                
+        elif pk_type == 'Pdd_mm_13_no_IR_resummation':
+            pk_output_type = Pdd_mm_13_no_IR_resum
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].has_rsd = 0
+
         else:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_type)
 
