@@ -72,6 +72,7 @@ cdef extern from "class.h":
         Pdd_mm_rsd
         Pdd_hh_real
         Pdd_hh_rsd
+        Pdd_mm_real_no_IR_resum
         pk_out_type_num
 
     cdef enum eft_arg_type:
@@ -843,6 +844,23 @@ cdef extern from "class.h":
         void * pfo,
         double z,
         void * peft_min_dist
+        )
+
+    int eft_set_sampling_points_all(
+        void * peft0,
+        int eft_size,
+        double * kvec_Mpc,
+        double * muvec,
+        int k_size,
+        int mu_size
+        )
+
+    int eft_set_sampling_points(
+        void * peft,
+        double * kvec_Mpc,
+        double * muvec,
+        int k_size,
+        int mu_size
         )
 
     int eft_linear_spectrum_real(

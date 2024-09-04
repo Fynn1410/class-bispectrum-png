@@ -18,6 +18,15 @@ int eft_necessary_pk_types_loops(
                       int * list_pk_types_size
                       );
 
+int eft_set_sampling_points_all(
+                      struct eft * peft0,
+                      const int eft_size,
+                      const double * const kvec_Mpc,
+                      const double * const muvec,
+                      const int k_size,
+                      const int mu_size
+                      );
+
 int eft_set_sampling_points(
                       struct eft * peft,
                       const double * const kvec_Mpc,

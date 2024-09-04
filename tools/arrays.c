@@ -1,9 +1,133 @@
 /**
  * module with tools for manipulating arrays
  * Julien Lesgourgues, 18.04.2010
+ * Christian Radermacher, 2023/24
  */
 
 #include "arrays.h"
+
+/**
+ * @brief Internal function for searching supremum and infimum indices
+ *        for value in array using bisection
+ *
+ * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
+ * @param array_stride  Input: stride in array
+ * @param array_size    Input: size of array
+ * @param value         Input: value to search for
+ * @param inf_index     In/Output: infimum index (previous must be given)
+ * @param sup_index     Output: supremum index
+ *
+ * @return the error status
+ */
+int array_search_bisect_internal(
+                const double * const __restrict__ array0,
+                int array_stride,
+                const int array_size,
+                const double value,
+                int * const __restrict__ inf_index,
+                int * const __restrict__ sup_index,
+                ErrorMsg errmsg) {
+
+  int inf, sup, mid, reversed = _FALSE_;
+  const double * array = array0;
+
+  inf = 0;
+  sup = array_size-1;
+
+  if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
+    /** reverse the array indexing */
+    array_stride *= -1;
+    array += array_size-1;
+    reversed = _TRUE_;
+  }
+
+  class_test((value < array[0*array_stride]) || (value > array[(array_size-1)*array_stride]), errmsg, \
+            "value=%e is outside of the range of array values (y_min=%e, y_max=%e)",                  \
+            value, array[0*array_stride], array[(array_size-1)*array_stride]);
+
+  while (sup-inf > 1) {
+    mid = (int)(0.5*(inf+sup));
+    if (value < array[mid]) {sup=mid;}
+    else {inf=mid;}
+  }
+
+  if (reversed) { /** - descending values */
+    *inf_index = (array_size-1) - sup;
+    *sup_index = (array_size-1) - inf;
+  }
+  else {          /** - ascending values */
+    *inf_index = inf;
+    *sup_index = sup;
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Internal function for searching supremum and infimum indices
+ *        for value in array in the neighborhood of a previous infimum
+ *
+ * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
+ * @param array_stride  Input: stride in array
+ * @param array_size    Input: size of array
+ * @param value         Input: value to search for
+ * @param inf_index     In/Output: infimum index (previous must be given)
+ * @param sup_index     Output: supremum index
+ *
+ * @return the error status
+ */
+int array_search_closeby_internal(
+                const double * const __restrict__ array0,
+                int array_stride,
+                const int array_size,
+                const double value,
+                int * const __restrict__ inf_index,
+                int * const __restrict__ sup_index,
+                ErrorMsg errmsg) {
+
+  int inf, sup, reversed;
+  const double * array = array0;
+
+  if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
+    /** reverse the array indexing */
+    array_stride *= -1;
+    array += array_size-1;
+    inf = (array_size-1) - (*inf_index + 1);
+    reversed = _TRUE_;
+  }
+  else {                                                             /** - ascending values */
+    inf = *inf_index;
+    reversed = _FALSE_;
+  }
+
+  /** - search for spline interval containing x close to last inf */
+  // if (inf<0 || inf>(x_size-1)) return _FAILURE_;  handled by caller
+  while (value < array[inf*array_stride]) {
+    inf--;
+    class_test((inf < 0), errmsg, \
+              "value=%e is outside of the range of array values (y_min=%e, y_max=%e)", \
+              value, array[0*array_stride], array[(array_size-1)*array_stride]);
+  }
+  sup = inf + 1;
+  while (value > array[sup*array_stride]) {
+    sup++;
+    class_test((sup > (array_size-1)), errmsg, \
+              "value=%e is outside of the range of array values (y_min=%e, y_max=%e)", \
+              value, array[0*array_stride], array[(array_size-1)*array_stride]);
+  }
+  inf = sup - 1;
+
+  if (reversed) { /** - descending values */
+    *inf_index = (array_size-1) - sup;
+    *sup_index = (array_size-1) - inf;
+  }
+  else {          /** - ascending values */
+    *inf_index = inf;
+    *sup_index = sup;
+  }
+
+  return _SUCCESS_;
+}
 
 /**
  * Called by thermodynamics_init(); perturbations_sources().
@@ -1344,6 +1468,62 @@ int array_integrate_internal(
   return _SUCCESS_;
 }
 
+int array_integrate_internal_partial_range(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                const double a,
+                const double b,
+                const int index_a,
+                const int index_b,
+                double * result) {
+
+  int index_x;
+  double h, b1, b2, sy, sM, dy, dM, sum;
+
+  index_x = index_a;
+  h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+  b1 = (a - x0[index_x*x_stride])/h;
+  sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+  dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+  sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+  dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+  
+  sum = -h/2. * ( ( b1 * sy - b1*(b1 - 1.) * dy )   \
+                  -h*h/12. * ( b1*b1*(3. - 2.*b1) * sM + b1*b1*(b1*(b1 - 2.) + 1.) * dM ) );
+
+  if (index_b > index_a) {
+    sum += h/2. * ( sy - h*h/12. * sM );
+
+    for (index_x = index_a+1; index_x < index_b; index_x++) {
+      h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+      sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+      sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+      sum += h/2. * ( sy - h*h/12. * sM );
+    }
+
+    index_x = index_b;
+    h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+    b2 = (b - x0[index_x*x_stride])/h;
+    sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+    dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+    sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+    dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+  }
+
+  sum += h/2. * ( ( b2 * sy - b2*(b2 - 1.) * dy )   \
+                  -h*h/12. * ( b2*b2*(3. - 2.*b2) * sM + b2*b2*(b2*(b2 - 2.) + 1.) * dM ) );
+
+
+  *result = sum;
+
+  return _SUCCESS_;
+}
+
 int array_square_integrate_internal(
                 const double * const x0,
                 const int x_size,
@@ -1635,6 +1815,146 @@ int array_integrate_all_spline_table_lines(
                              _SPL_INTEGRATION_DEF_COND_THRESHOLD_,
                              cond_num + index_y);
   }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the spline integral in a partial range.
+ *        dI = dx S(x) on [a, b]
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param a           Input: lower limit of integration region
+ * @param b           Input: upper limit of integration region
+ * @param result      Output: integration result I with elements[index_y]
+ * @param errmsg
+ *
+ * @return the error status
+ */
+int array_integrate_all_spline_partial_range_table_lines(
+		      double * x,
+			    int x_size,
+			    double * y_array,
+			    int y_size,
+			    double * ddy_array,
+          double a,
+          double b,
+			    double * result,
+          ErrorMsg errmsg) {
+
+  int index_y, index_a, index_b, sup;
+  ErrorMsg err_search;
+
+  class_call(array_search_bisect_internal(x,
+                                          1,
+                                          x_size,
+                                          a,
+                                          &index_a,
+                                          &sup,
+                                          err_search),
+              err_search, errmsg);
+
+  class_call(array_search_bisect_internal(x,
+                                          1,
+                                          x_size,
+                                          b,
+                                          &index_b,
+                                          &sup,
+                                          err_search),
+              err_search, errmsg);
+
+  for (index_y = 0; index_y < y_size; index_y++) {
+    array_integrate_internal_partial_range(x,
+                                           x_size,
+                                           1,
+                                           y_array + index_y,
+                                           y_size,
+                                           ddy_array + index_y,
+                                           y_size,
+                                           a,
+                                           b,
+                                           index_a,
+                                           index_b,
+                                           result + index_y);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the spline integral in a partial range.
+ *        dI = dx S(x) on [a, b]
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param a           Input: lower limit of integration region
+ * @param b           Input: upper limit of integration region
+ * @param last_index  In/Output: close to infimum index of a in x, overwritten with infimum index of b in x
+ * @param result      Output: integration result I with elements[index_y]
+ * @param errmsg
+ *
+ * @return the error status
+ */
+int array_integrate_all_spline_partial_range_table_lines_closeby(
+		      double * x,
+			    int x_size,
+			    double * y_array,
+			    int y_size,
+			    double * ddy_array,
+          double a,
+          double b,
+          int * last_index,
+			    double * result,
+          ErrorMsg errmsg) {
+
+  int index_y, index_a, index_b, sup;
+  ErrorMsg err_search;
+
+  index_a = *last_index;
+  class_call(array_search_closeby_internal(x,
+                                          1,
+                                          x_size,
+                                          a,
+                                          &index_a,
+                                          &sup,
+                                          err_search),
+              err_search, errmsg);
+
+  index_b = sup;
+  class_call(array_search_closeby_internal(x,
+                                          1,
+                                          x_size,
+                                          b,
+                                          &index_b,
+                                          &sup,
+                                          err_search),
+              err_search, errmsg);
+
+  for (index_y = 0; index_y < y_size; index_y++) {
+    array_integrate_internal_partial_range(x,
+                                           x_size,
+                                           1,
+                                           y_array + index_y,
+                                           y_size,
+                                           ddy_array + index_y,
+                                           y_size,
+                                           a,
+                                           b,
+                                           index_a,
+                                           index_b,
+                                           result + index_y);
+  }
+
+  *last_index = index_b;
 
   return _SUCCESS_;
 }
@@ -2681,129 +3001,6 @@ int array_integrate_ratio(
     *(array+i*n_columns+index_int_y1_over_y2_dx)=sum;
   }
 
-
-  return _SUCCESS_;
-}
-
-/**
- * @brief Internal function for searching supremum and infimum indices
- *        for value in array using bisection
- *
- * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
- * @param array_stride  Input: stride in array
- * @param array_size    Input: size of array
- * @param value         Input: value to search for
- * @param inf_index     In/Output: infimum index (previous must be given)
- * @param sup_index     Output: supremum index
- *
- * @return the error status
- */
-int array_search_bisect_internal(
-                const double * const __restrict__ array0,
-                int array_stride,
-                const int array_size,
-                const double value,
-                int * const __restrict__ inf_index,
-                int * const __restrict__ sup_index,
-                ErrorMsg errmsg) {
-
-  int inf, sup, mid, reversed = _FALSE_;
-  const double * array = array0;
-
-  inf = 0;
-  sup = array_size-1;
-
-  if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
-    /** reverse the array indexing */
-    array_stride *= -1;
-    array += array_size-1;
-    reversed = _TRUE_;
-  }
-
-  class_test((value < array[0*array_stride]) || (value > array[(array_size-1)*array_stride]), errmsg, \
-            "value=%e is outside of the range of array values (y_min=%e, y_max=%e)",                  \
-            value, array[0*array_stride], array[(array_size-1)*array_stride]);
-
-  while (sup-inf > 1) {
-    mid = (int)(0.5*(inf+sup));
-    if (value < array[mid]) {sup=mid;}
-    else {inf=mid;}
-  }
-
-  if (reversed) { /** - descending values */
-    *inf_index = (array_size-1) - sup;
-    *sup_index = (array_size-1) - inf;
-  }
-  else {          /** - ascending values */
-    *inf_index = inf;
-    *sup_index = sup;
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * @brief Internal function for searching supremum and infimum indices
- *        for value in array in the neighborhood of a previous infimum
- *
- * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
- * @param array_stride  Input: stride in array
- * @param array_size    Input: size of array
- * @param value         Input: value to search for
- * @param inf_index     In/Output: infimum index (previous must be given)
- * @param sup_index     Output: supremum index
- *
- * @return the error status
- */
-int array_search_closeby_internal(
-                const double * const __restrict__ array0,
-                int array_stride,
-                const int array_size,
-                const double value,
-                int * const __restrict__ inf_index,
-                int * const __restrict__ sup_index,
-                ErrorMsg errmsg) {
-
-  int inf, sup, reversed;
-  const double * array = array0;
-
-  if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
-    /** reverse the array indexing */
-    array_stride *= -1;
-    array += array_size-1;
-    inf = (array_size-1) - (*inf_index + 1);
-    reversed = _TRUE_;
-  }
-  else {                                                             /** - ascending values */
-    inf = *inf_index;
-    reversed = _FALSE_;
-  }
-
-  /** - search for spline interval containing x close to last inf */
-  // if (inf<0 || inf>(x_size-1)) return _FAILURE_;  handled by caller
-  while (value < array[inf*array_stride]) {
-    inf--;
-    class_test((inf < 0), errmsg, \
-              "value=%e is outside of the range of array values (y_min=%e, y_max=%e)", \
-              value, array[0*array_stride], array[(array_size-1)*array_stride]);
-  }
-  sup = inf + 1;
-  while (value > array[sup*array_stride]) {
-    sup++;
-    class_test((sup > (array_size-1)), errmsg, \
-              "value=%e is outside of the range of array values (y_min=%e, y_max=%e)", \
-              value, array[0*array_stride], array[(array_size-1)*array_stride]);
-  }
-  inf = sup - 1;
-
-  if (reversed) { /** - descending values */
-    *inf_index = (array_size-1) - sup;
-    *sup_index = (array_size-1) - inf;
-  }
-  else {          /** - ascending values */
-    *inf_index = inf;
-    *sup_index = sup;
-  }
 
   return _SUCCESS_;
 }

@@ -259,6 +259,11 @@ int eft_indices(struct eft * peft,
     }
 
     peft->mu_size = 0;
+
+    /** - initialize Sigma^2 for the IR resummation to 0 */
+    peft->Sigma2_ir  = 0.;
+    peft->dSigma2_ir = 0.;
+
   }
 
   /** - allocate and initialize spectra contributions and Fourier coefficient indicators */
@@ -413,7 +418,7 @@ int eft_init(struct precision * ppr,
   return _SUCCESS_;
 }
 
-/** TODO: inline this */
+/** TODO: inline this, problem with Pdd_mm_real located in here [Sigma2 is zero] */
 int eft_linear_spectrum_real(
                   struct background * pba,
                   struct primordial * ppm,
@@ -1251,11 +1256,12 @@ int eft_get_loop_matrices(struct eft * peft,
     /** - external storage takes precedent: insert loop matrices from external storage */
     /** - condition here is negated: if insertion fails, allocate and compute matrices / load them from files */
     if (ext_insert_eft(pext, peft, index, peft->moments_allocated, errmsg) != _SUCCESS_) {
-      if (pext && peft->hp->eft_verbose > 1) { printf("Could not insert loop matrices from external storage for index = %d: \n => %s \n", index, errmsg); }
+      if (pext && peft->hp->eft_verbose > 1) { printf("Could not insert kernel matrices from external storage for index = %d: \n => %s \n", index, errmsg); }
 
       class_call(eft_allocate_loop_matrices(peft), peft->error_message, peft->error_message);
       /** - if external storage is not available/compatible, either */
       if (peft->hp->compute_loop_matrices) {  /** - compute the loop matrices or */
+        if (peft->hp->eft_verbose > 1) { printf("Computing kernel matrices.\n"); }
         class_call(eft_compute_loop_matrices(peft), peft->error_message, peft->error_message);
 
         if (peft->hp->write_loop_matrices == _TRUE_) {  /** - and save them if flag is set */
@@ -1575,6 +1581,16 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     D_z = D_zvec[index_z];
 
     if (list_pk_types_loops_not_loaded_size > 0 && peft->hp->integration_mode == fftlog) {
+      /** - compute the Fourier transforms */
+      class_call(eft_fourier_transform_linear_spectra(ppr, pba, pfo, ppm,
+                                                      peft,
+                                                      z,
+                                                      f_z,
+                                                      D_z,
+                                                      list_pk_types_loops_not_loaded,
+                                                      list_pk_types_loops_not_loaded_size),
+                  peft->error_message, peft->error_message);
+
       /** - load the real-space linear spectra */
       class_call(eft_load_linear_spectra(pba, pfo, ppm,
                                          peft,
@@ -1585,16 +1601,6 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                          list_pk_types_loops_not_loaded_size,
                                          &mu_real,
                                          1),
-                  peft->error_message, peft->error_message);
-
-      /** - compute the Fourier transforms */
-      class_call(eft_fourier_transform_linear_spectra(ppr, pba, pfo, ppm,
-                                                      peft,
-                                                      z,
-                                                      f_z,
-                                                      D_z,
-                                                      list_pk_types_loops_not_loaded,
-                                                      list_pk_types_loops_not_loaded_size),
                   peft->error_message, peft->error_message);
     }
 
@@ -1707,6 +1713,76 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
 
   return _SUCCESS_;
 }
+
+static const int gl_rule_mu_avg_size = 3;
+static const double gl_mu_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+static const double gl_mu_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
+static const int gl_rule_k_avg_size = 5;
+static const double gl_k_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+static const double gl_k_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
+
+/**
+ * @brief Computes power-spectrum wedges at given redshifts, wavenumbers and l.o.s. angles
+ *        using a given growth rate consistently.
+ *
+ * @param peft0       Input: pointer to the first eft-structure
+ * @param peft_size   Input: number of eft-structures
+ * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
+ * @param D_z_pk_eft  Input: growth rate D(z) at z_pk of each eft-structure
+ * @param pba         Input: pointer to the background structure
+ * @param pfo         Input: pointer to the fourier structure
+ * @param ppm         Input: pointer to the primordial structure
+ * @param ppr         Input: pointer to the precisions structure
+ * @param pk_out_type Input: type of power-spectrum to compute
+ * @param zvec        Input: redshifts at which to compute it
+ * @param f_zvec      Input: logarithmic growth rate at each z in zvec
+ * @param D_zvec      Input: growth rate D(z) at each z in zvec
+ * @param peft_ip     Input: Input parameter structures for each eft-structure
+ * @param z_size      Input: size of zvec
+ * @param kvec_upper_fid    Input: upper edge of fiducial wavenumber bins [in 1/Mpc]; indexed as kvec_upper_fid[index_z][index_k]
+ * @param kvec_lower_fid    Input: lower edge of fiducial wavenumber bins [in 1/Mpc]; indexed as kvec_lower_fid[index_z][index_k]
+ * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
+ * @param muvec_upper_fid   Input: upper edge of bins of fiducial cosine of line-of-sight angles; indexed as muvec_upper_fid[index_z][index_mu]
+ * @param muvec_lower_fid   Input: lower edge of bins of fiducial cosine of line-of-sight angles; indexed as muvec_lower_fid[index_z][index_mu]
+ * @param mu_sizevec  Input: size of muvec at each index_z; indexed as mu_sizevec[index_z]
+ * @param ap_parallel Input: parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
+ * @param ap_perpendicular  Input: perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z) 
+ * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
+ *                            needs to be pre-allocated with size k_sizevec[index_z]*mu_sizevec[index_z] at each index_z
+ *
+ * @return the error status
+ */
+int eft_job_powerspectrum_wedges_averaged_ext_growth_rate(
+                                struct eft * peft0,
+                                const int peft_size,
+                                const double * const f_z_pk_eft,
+                                const double * const D_z_pk_eft,
+                                struct background * pba,
+                                struct fourier * pfo,
+                                struct primordial * ppm,
+                                struct precision * ppr,
+                                enum eft_pk_out_type pk_out_type,
+                                const double * const zvec,
+                                const double * const f_zvec,
+                                const double * const D_zvec,
+                                const struct eft_input_parameters * peft_ip,
+                                const int z_size,
+                                double ** kvec_upper_fid,
+                                double ** kvec_lower_fid,
+                                const int * const k_sizevec,
+                                double ** muvec_upper_fid,
+                                double ** muvec_lower_fid,
+                                const int * const mu_sizevec,
+                                double * ap_parallel,
+                                double * ap_perpendicular,
+                                double ** out_pkmu
+                                ) {
+
+  double ** kvec_true, ** muvec_true;
+
+  return _SUCCESS_;
+}
+
 
 
 /**
@@ -1899,9 +1975,9 @@ int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
 // static const int gl_rule_size = 9;
 // static const double gl_abscissa[] = {-1., -0.89975799541146015731, -0.67718627951073775345, -0.36311746382617815871, 0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
 // static const double gl_weights[] = {0.027777777777777777778, -0.067801868533905777326, 0.087327403186094540303, -0.098096963223617334406, 0.10158730158730158730, -0.098096963223617334406, 0.087327403186094540303, -0.067801868533905777326, 0.027777777777777777778};
-static const int gl_rule_sym_size = 5;
-static const double gl_sym_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
-static const double gl_sym_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
+static const int gl_rule_multipole_sym_size = 5;
+static const double gl_multipole_sym_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+static const double gl_multipole_sym_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
 static const double lg_measure[][MULTIPOLE_SIZE] = { {1., -0.5, 0.375}, {1., -0.30221856119666629454, -0.043391796245607083376}, {1., 0.18787188573639255829, -0.42463134814493003484}, {1., 0.71434667546027373625, 0.20648468285207557975}, {1., 1., 1.} };
 
 /**
@@ -1958,7 +2034,7 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
 
   /** - allocate additional input/output arrays for power-spectrum wedges */
   for (index_z = 0; index_z < z_size; index_z++) {
-    mu_sizevec[index_z] = gl_rule_sym_size;
+    mu_sizevec[index_z] = gl_rule_multipole_sym_size;
     class_alloc(muvec_true[index_z], mu_sizevec[index_z]*sizeof(double), peft0->error_message);
     class_alloc(kvec_true[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft0->error_message);
     class_alloc(out_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft0->error_message);
@@ -1967,7 +2043,7 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
     for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
       class_protect_memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
     }
-    class_protect_memcpy(muvec_true[index_z], gl_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
+    class_protect_memcpy(muvec_true[index_z], gl_multipole_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
   }
 
   /** - apply the AP effect */
@@ -2007,13 +2083,13 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
 
   /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
   #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu, ap_parallel, ap_perpendicular),   \
-                           private(index_z, index_l, index_k, index_mu), firstprivate(gl_sym_weights, lg_measure), default(none)
+                           private(index_z, index_l, index_k, index_mu), firstprivate(gl_multipole_sym_weights, lg_measure), default(none)
   for (index_z = 0; index_z < z_size; index_z++) {
     for (index_l = 0; index_l < MULTIPOLE_SIZE; index_l++) {
       for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
         out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] = 0.;
         for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_sym_weights[index_mu] * lg_measure[index_mu][index_l]    \
+          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_multipole_sym_weights[index_mu] * lg_measure[index_mu][index_l]    \
                                                                     * out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]  \
                                                                     / (ap_parallel[index_z] * ap_perpendicular[index_z] * ap_perpendicular[index_z]);
         }
@@ -2075,7 +2151,7 @@ int eft_job_powerspectrum_multipoles(
 
   /** - allocate additional input/output arrays for power-spectrum wedges */
   for (index_z = 0; index_z < z_size; index_z++) {
-    mu_sizevec[index_z] = gl_rule_sym_size;
+    mu_sizevec[index_z] = gl_rule_multipole_sym_size;
     class_alloc(muvec_true[index_z], mu_sizevec[index_z]*sizeof(double), peft0->error_message);
     class_alloc(kvec_true[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft0->error_message);
     class_alloc(out_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft0->error_message);
@@ -2084,7 +2160,7 @@ int eft_job_powerspectrum_multipoles(
     for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
       class_protect_memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
     }
-    class_protect_memcpy(muvec_true[index_z], gl_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
+    class_protect_memcpy(muvec_true[index_z], gl_multipole_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
   }
 
   /** - apply the AP effect */
@@ -2120,13 +2196,13 @@ int eft_job_powerspectrum_multipoles(
 
   /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
   #pragma omp parallel for schedule(static), collapse(2), shared(z_size, k_sizevec, mu_sizevec, out_pkl, out_pkmu, ap_parallel, ap_perpendicular),   \
-                           private(index_z, index_l, index_k, index_mu), firstprivate(gl_sym_weights, lg_measure), default(none)
+                           private(index_z, index_l, index_k, index_mu), firstprivate(gl_multipole_sym_weights, lg_measure), default(none)
   for (index_z = 0; index_z < z_size; index_z++) {
     for (index_l = 0; index_l < MULTIPOLE_SIZE; index_l++) {
       for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
         out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] = 0.;
         for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_sym_weights[index_mu] * lg_measure[index_mu][index_l]    \
+          out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] += gl_multipole_sym_weights[index_mu] * lg_measure[index_mu][index_l]    \
                                                                     * out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]  \
                                                                     / (ap_parallel[index_z] * ap_perpendicular[index_z] * ap_perpendicular[index_z]);
         }

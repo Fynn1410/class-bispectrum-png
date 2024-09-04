@@ -2508,15 +2508,13 @@ int fourier_init(
       }
 
       /** - build the name of the files in wich loop matrices will be written or read */
-      if (pfo->eft_hp.write_loop_matrices == _TRUE_) {
-        for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
-          if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
-            strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
-            strcat(pfo->eft_hp.eft_loop_matrix_files[index_moment], eft_loop_matrix_files_default[index_moment]);
-          }
-          else {
-            class_stop(pfo->error_message, "Kernel matrix filename %s%s_000.mat is too long", pfo->eft_hp.eft_loop_matrix_directory, eft_loop_matrix_files_default[index_moment]);
-          }
+      for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
+        if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
+          strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
+          strcat(pfo->eft_hp.eft_loop_matrix_files[index_moment], eft_loop_matrix_files_default[index_moment]);
+        }
+        else {
+          class_stop(pfo->error_message, "Kernel matrix filename %s%s_000.mat is too long", pfo->eft_hp.eft_loop_matrix_directory, eft_loop_matrix_files_default[index_moment]);
         }
       }
 
@@ -2566,7 +2564,7 @@ int fourier_init(
       class_alloc(out_pkmu, sizeof(double *), pfo->error_message);
       class_alloc(*out_pkmu, pfo->k_size*sizeof(double), pfo->error_message);
 
-      eft_ip_dummy = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+      eft_ip_dummy = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 0, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
 
     /************************ END PRELIMINARY ZONE 1 **********************/
 
@@ -2695,7 +2693,7 @@ int fourier_init(
                                                       pfo,
                                                       ppm,
                                                       ppr,
-                                                      Pdd_mm_real,
+                                                      Pdd_mm_real_no_IR_resum,
                                                       &z,
                                                       &eft_ip_dummy,
                                                       1,

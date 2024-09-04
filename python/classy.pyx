@@ -1728,9 +1728,9 @@ cdef class Class:
         for index_tau in range(self.fo.ln_tau_size):
             for index_k in range(self.fo.k_size_pk):
                 if nonlinear == True:
-                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_nl[index_pk][index_tau * self.fo.k_size + index_k])
+                    pk[index_k, index_tau] = exp(self.fo.ln_pk_nl[index_pk][index_tau * self.fo.k_size + index_k])
                 else:
-                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_l[index_pk][index_tau * self.fo.k_size + index_k])
+                    pk[index_k, index_tau] = exp(self.fo.ln_pk_l[index_pk][index_tau * self.fo.k_size + index_k])
 
         return pk, k, z
 
@@ -3446,6 +3446,34 @@ make        nonlinear_scale_cb(z, z_size)
           sd_amp[i] = self.sd.DI[i]*self.sd.DI_units*1.e26
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
+    
+    def eft_set_output_sampling(self,
+        np.ndarray[DTYPE_t,ndim=1] mu,
+        np.ndarray[DTYPE_t,ndim=2] k):
+
+        if not mu.flags['C_CONTIGUOUS']:
+            mu = np.ascontiguousarray(mu)
+        if not k.flags['C_CONTIGUOUS']:
+            k = np.ascontiguousarray(k)
+
+        cdef int mu_size = <int>mu.shape[0]
+        cdef int k_size = <int>k.shape[1]
+    
+        # check input consistency
+        if (k.shape[0] != mu_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({1:d}) for mu and ({2:d}, {3:d}) for k.".format(mu.shape[0], k.shape[0], k.shape[1]))
+        
+        cdef double[::1] mu_view = mu
+        cdef double[:, ::1] k_view = k
+
+        eft_set_sampling_points_all(self.fo.peft,
+                                    self.fo.eft_size,
+                                    &k_view[0, 0],
+                                    &mu_view[0],
+                                    k_size,
+                                    mu_size)
+        
+        return
 
     def eft_job_powerspectrum_wedges_grid(self,
         np.ndarray[DTYPE_t,ndim=1] mu,
@@ -4072,6 +4100,14 @@ make        nonlinear_scale_cb(z, z_size)
 
         if pk_type == 'Pdd_mm_real':
             pk_output_type = Pdd_mm_real
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].cs2 = counterterms[index_z, 0]
+                eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_real_no_IR_resummation':
+            pk_output_type = Pdd_mm_real_no_IR_resum
 
             for index_z in range(z_size):
                 # fill input structures
