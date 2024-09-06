@@ -1724,6 +1724,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
     }
   }
   /** - and load them into peft->pk_l (will be rescaled by D2 later) */
+  /** TODO: problematic, since without IR resum, pk_types_outside_loops = pk_types and the linear spectrum is not loaded at z, but at peft->z0 */
   class_call(eft_load_linear_spectra(pba, pfo, ppm,
                                      peft,
                                      z,
@@ -1955,7 +1956,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
         break;
 
       case Pdd_mm_real_no_IR_resum:
-        pkmu[index_mu*peft->k_size + index_k] = peft->pk_l[pk_lin][index_mu_k]   \
+        pkmu[index_mu*peft->k_size + index_k] = D2 * peft->pk_l[pk_lin][index_mu_k]   \
                         + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
       

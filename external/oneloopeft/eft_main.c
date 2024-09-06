@@ -1496,7 +1496,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     index_eft_min_dist[index_z_sort] = eft_nearest_structure_in_time(peft0, peft_size, pba, pfo, z, peft);
   }
 
-  for (index_z_sort = z_size-1; index_z_sort >= 0; index_z_sort--) {  /** - main z-loop */
+  for (index_z_sort = 0; index_z_sort < z_size; index_z_sort++) {  /** - main z-loop */
     index_eft = index_eft_min_dist[index_z_sort];
     // if (eft_hp->use_EdS_time_scaling) { /** if we assume EdS time scaling, different redshifts assigned to the same struct can be evaluated concurrently */
     //   if (index_z_sort > 0 && index_eft == index_eft_min_dist[index_z_sort-1]) {
