@@ -491,6 +491,13 @@ extern "C" {
                         double * lnpk_ic
                         );
 
+  int fourier_wnw_split(
+                        struct precision *ppr,
+                        struct background *pba,
+                        struct primordial * ppm,
+                        struct fourier *pfo
+                        );
+
   int fourier_sigmas(
                      struct fourier * pfo,
                      double R,
