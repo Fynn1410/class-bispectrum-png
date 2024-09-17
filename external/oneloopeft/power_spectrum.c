@@ -514,6 +514,7 @@ double sigma_sq(struct eft * peft, const short n, enum eft_pk_type pk_type) {
     }
 
     //Should this be the real part, or absolute part? Before, it was not well defined
+    //CR 17.09.24: real part is correct!
     peft->dispersion[pk_type][index_moment].moment = creal(value) / (2.*_PI_*_PI_);
     peft->dispersion[pk_type][index_moment].index_bias = n;
     return peft->dispersion[pk_type][index_moment].moment;

@@ -640,7 +640,7 @@ static class_complex eft_mat_N22z(const class_complex * const n)
 
 
 /** static array holding function pointers to the individual moments */
-const static class_complex (*loop_mat[NUM_MOMENTS])(const class_complex * const n)      \
+static class_complex (*loop_mat[NUM_MOMENTS])(const class_complex * const n)      \
   = {eft_mat_I2200, eft_mat_I1300, eft_mat_Idelta200, eft_mat_IG200, eft_mat_Idelta2delta200, eft_mat_IG2G200, eft_mat_Idelta2G200, eft_mat_FG200,  \
      eft_mat_I2201, eft_mat_Idelta201, eft_mat_IG201, eft_mat_J21101, eft_mat_Jdelta201, eft_mat_JG201, eft_mat_FG201, eft_mat_I1301p3101, eft_mat_J12101, NULL,  \
      eft_mat_J21102x, eft_mat_J21102y, eft_mat_Jdelta202x, eft_mat_Jdelta202y, eft_mat_JG202x, eft_mat_JG202y, eft_mat_I2211, eft_mat_J21111, eft_mat_N11x, eft_mat_N11y, eft_mat_J12102x, eft_mat_J12102y, eft_mat_I1311, eft_mat_J12111, NULL,  \
