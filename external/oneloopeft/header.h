@@ -335,7 +335,9 @@ int eft_nearest_structure_in_time(
         struct background * pba,
         struct fourier * pfo,
         const double z,
-        struct eft * peft_min_dist
+        int * index_eft_min_dist,
+        struct eft * peft_min_dist,
+        ErrorMsg errmsg_out
         );
 
 int eft_fourier_transform_linear_spectra(
@@ -420,13 +422,15 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
         const double * const zvec,
         const double * const f_zvec,
         const double * const D_zvec,
+        const double As_correction,
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,
-        const int * const k_sizevec,
+        int * const k_sizevec,
         double ** muvec,
         const int * const mu_sizevec,
-        double ** out_pkmu
+        double ** out_pkmu,
+        double ** ddout_pkmu
         );
 
 int eft_job_powerspectrum_wedges(
@@ -438,13 +442,15 @@ int eft_job_powerspectrum_wedges(
         struct precision * ppr,
         enum eft_pk_out_type pk_out_type,
         const double * const zvec,
+        const double As_correction,
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,
-        const int * const k_sizevec,
+        int * const k_sizevec,
         double ** muvec,
         const int * const mu_sizevec,
-        double ** out_pkmu
+        double ** out_pkmu,
+        double ** ddout_pkmu
         );
 
 int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
@@ -477,6 +483,7 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
         const double * const zvec,
         const double * const f_zvec,
         const double * const D_zvec,
+        const double As_correction,
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,
@@ -495,6 +502,7 @@ int eft_job_powerspectrum_multipoles(
         struct precision * ppr,
         enum eft_pk_out_type pk_out_type,
         const double * const zvec,
+        const double As_correction,
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,

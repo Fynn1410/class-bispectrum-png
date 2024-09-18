@@ -841,13 +841,25 @@ cdef extern from "class.h":
                   double * pk_cb_tot_out,
                   int nonlinear)
 
+    int array_convert_spline_table_columns_to_local_power_basis(
+        double * x,
+        int x_size,
+        double * y_array, 
+        int y_size,
+        double * ddy_array,
+        double * coefficients,
+        double * breakpoints
+        )
+
     int eft_nearest_structure_in_time(
         void * peft0,
         int peft_size,
         void * pba,
         void * pfo,
         double z,
-        void * peft_min_dist
+        int * index_eft_min_dist,
+        void * peft_min_dist,
+        ErrorMsg errmsg
         )
 
     int eft_set_sampling_points_all(
@@ -928,13 +940,15 @@ cdef extern from "class.h":
         void * ppr,
         eft_pk_out_type pk_out_type,
         double * zvec,
+        double As_correction,
         void * peft_ip,
         int z_size,
         double ** kvec,
         int * k_sizevec,
         double ** muvec,
         int * mu_sizevec,
-        double ** out_pkmu
+        double ** out_pkmu,
+        double ** ddout_pkmu
         )
 
     int eft_job_powerspectrum_multipoles(
@@ -946,6 +960,7 @@ cdef extern from "class.h":
         void * ppr,
         eft_pk_out_type pk_out_type,
         double * zvec,
+        double As_correction,
         void * peft_ip,
         int z_size,
         double ** kvec,

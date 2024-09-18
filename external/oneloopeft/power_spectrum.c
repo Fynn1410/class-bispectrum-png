@@ -168,25 +168,23 @@ int eft_necessary_pk_types_loops(struct eft * peft,
   return _SUCCESS_;
 }
 
-int eft_necessary_pk_types_total(struct eft * peft,
-                                 const short pk_out_type,
-                                 int ** list_pk_types,
-                                 int * list_pk_types_size) {
+int eft_necessary_pk_types_outside_loops(struct eft * peft,
+                                         const short pk_out_type,
+                                         int ** list_pk_types,
+                                         int * list_pk_types_size) {
 
   switch (pk_out_type)
   {
   case Pdd_mm_real:
-    *list_pk_types_size = 2;
+    *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_ir_resummed_lo;
-    (*list_pk_types)[1] = pk_ir_resummed_nlo;
+    (*list_pk_types)[0] = pk_ir_resummed_nlo;
     break;
 
   case Pdd_mm_22:
   case Pdd_mm_13:
-    *list_pk_types_size = 1;
-    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_ir_resummed_lo;
+    *list_pk_types_size = 0;
+    *list_pk_types = NULL;
     break;
 
   case Pdd_mm_real_no_IR_resum:
@@ -204,26 +202,15 @@ int eft_necessary_pk_types_total(struct eft * peft,
     break;
 
   case Pdd_hh_real:
-    *list_pk_types_size = 2;
+    *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_ir_resummed_lo;
-    (*list_pk_types)[1] = pk_ir_resummed_nlo;
+    (*list_pk_types)[0] = pk_ir_resummed_nlo;
     break;
 
   case Pdd_hh_rsd:
-    if (peft->hp->integration_mode == fftlog) {
-      *list_pk_types_size = 3;
-      class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-      (*list_pk_types)[0] = pk_lin;
-      (*list_pk_types)[1] = pk_nowiggle;
-      (*list_pk_types)[2] = pkmu_rsd_ir_resummed_nlo;
-    }
-    else {
-      *list_pk_types_size = 2;
-      class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-      (*list_pk_types)[0] = pkmu_rsd_ir_resummed_lo;
-      (*list_pk_types)[1] = pkmu_rsd_ir_resummed_nlo;
-    }
+    *list_pk_types_size = 1;
+    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+    (*list_pk_types)[0] = pkmu_rsd_ir_resummed_nlo;
     break;
 
   default:
@@ -1677,6 +1664,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
                                   const double f_z,
                                   const double * muvec,
                                   int mu_size,
+                                  const double As_ratio,
                                   struct eft_input_parameters eft_ip,
                                   double * pkmu) {  /**< pkmu[index_mu*peft->k_size + index_k] */
 
@@ -1690,7 +1678,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
           J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
           J21112, N12, J12112,                                                                        \
           N22, sigmav_mu,                                                                             \
-          Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0;  /** RSD moments multiplied by i^n/n! (k mu)^n only containing loop terms */
+          Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0; /** RSD moments multiplied by i^n/n! (k mu)^n only containing loop terms */
   /** sigma2_ir_at_z = D2 * sigma2_ir */
 
   if (!peft->hp->use_interpolation) {
@@ -1710,26 +1698,31 @@ int eft_build_nonlinear_power_spectrum_wedges(
   class_call(eft_necessary_pk_types_loops(peft, index_pk_out_type, &pk_types_loops, &pk_types_loops_size),
              peft->error_message, peft->error_message);
   /** - get a list of all necessary pk_types for the chosen output spectrum */
-  class_call(eft_necessary_pk_types_total(peft, index_pk_out_type, &pk_types, &pk_types_size),
+  class_call(eft_necessary_pk_types_outside_loops(peft, index_pk_out_type, &pk_types_outside_loops, &pk_types_outside_loops_size),
              peft->error_message, peft->error_message);
 
-  /** - find the spectra in this list that have not yet been loaded in FFTLog mode */
-  pk_types_outside_loops_size = pk_types_size - pk_types_loops_size;
-  class_alloc(pk_types_outside_loops, pk_types_outside_loops_size*sizeof(int), peft->error_message);
+  /** - first guess of list size */
+  pk_types_size = pk_types_loops_size + pk_types_outside_loops_size;
+  class_alloc(pk_types, pk_types_size*sizeof(int), peft->error_message);
   it = 0;
-  for (index_list = 0; index_list < pk_types_size; index_list++) {
-    for (index_part = 0; index_part < pk_types_loops_size && pk_types[index_list] != pk_types_loops[index_part]; index_part++);
-    if (index_part == pk_types_loops_size) {
-      pk_types_outside_loops[it++] = pk_types[index_list];
+  /** - combine the lists of spectra types in- and outside of the loops */
+  for (index_pk_type = 0; index_pk_type < pk_type_num; index_pk_type++) {
+    for (index_list = 0; index_list < pk_types_loops_size && pk_types_loops[index_list] != index_pk_type; index_list++);
+    for (index_part = 0; index_part < pk_types_outside_loops_size && pk_types_outside_loops[index_part] != index_pk_type; index_part++);
+    if (index_list < pk_types_loops_size || index_part < pk_types_outside_loops_size) {
+      pk_types[it++] = index_pk_type;
     }
   }
+  /** - update the list size */
+  pk_types_size = it;
+
   /** - and load them into peft->pk_l (will be rescaled by D2 later) */
   /** TODO: problematic, since without IR resum, pk_types_outside_loops = pk_types and the linear spectrum is not loaded at z, but at peft->z0 */
   class_call(eft_load_linear_spectra(pba, pfo, ppm,
                                      peft,
-                                     z,
-                                     f_z,
-                                     D_z,
+                                     peft->z0,
+                                     peft->f_z0,
+                                     peft->D_z0,
                                      (peft->hp->integration_mode == fftlog) ? pk_types_outside_loops : pk_types,
                                      (peft->hp->integration_mode == fftlog) ? pk_types_outside_loops_size : pk_types_size,
                                      muvec,
@@ -1745,8 +1738,8 @@ int eft_build_nonlinear_power_spectrum_wedges(
   }
 
   /** - growth function rescale factors w.r.t. peft->z0 for tree and 1-loop contributions */
-  D2 = pow(D_z/peft->D_z0, 2.);
-  D4 = pow(D_z/peft->D_z0, 4.);
+  D2 = pow(D_z/peft->D_z0, 2.) * As_ratio;
+  D4 = pow(D_z/peft->D_z0, 4.) * As_ratio*As_ratio;
 
   #pragma omp parallel shared(peft, f_z, D2, D4, pk_types_loops, pk_types_loops_size, muvec, mu_size, index_pk_out_type, eft_ip, pkmu_loop, pkmu),   \
                        private(index_list, index_part, index_k, index_mu, index_mu_k, index_pk_type,  \
@@ -1951,7 +1944,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
       switch (index_pk_out_type)
       {
       case Pdd_mm_real:
-        pkmu[index_mu*peft->k_size + index_k] = peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
+        pkmu[index_mu*peft->k_size + index_k] = D2 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
                         + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
@@ -1975,20 +1968,20 @@ int eft_build_nonlinear_power_spectrum_wedges(
         break;
 
       case Pdd_hh_real:
-        pkmu[index_mu*peft->k_size + index_k] = eft_ip.b1*eft_ip.b1 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
+        pkmu[index_mu*peft->k_size + index_k] = D2 * eft_ip.b1*eft_ip.b1 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
                         + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_hh_rsd:
         if (peft->hp->integration_mode == fftlog) {
           sigma2_tot_z0 = (1. + f_z*mu*mu*(2. + f_z)) * peft->Sigma2_ir + f_z*f_z*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
-          pkmu[index_mu*peft->k_size + index_k] = pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+          pkmu[index_mu*peft->k_size + index_k] = D2 * pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
                                                   + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
                                           + exp(-k*k * D2 * sigma2_tot_z0) * (pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
                                                                             - pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]);
         }
         else {
-          pkmu[index_mu*peft->k_size + index_k] = pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+          pkmu[index_mu*peft->k_size + index_k] = D2 * pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
                                                   + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         }
         break;

@@ -2695,13 +2695,15 @@ int fourier_init(
                                                       ppr,
                                                       Pdd_mm_real,
                                                       &z,
+                                                      1.,
                                                       &eft_ip_dummy,
                                                       1,
                                                       kvec,
                                                       &k_size,
                                                       muvec,
                                                       &mu_size,
-                                                      out_pkmu),
+                                                      out_pkmu,
+                                                      NULL),
                           pfo->peft->error_message,
                           pfo->error_message);
             }

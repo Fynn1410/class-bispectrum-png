@@ -1375,7 +1375,18 @@ int eft_apply_ap_effect_in_place(double ** kvec,
 
 double eft_temporal_distance(struct background * pba,
                              const double z,
-                             const double z_eft) {
+                             const double z_eft,
+                             ErrorMsg errmsg) {
+
+  /* double tau, tau_eft;
+
+  if ((background_tau_of_z(pba, z, &tau) == _FAILURE_) || (background_tau_of_z(pba, z_eft, &tau_eft) == _FAILURE_)) {
+    class_call_message(errmsg, "", pba->error_message);
+    return -1.;
+  } */
+
+  /** - linear distance in conformal time */
+  // return fabs(tau - tau_eft);
 
   /** - just linear distance in redshift */
   return fabs(z - z_eft);
@@ -1386,22 +1397,36 @@ int eft_nearest_structure_in_time(struct eft * peft0,
                                   struct background * pba,
                                   struct fourier * pfo,
                                   const double z,
-                                  struct eft * peft_min_dist) {
+                                  int * index_eft_min_dist,
+                                  struct eft * peft_min_dist,
+                                  ErrorMsg errmsg_out
+                                  ) {
 
-  int index_eft_min_dist = 0, index_eft;
+  int index_eft;
   double min_distance, distance;
+  ErrorMsg errmsg;
 
-  /** - find nearest eft structure */
-  index_eft_min_dist = 0;
-  min_distance = eft_temporal_distance(pba, z, pfo->z_pk_eft[0]);
-  for (index_eft = 1; index_eft < pfo->z_pk_eft_num; index_eft++) {
-    distance = eft_temporal_distance(pba, z, pfo->z_pk_eft[index_eft]);
-    if (distance < min_distance) { min_distance = distance; index_eft_min_dist = index_eft; }
+  *index_eft_min_dist = 0;
+  min_distance = eft_temporal_distance(pba, z, pfo->z_pk_eft[0], errmsg);
+  if (distance < 0) { /** - error in eft_temporal_distance */
+    class_call_message(errmsg_out, "", errmsg);
+    return _FAILURE_;
   }
 
-  peft_min_dist = peft0 + index_eft_min_dist;
+  /** - find nearest eft structure */
+  for (index_eft = 1; index_eft < pfo->z_pk_eft_num; index_eft++) {
+    distance = eft_temporal_distance(pba, z, pfo->z_pk_eft[index_eft], errmsg);
+    if (distance < min_distance) { min_distance = distance; *index_eft_min_dist = index_eft; }
 
-  return index_eft_min_dist;
+    if (distance < 0) { /** - error in eft_temporal_distance */
+      class_call_message(errmsg_out, "", errmsg);
+      return _FAILURE_;
+    }
+  }
+
+  peft_min_dist = peft0 + *index_eft_min_dist;
+
+  return _SUCCESS_;
 }
 
 static int indexed_double_cmp_inc(const void * a, const void * b) {
@@ -1435,12 +1460,14 @@ static int indexed_double_cmp_inc(const void * a, const void * b) {
  * @param D_zvec      Input: growth rate D(z) at each z in zvec
  * @param peft_ip     Input: Input parameter structures for each eft-structure
  * @param z_size      Input: size of zvec
- * @param kvec        Input: wavenumbers [in 1/Mpc]; indexed as kvec[index_z][index_mu*k_sizevec[index_z] + index_k]
- * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
+ * @param kvec        Input: wavenumbers [in 1/Mpc]; indexed as kvec[index_z][index_mu*k_sizevec[index_z] + index_k]; will be overwritten if ddout_pkmu != NULL
+ * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]; will be overwritten if ddout_pkmu != NULL
  * @param muvec       Input: cosine of line-of-sight angles; indexed as muvec[index_z][index_mu]
  * @param mu_sizevec  Input: size of muvec at each index_z; indexed as mu_sizevec[index_z]
  * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
  *                            needs to be pre-allocated with size k_sizevec[index_z]*mu_sizevec[index_z] at each index_z
+ * @param ddout_pkmu  Output: spline moments of the power-spectrum; indexed as ddout_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
+ *                            if not NULL, the arrays ddout_pkmu[index_z] will be allocated automatically and kvec & out_pkmu will be resized
  *
  * @return the error status
  */
@@ -1457,13 +1484,15 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                 const double * const zvec,
                                 const double * const f_zvec,
                                 const double * const D_zvec,
+                                const double As_correction,
                                 const struct eft_input_parameters * peft_ip,
                                 const int z_size,
                                 double ** kvec,
-                                const int * const k_sizevec,
+                                int * const k_sizevec,
                                 double ** muvec,
                                 const int * const mu_sizevec,
-                                double ** out_pkmu
+                                double ** out_pkmu,
+                                double ** ddout_pkmu
                                 ) {
 
   int it, index_z, index_z_sort, index_mu, index_k, index_eft, index_eft_min_dist[z_size], k_size, mu_size, sub_index_zvec[z_size], sub_index_z_size = 0, sub_z_size, sub_indexvec[z_size], sub_zvec[z_size], sub_f_zvec[z_size], sub_D_zvec[z_size];
@@ -1476,6 +1505,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
   struct indexed_double sort_arr[z_size];
   int sorted_indexvec[z_size];
   double sorted_zvec[z_size], sorted_f_zvec[z_size], sorted_D_zvec[z_size];
+  ErrorMsg errmsg;
 
   /** - sort the redshift array in increasing order */
   for (index_z = 0; index_z < z_size; index_z++) {
@@ -1493,33 +1523,16 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
   /** - find the nearest eft structures for each redshift */
   for (index_z_sort = 0; index_z_sort < z_size; index_z_sort++) {
     z = sorted_zvec[index_z_sort];
-    index_eft_min_dist[index_z_sort] = eft_nearest_structure_in_time(peft0, peft_size, pba, pfo, z, peft);
+    class_call(eft_nearest_structure_in_time(peft0, peft_size, pba, pfo,
+                                             z,
+                                             &index_eft_min_dist[index_z_sort],
+                                             peft,
+                                             errmsg),
+                errmsg, peft0->error_message);
   }
 
   for (index_z_sort = 0; index_z_sort < z_size; index_z_sort++) {  /** - main z-loop */
     index_eft = index_eft_min_dist[index_z_sort];
-    // if (eft_hp->use_EdS_time_scaling) { /** if we assume EdS time scaling, different redshifts assigned to the same struct can be evaluated concurrently */
-    //   if (index_z_sort > 0 && index_eft == index_eft_min_dist[index_z_sort-1]) {
-    //     sub_index_z_sortvec[sub_index_z_sort_size++] = index_z_sort; /** - add this redshift to the list */
-    //     continue;
-    //   }
-    //   else {
-    //     sub_z_size = sub_index_z_size; sub_index_z_size = 0;
-    //     for (it = 0; it < sub_z_size; it++) { /** - build the list of redshifts for this eft struct */
-    //       sub_indexvec[it] = sorted_indexvec[sub_index_zvec[it]];
-    //       sub_zvec[it]   = sorted_zvec[sub_index_zvec[it]];
-    //       sub_f_zvec[it] = sorted_f_zvec[sub_index_zvec[it]];
-    //       sub_D_zvec[it] = sorted_D_zvec[sub_index_zvec[it]];
-    //     }
-    //   }
-    // }
-    // else {  /** else, everything will be reloaded */
-    //   sub_z_size = 1;
-    //   sub_indexvec[0] = sorted_indexvec[index_z_sort];
-    //   sub_zvec[0]   = sorted_zvec[index_z_sort];
-    //   sub_f_zvec[0] = sorted_f_zvec[index_z_sort];
-    //   sub_D_zvec[0] = sorted_D_zvec[index_z_sort];
-    // }
 
     peft = peft0 + index_eft;
     eft_hp = peft->hp;
@@ -1582,6 +1595,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
 
     if (list_pk_types_loops_not_loaded_size > 0 && peft->hp->integration_mode == fftlog) {
       /** - compute the Fourier transforms */
+      /** TODO: think about if this is the right strategy, since here peft->z0 = z */
       class_call(eft_fourier_transform_linear_spectra(ppr, pba, pfo, ppm,
                                                       peft,
                                                       z,
@@ -1662,6 +1676,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                          sorted_f_zvec[index_z_sort],
                                                          muvec[index_z],
                                                          mu_sizevec[index_z],
+                                                         As_correction,
                                                          peft_ip[index_z],
                                                          pkmu_out),
                 peft->error_message, peft->error_message);
@@ -1677,25 +1692,45 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                      peft->error_message),
                   peft->error_message, peft->error_message);
 
-      #pragma omp parallel for schedule(static), shared(peft, pkmu_nl, ddpkmu_nl, out_pkmu, kvec, k_sizevec, mu_sizevec, index_z), private(index_mu, index_k, last_index, ln_k), default(none)
-      for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-        last_index = 0;
-        for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
-          ln_k = log(kvec[index_z][index_mu*k_sizevec[index_z] + index_k]);
-          if ((ln_k >= peft->ln_k[0]) && (ln_k <= peft->ln_k[peft->k_size-1])) {
-            array_interpolate_spline_growing_closeby(peft->ln_k,
-                                                     peft->k_size,
-                                                     pkmu_nl + index_mu*peft->k_size,
-                                                     ddpkmu_nl + index_mu*peft->k_size,
-                                                     1,
-                                                     ln_k,
-                                                     &last_index,
-                                                     out_pkmu[index_z] + index_mu*k_sizevec[index_z] + index_k,
-                                                     1,
-                                                     peft->error_message);
+      if (ddout_pkmu) { /** - output the spline */
+        class_test(ddout_pkmu[index_z], peft->error_message, "The spline moment array must be allocated on the top-level, i.e. ddout_pkmu[index_z] must be a valid address.")
+        /** - overwrite the k-grid */
+        k_sizevec[index_z] = peft->k_size;
+        class_realloc(kvec[index_z], kvec[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
+        for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
+          for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
+            kvec[index_z][index_mu*k_sizevec[index_z] + index_k] = exp(peft->ln_k[index_k]);
           }
-          else {
-            out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k] = 0.;
+        }
+        /** - re-allocate the output arrays */
+        class_realloc(out_pkmu[index_z], out_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
+        class_realloc(ddout_pkmu[index_z], ddout_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
+
+        /** - copy the spline to the output */
+        class_protect_memcpy(out_pkmu[index_z], pkmu_nl, k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double));
+        class_protect_memcpy(ddout_pkmu[index_z], ddpkmu_nl, k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double));
+      }
+      else {  /** - interpolate to kvec */
+        #pragma omp parallel for schedule(static), shared(peft, pkmu_nl, ddpkmu_nl, out_pkmu, kvec, k_sizevec, mu_sizevec, index_z), private(index_mu, index_k, last_index, ln_k), default(none)
+        for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
+          last_index = 0;
+          for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
+            ln_k = log(kvec[index_z][index_mu*k_sizevec[index_z] + index_k]);
+            if ((ln_k >= peft->ln_k[0]) && (ln_k <= peft->ln_k[peft->k_size-1])) {
+              array_interpolate_spline_growing_closeby(peft->ln_k,
+                                                       peft->k_size,
+                                                       pkmu_nl + index_mu*peft->k_size,
+                                                       ddpkmu_nl + index_mu*peft->k_size,
+                                                       1,
+                                                       ln_k,
+                                                       &last_index,
+                                                       out_pkmu[index_z] + index_mu*k_sizevec[index_z] + index_k,
+                                                       1,
+                                                       peft->error_message);
+            }
+            else {
+              out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k] = 0.;
+            }
           }
         }
       }
@@ -1714,74 +1749,128 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
   return _SUCCESS_;
 }
 
-static const int gl_rule_mu_avg_size = 3;
-static const double gl_mu_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
-static const double gl_mu_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
-static const int gl_rule_k_avg_size = 5;
-static const double gl_k_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
-static const double gl_k_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
+// static const int gl_rule_mu_avg_size = 3;
+// static const double gl_mu_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+// static const double gl_mu_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
+// static const int gl_rule_k_avg_size = 5;
+// static const double gl_k_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+// static const double gl_k_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
 
-/**
- * @brief Computes power-spectrum wedges at given redshifts, wavenumbers and l.o.s. angles
- *        using a given growth rate consistently.
- *
- * @param peft0       Input: pointer to the first eft-structure
- * @param peft_size   Input: number of eft-structures
- * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
- * @param D_z_pk_eft  Input: growth rate D(z) at z_pk of each eft-structure
- * @param pba         Input: pointer to the background structure
- * @param pfo         Input: pointer to the fourier structure
- * @param ppm         Input: pointer to the primordial structure
- * @param ppr         Input: pointer to the precisions structure
- * @param pk_out_type Input: type of power-spectrum to compute
- * @param zvec        Input: redshifts at which to compute it
- * @param f_zvec      Input: logarithmic growth rate at each z in zvec
- * @param D_zvec      Input: growth rate D(z) at each z in zvec
- * @param peft_ip     Input: Input parameter structures for each eft-structure
- * @param z_size      Input: size of zvec
- * @param kvec_upper_fid    Input: upper edge of fiducial wavenumber bins [in 1/Mpc]; indexed as kvec_upper_fid[index_z][index_k]
- * @param kvec_lower_fid    Input: lower edge of fiducial wavenumber bins [in 1/Mpc]; indexed as kvec_lower_fid[index_z][index_k]
- * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
- * @param muvec_upper_fid   Input: upper edge of bins of fiducial cosine of line-of-sight angles; indexed as muvec_upper_fid[index_z][index_mu]
- * @param muvec_lower_fid   Input: lower edge of bins of fiducial cosine of line-of-sight angles; indexed as muvec_lower_fid[index_z][index_mu]
- * @param mu_sizevec  Input: size of muvec at each index_z; indexed as mu_sizevec[index_z]
- * @param ap_parallel Input: parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
- * @param ap_perpendicular  Input: perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z) 
- * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
- *                            needs to be pre-allocated with size k_sizevec[index_z]*mu_sizevec[index_z] at each index_z
- *
- * @return the error status
- */
-int eft_job_powerspectrum_wedges_averaged_ext_growth_rate(
-                                struct eft * peft0,
-                                const int peft_size,
-                                const double * const f_z_pk_eft,
-                                const double * const D_z_pk_eft,
-                                struct background * pba,
-                                struct fourier * pfo,
-                                struct primordial * ppm,
-                                struct precision * ppr,
-                                enum eft_pk_out_type pk_out_type,
-                                const double * const zvec,
-                                const double * const f_zvec,
-                                const double * const D_zvec,
-                                const struct eft_input_parameters * peft_ip,
-                                const int z_size,
-                                double ** kvec_upper_fid,
-                                double ** kvec_lower_fid,
-                                const int * const k_sizevec,
-                                double ** muvec_upper_fid,
-                                double ** muvec_lower_fid,
-                                const int * const mu_sizevec,
-                                double * ap_parallel,
-                                double * ap_perpendicular,
-                                double ** out_pkmu
-                                ) {
+// /**
+//  * @brief Computes power-spectrum wedges at given redshifts, wavenumbers and l.o.s. angles
+//  *        using a given growth rate consistently.
+//  *
+//  * @param peft0       Input: pointer to the first eft-structure
+//  * @param peft_size   Input: number of eft-structures
+//  * @param f_z_pk_eft  Input: logarithmic growth rate at z_pk of each eft-structure
+//  * @param D_z_pk_eft  Input: growth rate D(z) at z_pk of each eft-structure
+//  * @param pba         Input: pointer to the background structure
+//  * @param pfo         Input: pointer to the fourier structure
+//  * @param ppm         Input: pointer to the primordial structure
+//  * @param ppr         Input: pointer to the precisions structure
+//  * @param pk_out_type Input: type of power-spectrum to compute
+//  * @param zvec        Input: redshifts at which to compute it
+//  * @param f_zvec      Input: logarithmic growth rate at each z in zvec
+//  * @param D_zvec      Input: growth rate D(z) at each z in zvec
+//  * @param peft_ip     Input: Input parameter structures for each eft-structure
+//  * @param z_size      Input: size of zvec
+//  * @param kvec_upper_fid    Input: upper edge of fiducial wavenumber bins [in 1/Mpc]; indexed as kvec_upper_fid[index_z][index_k]
+//  * @param kvec_lower_fid    Input: lower edge of fiducial wavenumber bins [in 1/Mpc]; indexed as kvec_lower_fid[index_z][index_k]
+//  * @param k_sizevec   Input: size of the wavenumber array for each mu at index_z; indexed as k_sizevec[index_z]
+//  * @param muvec_upper_fid   Input: upper edge of bins of fiducial cosine of line-of-sight angles; indexed as muvec_upper_fid[index_z][index_mu]
+//  * @param muvec_lower_fid   Input: lower edge of bins of fiducial cosine of line-of-sight angles; indexed as muvec_lower_fid[index_z][index_mu]
+//  * @param mu_sizevec  Input: size of muvec at each index_z; indexed as mu_sizevec[index_z]
+//  * @param ap_parallel Input: parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
+//  * @param ap_perpendicular  Input: perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z) 
+//  * @param out_pkmu    Output: power-spectrum at zvec,muvec,kvec; indexed as out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k];
+//  *                            needs to be pre-allocated with size k_sizevec[index_z]*mu_sizevec[index_z] at each index_z
+//  *
+//  * @return the error status
+//  */
+// int eft_job_powerspectrum_wedges_averaged_ext_growth_rate(
+//                                 struct eft * peft0,
+//                                 const int peft_size,
+//                                 const double * const f_z_pk_eft,
+//                                 const double * const D_z_pk_eft,
+//                                 struct background * pba,
+//                                 struct fourier * pfo,
+//                                 struct primordial * ppm,
+//                                 struct precision * ppr,
+//                                 enum eft_pk_out_type pk_out_type,
+//                                 const double * const zvec,
+//                                 const double * const f_zvec,
+//                                 const double * const D_zvec,
+//                                 const struct eft_input_parameters * peft_ip,
+//                                 const int z_size,
+//                                 double ** kvec_upper_fid,
+//                                 double ** kvec_lower_fid,
+//                                 const int * const k_sizevec,
+//                                 double ** muvec_upper_fid,
+//                                 double ** muvec_lower_fid,
+//                                 const int * const mu_sizevec,
+//                                 double * ap_parallel,
+//                                 double * ap_perpendicular,
+//                                 double ** out_pkmu
+//                                 ) {
 
-  double ** kvec_true, ** muvec_true;
+//   int index_z, index_l, index_mu_bin, index_k_bin, index_mu_int, index_k_int, mu_int_sizevec[z_size], k_int_sizevec[z_size];
+//   double ap_ratio, * kvec_true[z_size], * muvec_true[z_size], * out_pkmu[z_size];
 
-  return _SUCCESS_;
-}
+//   /** - allocate additional input/output arrays for power-spectrum wedges */
+//   for (index_z = 0; index_z < z_size; index_z++) {
+//     mu_int_sizevec[index_z] = mu_sizevec[index_z] * gl_rule_mu_avg_size;
+//     k_int_sizevec[index_z] = k_sizevec[index_z] * gl_rule_k_avg_size;
+//     class_alloc(muvec_true[index_z], mu_int_sizevec[index_z]*sizeof(double), peft0->error_message);
+//     class_alloc(kvec_true[index_z], k_int_sizevec[index_z]*mu_int_sizevec[index_z]*sizeof(double), peft0->error_message);
+//     class_alloc(out_pkmu[index_z], k_int_sizevec[index_z]*mu_int_sizevec[index_z]*sizeof(double), peft0->error_message);
+
+//     /** - copy the fiducial wavenumbers and l.o.s. angles */
+//     for (index_mu_bin = 0; index_mu_bin < mu_sizevec[index_z]; index_mu_bin++) {
+//       for (index_mu_int = 0; index_mu_int < gl_rule_mu_avg_size; index_mu_int++) {
+//         class_protect_memcpy(kvec_true[index_z] + index_mu*k_sizevec[index_z], kvec[index_z], k_sizevec[index_z]*sizeof(double));
+//       }
+//     }
+//     class_protect_memcpy(muvec_true[index_z], gl_multipole_sym_abscissa, mu_sizevec[index_z]*sizeof(double));
+//   }
+
+//   /** - apply the AP effect */
+//   eft_apply_ap_effect_in_place(kvec_true,
+//                                k_sizevec,
+//                                muvec_true,
+//                                mu_sizevec,
+//                                z_size,
+//                                ap_parallel,
+//                                ap_perpendicular);
+
+//   /** - get the power-spectrum wedges */
+//   class_call(eft_job_powerspectrum_wedges_ext_growth_rate(peft0,
+//                                                           peft_size,
+//                                                           f_z_pk_eft,
+//                                                           D_z_pk_eft,
+//                                                           pba,
+//                                                           pfo,
+//                                                           ppm,
+//                                                           ppr,
+//                                                           pk_out_type,
+//                                                           zvec,
+//                                                           f_zvec,
+//                                                           D_zvec,
+//                                                           1.,
+//                                                           peft_ip,
+//                                                           z_size,
+//                                                           kvec_true,
+//                                                           k_sizevec,
+//                                                           muvec_true,
+//                                                           mu_sizevec,
+//                                                           out_pkmu),
+//              peft0->error_message, peft0->error_message);
+
+//   for (index_z = 0; index_z < z_size; index_z++) {
+//     free(kvec_true[index_z]); free(muvec_true[index_z]);
+//   }
+
+//   return _SUCCESS_;
+// }
 
 
 
@@ -1816,13 +1905,15 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
                                  struct precision * ppr,
                                  enum eft_pk_out_type pk_out_type,
                                  const double * const zvec,
+                                 const double As_correction,
                                  const struct eft_input_parameters * peft_ip,
                                  const int z_size,
                                  double ** kvec,
-                                 const int * const k_sizevec,
+                                 int * const k_sizevec,
                                  double ** muvec,
                                  const int * const mu_sizevec,
-                                 double ** out_pkmu
+                                 double ** out_pkmu,
+                                 double ** ddout_pkmu
                                  ) {
 
   int index_z, last_index = pba->bt_size-1;
@@ -1874,13 +1965,15 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
                                                           zvec,
                                                           f_zvec,
                                                           D_zvec,
+                                                          As_correction,
                                                           peft_ip,
                                                           z_size,
                                                           kvec,
                                                           k_sizevec,
                                                           muvec,
                                                           mu_sizevec,
-                                                          out_pkmu),
+                                                          out_pkmu,
+                                                          ddout_pkmu),
               peft0->error_message, peft0->error_message);
 
   return _SUCCESS_;
@@ -1946,13 +2039,15 @@ int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
                                           ppr,
                                           pk_out_type,
                                           z,
+                                          1.,
                                           peft_ip,
                                           z_size,
                                           kvec,
                                           k_sizevec,
                                           muvec,
                                           mu_sizevec,
-                                          out_pkmu
+                                          out_pkmu,
+                                          NULL
                                           ),
              peft0->error_message, peft0->error_message);
 
@@ -2020,6 +2115,7 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
                                 const double * const zvec,
                                 const double * const f_zvec,
                                 const double * const D_zvec,
+                                const double As_correction,
                                 const struct eft_input_parameters * peft_ip,
                                 const int z_size,
                                 double ** kvec,
@@ -2068,13 +2164,15 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
                                                           zvec,
                                                           f_zvec,
                                                           D_zvec,
+                                                          As_correction,
                                                           peft_ip,
                                                           z_size,
                                                           kvec_true,
                                                           k_sizevec,
                                                           muvec_true,
                                                           mu_sizevec,
-                                                          out_pkmu),
+                                                          out_pkmu,
+                                                          NULL),
              peft0->error_message, peft0->error_message);
 
   for (index_z = 0; index_z < z_size; index_z++) {
@@ -2137,6 +2235,7 @@ int eft_job_powerspectrum_multipoles(
                                 struct precision * ppr,
                                 enum eft_pk_out_type pk_out_type,
                                 const double * const zvec,
+                                const double As_correction,
                                 const struct eft_input_parameters * peft_ip,
                                 const int z_size,
                                 double ** kvec,
@@ -2181,13 +2280,15 @@ int eft_job_powerspectrum_multipoles(
                                           ppr,
                                           pk_out_type,
                                           zvec,
+                                          As_correction,
                                           peft_ip,
                                           z_size,
                                           kvec_true,
                                           k_sizevec,
                                           muvec_true,
                                           mu_sizevec,
-                                          out_pkmu),
+                                          out_pkmu,
+                                          NULL),
              peft0->error_message, peft0->error_message);
 
   for (index_z = 0; index_z < z_size; index_z++) {

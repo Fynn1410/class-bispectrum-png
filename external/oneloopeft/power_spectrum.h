@@ -85,25 +85,26 @@ int eft_build_nonlinear_power_spectrum_wedges(
                       const double f_z,
                       const double * muvec,
                       int mu_size,
+                      const double As_ratio,
                       struct eft_input_parameters eft_ip,
                       double * pkmu
                       );
 
-int eft_build_nonlinear_power_spectrum_wedges_multiple(
-                      struct eft * peft,
-                      struct background * pba,
-                      struct primordial * ppm,
-                      struct fourier * pfo,
-                      const short index_pk_out_type,
-                      const double * const z,
-                      const double * const D_z,
-                      const double * const f_z,
-                      const int z_size,
-                      const double * muvec,
-                      int mu_size,
-                      struct eft_input_parameters eft_ip,
-                      double ** pkmu
-                      );
+// int eft_build_nonlinear_power_spectrum_wedges_multiple(
+//                       struct eft * peft,
+//                       struct background * pba,
+//                       struct primordial * ppm,
+//                       struct fourier * pfo,
+//                       const short index_pk_out_type,
+//                       const double * const z,
+//                       const double * const D_z,
+//                       const double * const f_z,
+//                       const int z_size,
+//                       const double * muvec,
+//                       int mu_size,
+//                       struct eft_input_parameters eft_ip,
+//                       double ** pkmu
+//                       );
 
 /** TODO: add free spectra_contributions */
 

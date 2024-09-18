@@ -4731,8 +4731,7 @@ int array_convert_spline_table_columns_to_local_power_basis(
 		          const int y_size,
 		          const double * const ddy_array, /* array of size x_size*y_size */
               double * coefficients,  /* array of coefficients of size y_size*(x_size-1)*4, C-order */
-              double * breakpoints,   /* array of breakpoints of size y_size*x_size */
-			        ErrorMsg errmsg) {
+              double * breakpoints) { /* array of breakpoints of size y_size*x_size */
 
   int index_x, index_y;
   double h;
@@ -4748,7 +4747,7 @@ int array_convert_spline_table_columns_to_local_power_basis(
       coefficients[1*(x_size-1)*y_size + index_x*y_size + index_y] = ddy_array[index_y*x_size + index_x]/2.;
       coefficients[2*(x_size-1)*y_size + index_x*y_size + index_y] = (y_array[index_y*x_size + (index_x+1)] - y_array[index_y*x_size + index_x])/h     \
                                                                     - h/6.*(2.*ddy_array[index_y*x_size + index_x] + ddy_array[index_y*x_size + (index_x+1)]);
-      coefficients[3*(x_size-1)*y_size + index_x*y_size + index_y] = y_array[index_y*x_size + (index_x+1)];
+      coefficients[3*(x_size-1)*y_size + index_x*y_size + index_y] = y_array[index_y*x_size + index_x];
     }
   }
 
