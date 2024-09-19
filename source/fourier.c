@@ -1901,26 +1901,17 @@ int fourier_init(
   struct fourier_workspace * pnw;
 
   /** - variables and indexes for the oneloop method */
-  double ln_k0 = log( ppr->nowiggle_filter_pivot_k );
-  // double ln_k_nw_min = log( ppr->nowiggle_k_min );
-  // double ln_k_nw_max = log( ppr->nowiggle_k_max );
-  double ln_k_nw_min, ln_k_nw_max;
-  double smoothing_scale;
-  int index_k0 = 0, index_k_min = 0, index_k_max = 0, k_nw_size;
   int index_eft, index_pk_type, index_moment;
   short eft_role;
 
   // JL: additional variables for preliminary version of oneloop:
-#define TEST_Z_SIZE 1
-#define TEST_MU_SIZE 5
-  double * zvec;
   double ** muvec;
   double ** kvec;
   double ** out_pkmu;
-  int mu_sizevec[TEST_Z_SIZE];
-  int k_sizevec[TEST_Z_SIZE];
+  int mu_size;
+  int k_size;
   int index_z,index_mu;
-  struct eft_input_parameters eft_ip_test[TEST_Z_SIZE];
+  struct eft_input_parameters eft_ip_dummy;
 
   /** - Do we want to compute P(k,z)? Propagate the flag has_pk_matter
       from the perturbations structure to the fourier structure */
@@ -2077,322 +2068,10 @@ int fourier_init(
     if (pfo->fourier_verbose > 2)
       printf("Computing nowiggle power spectra.\n");
 
-    // JL: Maybe all this could be deferred to a function
+    class_call(fourier_wnw_split(ppr,pba,ppm,pfo),
+               pfo->error_message,
+               pfo->error_message);
 
-    /** - find indices of the pivot scale k0 in pfo->ln_k:
-     *    it is the wavenumber at which the analytical Eisenstein-Hu dewiggled
-     *    power spectrum, that is used to reduce the low-frequency dynamics of
-     *    the linear power spectrum before filtering, is matched to the CLASS-
-     *    computed one */
-    class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
-                                    ln_k0, &index_k0, pfo->error_message),
-                pfo->error_message,
-                pfo->error_message);
-
-    // find indices of k_nw_min, k_nw_max in pfo->ln_k */
-    // class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
-    //                                 ln_k_nw_min, &index_k_min, pfo->error_message),
-    //             pfo->error_message,
-    //             pfo->error_message);
-    // class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
-    //                                 ln_k_nw_max, &index_k_max, pfo->error_message),
-    //             pfo->error_message,
-    //             pfo->error_message);
-
-    /** - find the index range in which the dewiggled power spectrum is computed:
-     *    Since the filter has a finitely-extended support, it cannot be applied
-     *    very close to the boundaries. Therefore we find the indices on both sides
-     *    at which the end of the ln(k)-range is further away than
-     *    ppr->nowiggle_boundary_dist_sigma_units times the smoothing scale.
-     */
-    for (index_k_min = 0; index_k_min < pfo->k_size_extra; index_k_min++) {
-      ln_k_nw_min = pfo->ln_k[index_k_min];
-      smoothing_scale = gfilter_smoothing_scale(ln_k_nw_min);
-      if (ln_k_nw_min - pfo->ln_k[0] > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
-    }
-    for (index_k_max = pfo->k_size_extra-1; index_k_max >= 0; index_k_max--) {
-      ln_k_nw_max = pfo->ln_k[index_k_max];
-      smoothing_scale = gfilter_smoothing_scale(ln_k_nw_max);
-      if (pfo->ln_k[pfo->k_size_extra-1] - ln_k_nw_max > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
-    }
-    k_nw_size = index_k_max - index_k_min + 1;
-
-    /** - fill the nowiggle array with the original linear spectrum
-          and overwrite only values between index_kmin and
-          index_kmax */
-    memcpy(pfo->ln_pk_l_nw_extra, pfo->ln_pk_l_extra[*(pfo->nowiggle_pk_index)],
-            pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
-
-    /** - compute the nowiggle spectrum using gaussian filter */
-    class_call(eft_ln_pk_nw_gfilter_parallel(ppr, pba, ppm, pfo,
-                                             *(pfo->nowiggle_pk_index),
-                                             index_k0,
-                                             index_k_min,
-                                             k_nw_size,
-                                             pfo->ln_pk_l_nw_extra),
-                pfo->error_message,
-                pfo->error_message);
-
-    if (pfo->ln_tau_size > 1) {
-      /** - spline the nowiggle spectrum */
-      class_call(array_spline_table_lines_parallel(pfo->ln_tau,
-                                                   pfo->ln_tau_size,
-                                                   pfo->ln_pk_l_nw_extra,
-                                                   pfo->k_size_extra,
-                                                   pfo->ddln_pk_l_nw_extra,
-                                                   _SPLINE_EST_DERIV_, // TODO: what happens if 1 < ln_tau_size < 3 -> this will not work
-                                                   pfo->error_message),
-                  pfo->error_message,
-                  pfo->error_message);
-    }
-
-    // JL: we will remove it once we have implemented these tests as an option
-    /** TODO: test splines -> done -> to be removed */
-    // #define NSPLINE 9
-    // double x[NSPLINE] = {-4., -3., -2., -1., 0., 1., 2., 3., 4.};
-    // double y[NSPLINE] = {-64., -27., -8., -1., 0., 1., 8., 27., 64.};
-    // double ddy[NSPLINE];
-    // double array[3*NSPLINE];
-    // double result;
-    // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
-    // for (int i = 0; i < NSPLINE; i++) {
-    //   ddy[i] = 6.*x[i];
-    // }
-    // array_integrate_all_spline(array, 3, NSPLINE, 0, 1, 2, &result, pfo->error_message);
-    // array_square_integrate_exponential_all_spline_table_lines(x, NSPLINE, y, 1, ddy, 0.5, 3, &result, pfo->error_message);
-
-    // #define NSPLINE 500
-    // double x[NSPLINE], y[2*NSPLINE], ddy_old[2*NSPLINE], ddy[2*NSPLINE], diffsum;
-    // int spline_mode = 1;
-    // for (int i = 0; i < NSPLINE; i++) {
-    //   x[i] = 0. + (2.*_PI_ - (0.)) * i / (NSPLINE-1);
-    //   y[2*i] = 2. + sin(x[i]);
-    //   y[2*i+1] = 2. + cos(x[i]);
-    // }
-    // array_spline_table_lines(x, NSPLINE, y, 2, ddy_old, spline_mode, pfo->error_message);
-    // array_spline_table_lines_parallel(x, NSPLINE, y, 2, ddy, spline_mode, pfo->error_message);
-
-    // double array[2*NSPLINE], ddy[2*NSPLINE];
-    // for (int i = 0; i < NSPLINE; i++) {
-    //   //array[4*i] = x[i];
-    //   array[i] = y[2*i];
-    //   array[NSPLINE+i] = y[2*i+1];
-    // }
-    // array_logspline_table_lines_new(x, NSPLINE, y, 2, ddy, spline_mode, pfo->error_message);
-
-    // for (int i = 0; i < NSPLINE; i++) {
-    //   ddy[2*i] = array[4*i+2];
-    //   ddy[2*i+1] = array[4*i+3];
-    // }
-    // diffsum = 0.;
-    // for (int i = 0; i < 2*NSPLINE; i++) {
-    //   diffsum += ddy[i] - ddy_old[i];
-    // }
-
-    // double ddy_period[2*NSPLINE];
-    // array_spline_table_lines_parallel(x, NSPLINE, y, 2, ddy_period, 2, pfo->error_message);
-    // for (int i = 0; i < NSPLINE; i++) {
-    //   ddy_period[2*i] = array[4*i+2];
-    //   ddy_period[2*i+1] = array[4*i+3];
-    // }
-
-
-    // double super[NSPLINE-1], constants[NSPLINE-1];
-    // double dy_first=1.;
-    // double dy_last=1.;
-    // array_spline_internal_hermite(x, 1, y, 1, ddy_old, 1, NSPLINE, super, constants, _FALSE_, &dy_first, &dy_last);
-    // double super[NSPLINE-2], constants[NSPLINE-2];
-    // double constants_aux[NSPLINE-2], sol_aux[NSPLINE-1];
-    // array_spline_internal_periodic(x, 1, y, 1, ddy, 1, NSPLINE-1, super, constants, constants_aux, sol_aux);
-
-    // #define NSPLINE 3
-    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE], result_sq;
-    // for (int i = 0; i < NSPLINE; i++) {
-    //   x[i] = 0. + (5. - 0.)*i/(NSPLINE-1);
-    //   y[i] = x[i]*x[i];
-    //   ddy[i] = 2.;//ddy[i];
-    // }
-    // array_square_integrate_all_spline_table_lines(x, NSPLINE, y, 1, ddy, &result_sq, pfo->error_message);
-    // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
-    // for (int i = 0; i < NSPLINE; i++) {
-    //   array[3*i] = x[i];
-    //   array[3*i+1] = y[i];
-    //   array[3*i+2] = ddy[i];
-    // }
-    // array_integrate_all_spline_gaussian_window(array, 3, NSPLINE, 0, 1, 2, 1., 2., &result, pfo->error_message);
-
-    // double x_sol = 1.;
-    // int last_ind = 0;
-    // array_spline_solve_table_lines(x, NSPLINE, y, ddy, 0., &x_sol, _TRUE_, &last_ind, pfo->error_message);
-
-    // double jntest[101];
-    // spherical_bessel_j(100, 100., jntest, pfo->error_message);
-    // array_integrate_all_spline_spherical_bessel_J(array, 3, NSPLINE, 0, 1, 2, 100, 2., 1., &result, pfo->error_message);
-
-    // double complex result, result2;
-    // array_integrate_all_spline_fourier(array, 3, NSPLINE, 0, 1, 2, 100., &result, pfo->error_message);
-    // array_integrate_all_spline_table_lines_fourier(x, NSPLINE, y, 1, ddy, 100., &result2, pfo->error_message);
-
-    // #define NSPLINE 1000
-    // #define POS_FREQ_NUM 128
-    // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE];
-    // for (int i = 0; i < NSPLINE; i++) {
-    //   x[i] = 0. + (2.*_PI_ - (0.))*i/(NSPLINE-1.);
-    //   y[i] = sin(x[i]);
-    //   //ddy[i] = -sin(x[i]);
-    // }
-    // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_PERIODIC_, pfo->error_message);
-    // double complex result[POS_FREQ_NUM], cond_num[POS_FREQ_NUM];
-    // result[0] = 0.;
-    // array_integrate_all_spline_table_lines_compensated(x, NSPLINE, y, 1, ddy, (double *)result, 0., (double *)cond_num, pfo->error_message);
-    // result[0] /= (2.*_PI_);
-    // for (int i = 1; i < POS_FREQ_NUM; i++) {
-    //   array_integrate_all_spline_table_lines_fourier_compensated(x, NSPLINE, y, 1, ddy, (double)i, result + i, 0., cond_num + i, pfo->error_message);
-    //   result[i] /= (2.*_PI_);
-    // }
-    // printf("%.16e        %.16e \n", cimag(result[1]), cimag(cond_num[1]));
-
-    // JL: also for testing? remove? Tests, will be removed at some point
-    // double x[4] = {-_PI_, -_PI_/2., _PI_/2., _PI_};
-    // double y[4] = {0., -1., 1., 0.};
-    // double ddy[4] = {0., 12./(_PI_*_PI_), -12./(_PI_*_PI_), 0.};
-    // int last_index = 0;
-    // double p;
-    // #define NPOINTS 200
-    // double test_func_vals[NPOINTS];
-    // for (int i = 0; i < NPOINTS; i++) {
-    //   p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NPOINTS - 1);
-    //   array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, test_func_vals + i, 1, pfo->error_message);
-    // }
-
-    // // JL: more comments and explanations? Tests, will be removed at some point
-    // // compute Spline Fourier
-    // #define NFREQ 256
-    // double complex fourier_coeff[NFREQ];
-    // double complex cond_num[NFREQ];
-    // fourier_coeff[0] = class_complex(0., 0.);
-    // array_integrate_all_spline_table_lines_compensated(x, 4, y, 1, ddy, fourier_coeff, 0., cond_num, pfo->error_message);
-    // for (int i = 1; i < NFREQ; i++) {
-    //   p = (double)i;
-    //   array_integrate_all_spline_table_lines_fourier_compensated(x, 4, y, 1, ddy, p, fourier_coeff + i, 0., cond_num + i, pfo->error_message);
-    //   fourier_coeff[i] /= 2.*_PI_;
-    // }
-
-    // // JL: more comments and explanations? Tests, will be removed at some point
-    // #define NFFT 256
-    // double samples[NFFT], zero[NFFT];
-    // double fft_coeff_real[NFFT], fft_coeff_imag[NFFT], zero_coeff_real[NFFT], zero_coeff_imag[NFFT];
-    // double fft_coeff_mag[NFFT];
-    // struct FFT_plan * fft_plan;
-    // FFT_planner_init(NFFT, &fft_plan);
-    // //FFT_planner_alloc(NFFT, &fft_plan);
-    // last_index = 0;
-    // for (int i = 0; i < NFFT; i++) {
-    //   p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NFFT);
-    //   array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, samples + i, 1, pfo->error_message);
-    //   zero[i] = 0.;
-    // }
-    // FFT_real_planned(samples, zero, fft_coeff_real, fft_coeff_imag, zero_coeff_real, zero_coeff_imag, fft_plan);
-    // FFT_planner_free(&fft_plan);
-    // for (int i = 0; i < NFFT; i++) {
-    //   fft_coeff_mag[i] = sqrt(fft_coeff_real[i]*fft_coeff_real[i] + fft_coeff_imag[i]*fft_coeff_imag[i])/(double)NFFT;
-    // }
-
-    // FILE *fpknw = fopen("output/spline_fourier_test.dat", "w");
-    // if (fpknw) {
-    //   fprintf(fpknw, "# Spline Fourier Test against FFT with %d coefficients \n", NFFT);
-    //   fprintf(fpknw, "#  0: frequency       1:spline real        2:spline imag        3:fft real           4:fft imag \n");
-    //   for (int i = 0; i < NFFT; i++)
-    //     fprintf(fpknw, " %d       %.12e       %.12e       %.12e       %.12e \n", \
-    //             i, creal(fourier_coeff[i]), cimag(fourier_coeff[i]), fft_coeff_real[i]/(double)NFFT, fft_coeff_imag[i]/(double)NFFT);
-
-    //   fclose(fpknw);
-    // }
-
-
-    /** - debug output */
-    if (pfo->fourier_verbose > 2) {
-      // FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
-      // if (fpknw) {
-      //   fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
-      //   fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
-      //   fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
-      //   fprintf(fpknw, "#    1:k (1/Mpc)              2:P_nw (Mpc)^3          3:P_lin (Mpc)^3 \n");
-      //   for (int i = 0; i < pfo->k_size_extra; i++)
-      //     fprintf(fpknw, "  %.12e       %.12e       %.12e \n", \
-      //             exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]),
-      //             exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]));
-
-      //   fclose(fpknw);
-      // }
-      // else {
-      //   printf("Could not open file for nowiggle powerspectrum output.\n");
-      // }
-
-      // JL: remove following commented lines? Will remove at some point, or put an option to do the test
-
-      /** - kmin at different z */
-      // double z = 1.;
-      // int last_index = 0;
-      // double * vecback = malloc(pba->bg_size_short * sizeof(double));
-      // background_at_z(pba, 0., short_info, inter_normal, &last_index, vecback);
-      // fprintf(stderr, "H(z=%.4f) = %.8e\n", z, vecback[pba->index_bg_H]);
-      // free(vecback);
-
-
-      /** Test the interface functions */
-      // #define NTEST 1000
-      // double lnk[NTEST], singleNW[NTEST], vectorNW[NTEST];
-      // for (int i = 0; i < NTEST; i++) {
-      //   lnk[i] = -16.1 + (16.1 - (-16.1)) * i/(NTEST-1);
-      //   if (fourier_pk_l_nw_extra_at_k_and_z(pba, ppm, pfo, linear, exp(lnk[i]), z, singleNW+i) == _FAILURE_)
-      //     fprintf(stderr, "k=%.5e is out of bounds\n", exp(lnk[i]));
-      // }
-      // fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, lnk, NTEST, z, vectorNW);
-
-
-      // fpknw = fopen("output/nowiggle_pk_interface.dat", "w");
-
-      // fprintf(fpknw, "# Nowiggle power spectrum at z=%.3f \n", z);
-      // fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(lnk[0]), exp(lnk[NTEST-1]));
-      // fprintf(fpknw, "# number of wavenumbers equal to %d \n", NTEST);
-      // fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
-      // for (int i = 0; i < NTEST; i++)
-      //   fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
-      //           exp(lnk[i]), singleNW[i], vectorNW[i],
-      //           pm_nowiggle_gfilter(pba, ppm, pfo, exp(lnk[i]), z, 0));
-
-      // fclose(fpknw);
-
-      /** compare the power spectra */
-      // fpknw = fopen("output/nowiggle_pk_comparison.dat", "w");
-
-      // fprintf(fpknw, "# Nowiggle power spectrum at z=%.3f divided by Eisenstein-Hu \n", z);
-      // fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
-      // fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
-      // fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
-      // for (int it_k = 0; it_k < pfo->k_size_extra; it_k++)
-      //   fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
-      //           exp(pfo->ln_k[it_k]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]),
-      //           exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]),
-      //           pm_nowiggle_gfilter(pba, ppm, pfo, pfo->k[it_k], 0., 0) / exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]));
-
-      // fclose(fpknw);
-
-      /** test the moments */
-      // double z = 0.;
-      // double ir_sigma2_new = eft_ir_sigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
-      // double ir_sigma2_old = IR_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
-      // fprintf(stderr, "# Sigma2(z) = %.8e (quad), %.8e (spline) \n", ir_sigma2_old, ir_sigma2_new);
-
-      // double ir_dsigma2_new = eft_ir_dsigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
-      // double ir_dsigma2_old = IR_del_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
-      // fprintf(stderr, "# dSigma2(z) = %.8e (quad), %.8e (spline) \n", ir_dsigma2_old, ir_dsigma2_new);
-
-
-      // /** smallest allowed variation */
-      // fprintf(stderr, "# Smallest allowed variation: %.3e", ppr->smallest_allowed_variation);
-    }
   }
 
   /** - compute and store sigma8 (variance of density fluctuations in
@@ -2512,15 +2191,13 @@ int fourier_init(
       }
 
       /** - build the name of the files in wich loop matrices will be written or read */
-      if (pfo->eft_hp.write_loop_matrices == _TRUE_) {
-        for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
-          if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
-            strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
-            strcat(pfo->eft_hp.eft_loop_matrix_files[index_moment], eft_loop_matrix_files_default[index_moment]);
-          }
-          else {
-            class_stop(pfo->error_message, "Kernel matrix filename %s%s_000.mat is too long", pfo->eft_hp.eft_loop_matrix_directory, eft_loop_matrix_files_default[index_moment]);
-          }
+      for (index_moment = 0; index_moment < NUM_MOMENTS; index_moment++) {
+        if (strlen(pfo->eft_hp.eft_loop_matrix_directory) + strlen(eft_loop_matrix_files_default[index_moment]) + 8 < _FILENAMESIZE_) { /** - reserve 8 characters for suffix _000.mat */
+          strcpy(pfo->eft_hp.eft_loop_matrix_files[index_moment], pfo->eft_hp.eft_loop_matrix_directory);
+          strcat(pfo->eft_hp.eft_loop_matrix_files[index_moment], eft_loop_matrix_files_default[index_moment]);
+        }
+        else {
+          class_stop(pfo->error_message, "Kernel matrix filename %s%s_000.mat is too long", pfo->eft_hp.eft_loop_matrix_directory, eft_loop_matrix_files_default[index_moment]);
         }
       }
 
@@ -2554,45 +2231,29 @@ int fourier_init(
                    pfo->error_message);
       }
 
-      /* one z */
-      class_alloc(zvec,TEST_Z_SIZE*sizeof(double),pfo->error_message);
-
       /* a few mu for testing*/
-      class_alloc(muvec,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
-      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-        class_alloc(muvec[index_z],TEST_MU_SIZE*sizeof(double),pfo->error_message);
-        mu_sizevec[index_z] = TEST_MU_SIZE;
-        for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-          muvec[index_z][index_mu] = index_mu / (double)(TEST_MU_SIZE-1);
-        }
-      }
+      class_alloc(muvec, sizeof(double *), pfo->error_message);
+      class_alloc(*muvec, sizeof(double), pfo->error_message);
+      mu_size = 1;
+      **muvec = 0.;
 
       /* values of k taken from fourier structure */
-      class_alloc(kvec,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
-      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-        class_alloc(kvec[index_z],pfo->k_size*TEST_MU_SIZE*sizeof(double),pfo->error_message);
-        k_sizevec[index_z] = pfo->k_size;
-        for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-          for (index_k = 0; index_k < pfo->k_size; index_k++) {
-            kvec[index_z][index_mu*pfo->k_size+index_k] = pfo->k[index_k];
-          }
-        }
-      }
+      class_alloc(kvec, sizeof(double *), pfo->error_message);
+      class_alloc(*kvec, pfo->k_size*sizeof(double),pfo->error_message);
+      k_size = pfo->k_size;
+      class_protect_memcpy(*kvec, pfo->k, pfo->k_size*sizeof(double));
 
       /* array to write the output */
-      class_alloc(out_pkmu,TEST_Z_SIZE*sizeof(double *),pfo->error_message);
-      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-        class_alloc(out_pkmu[index_z],pfo->k_size*TEST_MU_SIZE*sizeof(double),pfo->error_message);
-      }
+      class_alloc(out_pkmu, sizeof(double *), pfo->error_message);
+      class_alloc(*out_pkmu, pfo->k_size*sizeof(double), pfo->error_message);
 
-      //eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1.14, .b2 = -0.767, .bG2 = -0.04, .btd = 0.077, .has_rsd = 1, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
-      eft_ip_test[0] = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .cs2 = 0., .R2 = 0., .has_rsd = 1, .c00 = 0., .c10 = 0., .c20 = 0., .c22 = 0., .c30 = 0., .c32 = 0., .c42 = 0. };
+      eft_ip_dummy = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 0, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
 
     /************************ END PRELIMINARY ZONE 1 **********************/
 
     }
 
-    /** --> Loop over decreasing time/growing redhsift. For each
+    /** --> Loop over decreasing time/growing redshift. For each
         time/redshift, compute P_NL(k,z) using either Halofit or
         HMcode */
 
@@ -2701,54 +2362,43 @@ int fourier_init(
           }
 
           else if (pfo->method == nl_oneloopPT) {
-
             /*************** PRELIMINARY ZONE 2 *****************/
-            class_call(background_z_of_tau(pba,pfo->tau[index_tau],zvec),
-                       pba->error_message,
-                       pfo->error_message);
+            if (index_pk == 0) {
+              class_call(background_z_of_tau(pba, pfo->tau[index_tau], &z),
+                        pba->error_message,
+                        pfo->error_message);
 
-            //fprintf(stderr,"Call eft_job_powerspectrum_wedges() at z=%e\n",zvec[0]);
+              //fprintf(stderr,"Call eft_job_powerspectrum_wedges() at z=%e\n",zvec[0]);
 
-            class_call(eft_job_powerspectrum_wedges(pfo->peft,
-                                                    pfo->eft_size,
-                                                    pba,
-                                                    pfo,
-                                                    ppm,
-                                                    ppr,
-                                                    Pdd_hh_rsd,
-                                                    zvec,
-                                                    eft_ip_test,
-                                                    TEST_Z_SIZE,
-                                                    kvec,
-                                                    k_sizevec,
-                                                    muvec,
-                                                    mu_sizevec,
-                                                    out_pkmu),
-                       pfo->peft->error_message,
-                       pfo->error_message);
-
-            /*
-              index_z=0;
-              for (index_mu = 0; index_mu < TEST_MU_SIZE; index_mu++) {
-              for (index_k = 0; index_k < pfo->k_size; index_k++) {
-              fprintf(stderr,"%e %e %e\n",
-              muvec[index_z][index_mu],
-              kvec[index_z][k_sizevec[index_z]*index_mu+index_k],
-              out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
-              }
-              }
-            */
+              class_call(eft_job_powerspectrum_wedges(pfo->peft,
+                                                      pfo->eft_size,
+                                                      pba,
+                                                      pfo,
+                                                      ppm,
+                                                      ppr,
+                                                      Pdd_mm_real,
+                                                      &z,
+                                                      1.,
+                                                      &eft_ip_dummy,
+                                                      1,
+                                                      kvec,
+                                                      &k_size,
+                                                      muvec,
+                                                      &mu_size,
+                                                      out_pkmu,
+                                                      NULL),
+                          pfo->peft->error_message,
+                          pfo->error_message);
+            }
 
 
-            index_z=0;
             /* so far, we only write the spectrum at mu=0 (real-space power spectrum) */
-            index_mu=0;
             /* so far, the oneloop method will write identical output for _m and _cb since we did not code the difference */
-            for (index_k=0; index_k<pfo->k_size; index_k++) {
+            for (index_k=0; index_k < pfo->k_size; index_k++) {
               /* if k is in the range where oneloop works, P_NL = result of oneloop */
               if ((pfo->k[index_k] > pfo->eft_hp.kmin_nl) && (pfo->k[index_k] < pfo->eft_hp.kmax_nl)) {
                 //pfo->ln_pk_nl[index_pk][index_tau*pfo->k_size+index_k] = log(out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k]);
-                pk_nl[index_pk][index_k] = out_pkmu[index_z][k_sizevec[index_z]*index_mu+index_k];
+                pk_nl[index_pk][index_k] = out_pkmu[0][index_k];
               }
               /* otherwise, P_NL = P_L */
               else {
@@ -2861,15 +2511,12 @@ int fourier_init(
     }
 
     if (pfo->method == nl_oneloopPT) {
-      for (index_z = 0; index_z < TEST_Z_SIZE; index_z++) {
-        free(out_pkmu[index_z]);
-        free(kvec[index_z]);
-        free(muvec[index_z]);
-      }
+      free(*out_pkmu);
+      free(*kvec);
+      free(*muvec);
       free(out_pkmu);
       free(kvec);
       free(muvec);
-      free(zvec);
     }
   }
 
@@ -3713,6 +3360,357 @@ int fourier_pk_linear(
 
   free(primordial_pk);
   free(pk_ic);
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Compute the decomposition of the linear power spectrum into a
+ * wiggly and a non-wiggly part. Store the results in the fourier
+ * structure.
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pfo Input/Output: pointer to fourier structure
+ * @return the error status
+ */
+
+int fourier_wnw_split(
+                      struct precision *ppr,
+                      struct background *pba,
+                      struct primordial * ppm,
+                      struct fourier *pfo
+                      ) {
+
+  double ln_k0;
+  int index_k0;
+  int index_k_min;
+  double ln_k_nw_min;
+  double smoothing_scale;
+  int index_k_max;
+  double ln_k_nw_max;
+  int k_nw_size;
+
+  /** - find indices of the pivot scale k0 in pfo->ln_k:
+   *    it is the wavenumber at which the analytical Eisenstein-Hu dewiggled
+   *    power spectrum, that is used to reduce the low-frequency dynamics of
+   *    the linear power spectrum before filtering, is matched to the CLASS-
+   *    computed one */
+
+  ln_k0 = log(ppr->nowiggle_filter_pivot_k);
+
+  class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
+                                  ln_k0, &index_k0, pfo->error_message),
+             pfo->error_message,
+             pfo->error_message);
+
+  // find indices of k_nw_min, k_nw_max in pfo->ln_k */
+  // class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
+  //                                 ln_k_nw_min, &index_k_min, pfo->error_message),
+  //             pfo->error_message,
+  //             pfo->error_message);
+  // class_call(array_hunt_ascending(pfo->ln_k, pfo->k_size_extra,
+  //                                 ln_k_nw_max, &index_k_max, pfo->error_message),
+  //             pfo->error_message,
+  //             pfo->error_message);
+
+  /** - find the index range in which the dewiggled power spectrum is computed:
+   *    Since the filter has a finitely-extended support, it cannot be applied
+   *    very close to the boundaries. Therefore we find the indices on both sides
+   *    at which the end of the ln(k)-range is further away than
+   *    ppr->nowiggle_boundary_dist_sigma_units times the smoothing scale.
+   */
+  for (index_k_min = 0; index_k_min < pfo->k_size_extra; index_k_min++) {
+    ln_k_nw_min = pfo->ln_k[index_k_min];
+    smoothing_scale = gfilter_smoothing_scale(ln_k_nw_min);
+    if (ln_k_nw_min - pfo->ln_k[0] > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
+  }
+  for (index_k_max = pfo->k_size_extra-1; index_k_max >= 0; index_k_max--) {
+    ln_k_nw_max = pfo->ln_k[index_k_max];
+    smoothing_scale = gfilter_smoothing_scale(ln_k_nw_max);
+    if (pfo->ln_k[pfo->k_size_extra-1] - ln_k_nw_max > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
+  }
+  k_nw_size = index_k_max - index_k_min + 1;
+
+  /** - fill the nowiggle array with the original linear spectrum
+      and overwrite only values between index_kmin and
+      index_kmax */
+  memcpy(pfo->ln_pk_l_nw_extra, pfo->ln_pk_l_extra[*(pfo->nowiggle_pk_index)],
+         pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
+
+  /** - compute the nowiggle spectrum using gaussian filter */
+  // JL TODO: move this function from oneloop module to a separate wnw_split module
+  class_call(eft_ln_pk_nw_gfilter_parallel(ppr, pba, ppm, pfo,
+                                           *(pfo->nowiggle_pk_index),
+                                           index_k0,
+                                           index_k_min,
+                                           k_nw_size,
+                                           pfo->ln_pk_l_nw_extra),
+             pfo->error_message,
+             pfo->error_message);
+
+  if (pfo->ln_tau_size > 1) {
+    /** - spline the nowiggle spectrum */
+    class_call(array_spline_table_lines_parallel(pfo->ln_tau,
+                                                 pfo->ln_tau_size,
+                                                 pfo->ln_pk_l_nw_extra,
+                                                 pfo->k_size_extra,
+                                                 pfo->ddln_pk_l_nw_extra,
+                                                 _SPLINE_EST_DERIV_, // TODO: what happens if 1 < ln_tau_size < 3 -> this will not work
+                                                 pfo->error_message),
+               pfo->error_message,
+               pfo->error_message);
+  }
+
+  // JL: we will remove it once we have implemented these tests as an option
+  /** TODO: test splines -> done -> to be removed */
+  // #define NSPLINE 9
+  // double x[NSPLINE] = {-4., -3., -2., -1., 0., 1., 2., 3., 4.};
+  // double y[NSPLINE] = {-64., -27., -8., -1., 0., 1., 8., 27., 64.};
+  // double ddy[NSPLINE];
+  // double array[3*NSPLINE];
+  // double result;
+  // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
+  // for (int i = 0; i < NSPLINE; i++) {
+  //   ddy[i] = 6.*x[i];
+  // }
+  // array_integrate_all_spline(array, 3, NSPLINE, 0, 1, 2, &result, pfo->error_message);
+  // array_square_integrate_exponential_all_spline_table_lines(x, NSPLINE, y, 1, ddy, 0.5, 3, &result, pfo->error_message);
+
+  // #define NSPLINE 500
+  // double x[NSPLINE], y[2*NSPLINE], ddy_old[2*NSPLINE], ddy[2*NSPLINE], diffsum;
+  // int spline_mode = 1;
+  // for (int i = 0; i < NSPLINE; i++) {
+  //   x[i] = 0. + (2.*_PI_ - (0.)) * i / (NSPLINE-1);
+  //   y[2*i] = 2. + sin(x[i]);
+  //   y[2*i+1] = 2. + cos(x[i]);
+  // }
+  // array_spline_table_lines(x, NSPLINE, y, 2, ddy_old, spline_mode, pfo->error_message);
+  // array_spline_table_lines_parallel(x, NSPLINE, y, 2, ddy, spline_mode, pfo->error_message);
+
+  // double array[2*NSPLINE], ddy[2*NSPLINE];
+  // for (int i = 0; i < NSPLINE; i++) {
+  //   //array[4*i] = x[i];
+  //   array[i] = y[2*i];
+  //   array[NSPLINE+i] = y[2*i+1];
+  // }
+  // array_logspline_table_lines_new(x, NSPLINE, y, 2, ddy, spline_mode, pfo->error_message);
+
+  // for (int i = 0; i < NSPLINE; i++) {
+  //   ddy[2*i] = array[4*i+2];
+  //   ddy[2*i+1] = array[4*i+3];
+  // }
+  // diffsum = 0.;
+  // for (int i = 0; i < 2*NSPLINE; i++) {
+  //   diffsum += ddy[i] - ddy_old[i];
+  // }
+
+  // double ddy_period[2*NSPLINE];
+  // array_spline_table_lines_parallel(x, NSPLINE, y, 2, ddy_period, 2, pfo->error_message);
+  // for (int i = 0; i < NSPLINE; i++) {
+  //   ddy_period[2*i] = array[4*i+2];
+  //   ddy_period[2*i+1] = array[4*i+3];
+  // }
+
+
+  // double super[NSPLINE-1], constants[NSPLINE-1];
+  // double dy_first=1.;
+  // double dy_last=1.;
+  // array_spline_internal_hermite(x, 1, y, 1, ddy_old, 1, NSPLINE, super, constants, _FALSE_, &dy_first, &dy_last);
+  // double super[NSPLINE-2], constants[NSPLINE-2];
+  // double constants_aux[NSPLINE-2], sol_aux[NSPLINE-1];
+  // array_spline_internal_periodic(x, 1, y, 1, ddy, 1, NSPLINE-1, super, constants, constants_aux, sol_aux);
+
+  // #define NSPLINE 3
+  // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE], result_sq;
+  // for (int i = 0; i < NSPLINE; i++) {
+  //   x[i] = 0. + (5. - 0.)*i/(NSPLINE-1);
+  //   y[i] = x[i]*x[i];
+  //   ddy[i] = 2.;//ddy[i];
+  // }
+  // array_square_integrate_all_spline_table_lines(x, NSPLINE, y, 1, ddy, &result_sq, pfo->error_message);
+  // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_EST_DERIV_, pfo->error_message);
+  // for (int i = 0; i < NSPLINE; i++) {
+  //   array[3*i] = x[i];
+  //   array[3*i+1] = y[i];
+  //   array[3*i+2] = ddy[i];
+  // }
+  // array_integrate_all_spline_gaussian_window(array, 3, NSPLINE, 0, 1, 2, 1., 2., &result, pfo->error_message);
+
+  // double x_sol = 1.;
+  // int last_ind = 0;
+  // array_spline_solve_table_lines(x, NSPLINE, y, ddy, 0., &x_sol, _TRUE_, &last_ind, pfo->error_message);
+
+  // double jntest[101];
+  // spherical_bessel_j(100, 100., jntest, pfo->error_message);
+  // array_integrate_all_spline_spherical_bessel_J(array, 3, NSPLINE, 0, 1, 2, 100, 2., 1., &result, pfo->error_message);
+
+  // double complex result, result2;
+  // array_integrate_all_spline_fourier(array, 3, NSPLINE, 0, 1, 2, 100., &result, pfo->error_message);
+  // array_integrate_all_spline_table_lines_fourier(x, NSPLINE, y, 1, ddy, 100., &result2, pfo->error_message);
+
+  // #define NSPLINE 1000
+  // #define POS_FREQ_NUM 128
+  // double x[NSPLINE], y[NSPLINE], ddy[NSPLINE];
+  // for (int i = 0; i < NSPLINE; i++) {
+  //   x[i] = 0. + (2.*_PI_ - (0.))*i/(NSPLINE-1.);
+  //   y[i] = sin(x[i]);
+  //   //ddy[i] = -sin(x[i]);
+  // }
+  // array_spline_table_lines(x, NSPLINE, y, 1, ddy, _SPLINE_PERIODIC_, pfo->error_message);
+  // double complex result[POS_FREQ_NUM], cond_num[POS_FREQ_NUM];
+  // result[0] = 0.;
+  // array_integrate_all_spline_table_lines_compensated(x, NSPLINE, y, 1, ddy, (double *)result, 0., (double *)cond_num, pfo->error_message);
+  // result[0] /= (2.*_PI_);
+  // for (int i = 1; i < POS_FREQ_NUM; i++) {
+  //   array_integrate_all_spline_table_lines_fourier_compensated(x, NSPLINE, y, 1, ddy, (double)i, result + i, 0., cond_num + i, pfo->error_message);
+  //   result[i] /= (2.*_PI_);
+  // }
+  // printf("%.16e        %.16e \n", cimag(result[1]), cimag(cond_num[1]));
+
+  // JL: also for testing? remove? Tests, will be removed at some point
+  // double x[4] = {-_PI_, -_PI_/2., _PI_/2., _PI_};
+  // double y[4] = {0., -1., 1., 0.};
+  // double ddy[4] = {0., 12./(_PI_*_PI_), -12./(_PI_*_PI_), 0.};
+  // int last_index = 0;
+  // double p;
+  // #define NPOINTS 200
+  // double test_func_vals[NPOINTS];
+  // for (int i = 0; i < NPOINTS; i++) {
+  //   p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NPOINTS - 1);
+  //   array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, test_func_vals + i, 1, pfo->error_message);
+  // }
+
+  // // JL: more comments and explanations? Tests, will be removed at some point
+  // // compute Spline Fourier
+  // #define NFREQ 65536
+  // double complex fourier_coeff[NFREQ];
+  // double complex cond_num[NFREQ];
+  // fourier_coeff[0] = class_complex(0., 0.);
+  // array_integrate_all_spline_table_lines_compensated(x, 4, y, 1, ddy, fourier_coeff, 0., cond_num, pfo->error_message);
+  // for (int i = 1; i < NFREQ; i++) {
+  //   p = (double)i;
+  //   array_integrate_all_spline_table_lines_fourier_compensated(x, 4, y, 1, ddy, p, fourier_coeff + i, 0., cond_num + i, pfo->error_message);
+  //   fourier_coeff[i] /= 2.*_PI_;
+  // }
+
+  // // JL: more comments and explanations? Tests, will be removed at some point
+  // #define NFFT 65536
+  // double samples[NFFT], zero[NFFT];
+  // double fft_coeff_real[NFFT], fft_coeff_imag[NFFT], zero_coeff_real[NFFT], zero_coeff_imag[NFFT];
+  // double fft_coeff_mag[NFFT];
+  // struct FFT_plan * fft_plan;
+  // FFT_planner_init(NFFT, &fft_plan);
+  // //FFT_planner_alloc(NFFT, &fft_plan);
+  // last_index = 0;
+  // for (int i = 0; i < NFFT; i++) {
+  //   p = -_PI_ + (_PI_ - (-_PI_))*i/(double)(NFFT);
+  //   array_interpolate_spline_derivative_closeby(x, 4, y, ddy, 1, p, (short)0, &last_index, samples + i, 1, pfo->error_message);
+  //   zero[i] = 0.;
+  // }
+  // FFT_real_planned(samples, zero, fft_coeff_real, fft_coeff_imag, zero_coeff_real, zero_coeff_imag, fft_plan);
+  // FFT_planner_free(&fft_plan);
+  // for (int i = 0; i < NFFT; i++) {
+  //   fft_coeff_mag[i] = sqrt(fft_coeff_real[i]*fft_coeff_real[i] + fft_coeff_imag[i]*fft_coeff_imag[i])/(double)NFFT;
+  // }
+
+  // FILE *fpknw = fopen("output/spline_fourier_test.dat", "w");
+  // if (fpknw) {
+  //   fprintf(fpknw, "# Spline Fourier Test against FFT with %d coefficients \n", NFFT);
+  //   fprintf(fpknw, "#  0: frequency       1:spline real        2:spline imag        3:fft real           4:fft imag \n");
+  //   for (int i = 0; i < NFFT; i++)
+  //     fprintf(fpknw, " %d       %.12e       %.12e       %.12e       %.12e \n", \
+  //             i, creal(fourier_coeff[i]), cimag(fourier_coeff[i]), fft_coeff_real[i]/(double)NFFT, fft_coeff_imag[i]/(double)NFFT);
+
+  //   fclose(fpknw);
+  // }
+
+
+  /** - debug output */
+  if (pfo->fourier_verbose > 2) {
+    // FILE *fpknw = fopen("output/nowiggle_pk.dat", "w");
+    // if (fpknw) {
+    //   fprintf(fpknw, "# Nowiggle power spectrum at z=0 \n");
+    //   fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
+    //   fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
+    //   fprintf(fpknw, "#    1:k (1/Mpc)              2:P_nw (Mpc)^3          3:P_lin (Mpc)^3 \n");
+    //   for (int i = 0; i < pfo->k_size_extra; i++)
+    //     fprintf(fpknw, "  %.12e       %.12e       %.12e \n",         \
+    //             exp(pfo->ln_k[i]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + i]),
+    //             exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + i]));
+
+    //   fclose(fpknw);
+    // }
+    // else {
+    //   printf("Could not open file for nowiggle powerspectrum output.\n");
+    // }
+
+    // JL: remove following commented lines? Will remove at some point, or put an option to do the test
+
+    /** - kmin at different z */
+    // double z = 1.;
+    // int last_index = 0;
+    // double * vecback = malloc(pba->bg_size_short * sizeof(double));
+    // background_at_z(pba, 0., short_info, inter_normal, &last_index, vecback);
+    // fprintf(stderr, "H(z=%.4f) = %.8e\n", z, vecback[pba->index_bg_H]);
+    // free(vecback);
+
+
+    /** Test the interface functions */
+    // #define NTEST 1000
+    // double lnk[NTEST], singleNW[NTEST], vectorNW[NTEST];
+    // for (int i = 0; i < NTEST; i++) {
+    //   lnk[i] = -16.1 + (16.1 - (-16.1)) * i/(NTEST-1);
+    //   if (fourier_pk_l_nw_extra_at_k_and_z(pba, ppm, pfo, linear, exp(lnk[i]), z, singleNW+i) == _FAILURE_)
+    //     fprintf(stderr, "k=%.5e is out of bounds\n", exp(lnk[i]));
+    // }
+    // fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, lnk, NTEST, z, vectorNW);
+
+
+    // fpknw = fopen("output/nowiggle_pk_interface.dat", "w");
+
+    // fprintf(fpknw, "# Nowiggle power spectrum at z=%.3f \n", z);
+    // fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(lnk[0]), exp(lnk[NTEST-1]));
+    // fprintf(fpknw, "# number of wavenumbers equal to %d \n", NTEST);
+    // fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
+    // for (int i = 0; i < NTEST; i++)
+    //   fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
+    //           exp(lnk[i]), singleNW[i], vectorNW[i],
+    //           pm_nowiggle_gfilter(pba, ppm, pfo, exp(lnk[i]), z, 0));
+
+    // fclose(fpknw);
+
+    /** compare the power spectra */
+    // fpknw = fopen("output/nowiggle_pk_comparison.dat", "w");
+
+    // fprintf(fpknw, "# Nowiggle power spectrum at z=%.3f divided by Eisenstein-Hu \n", z);
+    // fprintf(fpknw, "# for k=%.5e to %.3f 1/Mpc \n", exp(pfo->ln_k[0]), exp(pfo->ln_k[pfo->k_size_extra-1]));
+    // fprintf(fpknw, "# number of wavenumbers equal to %d \n", pfo->k_size_extra);
+    // fprintf(fpknw, "#    1:k (1/Mpc)              2:P (Mpc)^3 \n");
+    // for (int it_k = 0; it_k < pfo->k_size_extra; it_k++)
+    //   fprintf(fpknw, "  %.12e       %.12e       %.12e       %.12e \n", \
+    //           exp(pfo->ln_k[it_k]), exp(pfo->ln_pk_l_nw_extra[(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]),
+    //           exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + it_k] - pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]),
+    //           pm_nowiggle_gfilter(pba, ppm, pfo, pfo->k[it_k], 0., 0) / exp(pfo->ln_pk_l_extra[pfo->index_pk_cluster][(pfo->ln_tau_size-1)*pfo->k_size_extra + index_k0]) / eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_k], pfo->k[index_k0]));
+
+    // fclose(fpknw);
+
+    /** test the moments */
+    // double z = 0.;
+    // double ir_sigma2_new = eft_ir_sigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
+    // double ir_sigma2_old = IR_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
+    // fprintf(stderr, "# Sigma2(z) = %.8e (quad), %.8e (spline) \n", ir_sigma2_old, ir_sigma2_new);
+
+    // double ir_dsigma2_new = eft_ir_dsigma2(pba, ppm, pfo, z, 0.2, pba->h/110.);
+    // double ir_dsigma2_old = IR_del_Sigma2(pba, ppm, pfo, z, exp(ln_k0), GFILTER);
+    // fprintf(stderr, "# dSigma2(z) = %.8e (quad), %.8e (spline) \n", ir_dsigma2_old, ir_dsigma2_new);
+
+
+    // /** smallest allowed variation */
+    // fprintf(stderr, "# Smallest allowed variation: %.3e", ppr->smallest_allowed_variation);
+  }
 
   return _SUCCESS_;
 

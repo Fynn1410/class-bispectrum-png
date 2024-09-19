@@ -17,7 +17,8 @@
 
 
 enum eft_pk_type {pk_lin, pk_nowiggle, pk_ir_resummed_lo, pkmu_rsd_ir_resummed_lo, pk_ir_resummed_nlo, pkmu_rsd_ir_resummed_nlo, pk_type_num};
-enum eft_pk_out_type {Pdd_mm_real, Pdd_mm_rsd, Pdd_hh_real, Pdd_hh_rsd, pk_out_type_num};
+enum eft_pk_out_type {Pdd_mm_real, Pdd_mm_rsd, Pdd_hh_real, Pdd_hh_rsd, Pdd_mm_real_no_IR_resum, Pdd_mm_22, Pdd_mm_13, Pdd_mm_22_no_IR_resum, Pdd_mm_13_no_IR_resum, pk_out_type_num};
+enum eft_arg_type {points, cartesian_product};
 enum eft_spectra_contribution {finite_part, uv_divergence, ir_divergence, pole_divergence, eft_spectra_contribution_num};
 enum sym_type {no_finite_part, sym_vec, sym_mat_none, sym_mat_symmetric};
 
@@ -47,7 +48,12 @@ static inline int eft_rsd_out_indicator(enum eft_pk_out_type pk_out_type) {
   switch (pk_out_type)
   {
   case Pdd_mm_real:
+  case Pdd_mm_real_no_IR_resum:
   case Pdd_hh_real:
+  case Pdd_mm_22:
+  case Pdd_mm_13:
+  case Pdd_mm_22_no_IR_resum:
+  case Pdd_mm_13_no_IR_resum:
     return _FALSE_;
     break;
 
@@ -243,6 +249,17 @@ int eft_spline_sample_points_nonuniform(
         const short verbosity
         );
 
+int eft_nearest_structure_in_time(
+        struct eft * peft0,
+        const int peft_size,
+        struct background * pba,
+        struct fourier * pfo,
+        const double z,
+        int * index_eft_min_dist,
+        struct eft * peft_min_dist,
+        ErrorMsg errmsg_out
+        );
+
 int eft_fourier_transform_linear_spectra(
         struct precision * ppr,
         struct background * pba,
@@ -294,6 +311,7 @@ int eft_linear_spectrum_rsd(
         const int kvec_size,
         const double * const muvec,
         const int muvec_size,
+        enum eft_arg_type arg_type,
         const double z,
         const double f_z,
         const double D_z,
@@ -324,13 +342,15 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
         const double * const zvec,
         const double * const f_zvec,
         const double * const D_zvec,
+        const double As_correction,
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,
-        const int * const k_sizevec,
+        int * const k_sizevec,
         double ** muvec,
         const int * const mu_sizevec,
-        double ** out_pkmu
+        double ** out_pkmu,
+        double ** ddout_pkmu
         );
 
 int eft_job_powerspectrum_wedges(
@@ -342,13 +362,15 @@ int eft_job_powerspectrum_wedges(
         struct precision * ppr,
         enum eft_pk_out_type pk_out_type,
         const double * const zvec,
+        const double As_correction,
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,
-        const int * const k_sizevec,
+        int * const k_sizevec,
         double ** muvec,
         const int * const mu_sizevec,
-        double ** out_pkmu
+        double ** out_pkmu,
+        double ** ddout_pkmu
         );
 
 int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
@@ -381,6 +403,7 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
         const double * const zvec,
         const double * const f_zvec,
         const double * const D_zvec,
+        const double As_correction,
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,
@@ -399,6 +422,7 @@ int eft_job_powerspectrum_multipoles(
         struct precision * ppr,
         enum eft_pk_out_type pk_out_type,
         const double * const zvec,
+        const double As_correction,
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,

@@ -3778,7 +3778,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
 
       class_read_double("z_infinity", pfo->z_infinity);
     }
-    else if ((strstr(string1,"oneloopPT") != NULL) || (strstr(string1,"1loopPT") != NULL) || (strstr(string1,"OneloopPT") != NULL)) {
+    else if ((strstr(string1,"oneloop") != NULL) || (strstr(string1,"Oneloop") != NULL) || (strstr(string1,"oneloopPT") != NULL) || (strstr(string1,"1loopPT") != NULL) || (strstr(string1,"OneloopPT") != NULL)) {
       pfo->method = nl_oneloopPT;
       pfo->has_pk_nw = _TRUE_;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;

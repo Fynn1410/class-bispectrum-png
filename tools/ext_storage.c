@@ -40,6 +40,7 @@ int ext_cleanup(struct ext_storage * pext) {
     free(pext->spectra_contributions_dimension);
 
     free(pext->period);
+    free(pext->fourier_coeff_size);
     free(pext->eft_index_num);
   }
 
@@ -68,53 +69,58 @@ int ext_save(struct ext_storage * pext,
   ext_cleanup(pext);
 
   /**----------------- EFT loop matrices -----------------*/
-  /** - count master eft-structures */
-  for (i = 0; i < pfo->eft_size; i++) {
-    if ((pfo->peft + i)->role == eft_master) { pext->eft_size += 1; }
-  }
-
-  /** - allocate pointer arrays */
-  class_alloc(pext->loop_matrices, pext->eft_size*sizeof(class_complex **), pext->error_message);
-  class_alloc(pext->loop_matrices_size, pext->eft_size*sizeof(int *), pext->error_message);
-  class_alloc(pext->symmetry, pext->eft_size*sizeof(short *), pext->error_message);
-  class_alloc(pext->use_tracer, pext->eft_size*sizeof(short *), pext->error_message);
-  class_alloc(pext->spectra_contributions_dimension, pext->eft_size*sizeof(short *), pext->error_message);
-
-  class_alloc(pext->period, pext->eft_size*sizeof(double *), pext->error_message);
-  for (i = 0; i < pext->eft_size; i++) {
-    class_alloc(pext->period[i], eft_tracer_num*sizeof(double), pext->error_message);
-  }
-  class_alloc(pext->eft_index_num, pext->eft_size*sizeof(int), pext->error_message);
-  for (i = 0; i < pfo->eft_size; i++) {
-    if ((pfo->peft + i)->role == eft_master) { pext->eft_index_num[i] = (pfo->peft + i)->index_num; }
-  }
-
-  /** - copy pointers from eft-structures */
-  for (i = 0; i < pfo->eft_size; i++) {
-    if ((pfo->peft + i)->role == eft_master) {
-      pext->loop_matrices[i] = (pfo->peft + i)->loop_matrices;
-      pext->loop_matrices_size[i] = (pfo->peft + i)->loop_matrices_size;
-      pext->symmetry[i] = (pfo->peft + i)->symmetry;
-      pext->use_tracer[i] = (pfo->peft + i)->use_tracer;
-      pext->spectra_contributions_dimension[i] = (pfo->peft + i)->spectra_contributions_dimension;
-
-      for (j = 0; j < eft_tracer_num; j++)
-        pext->period[i][j] = (pfo->peft + i)->hp->period[j];  /** data copied */
+  if (pfo && pfo->method == nl_oneloopPT) {
+    /** - count master eft-structures */
+    for (i = 0; i < pfo->eft_size; i++) {
+      if ((pfo->peft + i)->role == eft_master) { pext->eft_size += 1; }
     }
-  }
 
-  /** - replace with NULL at the original place */
-  for (i = 0; i < pfo->eft_size; i++) {
-    if ((pfo->peft + i)->role == eft_master) {
-      (pfo->peft + i)->loop_matrices = NULL;
-      (pfo->peft + i)->loop_matrices_size = NULL;
-      (pfo->peft + i)->symmetry = NULL;
-      (pfo->peft + i)->use_tracer = NULL;
-      (pfo->peft + i)->spectra_contributions_dimension = NULL;
+    /** - allocate pointer arrays */
+    class_alloc(pext->loop_matrices, pext->eft_size*sizeof(class_complex **), pext->error_message);
+    class_alloc(pext->loop_matrices_size, pext->eft_size*sizeof(int *), pext->error_message);
+    class_alloc(pext->symmetry, pext->eft_size*sizeof(short *), pext->error_message);
+    class_alloc(pext->use_tracer, pext->eft_size*sizeof(short *), pext->error_message);
+    class_alloc(pext->spectra_contributions_dimension, pext->eft_size*sizeof(short *), pext->error_message);
+
+    class_alloc(pext->period, pext->eft_size*sizeof(double *), pext->error_message);
+    class_alloc(pext->fourier_coeff_size, pext->eft_size*sizeof(int), pext->error_message);
+    for (i = 0; i < pext->eft_size; i++) {
+      class_alloc(pext->period[i], eft_tracer_num*sizeof(double), pext->error_message);
     }
-  }
+    class_alloc(pext->eft_index_num, pext->eft_size*sizeof(int), pext->error_message);
+    for (i = 0; i < pfo->eft_size; i++) {
+      if ((pfo->peft + i)->role == eft_master) { pext->eft_index_num[i] = (pfo->peft + i)->index_num; }
+    }
 
-  pext->loop_matrices_stored = _TRUE_;
+    /** - copy pointers from eft-structures */
+    for (i = 0; i < pfo->eft_size; i++) {
+      if ((pfo->peft + i)->role == eft_master) {
+        pext->loop_matrices[i] = (pfo->peft + i)->loop_matrices;
+        pext->loop_matrices_size[i] = (pfo->peft + i)->loop_matrices_size;
+        pext->symmetry[i] = (pfo->peft + i)->symmetry;
+        pext->use_tracer[i] = (pfo->peft + i)->use_tracer;
+        pext->spectra_contributions_dimension[i] = (pfo->peft + i)->spectra_contributions_dimension;
+
+        for (j = 0; j < eft_tracer_num; j++)
+          pext->period[i][j] = (pfo->peft + i)->hp->period[j];  /** data copied */
+
+        pext->fourier_coeff_size[i] = (pfo->peft + i)->hp->fourier_coeff_size;  /** data copied */
+      }
+    }
+
+    /** - replace with NULL at the original place */
+    for (i = 0; i < pfo->eft_size; i++) {
+      if ((pfo->peft + i)->role == eft_master) {
+        (pfo->peft + i)->loop_matrices = NULL;
+        (pfo->peft + i)->loop_matrices_size = NULL;
+        (pfo->peft + i)->symmetry = NULL;
+        (pfo->peft + i)->use_tracer = NULL;
+        (pfo->peft + i)->spectra_contributions_dimension = NULL;
+      }
+    }
+
+    pext->loop_matrices_stored = _TRUE_;
+  }
   /**-----------------------------------------------------*/
 
 
@@ -144,8 +150,10 @@ int ext_insert_eft(struct ext_storage * pext,
       return _FAILURE_; /** - insertion is impossible */
     }
     else {  /** - attempt insertion */
-      for (index_tracer = 0; (index_tracer < eft_tracer_num) && (pext->period[index_eft][index_tracer] == peft->hp->period[index_tracer]); index_tracer++);
-      if (index_tracer == eft_tracer_num) { /** - stored period is equal to the one requested in peft->hp */
+      for (index_tracer = 0; (index_tracer < eft_tracer_num)  \
+                            && (pext->period[index_eft][index_tracer] == peft->hp->period[index_tracer])  \
+                            && (pext->fourier_coeff_size[index_eft] == peft->hp->fourier_coeff_size); index_tracer++);
+      if (index_tracer == eft_tracer_num) { /** - stored period and size is equal to the one requested in peft->hp */
         /** - copy the pointers back over to the eft-structure */
         peft->loop_matrices = pext->loop_matrices[index_eft];
         peft->loop_matrices_size = pext->loop_matrices_size[index_eft];
@@ -165,12 +173,14 @@ int ext_insert_eft(struct ext_storage * pext,
         pext->eft_index_num[index_eft] = 0;
 
         if (peft->hp->eft_verbose > 0) {
-          printf("Loop matrices inserted from external storage for index = %d. \n", index_eft);
+          printf("Kernel matrices inserted from external storage for index = %d. \n", index_eft);
         }
       }
       else {  /** - mismatch btw. periods */
         /** TODO: cleanup (dump memory) */
         /** guess: cleanup will be done automatically when calling ext_save */
+        class_protect_sprintf(errmsg, "Mismatch of kernel matrix specifications for index = %d: Requested period in ln(k)-space and size is (%.4f, %d), external storage has (%.4f, %d).", \
+                                      index_eft, peft->hp->period[index_tracer], peft->hp->fourier_coeff_size, pext->period[index_eft][index_tracer], pext->fourier_coeff_size[index_eft]);
         return _FAILURE_;
       }
 

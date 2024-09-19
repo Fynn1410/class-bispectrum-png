@@ -25,6 +25,38 @@ int eft_necessary_spectra_contributions(struct eft * peft,
     }
     break;
 
+  case Pdd_mm_real_no_IR_resum:
+    *list_spectra_contributions_size = 2;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    for (index_moment = peft->index_I2200; index_moment <= peft->index_I1300; index_moment++) {
+      (*list_spectra_contributions)[index_moment - peft->index_I2200] = pk_lin * peft->index_num + index_moment;
+    }
+    break;
+
+  case Pdd_mm_22:
+    *list_spectra_contributions_size = 1;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    (*list_spectra_contributions)[0] = pk_ir_resummed_lo * peft->index_num + peft->index_I2200;
+    break;
+
+  case Pdd_mm_22_no_IR_resum:
+    *list_spectra_contributions_size = 1;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    (*list_spectra_contributions)[0] = pk_lin * peft->index_num + peft->index_I2200;
+    break;
+
+  case Pdd_mm_13:
+    *list_spectra_contributions_size = 1;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    (*list_spectra_contributions)[0] = pk_ir_resummed_lo * peft->index_num + peft->index_I1300;
+    break;
+
+  case Pdd_mm_13_no_IR_resum:
+    *list_spectra_contributions_size = 1;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    (*list_spectra_contributions)[0] = pk_lin * peft->index_num + peft->index_I1300;
+    break;
+
   case Pdd_mm_rsd:
     /** TODO: */
     *list_spectra_contributions_size = 0;
@@ -84,9 +116,19 @@ int eft_necessary_pk_types_loops(struct eft * peft,
   switch (pk_out_type)
   {
   case Pdd_mm_real:
+  case Pdd_mm_22:
+  case Pdd_mm_13:
     *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
     (*list_pk_types)[0] = pk_ir_resummed_lo;
+    break;
+
+  case Pdd_mm_real_no_IR_resum:
+  case Pdd_mm_22_no_IR_resum:
+  case Pdd_mm_13_no_IR_resum:
+    *list_pk_types_size = 1;
+    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+    (*list_pk_types)[0] = pk_lin;
     break;
 
   case Pdd_mm_rsd:
@@ -126,18 +168,31 @@ int eft_necessary_pk_types_loops(struct eft * peft,
   return _SUCCESS_;
 }
 
-int eft_necessary_pk_types_total(struct eft * peft,
-                                 const short pk_out_type,
-                                 int ** list_pk_types,
-                                 int * list_pk_types_size) {
+int eft_necessary_pk_types_outside_loops(struct eft * peft,
+                                         const short pk_out_type,
+                                         int ** list_pk_types,
+                                         int * list_pk_types_size) {
 
   switch (pk_out_type)
   {
   case Pdd_mm_real:
-    *list_pk_types_size = 2;
+    *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_ir_resummed_lo;
-    (*list_pk_types)[1] = pk_ir_resummed_nlo;
+    (*list_pk_types)[0] = pk_ir_resummed_nlo;
+    break;
+
+  case Pdd_mm_22:
+  case Pdd_mm_13:
+    *list_pk_types_size = 0;
+    *list_pk_types = NULL;
+    break;
+
+  case Pdd_mm_real_no_IR_resum:
+  case Pdd_mm_22_no_IR_resum:
+  case Pdd_mm_13_no_IR_resum:
+    *list_pk_types_size = 1;
+    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+    (*list_pk_types)[0] = pk_lin;
     break;
 
   case Pdd_mm_rsd:
@@ -147,26 +202,15 @@ int eft_necessary_pk_types_total(struct eft * peft,
     break;
 
   case Pdd_hh_real:
-    *list_pk_types_size = 2;
+    *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_ir_resummed_lo;
-    (*list_pk_types)[1] = pk_ir_resummed_nlo;
+    (*list_pk_types)[0] = pk_ir_resummed_nlo;
     break;
 
   case Pdd_hh_rsd:
-    if (peft->hp->integration_mode == fftlog) {
-      *list_pk_types_size = 3;
-      class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-      (*list_pk_types)[0] = pk_lin;
-      (*list_pk_types)[1] = pk_nowiggle;
-      (*list_pk_types)[2] = pkmu_rsd_ir_resummed_nlo;
-    }
-    else {
-      *list_pk_types_size = 2;
-      class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-      (*list_pk_types)[0] = pkmu_rsd_ir_resummed_lo;
-      (*list_pk_types)[1] = pkmu_rsd_ir_resummed_nlo;
-    }
+    *list_pk_types_size = 1;
+    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+    (*list_pk_types)[0] = pkmu_rsd_ir_resummed_nlo;
     break;
 
   default:
@@ -176,6 +220,27 @@ int eft_necessary_pk_types_total(struct eft * peft,
   }
 
   return _SUCCESS_;
+}
+
+int eft_set_sampling_points_all(struct eft * peft0,
+                                const int eft_size,
+                                const double * const kvec_Mpc,
+                                const double * const muvec,
+                                const int k_size,
+                                const int mu_size) {
+
+    int index_eft;
+
+    for (index_eft = 0; index_eft < eft_size; index_eft++) {
+      class_call(eft_set_sampling_points(peft0 + index_eft,
+                                         kvec_Mpc,
+                                         muvec,
+                                         k_size,
+                                         mu_size),
+                  (peft0 + index_eft)->error_message, (peft0 + index_eft)->error_message);
+    }
+
+    return _SUCCESS_;
 }
 
 int eft_set_sampling_points(struct eft * peft,
@@ -440,6 +505,7 @@ int eft_load_linear_spectra(struct background * pba,
                                          peft->k_size,
                                          muvec,
                                          mu_size,
+                                         cartesian_product,
                                          z,
                                          f,
                                          D,
@@ -1578,6 +1644,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
                                   const double f_z,
                                   const double * muvec,
                                   int mu_size,
+                                  const double As_ratio,
                                   struct eft_input_parameters eft_ip,
                                   double * pkmu) {  /**< pkmu[index_mu*peft->k_size + index_k] */
 
@@ -1590,7 +1657,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
           J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
           J21112, N12, J12112,                                                                        \
           N22, sigmav_mu,                                                                             \
-          Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0;  /** RSD moments multiplied by i^n/n! (k mu)^n only containing loop terms */
+          Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0; /** RSD moments multiplied by i^n/n! (k mu)^n only containing loop terms */
   /** sigma2_ir_at_z = D2 * sigma2_ir */
 
   if (!peft->hp->use_interpolation) {
@@ -1610,25 +1677,31 @@ int eft_build_nonlinear_power_spectrum_wedges(
   class_call(eft_necessary_pk_types_loops(peft, (enum eft_pk_out_type)index_pk_out_type, &pk_types_loops, &pk_types_loops_size),
              peft->error_message, peft->error_message);
   /** - get a list of all necessary pk_types for the chosen output spectrum */
-  class_call(eft_necessary_pk_types_total(peft, index_pk_out_type, &pk_types, &pk_types_size),
+  class_call(eft_necessary_pk_types_outside_loops(peft, index_pk_out_type, &pk_types_outside_loops, &pk_types_outside_loops_size),
              peft->error_message, peft->error_message);
 
-  /** - find the spectra in this list that have not yet been loaded in FFTLog mode */
-  pk_types_outside_loops_size = pk_types_size - pk_types_loops_size;
-  class_alloc(pk_types_outside_loops, pk_types_outside_loops_size*sizeof(int), peft->error_message);
+  /** - first guess of list size */
+  pk_types_size = pk_types_loops_size + pk_types_outside_loops_size;
+  class_alloc(pk_types, pk_types_size*sizeof(int), peft->error_message);
   it = 0;
-  for (index_list = 0; index_list < pk_types_size; index_list++) {
-    for (index_part = 0; index_part < pk_types_loops_size && pk_types[index_list] != pk_types_loops[index_part]; index_part++);
-    if (index_part == pk_types_loops_size) {
-      pk_types_outside_loops[it++] = pk_types[index_list];
+  /** - combine the lists of spectra types in- and outside of the loops */
+  for (index_pk_type = 0; index_pk_type < pk_type_num; index_pk_type++) {
+    for (index_list = 0; index_list < pk_types_loops_size && pk_types_loops[index_list] != index_pk_type; index_list++);
+    for (index_part = 0; index_part < pk_types_outside_loops_size && pk_types_outside_loops[index_part] != index_pk_type; index_part++);
+    if (index_list < pk_types_loops_size || index_part < pk_types_outside_loops_size) {
+      pk_types[it++] = index_pk_type;
     }
   }
+  /** - update the list size */
+  pk_types_size = it;
+
   /** - and load them into peft->pk_l (will be rescaled by D2 later) */
+  /** TODO: problematic, since without IR resum, pk_types_outside_loops = pk_types and the linear spectrum is not loaded at z, but at peft->z0 */
   class_call(eft_load_linear_spectra(pba, pfo, ppm,
                                      peft,
-                                     z,
-                                     f_z,
-                                     D_z,
+                                     peft->z0,
+                                     peft->f_z0,
+                                     peft->D_z0,
                                      (peft->hp->integration_mode == fftlog) ? pk_types_outside_loops : pk_types,
                                      (peft->hp->integration_mode == fftlog) ? pk_types_outside_loops_size : pk_types_size,
                                      muvec,
@@ -1644,8 +1717,8 @@ int eft_build_nonlinear_power_spectrum_wedges(
   }
 
   /** - growth function rescale factors w.r.t. peft->z0 for tree and 1-loop contributions */
-  D2 = pow(D_z/peft->D_z0, 2.);
-  D4 = pow(D_z/peft->D_z0, 4.);
+  D2 = pow(D_z/peft->D_z0, 2.) * As_ratio;
+  D4 = pow(D_z/peft->D_z0, 4.) * As_ratio*As_ratio;
 
   /** - compute the loop power spectra of every internal pk_type in the list for every k, mu, still separated into finite, UV, IR and pole parts */
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
@@ -1664,6 +1737,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
           switch (index_pk_out_type)
           {
           case Pdd_mm_real:
+          case Pdd_mm_real_no_IR_resum:
             I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
             I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
 
@@ -1671,6 +1745,24 @@ int eft_build_nonlinear_power_spectrum_wedges(
             if (index_part == uv_divergence) {
               Preal_loop += -D2 * 2.*k*k * eft_ip.cs2 * Plin;
             }
+
+            pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
+            break;
+
+          case Pdd_mm_22:
+          case Pdd_mm_22_no_IR_resum:
+            I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
+
+            Preal_loop = D4 * I2200;
+
+            pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
+            break;
+
+          case Pdd_mm_13:
+          case Pdd_mm_13_no_IR_resum:
+            I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
+
+            Preal_loop = D4 * I1300;
 
             pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
             break;
@@ -1819,8 +1911,23 @@ int eft_build_nonlinear_power_spectrum_wedges(
       switch (index_pk_out_type)
       {
       case Pdd_mm_real:
-        pkmu[index_mu*peft->k_size + index_k] = peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
+        pkmu[index_mu*peft->k_size + index_k] = D2 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
                         + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        break;
+
+      case Pdd_mm_real_no_IR_resum:
+        pkmu[index_mu*peft->k_size + index_k] = D2 * peft->pk_l[pk_lin][index_mu_k]   \
+                        + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        break;
+
+      case Pdd_mm_22:
+      case Pdd_mm_13:
+        pkmu[index_mu*peft->k_size + index_k] = pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        break;
+
+      case Pdd_mm_22_no_IR_resum:
+      case Pdd_mm_13_no_IR_resum:
+        pkmu[index_mu*peft->k_size + index_k] = pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_mm_rsd:
@@ -1828,20 +1935,20 @@ int eft_build_nonlinear_power_spectrum_wedges(
         break;
 
       case Pdd_hh_real:
-        pkmu[index_mu*peft->k_size + index_k] = eft_ip.b1*eft_ip.b1 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
+        pkmu[index_mu*peft->k_size + index_k] = D2 * eft_ip.b1*eft_ip.b1 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
                         + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_hh_rsd:
         if (peft->hp->integration_mode == fftlog) {
           sigma2_tot_z0 = (1. + f_z*mu*mu*(2. + f_z)) * peft->Sigma2_ir + f_z*f_z*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
-          pkmu[index_mu*peft->k_size + index_k] = pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+          pkmu[index_mu*peft->k_size + index_k] = D2 * pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
                                                   + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
                                           + exp(-k*k * D2 * sigma2_tot_z0) * (pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
                                                                             - pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]);
         }
         else {
-          pkmu[index_mu*peft->k_size + index_k] = pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+          pkmu[index_mu*peft->k_size + index_k] = D2 * pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
                                                   + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         }
         break;
@@ -1861,297 +1968,6 @@ int eft_build_nonlinear_power_spectrum_wedges(
   free(pk_types_loops);
   free(pk_types);
   free(pk_types_outside_loops);
-  free(mu_real);
-
-  return _SUCCESS_;
-}
-
-//assumes EdS scaling
-int eft_build_nonlinear_power_spectrum_wedges_multiple(
-                                  struct eft * peft,
-                                  struct background * pba,
-                                  struct primordial * ppm,
-                                  struct fourier * pfo,
-                                  const short index_pk_out_type,
-                                  const double * const z,
-                                  const double * const D_z,
-                                  const double * const f_z,
-                                  const int z_size,
-                                  const double * muvec,
-                                  int mu_size,
-                                  struct eft_input_parameters eft_ip,
-                                  double ** pkmu) {  /**< pkmu[index_z][index_mu*peft->k_size + index_k] */
-
-  int index_pk_type, index_list, index_moment, index_part, index_z, index_mu, index_mu_k, index_k, it, size;
-  int * pk_types_loops, pk_types_loops_size = 0, * pk_types, pk_types_size = 0, * pk_types_rsd, pk_types_outside_loops_size = 0;
-  double * pkmu_loop[pk_type_num*eft_spectra_contribution_num]; /**< nonlinear power spectrum still with separated finite and divergent parts */
-  double * mu_real = NULL, D2[z_size], D4[z_size];
-  double  k, mu, Plin, I2200, I1300, Idelta200, IG200, Idelta2delta200, IG2G200, Idelta2G200, FG200,  \
-          I2201, Idelta201, IG201, J21101, Jdelta201, JG201, FG201, I1301p3101, J12101, J11201,       \
-          J21102, Jdelta202, JG202, I2211, J21111, N11, J12102, I1311, J12111, J11211,                \
-          J21112, N12, J12112,                                                                        \
-          N22,                                                                                        \
-          Preal_loop, Prsd0_loop, Prsd1_loop, Prsd2_loop, Prsd3_loop, Prsd4_loop, sum, sigma2_tot_z0;  /** RSD moments multiplied by i^n/n! (k mu)^n only containing loop terms */
-  /** sigma2_ir_at_z = D2 * sigma2_ir */
-
-  if (!peft->hp->use_interpolation) {
-    muvec = peft->mu; mu_size = peft->mu_size;
-    // TODO
-    class_stop(peft->error_message, "Not implemented yet.")
-  }
-
-  /** - if a real space spectrum is requested, ignore the mu input and let muvec point to a valid address with a constant value */
-  if (!eft_rsd_out_indicator((enum eft_pk_out_type)index_pk_out_type)) {
-    class_alloc(mu_real, mu_size*sizeof(double), peft->error_message);
-    for (index_mu = 0; index_mu < mu_size; index_mu++) { mu_real[it] = 0.; }
-    muvec = mu_real;
-  }
-
-  /** - get a list of necessary pk_types for the chosen output spectrum of which loop corrections shall be calculated */
-  class_call(eft_necessary_pk_types_loops(peft, (enum eft_pk_out_type)index_pk_out_type, &pk_types_loops, &pk_types_loops_size),
-             peft->error_message, peft->error_message);
-  /** - get a list of all necessary pk_types for the chosen output spectrum */
-  class_call(eft_necessary_pk_types_total(peft, index_pk_out_type, &pk_types, &pk_types_size),
-             peft->error_message, peft->error_message);
-
-  /** - find the RSD / mu-dependent spectra in this list (since the mu-independent spectra have to be loaded before) */
-  for (index_list = 0; index_list < pk_types_size; index_list++) {
-    if (eft_rsd_indicator((enum eft_pk_type)pk_types[index_list])) { pk_types_outside_loops_size++; }
-  }
-  class_alloc(pk_types_rsd, pk_types_outside_loops_size*sizeof(int), peft->error_message);
-  it = 0;
-  for (index_list = 0; index_list < pk_types_size; index_list++) {
-    if (eft_rsd_indicator((enum eft_pk_type)pk_types[index_list])) { pk_types_rsd[it++] = pk_types[index_list]; }
-  }
-  /** - and load them into peft->pk_l (will be rescaled by D2 later) */
-  class_call(eft_load_linear_spectra(pba, pfo, ppm,
-                                     peft,
-                                     peft->z0,
-                                     peft->f_z0,
-                                     peft->D_z0,
-                                     pk_types_rsd,
-                                     pk_types_outside_loops_size,
-                                     muvec,
-                                     mu_size),
-              peft->error_message, peft->error_message);
-
-  /** - allocate arrays for the loop corrections */
-  for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
-    for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
-      index_pk_type = pk_types_loops[index_list];
-      class_alloc(pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part], z_size*mu_size*peft->k_size*sizeof(double), peft->error_message);
-    }
-  }
-
-  /** - growth function rescale factors w.r.t. peft->z0 for tree and 1-loop contributions */
-  for (index_z = 0; index_z < z_size; index_z++) {
-    D2[index_z] = pow(D_z[index_z]/peft->D_z0, 2.);
-    D4[index_z] = pow(D_z[index_z]/peft->D_z0, 4.);
-  }
-
-  /** - compute the loop power spectra of every internal pk_type in the list for every k, mu, still separated into finite, UV, IR and pole parts */
-  for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
-    for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
-      for (index_k = 0; index_k < peft->k_size; index_k++) {
-        for (index_mu = 0; index_mu < mu_size; index_mu++) {
-          index_pk_type = pk_types_loops[index_list];
-
-          if (peft->hp->use_interpolation) { index_mu_k = index_k; }
-          else { index_mu_k = index_mu*peft->k_size + index_k; }
-
-          k = exp(peft->ln_k[index_mu_k]);
-          mu = muvec[index_mu];
-          Plin = peft->pk_l[index_pk_type][index_mu_k];
-
-          switch (index_pk_out_type)
-          {
-          case Pdd_mm_real:
-            I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
-            I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
-
-            for (index_z = 0; index_z < z_size; index_z++) {
-              Preal_loop = D4[index_z] * 2.*(I2200 + 3.*I1300);
-              if (index_part == uv_divergence) {
-                Preal_loop += -D2[index_z] * 2.*k*k * eft_ip.cs2 * Plin;
-              }
-
-              pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][(index_z*mu_size + index_mu)*peft->k_size + index_k] = Preal_loop;
-            }
-            break;
-
-          case Pdd_mm_rsd:
-            // TODO
-            break;
-
-          case Pdd_hh_real:
-            I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
-            I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
-            Idelta200       =        peft->spectra_contributions[index_pk_type][peft->index_Idelta200*eft_spectra_contribution_num + index_part][index_mu_k];
-            IG200           =        peft->spectra_contributions[index_pk_type][peft->index_IG200*eft_spectra_contribution_num + index_part][index_mu_k];
-            Idelta2delta200 =        peft->spectra_contributions[index_pk_type][peft->index_Idelta2delta200*eft_spectra_contribution_num + index_part][index_mu_k];
-            IG2G200         =        peft->spectra_contributions[index_pk_type][peft->index_IG2G200*eft_spectra_contribution_num + index_part][index_mu_k];
-            Idelta2G200     =        peft->spectra_contributions[index_pk_type][peft->index_Idelta2G200*eft_spectra_contribution_num + index_part][index_mu_k];
-            FG200           = Plin * peft->spectra_contributions[index_pk_type][peft->index_FG200*eft_spectra_contribution_num + index_part][index_mu_k];
-
-            for (index_z = 0; index_z < z_size; index_z++) {
-              Prsd0_loop = D4[index_z] * (2.*eft_ip.b1*eft_ip.b1 * (I2200 + 3.*I1300) + 2.*eft_ip.b1*eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2*eft_ip.bG2 * IG2G200 + 4.*eft_ip.b1*eft_ip.bG2 * IG200        \
-                                + 0.5*eft_ip.b2*eft_ip.b2 * Idelta2delta200 + 2.*eft_ip.b2*eft_ip.bG2 * Idelta2G200 + 8.*eft_ip.b1*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);
-              if (index_part == uv_divergence) {
-                Prsd0_loop += -D2[index_z] * 2.*k*k * (eft_ip.b1 * (eft_ip.R2 + eft_ip.b1 * eft_ip.cs2)) * Plin;
-              }
-
-              pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][(index_z*mu_size + index_mu)*peft->k_size + index_k] = Prsd0_loop;
-            }
-            break;
-
-          case Pdd_hh_rsd:
-            /** 0-th RSD moment */
-            I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
-            I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
-            Idelta200       =        peft->spectra_contributions[index_pk_type][peft->index_Idelta200*eft_spectra_contribution_num + index_part][index_mu_k];
-            IG200           =        peft->spectra_contributions[index_pk_type][peft->index_IG200*eft_spectra_contribution_num + index_part][index_mu_k];
-            Idelta2delta200 =        peft->spectra_contributions[index_pk_type][peft->index_Idelta2delta200*eft_spectra_contribution_num + index_part][index_mu_k];
-            IG2G200         =        peft->spectra_contributions[index_pk_type][peft->index_IG2G200*eft_spectra_contribution_num + index_part][index_mu_k];
-            Idelta2G200     =        peft->spectra_contributions[index_pk_type][peft->index_Idelta2G200*eft_spectra_contribution_num + index_part][index_mu_k];
-            FG200           = Plin * peft->spectra_contributions[index_pk_type][peft->index_FG200*eft_spectra_contribution_num + index_part][index_mu_k];
-            /** 1-st RSD moment */
-            I2201      =             peft->spectra_contributions[index_pk_type][peft->index_I2201     *eft_spectra_contribution_num + index_part][index_mu_k];
-            I1301p3101 = Plin *      peft->spectra_contributions[index_pk_type][peft->index_I1301p3101*eft_spectra_contribution_num + index_part][index_mu_k];
-            Idelta201  =             peft->spectra_contributions[index_pk_type][peft->index_Idelta201 *eft_spectra_contribution_num + index_part][index_mu_k];
-            IG201      =             peft->spectra_contributions[index_pk_type][peft->index_IG201     *eft_spectra_contribution_num + index_part][index_mu_k];
-            FG201      = Plin *      peft->spectra_contributions[index_pk_type][peft->index_FG201     *eft_spectra_contribution_num + index_part][index_mu_k];
-            J12101     = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J12101    *eft_spectra_contribution_num + index_part][index_mu_k];
-            J11201     = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J11201    *eft_spectra_contribution_num + index_part][index_mu_k];
-            J21101     = mu *        peft->spectra_contributions[index_pk_type][peft->index_J21101    *eft_spectra_contribution_num + index_part][index_mu_k];
-            Jdelta201  = mu *        peft->spectra_contributions[index_pk_type][peft->index_Jdelta201 *eft_spectra_contribution_num + index_part][index_mu_k];
-            JG201      = mu *        peft->spectra_contributions[index_pk_type][peft->index_JG201     *eft_spectra_contribution_num + index_part][index_mu_k];
-            /** 2-nd RSD moment */
-            J12102    = Plin * (peft->spectra_contributions[index_pk_type][peft->index_J12102x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
-                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J12102y   *eft_spectra_contribution_num + index_part][index_mu_k]);
-            J21102    =         peft->spectra_contributions[index_pk_type][peft->index_J21102x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
-                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J21102y   *eft_spectra_contribution_num + index_part][index_mu_k];
-            Jdelta202 =         peft->spectra_contributions[index_pk_type][peft->index_Jdelta202x*eft_spectra_contribution_num + index_part][index_mu_k]   \
-                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_Jdelta202y*eft_spectra_contribution_num + index_part][index_mu_k];
-            JG202     =         peft->spectra_contributions[index_pk_type][peft->index_JG202x    *eft_spectra_contribution_num + index_part][index_mu_k]   \
-                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_JG202y    *eft_spectra_contribution_num + index_part][index_mu_k];
-            I2211     =         peft->spectra_contributions[index_pk_type][peft->index_I2211     *eft_spectra_contribution_num + index_part][index_mu_k];
-            I1311     = Plin *  peft->spectra_contributions[index_pk_type][peft->index_I1311     *eft_spectra_contribution_num + index_part][index_mu_k];
-            J12111    = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J12111*eft_spectra_contribution_num + index_part][index_mu_k];
-            J11211    = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J11211*eft_spectra_contribution_num + index_part][index_mu_k];
-            J21111    = mu *    peft->spectra_contributions[index_pk_type][peft->index_J21111    *eft_spectra_contribution_num + index_part][index_mu_k];
-            N11       =         peft->spectra_contributions[index_pk_type][peft->index_N11x      *eft_spectra_contribution_num + index_part][index_mu_k]   \
-                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_N11y      *eft_spectra_contribution_num + index_part][index_mu_k];
-            /** 3-rd RSD moment */
-            J21112 =         peft->spectra_contributions[index_pk_type][peft->index_J21112x*eft_spectra_contribution_num + index_part][index_mu_k]   \
-                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J21112y*eft_spectra_contribution_num + index_part][index_mu_k];
-            J12112 = Plin * (peft->spectra_contributions[index_pk_type][peft->index_J12112x*eft_spectra_contribution_num + index_part][index_mu_k]   \
-                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J12112y*eft_spectra_contribution_num + index_part][index_mu_k]);
-            N12    = mu *   (peft->spectra_contributions[index_pk_type][peft->index_N12x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
-                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_N12y   *eft_spectra_contribution_num + index_part][index_mu_k]);
-            /** 4-th RSD moment */
-            N22 =          peft->spectra_contributions[index_pk_type][peft->index_N22x*eft_spectra_contribution_num + index_part][index_mu_k]   \
-                + mu*mu * (peft->spectra_contributions[index_pk_type][peft->index_N22y*eft_spectra_contribution_num + index_part][index_mu_k]   \
-                + mu*mu *  peft->spectra_contributions[index_pk_type][peft->index_N22z*eft_spectra_contribution_num + index_part][index_mu_k]);
-
-            /** - assemble the power spectrum controbutions from the RSD moments only from FFTLog loop terms */
-            for (index_z = 0; index_z < z_size; index_z++) {
-              Prsd0_loop = D4[index_z] * (2.*eft_ip.b1*eft_ip.b1 * (I2200 + 3.*I1300) + 2.*eft_ip.b1*eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2*eft_ip.bG2 * IG2G200 + 4.*eft_ip.b1*eft_ip.bG2 * IG200        \
-                                + 0.5*eft_ip.b2*eft_ip.b2 * Idelta2delta200 + 2.*eft_ip.b2*eft_ip.bG2 * Idelta2G200 + 8.*eft_ip.b1*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);
-              Prsd1_loop = D4[index_z]*f_z[index_z] * (2.*mu*mu * (2.*eft_ip.b1 * I2201 + 3.*eft_ip.b1 * I1301p3101 + eft_ip.b2 * Idelta201 + 2.*eft_ip.bG2 * IG201 + 4.*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG201)   \
-                                    + 4.*mu*k * (eft_ip.b1*eft_ip.b1 * (J12101 + J11201 + J21101) + 0.5*eft_ip.b1*eft_ip.b2 * Jdelta201 + eft_ip.b1*eft_ip.bG2 * JG201));
-              Prsd2_loop = D4[index_z]*f_z[index_z]*f_z[index_z] * (mu*mu*k*k * (2.*eft_ip.b1 * (2.*J12102 + J21102) + eft_ip.b2 * Jdelta202 + 2.*eft_ip.bG2 * JG202)
-                                        + 2.*mu*mu*mu*mu * (I2211 + 3.*I1311) + 4.*mu*mu*mu*k * eft_ip.b1 * (J12111 + J11211 + J21111) + mu*mu*k*k * eft_ip.b1*eft_ip.b1 * N11);
-              Prsd3_loop = D4[index_z]*f_z[index_z]*f_z[index_z]*f_z[index_z] * (2.*mu*mu*mu*mu*k*k * (J21112 + 2.*J12112) + 2.*mu*mu*mu*k*k*k * eft_ip.b1 * N12);
-              Prsd4_loop = D4[index_z]*f_z[index_z]*f_z[index_z]*f_z[index_z]*f_z[index_z] * 0.5*mu*mu*mu*mu*k*k*k*k * N22;
-
-              /** - add counterterm contributions to UV-divergent parts */
-              if (index_part == uv_divergence) {
-                Prsd0_loop += D2[index_z] * eft_ip.c00 * k*k * Plin;
-                Prsd1_loop += D2[index_z]*f_z[index_z] * eft_ip.c10 * mu*mu*k*k * Plin;
-                Prsd2_loop += D2[index_z]*f_z[index_z]*f_z[index_z] * ((eft_ip.c20 + eft_ip.c22 * mu*mu) - D2[index_z] * eft_ip.b1*eft_ip.b1 * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3.) * mu*mu*k*k * Plin;
-                Prsd3_loop += D2[index_z]*f_z[index_z]*f_z[index_z]*f_z[index_z] * ((eft_ip.c30 + eft_ip.c32 * mu*mu) - 2.*D2[index_z] * eft_ip.b1 * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3.) * mu*mu*mu*mu*k*k * Plin;
-                Prsd4_loop += D2[index_z]*f_z[index_z]*f_z[index_z]*f_z[index_z]*f_z[index_z] * (eft_ip.c42 - D2[index_z] * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3.) * mu*mu*mu*mu*mu*mu*k*k * Plin;
-              }
-
-              pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][(index_z*mu_size + index_mu)*peft->k_size + index_k] = Prsd0_loop + Prsd1_loop + Prsd2_loop + Prsd3_loop + Prsd4_loop;
-            }
-            break;
-
-          default:
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  /** - sum the parts of the power spectrum and accumulate in the last defined part index,
-   *    add the finite part last to utilize cancellations between divergent parts */
-  for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
-    for (index_z = 0; index_z < z_size; index_z++) {
-      for (index_mu = 0; index_mu < mu_size; index_mu++) {
-        for (index_k = 0; index_k < peft->k_size; index_k++) {
-          index_pk_type = pk_types_loops[index_list];
-
-          for (index_part = eft_spectra_contribution_num-2; index_part >= 0; index_part--) {
-            pkmu_loop[index_pk_type*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k]   \
-              += pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][(index_z*mu_size + index_mu)*peft->k_size + index_k];
-          }
-        }
-      }
-    }
-  }
-
-  /** - combine with the linear spectra to produce the full spectrum with loop corrections */
-  for (index_z = 0; index_z < z_size; index_z++) {
-    for (index_mu = 0; index_mu < mu_size; index_mu++) {
-      for (index_k = 0; index_k < peft->k_size; index_k++) {
-        if (peft->hp->use_interpolation) { index_mu_k = index_k; }
-        else { index_mu_k = index_mu*peft->k_size + index_k; }
-
-        k = exp(peft->ln_k[index_mu_k]);
-        mu = muvec[index_mu];
-
-        switch (index_pk_out_type)
-        {
-        case Pdd_mm_real:
-          pkmu[index_z][index_mu*peft->k_size + index_k] = D2[index_z] * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
-                          + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k];
-          break;
-
-        case Pdd_mm_rsd:
-          // TODO
-          break;
-
-        case Pdd_hh_real:
-          pkmu[index_z][index_mu*peft->k_size + index_k] = D2[index_z] * eft_ip.b1*eft_ip.b1 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
-                          + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k];
-          break;
-
-        case Pdd_hh_rsd:
-          sigma2_tot_z0 = (1. + f_z[index_z]*mu*mu*(2. + f_z[index_z])) * peft->Sigma2_ir + f_z[index_z]*f_z[index_z]*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
-          pkmu[index_z][index_mu*peft->k_size + index_k] = D2[index_z] * pow(eft_ip.b1 + f_z[index_z]*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
-                                                  + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k]   \
-                                          + exp(-k*k * D2[index_z] * sigma2_tot_z0) * (pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k]   \
-                                                                            - pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][(index_z*mu_size + index_mu)*peft->k_size + index_k]);
-          break;
-
-        default:
-          break;
-        }
-      }
-    }
-  }
-
-  for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
-    for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
-      index_pk_type = pk_types_loops[index_list];
-      free(pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part]);
-    }
-  }
-  free(pk_types_loops);
-  free(pk_types);
-  free(pk_types_rsd);
   free(mu_real);
 
   return _SUCCESS_;

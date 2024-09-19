@@ -196,6 +196,31 @@ extern "C" {
             ErrorMsg errmsg
             );
 
+  int array_integrate_all_spline_partial_range_table_lines(
+            double * x,
+            int x_size,
+            double * y_array,
+            int y_size,
+            double * ddy_array,
+            double a,
+            double b,
+            double * result,
+            ErrorMsg errmsg
+            );
+
+  int array_integrate_all_spline_partial_range_table_lines_closeby(
+            double * x,
+            int x_size,
+            double * y_array,
+            int y_size,
+            double * ddy_array,
+            double a,
+            double b,
+            int * last_index,
+            double * result,
+            ErrorMsg errmsg
+            );
+
   int array_integrate_all_spline_table_lines_compensated(
             double * x,
             int x_size,
@@ -576,8 +601,7 @@ extern "C" {
           const int y_size,
           const double * const ddy_array, /* array of size x_size*y_size */
           double * coefficients,  /* array of coefficients of size y_size*(x_size-1)*4, Fortran order */
-          double * breakpoints,   /* array of breakpoints of size y_size*x_size */
-          ErrorMsg errmsg);
+          double * breakpoints);  /* array of breakpoints of size y_size*x_size */
 
   int array_smooth(double * array,
 		   int n_columns,

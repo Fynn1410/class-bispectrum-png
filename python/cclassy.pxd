@@ -49,6 +49,39 @@ cdef extern from "class.h":
         out_sigma_prime
         out_sigma_disp
 
+    cdef enum eft_struct_role:
+        eft_master
+        eft_slave
+
+    cdef enum eft_tracer:
+        eft_matter
+        eft_halo
+        eft_tracer_num
+
+    cdef enum eft_pk_type:
+        pk_lin
+        pk_nowiggle
+        pk_ir_resummed_lo
+        pkmu_rsd_ir_resummed_lo
+        pk_ir_resummed_nlo
+        pkmu_rsd_ir_resummed_nlo
+        pk_type_num
+
+    cdef enum eft_pk_out_type:
+        Pdd_mm_real
+        Pdd_mm_rsd
+        Pdd_hh_real
+        Pdd_hh_rsd
+        Pdd_mm_real_no_IR_resum
+        Pdd_mm_22
+        Pdd_mm_13
+        Pdd_mm_22_no_IR_resum
+        Pdd_mm_13_no_IR_resum
+        pk_out_type_num
+
+    cdef enum eft_arg_type:
+        points
+        cartesian_product
 
     cdef enum eft_spectra_contribution:
         finite_part
@@ -808,67 +841,134 @@ cdef extern from "class.h":
                   double * pk_cb_tot_out,
                   int nonlinear)
 
-cdef extern from "header.h":
+    int array_convert_spline_table_columns_to_local_power_basis(
+        double * x,
+        int x_size,
+        double * y_array,
+        int y_size,
+        double * ddy_array,
+        double * coefficients,
+        double * breakpoints
+        )
 
-    cdef enum eft_struct_role:
-        eft_master
-        eft_slave
+    int eft_nearest_structure_in_time(
+        void * peft0,
+        int peft_size,
+        void * pba,
+        void * pfo,
+        double z,
+        int * index_eft_min_dist,
+        void * peft_min_dist,
+        ErrorMsg errmsg
+        )
 
-    cdef enum eft_tracer:
-        eft_matter
-        eft_halo
-        eft_tracer_num
+    int eft_set_sampling_points_all(
+        void * peft0,
+        int eft_size,
+        double * kvec_Mpc,
+        double * muvec,
+        int k_size,
+        int mu_size
+        )
 
-    cdef enum eft_pk_type:
-        pk_lin
-        pk_nowiggle
-        pk_ir_resummed_lo
-        pkmu_rsd_ir_resummed_lo
-        pk_ir_resummed_nlo
-        pkmu_rsd_ir_resummed_nlo
-        pk_type_num
+    int eft_set_sampling_points(
+        void * peft,
+        double * kvec_Mpc,
+        double * muvec,
+        int k_size,
+        int mu_size
+        )
 
-    cdef enum eft_pk_out_type:
-        Pdd_mm_real
-        Pdd_mm_rsd
-        Pdd_hh_real
-        Pdd_hh_rsd
-        pk_out_type_num
+    int eft_linear_spectrum_real(
+        void * pba,
+        void * ppm,
+        void * pfo,
+        void * peft,
+        linear_or_logarithmic mode,
+        double * ln_kvec,
+        int kvec_size,
+        int n_columns,
+        double z,
+        double f_z,
+        double D_z,
+        int index_pk_type,
+        double * out_pk
+        )
 
-    int eft_job_powerspectrum_wedges_grid(void * peft0,
-                                          int peft_size,
-                                          void * pba,
-                                          void * pfo,
-                                          void * ppm,
-                                          void * ppr,
-                                          eft_pk_out_type pk_out_type,
-                                          double * z,
-                                          void * peft_ip,
-                                          int z_size,
-                                          double * k,
-                                          int k_size,
-                                          double * mu,
-                                          int mu_size,
-                                          double * out_pkmuz
-                                          )
+    int eft_linear_spectrum_rsd(
+        void * pba,
+        void * ppm,
+        void * pfo,
+        void * peft,
+        linear_or_logarithmic mode,
+        double * ln_kvec,
+        int kvec_size,
+        double * muvec,
+        int muvec_size,
+        eft_arg_type arg_type,
+        double z,
+        double f_z,
+        double D_z,
+        int index_pk_type,
+        double * out_pk
+        )
 
-    int eft_job_powerspectrum_wedges(void * peft0,
-                                     int peft_size,
-                                     void * pba,
-                                     void * pfo,
-                                     void * ppm,
-                                     void * ppr,
-                                     eft_pk_out_type pk_out_type,
-                                     double * zvec,
-                                     void * peft_ip,
-                                     int z_size,
-                                     double ** kvec,
-                                     int * k_sizevec,
-                                     double ** muvec,
-                                     int * mu_sizevec,
-                                     double ** out_pkmu
-                                     )
+    int eft_job_powerspectrum_wedges_grid(
+        void * peft0,
+        int peft_size,
+        void * pba,
+        void * pfo,
+        void * ppm,
+        void * ppr,
+        eft_pk_out_type pk_out_type,
+        double * z,
+        void * peft_ip,
+        int z_size,
+        double * k,
+        int k_size,
+        double * mu,
+        int mu_size,
+        double * out_pkmuz
+        )
 
+    int eft_job_powerspectrum_wedges(
+        void * peft0,
+        int peft_size,
+        void * pba,
+        void * pfo,
+        void * ppm,
+        void * ppr,
+        eft_pk_out_type pk_out_type,
+        double * zvec,
+        double As_correction,
+        void * peft_ip,
+        int z_size,
+        double ** kvec,
+        int * k_sizevec,
+        double ** muvec,
+        int * mu_sizevec,
+        double ** out_pkmu,
+        double ** ddout_pkmu
+        )
+
+    int eft_job_powerspectrum_multipoles(
+        void * peft0,
+        int peft_size,
+        void * pba,
+        void * pfo,
+        void * ppm,
+        void * ppr,
+        eft_pk_out_type pk_out_type,
+        double * zvec,
+        double As_correction,
+        void * peft_ip,
+        int z_size,
+        double ** kvec,
+        int * k_sizevec,
+        double * ap_parallel,
+        double * ap_perpendicular,
+        double ** out_pkl
+        )
 
 cdef extern from "ext_storage.h":
     cdef struct ext_storage:
@@ -904,4 +1004,3 @@ cdef extern from "ext_storage.h":
                   const int index_eft,
                   const int num_matrices,
                   ErrorMsg errmsg)
-                  

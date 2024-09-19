@@ -23,6 +23,7 @@ cimport cython
 from scipy.interpolate import CubicSpline
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import interp1d
+from scipy.interpolate import PPoly
 
 # Nils : Added for python 3.x and python 2.x compatibility
 import sys
@@ -106,6 +107,8 @@ cdef class Class:
 
     # Flag to see if classy has already computed with the given pars
     cdef int computed
+    # same flag, but stays True even if new parameters are set
+    cdef int computed_outdated
     # Flag to see if classy structs are allocated already
     cdef int allocated
     # Dictionary of the parameters
@@ -139,6 +142,7 @@ cdef class Class:
         cdef char* dumc
         self.allocated = False
         self.computed = False
+        self.computed_outdated = False
         self._pars = {}
         self.fc.size=0
         self.fc.filename = <char*>malloc(sizeof(char)*30)
@@ -172,7 +176,7 @@ cdef class Class:
         self._pars.update(kars)
         if viewdictitems(self._pars) <= viewdictitems(oldpars):
           return # Don't change the computed states, if the new dict was already contained in the previous dict
-        self.computed=False
+        self.computed = False
         return True
 
     def empty(self):
@@ -213,9 +217,9 @@ cdef class Class:
 
     # Called at the end of a run, to free memory
     def struct_cleanup(self):
-        if (self.allocated != True): return
+        # if (self.allocated != True): return
 
-        if self.computed: # if computation was not aborted, store important quantities in ext. storage
+        if self.computed_outdated: # if computation was not aborted, store important quantities in ext. storage
             ext_save(&self.ex, &self.ba, &self.th, &self.pt, &self.pm,
                      &self.fo, &self.tr, &self.hr, &self.le, &self.sd)
         else:             # else, get rid of residual memory
@@ -241,6 +245,7 @@ cdef class Class:
             background_free(&self.ba)
         self.allocated = False
         self.computed = False
+        self.computed_outdated = False
 
     def _check_task_dependency(self, level):
         """
@@ -353,6 +358,7 @@ cdef class Class:
 
         # Otherwise, proceed with the normal computation.
         self.computed = False
+        self.computed_outdated = False
 
         # Equivalent of writing a parameter file
         self._fillparfile()
@@ -456,6 +462,7 @@ cdef class Class:
             self.ncp.add("distortions")
 
         self.computed = True
+        self.computed_outdated = True
 
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
@@ -826,630 +833,6 @@ cdef class Class:
 
         return pk_cb
 
-#     # Gives the matter pk for a given (k_arr,z)
-#     def pk_matter_real(self,k,double z):
-#         """
-#         Gives the Real-Space Matter Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for a given cs2 matter counter-term
-
-#         .. note::
-
-#             there is an additional check that output contains `mPk`,
-#             because otherwise a segfault will occur
-
-#         """
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
-
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_matter = np.zeros((self.fo.k_size),'float64')
-
-#         if (self.pt.has_pk_matter == _FALSE_):
-#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-#         if (self.fo.method == nl_oneloopPT):
-#             for index_k in xrange(self.fo.k_size):
-#                 internal_k_arr[index_k] = self.fo.k[index_k]
-#                 if (Real_Matter_IR_Resummed(&self.ba,&self.pm,&self.fo,index_k,z,142L,&internal_pk_matter[index_k])==_FAILURE_):
-#                     raise CosmoSevereError(self.fo.error_message)
-
-#             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_matter,s=0)
-#             pk = pk_interp_k(k)
-#         else:
-#             raise CosmoSevereError("Only available for oneloopPT.")
-
-#         return pk
-
-#     # Gives the halo pk for a given (k,z) in real-space
-#     def pk_halo_real_default(self,k,double z):
-#         """
-#         Gives the Real-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc) and z for the set biases (b1,b2,bG2,btd,R2) and counter-term cs2 matter counter-term within CLASS
-
-#         .. note::
-
-#             there is an additional check that output contains `mPk`,
-#             because otherwise a segfault will occur
-
-#         """
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
-
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_halo = np.zeros((self.fo.k_size),'float64')
-
-#         if (self.pt.has_pk_matter == _FALSE_):
-#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-#         if (self.fo.method == nl_oneloopPT):
-#             for index_k in xrange(self.fo.k_size):
-#                 internal_k_arr[index_k] = self.fo.k[index_k]
-#                 if (Real_Galaxy_IR_Resummed_default(&self.fo,&self.ba,&self.pm,index_k,z,142L,&internal_pk_halo[index_k])==_FAILURE_):
-#                     raise CosmoSevereError(self.fo.error_message)
-
-#             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
-#             pk = pk_interp_k(k)
-#         else:
-#             raise CosmoSevereError("Only available for oneloopPT.")
-
-#         return pk
-
-#     # Gives the halo pk for a given (k, z, biases, counter) in real-space for a given set of biases ()
-#     def pk_halo_real(self,k,double z, biases, double cs2):
-#         """
-#         Gives the Real-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z for a given set of biases (b1,b2,bG2,btd,R2) and counter-term cs2 matter counter-term
-
-#         .. note::
-
-#             there is an additional check that output contains `mPk`,
-#             because otherwise a segfault will occur
-
-#         """
-#         b1, b2, bG2, btd, R2 = biases
-
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
-
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_pk_halo = np.zeros((self.fo.k_size),'float64')
-
-#         if (self.pt.has_pk_matter == _FALSE_):
-#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-#         if (self.fo.method == nl_oneloopPT):
-#             for index_k in xrange(self.fo.k_size):
-#                 internal_k_arr[index_k] = self.fo.k[index_k]
-#                 if (Real_Galaxy_IR_Resummed(&self.fo,&self.ba,&self.pm,index_k,z,b1,b2,bG2,btd,R2,cs2,142L,&internal_pk_halo[index_k])==_FAILURE_):
-#                     raise CosmoSevereError(self.fo.error_message)
-
-#             pk_interp_k = UnivariateSpline(internal_k_arr, internal_pk_halo,s=0)
-#             pk = pk_interp_k(k)
-#         else:
-#             raise CosmoSevereError("Only available for oneloopPT.")
-
-#         return pk
-
-#     # Gives the halo pk for a given (k_arr,z,mu_arr) in redshift-space for initialized biases and counter terms
-#     def pk_halo_rsd_default(self, k, double z, mu_arr):
-#         """
-#         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd,R2) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
-
-#         .. note::
-
-#             there is an additional check that output contains `mPk`,
-#             because otherwise a segfault will occur
-
-#         """
-#         k = np.atleast_1d(k)
-#         mu_arr = np.atleast_1d(mu_arr)
-#         cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((len(mu_arr),len(k)),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_mu_arr = np.linspace(-1.0, 1.0, 200,'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=2] internal_pk = np.zeros((len(internal_mu_arr),len(internal_k_arr)),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-#         if (self.pt.has_pk_matter == _FALSE_):
-#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-#         if (self.fo.method == nl_oneloopPT):
-#             for index_mu, mu in enumerate(internal_mu_arr):
-#                 for index_k in xrange(self.fo.k_size):
-#                     internal_k_arr[index_k] = self.fo.k[index_k]
-#                     if (RSD_IR_Ressummed_default(&self.fo,&self.ba,index_k,z,mu,&pk_rsd[index_k])==_FAILURE_):
-#                         raise CosmoSevereError(self.fo.error_message)
-#                     internal_pk[index_mu][index_k] = pk_rsd[index_k]
-#             pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
-#             pk = pk_interp_k_mu(mu_arr, k)
-#         else:
-#             raise CosmoSevereError("Only available for oneloopPT.")
-
-#         return pk
-
-#     # Gives the halo pk for a given (k_arr,z, mu_arr, biases, counters) in redshift-space with the biases and counter terms passed as argument
-#     def pk_halo_rsd(self, k, double z, mu_arr, biases, counters):
-#         """
-#         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k-array (in 1/Mpc), z and mu_arr for a given set of biases (b1,b2,bG2,btd) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
-
-#         .. note::
-
-#             there is an additional check that output contains `mPk`,
-#             because otherwise a segfault will occur
-
-#         """
-#         b1, b2, bG2, btd = biases
-#         c00, c10, c20, c22, c30, c32, c42 = counters
-
-#         k = np.atleast_1d(k)
-#         mu_arr = np.atleast_1d(mu_arr)
-#         cdef np.ndarray[DTYPE_t,ndim=2] pk = np.zeros((len(mu_arr),len(k)),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_k_arr = np.zeros((self.fo.k_size),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] internal_mu_arr = np.linspace(-1.0, 1.0, 200,'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=2] internal_pk = np.zeros((len(internal_mu_arr),len(internal_k_arr)),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-#         if (self.pt.has_pk_matter == _FALSE_):
-#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-#         if (self.fo.method == nl_oneloopPT):
-#             for index_mu, mu in enumerate(internal_mu_arr):
-#                 for index_k in xrange(self.fo.k_size):
-#                     internal_k_arr[index_k] = self.fo.k[index_k]
-#                     if (RSD_IR_Ressummed(&self.fo,&self.ba,index_k,z,mu,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
-#                         raise CosmoSevereError(self.fo.error_message)
-#                     internal_pk[index_mu][index_k] = pk_rsd[index_k]
-#             pk_interp_k_mu = RectBivariateSpline(internal_mu_arr, internal_k_arr, internal_pk, kx=1, ky=1, s=0)  ##linear interpolation, necessary if k or mu array is too small
-#             pk = pk_interp_k_mu(mu_arr, k)
-#         else:
-#             raise CosmoSevereError("Only available for oneloopPT.")
-
-#         return pk
-
-#     # Gives the halo multipoles for a given (k_arr,z,l,biases,counters) in redshift-space with the biases and counter terms passed as arguments
-#     def pk_rsd_multipoles(self,k,double z,int l, biases, counters):
-#         """
-#         Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
-
-#         .. note::
-
-#             there is an additional check that output contains `mPk`,
-#             because otherwise a segfault will occur
-
-#         """
-#         b1, b2, bG2, btd = biases
-#         c00, c10, c20, c22, c30, c32, c42 = counters
-
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
-
-#         cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-
-#         if (self.pt.has_pk_matter == _FALSE_):
-#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-#         if (self.fo.method == nl_oneloopPT):
-#             for index_k in xrange(self.fo.k_size):
-#                 k_arr[index_k] = self.fo.k[index_k]
-#                 if (RSD_Multipole(&self.fo,&self.ba,index_k,z,l,b1,b2,bG2,btd,c00,c10,c20,c22,c30,c32,c42,&pk_rsd[index_k])==_FAILURE_):
-#                     raise CosmoSevereError(self.fo.error_message)
-
-#             for index_k in xrange(len(k)):
-#                 pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
-#         else:
-#             raise CosmoSevereError("Only available for oneloopPT.")
-
-#         return pk
-
-#     # Gives the halo multipoles for a given (k_arr,z,l) in redshift-space for initialized biases and counter terms
-#     def pk_rsd_multipoles_default(self,k,double z,int l):
-#         """
-#         Gives the halo pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
-
-#         .. note::
-
-#             there is an additional check that output contains `mPk`,
-#             because otherwise a segfault will occur
-
-#         """
-
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk = np.zeros((len(k)),'float64')
-
-#         cdef np.ndarray[DTYPE_t,ndim=1] k_arr = np.zeros((self.fo.k_size),'float64')
-#         cdef np.ndarray[DTYPE_t,ndim=1] pk_rsd = np.zeros((self.fo.k_size),'float64')
-
-#         if (self.pt.has_pk_matter == _FALSE_):
-#             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-#         if (self.fo.method == nl_oneloopPT):
-#             for index_k in xrange(self.fo.k_size):
-#                 k_arr[index_k] = self.fo.k[index_k]
-#                 if (RSD_Multipole_default(&self.fo,&self.ba,index_k,z,l,&pk_rsd[index_k])==_FAILURE_):
-#                     raise CosmoSevereError(self.fo.error_message)
-
-#             for index_k in xrange(len(k)):
-#                 pk[index_k] = UnivariateSpline(k_arr, pk_rsd,s=0)(k[index_k])
-#         else:
-#             raise CosmoSevereError("Only available for oneloopPT.")
-
-#         return pk
-
-# # Return a dictionary containing all the necessary pieces for compuyting P_halo_real(k_i,z) for arbitrary z, mu biases and counter terms
-#     def pk_halo_real_pieces(self):
-#         """
-#         Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
-#         """
-
-#         # create the output dictionary
-#         loops = {}
-
-#         # initialize array of wavenumbers in 1/Mpc and fill it
-#         loops['k_arr'] = np.zeros((self.fo.k_size),'float64')
-#         for index_k in xrange(self.fo.k_size):
-#             loops['k_arr'][index_k] = self.fo.k[index_k]
-
-#         # initialize output array of P_halo_rsd in Mpc**3 and leave it set to zero
-#         loops['pk_arr'] = np.zeros((self.fo.k_size),'float64')
-
-#         # initialise the dictionary storing all loops for a given index_k.
-#         # For each key, the value is a 1D array of two floats for the two index values (wiggle, no_wiggle)
-#         loop_names = ['Plin_IR', 'Plin_NL_IR',
-#                       'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200']
-
-#         for elem in loop_names:
-#             loops[elem] = np.zeros((self.fo.k_size),'float64')
-
-#         # loop over wavenumbers
-#         for index_k in xrange(self.fo.k_size):
-
-#             # get the loops for this index_k
-
-#             ##### the following lines have been generated by the following python script and copy/pasted in the code:
-#             #
-#             # for elem in loop_names:
-#             #     print("            loops['%s'][index_k] = self.fo.pk_halo_real_nl[idx].%s[index_k]"%(str(elem),str(elem)))
-#             #
-#             # (in plain python we would condense all this in just two lines without even the index_k loop:
-#             # for elem in loop_names:
-#             #     exec("loops[elem][:,:] = self.fo.pk_halo_real_nl[:].%s[:]"%(str(elem)))
-#             # but this does not seem to work here)
-#             #
-#             loops['Plin_IR'][index_k] = self.fo.pk_halo_real_nl.Plin_IR[index_k]
-#             loops['Plin_NL_IR'][index_k] = self.fo.pk_halo_real_nl.Plin_NL_IR[index_k]
-#             loops['I2200'][index_k] = self.fo.pk_halo_real_nl.I2200[index_k]
-#             loops['Idelta200'][index_k] = self.fo.pk_halo_real_nl.Idelta200[index_k]
-#             loops['IG200'][index_k] = self.fo.pk_halo_real_nl.IG200[index_k]
-#             loops['Idelta2delta200'][index_k] = self.fo.pk_halo_real_nl.Idelta2delta200[index_k]
-#             loops['IG2G200'][index_k] = self.fo.pk_halo_real_nl.IG2G200[index_k]
-#             loops['Idelta2G200'][index_k] = self.fo.pk_halo_real_nl.Idelta2G200[index_k]
-#             loops['I1300'][index_k] = self.fo.pk_halo_real_nl.I1300[index_k]
-#             loops['FG200'][index_k] = self.fo.pk_halo_real_nl.FG200[index_k]
-
-#         return loops
-
-#     # Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
-#     def pk_halo_rsd_pieces(self):
-#         """
-#         Return a dictionary containing all the necessary pieces for compuyting P_halo_rsd(k_i,z) for arbitrary z, mu biases and counter terms
-#         """
-
-#         # create the output dictionary
-#         loops = {}
-
-#         # initialize array of wavenumbers in 1/Mpc and fill it
-#         loops['k_arr'] = np.zeros((self.fo.k_size),'float64')
-#         for index_k in xrange(self.fo.k_size):
-#             loops['k_arr'][index_k] = self.fo.k[index_k]
-
-#         # initialize output array of P_halo_rsd in Mpc**3 and leave it set to zero
-#         loops['pk_arr'] = np.zeros((self.fo.k_size),'float64')
-
-#         # sigma's
-#         loops['sigma_v2'] = self.fo.fft_ws.sigma_v2
-#         loops['sigma_2_IR'] = self.fo.fft_ws.sigma_2_IR
-#         loops['del_sigma_2_IR'] = self.fo.fft_ws.del_sigma_2_IR
-
-#         # initialise the dictionary storing all loops for a given index_k.
-#         # For each key, the value is a 1D array of two floats for the two index values (wiggle, no_wiggle)
-#         loop_names = ['Plin',
-#                       'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200',
-#                       'I2201','Idelta201','IG201','FG201','J21101','Jdelta201','JG201','I1301p3101','J12101','J11201',
-#                       'J21102x','J21102y','Jdelta202x','Jdelta202y','JG202x','JG202y','I2211','J21111','N11x','N11y',
-#                       'J12102x','J12102y','I1311','J12111','J11211',
-#                       'J21112x','J21112y','N12x','N12y','J12112x','J12112y',
-#                       'N22x','N22y','N22z']
-
-#         for elem in loop_names:
-#             loops[elem] = np.zeros((2,self.fo.k_size),'float64')
-
-#         # loop over wavenumbers
-#         for index_k in xrange(self.fo.k_size):
-
-#             # get the loops for this index_k
-#             for idx in xrange(2):
-
-#                 ##### the following lines have been generated by the following python script and copy/pasted in the code:
-#                 #
-#                 # for elem in loop_names:
-#                 #     print("            loops['%s'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].%s[index_k]"%(str(elem),str(elem)))
-#                 #
-#                 # (in plain python we would condense all this in just two lines without even the index_k loop:
-#                 # for elem in loop_names:
-#                 #     exec("loops[elem][:,:] = self.fo.pk_halo_rsd_nl[:].%s[:]"%(str(elem)))
-#                 # but this does not seem to work here)
-#                 #
-#                 loops['Plin'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Plin[index_k]
-#                 loops['I2200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2200[index_k]
-#                 loops['Idelta200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta200[index_k]
-#                 loops['IG200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG200[index_k]
-#                 loops['Idelta2delta200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta2delta200[index_k]
-#                 loops['IG2G200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG2G200[index_k]
-#                 loops['Idelta2G200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta2G200[index_k]
-#                 loops['I1300'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1300[index_k]
-#                 loops['FG200'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].FG200[index_k]
-#                 loops['I2201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2201[index_k]
-#                 loops['Idelta201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Idelta201[index_k]
-#                 loops['IG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].IG201[index_k]
-#                 loops['FG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].FG201[index_k]
-#                 loops['J21101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21101[index_k]
-#                 loops['Jdelta201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta201[index_k]
-#                 loops['JG201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG201[index_k]
-#                 loops['I1301p3101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1301p3101[index_k]
-#                 loops['J12101'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12101[index_k]
-#                 loops['J11201'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J11201[index_k]
-#                 loops['J21102x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21102x[index_k]
-#                 loops['J21102y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21102y[index_k]
-#                 loops['Jdelta202x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta202x[index_k]
-#                 loops['Jdelta202y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].Jdelta202y[index_k]
-#                 loops['JG202x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG202x[index_k]
-#                 loops['JG202y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].JG202y[index_k]
-#                 loops['I2211'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I2211[index_k]
-#                 loops['J21111'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21111[index_k]
-#                 loops['N11x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N11x[index_k]
-#                 loops['N11y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N11y[index_k]
-#                 loops['J12102x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12102x[index_k]
-#                 loops['J12102y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12102y[index_k]
-#                 loops['I1311'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].I1311[index_k]
-#                 loops['J12111'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12111[index_k]
-#                 loops['J11211'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J11211[index_k]
-#                 loops['J21112x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21112x[index_k]
-#                 loops['J21112y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J21112y[index_k]
-#                 loops['N12x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N12x[index_k]
-#                 loops['N12y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N12y[index_k]
-#                 loops['J12112x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12112x[index_k]
-#                 loops['J12112y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].J12112y[index_k]
-#                 loops['N22x'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22x[index_k]
-#                 loops['N22y'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22y[index_k]
-#                 loops['N22z'][idx,index_k] = self.fo.pk_halo_rsd_nl[idx].N22z[index_k]
-
-#         return loops
-
-#     # Return an array of k_i and a corresponding array of P_halo_rsd(k_i,z) with the biases and counter terms passed as argument
-#     def pk_halo_rsd_assemble(self, double z, mu, biases, counters):
-#         """
-#         Gives the Redshift-Space Halo Power Spectrum at 1-loop (in Mpc**3) for a given k of index_k, z and mu for a given set of biases (b1,b2,bG2,btd) and counter-terms (c00,c10,c20,c22,c30,c32,c42)
-
-#         .. note::
-
-#             there is an additional check that output contains `mPk`,
-#             because otherwise a segfault will occur
-
-#         """
-#         b1, b2, bG2, btd = biases
-#         c00, c10, c20, c22, c30, c32, c42 = counters
-
-#         loops = self.pk_halo_rsd_pieces()
-
-#         k_arr = loops['k_arr']
-
-#         pk_arr = loops['pk_arr']
-
-#         # growth factor
-#         D = self.scale_independent_growth_factor(z)
-#         f = self.scale_independent_growth_factor_f(z)
-#         D2=D*D
-#         D4=D2*D2
-
-#         # sigma's
-#         sigma_v2 = loops['sigma_v2']
-#         sigma_2_IR = loops['sigma_2_IR'] * D2
-#         del_sigma_2_IR = loops['del_sigma_2_IR'] * D2
-#         sigma_tot = (1. + f*pow(mu,2.)*(2. + f))*sigma_2_IR + pow(f*mu,2.)*(pow(mu,2.) - 1.)*del_sigma_2_IR
-
-#         # indices
-#         wiggle=0
-#         no_wiggle=1
-
-#         ##### the following lines have been generated by the following python script and copy/pasted in the code:
-#         #
-#         #array_names = ['Plin',
-#         #              'I2200','Idelta200','IG200','Idelta2delta200','IG2G200','Idelta2G200','I1300','FG200',
-#         #              'Moment_0',
-#         #              'I2201','Idelta201','IG201','FG201','J21101','Jdelta201','JG201','I1301p3101','J12101','J11201',
-#         #              'Moment_1',
-#         #              'J21102x','J21102y','J21102','Jdelta202x','Jdelta202y','Jdelta202','JG202x','JG202y','JG202','I2211','J21111','N11x','N11y','N11',
-#         #              'J12102x','J12102y','J12102','I1311','J12111','J11211',
-#         #              'Moment_2',
-#         #              'J21112x','J21112y','J21112','N12x','N12y','N12','J12112x','J12112y','J12112',
-#         #              'Moment_3',
-#         #              'N22x','N22y','N22z','N22',
-#         #              'Moment_4','RSD']
-#         #for elem in array_names:
-#         #    print("        %s = np.zeros(2,'float64')"%(str(elem)))
-#         #
-#         # (in plain python we would use
-#         #    exec("%s = np.zeros(2,'float64')"%(str(elem)))
-#         # but this does not seem to work here)
-#         #
-#         # initialize all necessary 1D arrays with two index values (wiggle, no_wiggle)
-#         Plin = np.zeros(2,'float64')
-#         I2200 = np.zeros(2,'float64')
-#         Idelta200 = np.zeros(2,'float64')
-#         IG200 = np.zeros(2,'float64')
-#         Idelta2delta200 = np.zeros(2,'float64')
-#         IG2G200 = np.zeros(2,'float64')
-#         Idelta2G200 = np.zeros(2,'float64')
-#         I1300 = np.zeros(2,'float64')
-#         FG200 = np.zeros(2,'float64')
-#         Moment_0 = np.zeros(2,'float64')
-#         I2201 = np.zeros(2,'float64')
-#         Idelta201 = np.zeros(2,'float64')
-#         IG201 = np.zeros(2,'float64')
-#         FG201 = np.zeros(2,'float64')
-#         J21101 = np.zeros(2,'float64')
-#         Jdelta201 = np.zeros(2,'float64')
-#         JG201 = np.zeros(2,'float64')
-#         I1301p3101 = np.zeros(2,'float64')
-#         J12101 = np.zeros(2,'float64')
-#         J11201 = np.zeros(2,'float64')
-#         Moment_1 = np.zeros(2,'float64')
-#         J21102x = np.zeros(2,'float64')
-#         J21102y = np.zeros(2,'float64')
-#         J21102 = np.zeros(2,'float64')
-#         Jdelta202x = np.zeros(2,'float64')
-#         Jdelta202y = np.zeros(2,'float64')
-#         Jdelta202 = np.zeros(2,'float64')
-#         JG202x = np.zeros(2,'float64')
-#         JG202y = np.zeros(2,'float64')
-#         JG202 = np.zeros(2,'float64')
-#         I2211 = np.zeros(2,'float64')
-#         J21111 = np.zeros(2,'float64')
-#         N11x = np.zeros(2,'float64')
-#         N11y = np.zeros(2,'float64')
-#         N11 = np.zeros(2,'float64')
-#         J12102x = np.zeros(2,'float64')
-#         J12102y = np.zeros(2,'float64')
-#         J12102 = np.zeros(2,'float64')
-#         I1311 = np.zeros(2,'float64')
-#         J12111 = np.zeros(2,'float64')
-#         J11211 = np.zeros(2,'float64')
-#         Moment_2 = np.zeros(2,'float64')
-#         J21112x = np.zeros(2,'float64')
-#         J21112y = np.zeros(2,'float64')
-#         J21112 = np.zeros(2,'float64')
-#         N12x = np.zeros(2,'float64')
-#         N12y = np.zeros(2,'float64')
-#         N12 = np.zeros(2,'float64')
-#         J12112x = np.zeros(2,'float64')
-#         J12112y = np.zeros(2,'float64')
-#         J12112 = np.zeros(2,'float64')
-#         Moment_3 = np.zeros(2,'float64')
-#         N22x = np.zeros(2,'float64')
-#         N22y = np.zeros(2,'float64')
-#         N22z = np.zeros(2,'float64')
-#         N22 = np.zeros(2,'float64')
-#         Moment_4 = np.zeros(2,'float64')
-#         RSD = np.zeros(2,'float64')
-
-#         # loop over wavenumbers
-#         for index_k in xrange(len(k_arr)):
-
-#             k = k_arr[index_k]
-
-#             # dewiggle factor due to IR resummation
-#             suppression = exp(-pow(k,2.)*sigma_tot)
-
-#             # linear spectrum (full, no_wiggle)
-
-#             Plin[:] = loops['Plin'][:,index_k]
-
-#             # 0-th moment
-
-#             I2200[:]           = loops['I2200'][:,index_k]
-#             Idelta200[:]       = loops['Idelta200'][:,index_k]
-#             IG200[:]           = loops['IG200'][:,index_k]
-#             Idelta2delta200[:] = loops['Idelta2delta200'][:,index_k]
-#             IG2G200[:]         = loops['IG2G200'][:,index_k]
-#             Idelta2G200[:]     = loops['Idelta2G200'][:,index_k]
-#             I1300[:]           = loops['I1300'][:,index_k]
-#             FG200[:]           = loops['FG200'][:,index_k]
-
-#             Moment_0[:] = (pow(b1,2.)*(2.*I2200[:] + 6.*I1300[:]) + 2.*b1*b2*Idelta200[:] + 4.*b1*bG2*IG200[:] + 0.5*pow(b2,2.)*Idelta2delta200[:] + 2.*pow(bG2,2.)*IG2G200[:] + 8.*b1*(bG2 + 0.4*btd)*FG200[:]) *D4
-#             # - 2.*c00*pow(k,2.)*Plin[:] *D2;
-
-#             # 1-st moment
-
-#             I2201[:]      = loops['I2201'][:,index_k]
-#             Idelta201[:]  = loops['Idelta201'][:,index_k]
-#             IG201[:]      = loops['IG201'][:,index_k]
-#             FG201[:]      = loops['FG201'][:,index_k]
-#             J21101[:]     = loops['J21101'][:,index_k] * mu;
-#             Jdelta201[:]  = loops['Jdelta201'][:,index_k] * mu;
-#             JG201[:]      = loops['JG201'][:,index_k] * mu;
-#             I1301p3101[:] = loops['I1301p3101'][:,index_k]
-#             J12101[:]     = loops['J12101'][:,index_k] * mu;
-#             J11201[:]     = loops['J11201'][:,index_k] * mu;
-
-#             Moment_1[:] =   2. * (f*mu/k) * (2.*b1*I2201[:] + 3.*b1*I1301p3101[:] + b2*Idelta201[:] + 2.*bG2*IG201[:] + 4.*(bG2 + 0.4*btd)*FG201[:]) *D4 + 2. * (2.*f)    * (pow(b1,2.)*(J12101[:] + J11201[:] + J21101[:]) + 0.5*b1*b2*Jdelta201[:] + b1*bG2*JG201[:]) *D4
-#             # + c10*f*mu*k*Plin[:] *D2
-
-#             # 2-nd moment
-
-#             J21102x[:]    = loops['J21102x'][:,index_k]
-#             J21102y[:]    = loops['J21102y'][:,index_k]
-#             J21102[:]     = (J21102x[:] + J21102y[:] * pow(mu,2.));
-#             Jdelta202x[:] = loops['Jdelta202x'][:,index_k]
-#             Jdelta202y[:] = loops['Jdelta202y'][:,index_k]
-#             Jdelta202[:]  = (Jdelta202x[:] + Jdelta202y[:] * pow(mu,2.));
-#             JG202x[:]     = loops['JG202x'][:,index_k]
-#             JG202y[:]     = loops['JG202y'][:,index_k]
-#             JG202[:]      = (JG202x[:] + JG202y[:] * pow(mu,2.));
-#             I2211[:]      = loops['I2211'][:,index_k]
-#             J21111[:]     = loops['J21111'][:,index_k] * mu;
-#             N11x[:]       = loops['N11x'][:,index_k]
-#             N11y[:]       = loops['N11y'][:,index_k]
-#             N11[:]        = (N11x[:] + N11y[:] * pow(mu,2.));
-#             J12102x[:]    = loops['J12102x'][:,index_k]
-#             J12102y[:]    = loops['J12102y'][:,index_k]
-#             J12102[:]     = (J12102x[:] + J12102y[:] * pow(mu,2.));
-#             I1311[:]      = loops['I1311'][:,index_k]
-#             J12111[:]     = loops['J12111'][:,index_k] * mu;
-#             J11211[:]     = loops['J11211'][:,index_k] * mu;
-
-#             Moment_2[:] = 2. * pow(f*mu/k,2.) * (2.*I2211[:] + 6.*I1311[:]) *D4 + 8. * pow(f,2.)*(mu/k) * (b1*(J12111[:] + J11211[:] + J21111[:])) *D4 + 2. * pow(f,2.) * (pow(b1,2.)*N11[:]) *D4 + 2. * pow(f,2.) * (4.*b1*J12102[:] + 2.*b1*J21102[:] + b2*Jdelta202[:] + 2.*bG2*JG202[:] - pow(b1,2.)*Plin[:]*sigma_v2) *D4
-#             # - 2. * pow(f,2.) * (c20 + c22 * pow(mu,2.))*Plin[:] *D2
-
-#             # 3-rd moment
-
-#             J21112x[:] = loops['J21112x'][:,index_k]
-#             J21112y[:] = loops['J21112y'][:,index_k]
-#             J21112[:]  = (J21112x[:] + J21112y[:] * pow(mu,2.));
-#             N12x[:]    = loops['N12x'][:,index_k]
-#             N12y[:]    = loops['N12y'][:,index_k]
-#             N12[:]     = (N12x[:] * mu + N12y[:] * pow(mu,3.));
-#             J12112x[:] = loops['J12112x'][:,index_k]
-#             J12112y[:] = loops['J12112y'][:,index_k]
-#             J12112[:]  = (J12112x[:] + J12112y[:] * pow(mu,2.));
-
-#             Moment_3[:] = - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.)*(mu/k) * (J21112[:] + 2.*J12112[:]) *D4 - 6. * pow(f,3.)*(mu/k) * b1*Plin[:]*sigma_v2 *D4 + 12.* pow(f,3.) * b1*N12[:] *D4
-#             # + 6. * pow(f,3.)*(mu/k) * (c30 + c32*pow(mu,2.))*Plin[:] *D2
-
-#             # 4-th moment
-
-#             N22x[:] = loops['N22x'][:,index_k]
-#             N22y[:] = loops['N22y'][:,index_k]
-#             N22z[:] = loops['N22z'][:,index_k]
-#             N22[:]  = (N22x[:] + N22y[:] * pow(mu,2.) + N22z[:] * pow(mu,4.))
-
-#             Moment_4[:] = - 24. * pow(f,4.)*pow(mu/k,2.) * Plin[:]*sigma_v2 *D4 + 12. * pow(f,4.) * N22[:] *D4
-#             # + 24. * pow(f,4.)*pow(mu/k,2.) * c42*Plin[:] *D2
-
-#             RSD[:] = Moment_0[:] + k*mu * Moment_1[:] + (1./2.) * pow(k*mu,2.) * Moment_2[:] + (1./6.) * pow(k*mu,3.) * Moment_3[:] + (1./24.) * pow(k*mu,4.) * Moment_4[:] + (c00 + c10*f*mu*mu + c22*f*f*mu*mu*mu*mu + c32*f*f*f*pow(mu,6.))*pow(k,2)*Plin[:]*D2
-
-#             P_wiggle = Plin[wiggle] - Plin[no_wiggle]
-
-#             pk_arr[index_k] = pow(b1 + f*pow(mu,2.), 2.) * (Plin[no_wiggle] + suppression*P_wiggle*(1. + pow(k,2.)*sigma_tot)) *D2 + RSD[no_wiggle] + suppression * (RSD[wiggle] - RSD[no_wiggle]);
-
-#             # JL debugging
-#             #if index_k == 0:
-#             #    log = {}
-#             #    log['z'] = z
-#             #    log['k'] = k
-#             #    log['mu'] = mu
-#             #    log['D'] = D
-#             #    log['f'] = f
-#             #    log['pk'] = pk_arr[index_k]
-#             #    log['pk_lin_ww'] = Plin[wiggle]
-#             #    log['pk_lin_nw'] = Plin[no_wiggle]
-#             #    log['P_lin_w'] = P_wiggle
-#             #    log['suppression'] = suppression
-#             #    log['sigma_tot'] = sigma_tot
-#             #    log['rsd_nw'] = RSD[no_wiggle]
-#             #    log['rsd_w'] = RSD[wiggle]
-
-#         return k_arr,pk_arr #,log
-
     # Gives the total matter pk for a given (k,z)
     def pk_lin(self,double k,double z):
         """
@@ -1722,9 +1105,9 @@ cdef class Class:
         for index_tau in range(self.fo.ln_tau_size):
             for index_k in range(self.fo.k_size_pk):
                 if nonlinear == True:
-                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_nl[index_pk][index_tau * self.fo.k_size + index_k])
+                    pk[index_k, index_tau] = exp(self.fo.ln_pk_nl[index_pk][index_tau * self.fo.k_size + index_k])
                 else:
-                    pk[index_k, index_tau] = np.exp(self.fo.ln_pk_l[index_pk][index_tau * self.fo.k_size + index_k])
+                    pk[index_k, index_tau] = exp(self.fo.ln_pk_l[index_pk][index_tau * self.fo.k_size + index_k])
 
         return pk, k, z
 
@@ -3440,98 +2823,127 @@ make        nonlinear_scale_cb(z, z_size)
           sd_amp[i] = self.sd.DI[i]*self.sd.DI_units*1.e26
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
-
-    def eft_job_powerspectrum_wedges_grid(self,
+    
+    def eft_set_output_sampling(self,
         np.ndarray[DTYPE_t,ndim=1] mu,
-        np.ndarray[DTYPE_t,ndim=1] k,
-        np.ndarray[DTYPE_t,ndim=1] z,
-        int mu_size,int k_size,int z_size,pk_output,biases,counterterms,R2,cs2,has_rsd):
-        """
-        eft_job_powerspectrum_wedges_grid(mi,k,z,mu_size,k_size,z_size,pk_output,biases,counterterms,R2,cs2,has_rsd)
+        np.ndarray[DTYPE_t,ndim=2] k):
 
-        Returns the oneloop power spectrum P_oneloop(k,mu,z)
+        if not mu.flags['C_CONTIGUOUS']:
+            mu = np.ascontiguousarray(mu)
+        if not k.flags['C_CONTIGUOUS']:
+            k = np.ascontiguousarray(k)
 
-        Input parameters
-        ----------------
-        mu      : numpy array of mu values, indexed as mu[index_z + z_size*index_mu], of size z_size*mu_size
-        k       : numpy array of k values, indexed as k[index_z + z_size*(index_mu + mu_size*index_k)], of size z_size*mu_size*k_size
-        z       : numpy array of z values, indexed as z[index_z], of size z_size
-        mu_size : number of mu values
-        k_size  : number of k values
-        z_size  : number of z values
-        pk_output: input: one of 'Pdd_mm_real','Pdd_mm_rsd','Pdd_hh_real','Pdd_hh_rsd'
-        biases : input: numpy array of biases [b1,b2,bG2,btd]
-        counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
-        R2 : input: R2 parameter in EFT
-        cs2 : input: cs2 parameter in EFT
-        has_rsd : input: boolean (do we want redshift space distortions?)
-
-        Returns:
-        --------
-        out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z + z_size*(index_mu + mu_size*index_k)]
-
-        """
-
+        cdef int mu_size = <int>mu.shape[0]
+        cdef int k_size = <int>k.shape[1]
+    
         # check input consistency
-        if len(mu) != mu_size*z_size:
-            raise CosmoSevereError("mu should have dimension %d, not %" %(mu_size*z_size,len(mu)))
-        if len(k) != k_size*mu_size*z_size:
-            raise CosmoSevereError("k should have dimension %d, not %" %(k_size*mu_size*z_size,len(k)))
-        if len(z) != z_size:
-            raise CosmoSevereError("z should have dimension %d, not %" %(z_size,len(z)))
+        if (k.shape[0] != mu_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({1:d}) for mu and ({2:d}, {3:d}) for k.".format(mu.shape[0], k.shape[0], k.shape[1]))
+        
+        cdef double[::1] mu_view = mu
+        cdef double[:, ::1] k_view = k
 
-        # allocate output array
-        cdef np.ndarray[DTYPE_t,ndim=1] out_pkmuz = np.zeros(z_size*k_size*mu_size,'float64')
+        eft_set_sampling_points_all(self.fo.peft,
+                                    self.fo.eft_size,
+                                    &k_view[0, 0],
+                                    &mu_view[0],
+                                    k_size,
+                                    mu_size)
+        
+        return
 
-        # fill input structure
-        cdef eft_input_parameters eft_ip_test
+    # TODO: to be removed
+    # def eft_job_powerspectrum_wedges_grid(self,
+    #     np.ndarray[DTYPE_t,ndim=1] mu,
+    #     np.ndarray[DTYPE_t,ndim=1] k,
+    #     np.ndarray[DTYPE_t,ndim=1] z,
+    #     int mu_size,int k_size,int z_size,pk_output,biases,counterterms,R2,cs2,has_rsd):
+    #     """
+    #     eft_job_powerspectrum_wedges_grid(mi,k,z,mu_size,k_size,z_size,pk_output,biases,counterterms,R2,cs2,has_rsd)
 
-        eft_ip_test.b1 = biases[0]
-        eft_ip_test.b2 = biases[1]
-        eft_ip_test.bG2 = biases[2]
-        eft_ip_test.btd = biases[3]
-        eft_ip_test.c00 = counterterms[0]
-        eft_ip_test.c10 = counterterms[1]
-        eft_ip_test.c20 = counterterms[2]
-        eft_ip_test.c22 = counterterms[3]
-        eft_ip_test.c30 = counterterms[4]
-        eft_ip_test.c32 = counterterms[5]
-        eft_ip_test.c42 = counterterms[6]
-        eft_ip_test.has_rsd = has_rsd
-        eft_ip_test.R2 = R2
-        eft_ip_test.cs2 = cs2
+    #     Returns the oneloop power spectrum P_oneloop(k,mu,z)
 
-        # fill input type enum
-        cdef eft_pk_out_type pk_output_type
+    #     Input parameters
+    #     ----------------
+    #     mu      : numpy array of mu values, indexed as mu[index_z + z_size*index_mu], of size z_size*mu_size
+    #     k       : numpy array of k values, indexed as k[index_z + z_size*(index_mu + mu_size*index_k)], of size z_size*mu_size*k_size
+    #     z       : numpy array of z values, indexed as z[index_z], of size z_size
+    #     mu_size : number of mu values
+    #     k_size  : number of k values
+    #     z_size  : number of z values
+    #     pk_output: input: one of 'Pdd_mm_real','Pdd_mm_rsd','Pdd_hh_real','Pdd_hh_rsd'
+    #     biases : input: numpy array of biases [b1,b2,bG2,btd]
+    #     counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+    #     R2 : input: R2 parameter in EFT
+    #     cs2 : input: cs2 parameter in EFT
+    #     has_rsd : input: boolean (do we want redshift space distortions?)
 
-        if pk_output == 'Pdd_mm_real':
-            pk_output_type = Pdd_mm_real
-        elif pk_output == 'Pdd_mm_rsd':
-            pk_output_type = Pdd_mm_rsd
-        elif pk_output == 'Pdd_hh_real':
-            pk_output_type = Pdd_hh_real
-        elif pk_output == 'Pdd_hh_rsd':
-            pk_output_type = Pdd_hh_rsd
-        else:
-            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_output)
+    #     Returns:
+    #     --------
+    #     out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z + z_size*(index_mu + mu_size*index_k)]
 
-        eft_job_powerspectrum_wedges_grid(self.fo.peft,
-                                          self.fo.eft_size,
-                                          &self.ba,
-                                          &self.fo,
-                                          &self.pm,
-                                          &self.pr,
-                                          pk_output_type,
-                                          <double*> z.data,
-                                          &eft_ip_test,
-                                          z_size,
-                                          <double*> k.data,
-                                          k_size,
-                                          <double*> mu.data,
-                                          mu_size,
-                                          <double*>out_pkmuz.data)
+    #     """
 
-        return out_pkmuz
+    #     # check input consistency
+    #     if len(mu) != mu_size*z_size:
+    #         raise CosmoSevereError("mu should have dimension %d, not %" %(mu_size*z_size,len(mu)))
+    #     if len(k) != k_size*mu_size*z_size:
+    #         raise CosmoSevereError("k should have dimension %d, not %" %(k_size*mu_size*z_size,len(k)))
+    #     if len(z) != z_size:
+    #         raise CosmoSevereError("z should have dimension %d, not %" %(z_size,len(z)))
+
+    #     # allocate output array
+    #     cdef np.ndarray[DTYPE_t,ndim=1] out_pkmuz = np.zeros(z_size*k_size*mu_size,'float64')
+
+    #     # fill input structure
+    #     cdef eft_input_parameters eft_ip_test
+
+    #     eft_ip_test.b1 = biases[0]
+    #     eft_ip_test.b2 = biases[1]
+    #     eft_ip_test.bG2 = biases[2]
+    #     eft_ip_test.btd = biases[3]
+    #     eft_ip_test.c00 = counterterms[0]
+    #     eft_ip_test.c10 = counterterms[1]
+    #     eft_ip_test.c20 = counterterms[2]
+    #     eft_ip_test.c22 = counterterms[3]
+    #     eft_ip_test.c30 = counterterms[4]
+    #     eft_ip_test.c32 = counterterms[5]
+    #     eft_ip_test.c42 = counterterms[6]
+    #     eft_ip_test.has_rsd = has_rsd
+    #     eft_ip_test.R2 = R2
+    #     eft_ip_test.cs2 = cs2
+
+    #     # fill input type enum
+    #     cdef eft_pk_out_type pk_output_type
+
+    #     if pk_output == 'Pdd_mm_real':
+    #         pk_output_type = Pdd_mm_real
+    #     elif pk_output == 'Pdd_mm_rsd':
+    #         pk_output_type = Pdd_mm_rsd
+    #     elif pk_output == 'Pdd_hh_real':
+    #         pk_output_type = Pdd_hh_real
+    #     elif pk_output == 'Pdd_hh_rsd':
+    #         pk_output_type = Pdd_hh_rsd
+    #     else:
+    #         raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_output)
+
+    #     eft_job_powerspectrum_wedges_grid(self.fo.peft,
+    #                                       self.fo.eft_size,
+    #                                       &self.ba,
+    #                                       &self.fo,
+    #                                       &self.pm,
+    #                                       &self.pr,
+    #                                       pk_output_type,
+    #                                       <double*> z.data,
+    #                                       &eft_ip_test,
+    #                                       z_size,
+    #                                       <double*> k.data,
+    #                                       k_size,
+    #                                       <double*> mu.data,
+    #                                       mu_size,
+    #                                       <double*>out_pkmuz.data)
+
+    #     return out_pkmuz
 
     def eft_pkmu_rsd_grid(self,   \
                   np.ndarray[DTYPE_t, ndim=2] mu,  \
@@ -3539,9 +2951,10 @@ make        nonlinear_scale_cb(z, z_size)
                   np.ndarray[DTYPE_t, ndim=1] z,   \
                   np.ndarray[DTYPE_t, ndim=2] biases,         \
                   np.ndarray[DTYPE_t, ndim=2] counterterms,   \
-                  pkmu_type):
+                  pkmu_type,
+                  As_correction = 1.):
         """
-        eft_job_powerspectrum_wedges_grid(mu, k, z, z_size, mu_size, k_size, pkmu_type, biases, counterterms)
+        eft_pkmu_rsd_grid(mu, k, z, biases, counterterms, pkmu_type, (opt) As_correction)
 
         Returns the oneloop power spectrum P_oneloop(k,mu,z)
 
@@ -3640,17 +3053,533 @@ make        nonlinear_scale_cb(z, z_size)
                                      &self.pr,
                                      pk_output_type,
                                      <double*> z.data,
+                                     As_correction,
                                      eft_ip,
                                      z_size,
                                      kvec_pp,
                                      k_sizevec,
                                      muvec_pp,
                                      mu_sizevec,
-                                     out_pkmuz_pp)
+                                     out_pkmuz_pp,
+                                     NULL)
 
         free(mu_sizevec)
         free(k_sizevec)
         free(eft_ip)
+
+        return out_pkmuz
+
+###################
+
+    def eft_pkmu_rsd_spline(self,   \
+                  np.ndarray[DTYPE_t, ndim=2] mu,  \
+                  np.ndarray[DTYPE_t, ndim=1] z,   \
+                  np.ndarray[DTYPE_t, ndim=2] biases,         \
+                  np.ndarray[DTYPE_t, ndim=2] counterterms,   \
+                  pkmu_type,
+                  As_correction = 1.):
+        """
+        eft_pkmu_rsd_spline(mu, z, biases, counterterms, pkmu_type)
+
+        Returns the oneloop power spectrum P_oneloop(k,mu,z)
+
+        Input parameters
+        ----------------
+        mu      : numpy array of mu values, indexed as mu[index_z, index_mu]
+        z       : numpy array of z values, indexed as z[index_z]
+        biases : input: numpy array of biases [b1,b2,bG2,btd]
+        counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
+
+        Returns:
+        --------
+        ???
+
+        """
+
+        # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
+
+        if not mu.flags['C_CONTIGUOUS']:
+            mu = np.ascontiguousarray(mu)
+        if not z.flags['C_CONTIGUOUS']:
+            z = np.ascontiguousarray(z)
+
+        cdef int z_size = <int>z.shape[0]
+        cdef int mu_size = <int>mu.shape[1]
+        cdef int k_size
+
+        cdef int index_z
+        cdef np.intp_t[:] mu_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef np.intp_t[:] out_pkmuz_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef double** muvec_pp = <double**>(<void*> &mu_pointer_arr[0])
+        cdef double** out_pkmuz_pp = <double**>(<void*> &out_pkmuz_pointer_arr[0])
+
+        # allocate input/output array
+        cdef int* mu_sizevec = <int*>malloc(z_size * sizeof(int))
+        cdef int* k_sizevec  = <int*>malloc(z_size * sizeof(int))
+        cdef double** kvec_pp = <double**>malloc(z_size * sizeof(double*))
+        cdef double** out_pkmuz = <double**>malloc(z_size * sizeof(double*))
+        cdef double** ddout_pkmuz = <double**>malloc(z_size * sizeof(double*))
+
+        # initialize output arrays to NULL (will be allocated inside eft_job_powerspectrum_wedges)
+        for index_z in range(z_size):
+          kvec_pp[index_z] = NULL
+          out_pkmuz[index_z] = NULL
+          ddout_pkmuz[index_z] = NULL
+        # cdef np.ndarray[DTYPE_t, ndim=3] out_pkmuz = np.zeros((z_size, mu_size, k_size), dtype='float64', order='C')
+
+        cdef double[::1] z_view = z
+        cdef double[:, ::1] mu_view = mu
+
+        # allocate input structure
+        cdef eft_input_parameters* eft_ip = <eft_input_parameters*>malloc(z_size * sizeof(eft_input_parameters))
+
+        # fill input type enum
+        cdef eft_pk_out_type pk_output_type
+
+        if pkmu_type == 'Pdd_mm_rsd':
+            pk_output_type = Pdd_mm_rsd
+        elif pkmu_type == 'Pdd_hh_rsd':
+            pk_output_type = Pdd_hh_rsd
+        else:
+            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
+
+        # check input consistency
+        if (mu.shape[0] != z_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}) for z and ({1:d}, {2:d}) for mu.".format(z.shape[0], mu.shape[0], mu.shape[1]))
+        if (biases.shape[0] != z_size) or (counterterms.shape[0] != z_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}, {1:d}) for biases and ({2:d}, {3:d}) for counterterms.".format(biases.shape[0], biases.shape[1], counterterms.shape[0], counterterms.shape[1]))
+
+
+        for index_z in range(z_size):
+            # fill input structures
+            eft_ip[index_z].b1 = biases[index_z, 0]
+            eft_ip[index_z].b2 = biases[index_z, 1]
+            eft_ip[index_z].bG2 = biases[index_z, 2]
+            eft_ip[index_z].btd = biases[index_z, 3]
+            eft_ip[index_z].c00 = counterterms[index_z, 0]
+            eft_ip[index_z].c10 = counterterms[index_z, 1]
+            eft_ip[index_z].c20 = counterterms[index_z, 2]
+            eft_ip[index_z].c22 = counterterms[index_z, 3]
+            eft_ip[index_z].c30 = counterterms[index_z, 4]
+            eft_ip[index_z].c32 = counterterms[index_z, 5]
+            eft_ip[index_z].c42 = counterterms[index_z, 6]
+            eft_ip[index_z].has_rsd = 1
+            # assign pointers
+            muvec_pp[index_z] = &mu_view[index_z, 0]
+            mu_sizevec[index_z] = mu_size
+            k_sizevec[index_z] = 1  # will be overwritten
+
+        eft_job_powerspectrum_wedges(self.fo.peft,
+                                     self.fo.eft_size,
+                                     &self.ba,
+                                     &self.fo,
+                                     &self.pm,
+                                     &self.pr,
+                                     pk_output_type,
+                                     <double*> z.data,
+                                     As_correction,
+                                     eft_ip,
+                                     z_size,
+                                     kvec_pp,
+                                     k_sizevec,
+                                     muvec_pp,
+                                     mu_sizevec,
+                                     out_pkmuz,
+                                     ddout_pkmuz)
+
+        k_size = k_sizevec[0]
+        cdef double* ln_kvec = <double*>malloc(k_size * sizeof(double))
+        for index_k in range(k_size):
+          ln_kvec[index_k] = log( kvec_pp[0][index_k] )
+
+        free(mu_sizevec)
+        free(k_sizevec)
+        free(eft_ip)
+        for index_z in range(z_size):
+          free(kvec_pp[index_z])
+        free(kvec_pp)
+
+        # allocate spline arrays
+        cdef np.ndarray[DTYPE_t, ndim=1] breakpoints = np.zeros((k_size), dtype='float64', order='C')
+        cdef np.ndarray[DTYPE_t, ndim=4] coefficients = np.zeros((z_size, 4, k_size-1, mu_size), dtype='float64', order='C')
+
+        cdef double[::1] breakpoints_view = breakpoints
+        cdef double[:, :, :, ::1] coefficients_view = coefficients
+
+        for index_z in range(z_size):
+          array_convert_spline_table_columns_to_local_power_basis(ln_kvec,
+                                                                  k_size,
+                                                                  out_pkmuz[index_z],
+                                                                  mu_size,
+                                                                  ddout_pkmuz[index_z],
+                                                                  &coefficients_view[index_z, 0, 0, 0],
+                                                                  &breakpoints_view[0])
+          
+          free(out_pkmuz[index_z])
+          free(ddout_pkmuz[index_z])
+
+        free(ln_kvec)
+        free(out_pkmuz)
+        free(ddout_pkmuz)
+
+        coefficients_axis_ordered = np.moveaxis(coefficients, 0, 2)
+        spline = PPoly.construct_fast(coefficients_axis_ordered, breakpoints, extrapolate=False)
+
+        return spline
+
+###################
+
+    def eft_pkmu_rsd_stoch_grid(self,   \
+                  np.ndarray[DTYPE_t, ndim=2] mu,  \
+                  np.ndarray[DTYPE_t, ndim=3] k,   \
+                  np.ndarray[DTYPE_t, ndim=1] z,   \
+                  np.ndarray[DTYPE_t, ndim=2] biases,         \
+                  np.ndarray[DTYPE_t, ndim=2] counterterms,   \
+                  np.ndarray[DTYPE_t, ndim=2] stochasticterms,   \
+                  pkmu_type,
+                  As_correction = 1.):
+        """
+        eft_job_powerspectrum_wedges_grid(mu, k, z, z_size, mu_size, k_size, pkmu_type, biases, counterterms)
+
+        Returns the oneloop power spectrum P_oneloop(k,mu,z) including stochastic terms
+
+        Input parameters
+        ----------------
+        mu      : numpy array of mu values, indexed as mu[index_z, index_mu]
+        k       : numpy array of k values, indexed as k[index_z, index_mu, index_k]
+        z       : numpy array of z values, indexed as z[index_z]
+        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
+        biases : input: numpy array of biases [b1,b2,bG2,btd]
+        counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+        stochasticterms : input: numpy array of stochasticterms [inv_n,s0,s1,s2,s3]
+
+        Returns:
+        --------
+        out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z, index_mu, index_k]
+
+        """
+
+        # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
+
+        if not mu.flags['C_CONTIGUOUS']:
+            mu = np.ascontiguousarray(mu)
+        if not k.flags['C_CONTIGUOUS']:
+            k = np.ascontiguousarray(k)
+        if not z.flags['C_CONTIGUOUS']:
+            z = np.ascontiguousarray(z)
+
+        cdef int z_size = <int>z.shape[0]
+        cdef int mu_size = <int>mu.shape[1]
+        cdef int k_size = <int>k.shape[2]
+
+        cdef int index_z
+        cdef np.intp_t[:] mu_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef np.intp_t[:] k_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef np.intp_t[:] out_pkmuz_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef double** muvec_pp = <double**>(<void*> &mu_pointer_arr[0])
+        cdef double** kvec_pp = <double**>(<void*> &k_pointer_arr[0])
+        cdef double** out_pkmuz_pp = <double**>(<void*> &out_pkmuz_pointer_arr[0])
+
+        # allocate input/output array
+        cdef int* mu_sizevec = <int*>malloc(z_size * sizeof(int))
+        cdef int* k_sizevec  = <int*>malloc(z_size * sizeof(int))
+        cdef np.ndarray[DTYPE_t, ndim=3] out_pkmuz = np.zeros((z_size, mu_size, k_size), dtype='float64', order='C')
+
+        cdef double[::1] z_view = z
+        cdef double[:, ::1] mu_view = mu
+        cdef double[:, :, ::1] k_view = k
+        cdef double[:, :, ::1] out_pkmuz_view = out_pkmuz
+
+        # allocate input structure
+        cdef eft_input_parameters* eft_ip = <eft_input_parameters*>malloc(z_size * sizeof(eft_input_parameters))
+
+        # fill input type enum
+        cdef eft_pk_out_type pk_output_type
+
+        if pkmu_type == 'Pdd_mm_rsd':
+            pk_output_type = Pdd_mm_rsd
+        elif pkmu_type == 'Pdd_hh_rsd':
+            pk_output_type = Pdd_hh_rsd
+        else:
+            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
+
+        # check input consistency
+        if (mu.shape[0] != z_size) or (k.shape[0] != z_size) or (k.shape[1] != mu_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}) for z, ({1:d}, {2:d}) for mu and ({3:d}, {4:d}, {5:d}) for k.".format(z.shape[0], mu.shape[0], mu.shape[1], k.shape[0], k.shape[1], k.shape[2]))
+        if (biases.shape[0] != z_size) or (counterterms.shape[0] != z_size) or (stochasticterms.shape[0] != z_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}, {1:d}) for biases, ({2:d}, {3:d}) for counterterms, and ({4:d}, {5:d}) for stochastic terms.".format(biases.shape[0], biases.shape[1], counterterms.shape[0], counterterms.shape[1], stochasticterms.shape[0], stochasticterms.shape[1]))
+
+
+        for index_z in range(z_size):
+            # fill input structures
+            eft_ip[index_z].b1 = biases[index_z, 0]
+            eft_ip[index_z].b2 = biases[index_z, 1]
+            eft_ip[index_z].bG2 = biases[index_z, 2]
+            eft_ip[index_z].btd = biases[index_z, 3]
+            eft_ip[index_z].c00 = counterterms[index_z, 0]
+            eft_ip[index_z].c10 = counterterms[index_z, 1]
+            eft_ip[index_z].c20 = counterterms[index_z, 2]
+            eft_ip[index_z].c22 = counterterms[index_z, 3]
+            eft_ip[index_z].c30 = counterterms[index_z, 4]
+            eft_ip[index_z].c32 = counterterms[index_z, 5]
+            eft_ip[index_z].c42 = counterterms[index_z, 6]
+            eft_ip[index_z].has_rsd = 1
+            # assign pointers
+            muvec_pp[index_z] = &mu_view[index_z, 0]
+            mu_sizevec[index_z] = mu_size
+            kvec_pp[index_z] = &k_view[index_z, 0, 0]
+            k_sizevec[index_z] = k_size
+            out_pkmuz_pp[index_z] = &out_pkmuz_view[index_z, 0, 0]
+
+        eft_job_powerspectrum_wedges(self.fo.peft,
+                                     self.fo.eft_size,
+                                     &self.ba,
+                                     &self.fo,
+                                     &self.pm,
+                                     &self.pr,
+                                     pk_output_type,
+                                     <double*> z.data,
+                                     As_correction,
+                                     eft_ip,
+                                     z_size,
+                                     kvec_pp,
+                                     k_sizevec,
+                                     muvec_pp,
+                                     mu_sizevec,
+                                     out_pkmuz_pp,
+                                     NULL)
+
+        for index_z in range(z_size):
+            f_z = self.scale_independent_growth_factor_f(z[index_z])
+            for index_mu in range(mu_size):
+                f_mu2 = (f_z * mu[index_z, index_mu])**2
+                for index_k in range(k_size):
+                    k2 = k[index_z,index_mu,index_k]**2
+                    out_pkmuz[index_z,index_mu,index_k] += stochasticterms[index_z,0] * \
+                        (1. +stochasticterms[index_z,1] + \
+                        k2*(stochasticterms[index_z,2] + stochasticterms[index_z,3]*f_mu2 + stochasticterms[index_z,4]*f_mu2*f_mu2*k2))
+
+        free(mu_sizevec)
+        free(k_sizevec)
+        free(eft_ip)
+
+        return out_pkmuz
+
+###################
+
+    def eft_pkl_rsd_grid(self,   \
+                  np.ndarray[DTYPE_t, ndim=2] k,        \
+                  np.ndarray[DTYPE_t, ndim=1] z,        \
+                  np.ndarray[DTYPE_t, ndim=1] ap_parallel,      \
+                  np.ndarray[DTYPE_t, ndim=1] ap_perpendicular, \
+                  np.ndarray[DTYPE_t, ndim=2] biases,         \
+                  np.ndarray[DTYPE_t, ndim=2] counterterms,   \
+                  pkl_type,
+                  As_correction = 1.):
+        """
+        eft_pkl_rsd_grid(k, z, ap_parallel, ap_perpendicular, biases, counterterms, pkl_type)
+
+        Returns the oneloop power spectrum multipoles P_oneloop(k_fid, z)
+
+        Input parameters
+        ----------------
+        k       : numpy array of fiducial k values, indexed as k[index_z, index_k]
+        z       : numpy array of z values, indexed as z[index_z]
+        ap_parallel: numpy array of parallel AP-effect ratio at each z; defined as H^fid(z)/H^true(z)
+        ap_perpendicular: numpy array of perpendicular AP-effect ratio at each z; defined as D_A^true(z)/D_A^fid(z)
+        biases : numpy array of biases [b1,b2,bG2,btd]
+        counterterms : numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+        pkl_type: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
+
+        Returns:
+        --------
+        out_pklz : a numpy array of P(k,l/2,z) indexed as out_pklz[index_z, index_l, index_k]
+
+        """
+
+        # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
+
+        if not k.flags['C_CONTIGUOUS']:
+            k = np.ascontiguousarray(k)
+        if not z.flags['C_CONTIGUOUS']:
+            z = np.ascontiguousarray(z)
+        if not ap_parallel.flags['C_CONTIGUOUS']:
+            ap_parallel = np.ascontiguousarray(ap_parallel)
+        if not ap_perpendicular.flags['C_CONTIGUOUS']:
+            ap_perpendicular = np.ascontiguousarray(ap_perpendicular)
+
+        cdef int z_size = <int>z.shape[0]
+        cdef int k_size = <int>k.shape[1]
+
+        cdef int index_z
+        cdef np.intp_t[:] k_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef np.intp_t[:] out_pklz_pointer_arr = np.zeros(z_size, dtype=np.intp)
+        cdef double** kvec_pp = <double**>(<void*> &k_pointer_arr[0])
+        cdef double** out_pklz_pp = <double**>(<void*> &out_pklz_pointer_arr[0])
+
+        # allocate input/output array
+        cdef int* k_sizevec  = <int*>malloc(z_size * sizeof(int))
+        cdef np.ndarray[DTYPE_t, ndim=3] out_pklz = np.zeros((z_size, 3, k_size), dtype='float64', order='C')
+
+        cdef double[::1] z_view = z
+        cdef double[:, ::1] k_view = k
+        cdef double[:, :, ::1] out_pklz_view = out_pklz
+
+        # allocate input structure
+        cdef eft_input_parameters* eft_ip = <eft_input_parameters*>malloc(z_size * sizeof(eft_input_parameters))
+
+        # fill input type enum
+        cdef eft_pk_out_type pk_output_type
+
+        if pkl_type == 'Pdd_mm_rsd':
+            pk_output_type = Pdd_mm_rsd
+        elif pkl_type == 'Pdd_hh_rsd':
+            pk_output_type = Pdd_hh_rsd
+        else:
+            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkl_type)
+
+        # check input consistency
+        if (k.shape[0] != z_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}) for z and ({1:d}, {2:d}) for k.".format(z.shape[0], k.shape[0], k.shape[1]))
+        if (biases.shape[0] != z_size) or (counterterms.shape[0] != z_size):
+            raise CosmoSevereError("Array dimension mismatch, have ({0:d}, {1:d}) for biases and ({2:d}, {3:d}) for counterterms.".format(biases.shape[0], biases.shape[1], counterterms.shape[0], counterterms.shape[1]))
+
+
+        for index_z in range(z_size):
+            # fill input structures
+            eft_ip[index_z].b1 = biases[index_z, 0]
+            eft_ip[index_z].b2 = biases[index_z, 1]
+            eft_ip[index_z].bG2 = biases[index_z, 2]
+            eft_ip[index_z].btd = biases[index_z, 3]
+            eft_ip[index_z].c00 = counterterms[index_z, 0]
+            eft_ip[index_z].c10 = counterterms[index_z, 1]
+            eft_ip[index_z].c20 = counterterms[index_z, 2]
+            eft_ip[index_z].c22 = counterterms[index_z, 3]
+            eft_ip[index_z].c30 = counterterms[index_z, 4]
+            eft_ip[index_z].c32 = counterterms[index_z, 5]
+            eft_ip[index_z].c42 = counterterms[index_z, 6]
+            eft_ip[index_z].has_rsd = 1
+            # assign pointers
+            kvec_pp[index_z] = &k_view[index_z, 0]
+            k_sizevec[index_z] = k_size
+            out_pklz_pp[index_z] = &out_pklz_view[index_z, 0, 0]
+
+        eft_job_powerspectrum_multipoles(self.fo.peft,
+                                         self.fo.eft_size,
+                                         &self.ba,
+                                         &self.fo,
+                                         &self.pm,
+                                         &self.pr,
+                                         pk_output_type,
+                                         <double*> z.data,
+                                         As_correction,
+                                         eft_ip,
+                                         z_size,
+                                         kvec_pp,
+                                         k_sizevec,
+                                         <double*> ap_parallel.data,
+                                         <double*> ap_perpendicular.data,
+                                         out_pklz_pp)
+
+        free(k_sizevec)
+        free(eft_ip)
+
+        return out_pklz
+
+    def eft_pkmu_linear_rsd_grid(self,   \
+        np.ndarray[DTYPE_t, ndim=2] mu,  \
+        np.ndarray[DTYPE_t, ndim=3] k,   \
+        np.ndarray[DTYPE_t, ndim=1] z,   \
+        pkmu_type):
+        """
+        eft_pkmu_linear_rsd_grid(mu, k, z, pkmu_type)
+
+        Returns the IR resummed power spectrum P_linear(k,mu,z)
+        The flag 'pkmu_rsd_ir_resummed_lo' returns the leading order result
+            (Pk_nw + exp(-k^2 Sigma^2) Pk_w).
+        The flag 'pkmu_rsd_ir_resummed_nlo' returns the next-to-leading order result
+            (with Pk_w mutiplied by extra factor (1+k^2 Sigma^2) )
+
+        Input parameters
+        ----------------
+        mu      : numpy array of mu values, indexed as mu[index_z,index_mu]
+        k       : numpy array of k values, indexed as k[index_z,index_mu, index_k]
+        z       : numpy array of z values, indexed as z[index_z]
+        pkmu_type: input: one of 'pkmu_rsd_ir_resummed_lo', 'pkmu_rsd_ir_resummed_nlo'
+
+        Returns:
+        --------
+        out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z, index_mu, index_k]
+
+        """
+
+        cdef int index_z,index_k,index_mu,index_pk_type,index_eft;
+        cdef double zz, D_z, f_z;
+
+        # Allocate output array for the classy function
+        cdef int z_size = <int>z.shape[0]
+        cdef int mu_size = <int>mu.shape[1]
+        cdef int k_size = <int>k.shape[2]
+        cdef np.ndarray[DTYPE_t, ndim=3] out_pkmuz = np.zeros((z_size, mu_size, k_size), dtype='float64', order='C')
+        cdef double[:, :, ::1] out_pkmuz_view = out_pkmuz
+
+        # Allocate input and output arrays for the C function
+        cdef double* ln_kvec = <double*>malloc(mu_size * k_size * sizeof(double))
+        cdef double* muvec = <double*>malloc(mu_size * sizeof(double))
+        # cdef double* out_pkmu_p = <double*>malloc(mu_size * k_size * sizeof(double))
+        cdef void* peft = self.fo.peft
+
+        if pkmu_type == 'pkmu_rsd_ir_resummed_lo':
+            index_pk_type = pkmu_rsd_ir_resummed_lo
+        elif pkmu_type == 'pkmu_rsd_ir_resummed_nlo':
+            index_pk_type = pkmu_rsd_ir_resummed_nlo
+        else:
+            raise CosmoSevereError("%s was not recognized as an eft_pk_type" % pkmu_type)
+
+        # loop over z values (in decreasing order, although the order does not matter)
+        for index_z in reversed(range(z_size)):
+            zz = z[index_z]
+            D_z = self.scale_independent_growth_factor(zz)
+            f_z = self.scale_independent_growth_factor_f(zz)
+
+            # find the nearest eft structure
+            eft_nearest_structure_in_time(self.fo.peft,
+                                          self.fo.eft_size,
+                                          &self.ba,
+                                          &self.fo,
+                                          zz,
+                                          &index_eft,
+                                          peft,
+                                          self.fo.peft[0].error_message)
+
+            # create arrays kvec[...] and muvec[...] for this z
+            # k[index_k=0, index_mu=0], k[1,0], ..., k[(n-1),0], k[0,1], ...
+            for index_mu in range(mu_size):
+                muvec[index_mu] = mu[index_z,index_mu]
+                for index_k in range(k_size):
+                    ln_kvec[index_k+index_mu*k_size] = log( k[index_z,index_mu, index_k] )
+
+            eft_linear_spectrum_rsd(&self.ba,
+                                    &self.pm,
+                                    &self.fo,
+                                    peft,
+                                    linear,
+                                    ln_kvec,
+                                    k_size,
+                                    muvec,
+                                    mu_size,
+                                    cartesian_product,
+                                    zz,
+                                    f_z,
+                                    D_z,
+                                    index_pk_type,
+                                    &out_pkmuz_view[index_z, 0, 0])   # out_pkmu_p
+
+            # TODO: do this without copying data, just using pointers into out_pkmuz
+            # for index_mu in range(mu_size):
+            #     for index_k in range(k_size):
+            #         out_pkmuz[index_z, index_mu, index_k] = out_pkmu_p[index_k+index_mu*k_size]
 
         return out_pkmuz
 
@@ -3659,7 +3588,8 @@ make        nonlinear_scale_cb(z, z_size)
                   np.ndarray[DTYPE_t, ndim=1] z,   \
                   np.ndarray[DTYPE_t, ndim=2] biases,         \
                   np.ndarray[DTYPE_t, ndim=2] counterterms,   \
-                  pk_type):
+                  pk_type,
+                  As_correction = 1.):
         """
         eft_pk_real_grid(k, z, biases, counterterms, pk_type)
 
@@ -3736,6 +3666,43 @@ make        nonlinear_scale_cb(z, z_size)
                 eft_ip[index_z].cs2 = counterterms[index_z, 0]
                 eft_ip[index_z].R2  = counterterms[index_z, 1]
                 eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_real_no_IR_resummation':
+            pk_output_type = Pdd_mm_real_no_IR_resum
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].cs2 = counterterms[index_z, 0]
+                eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_22':
+            pk_output_type = Pdd_mm_22
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_13':
+            pk_output_type = Pdd_mm_13
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].has_rsd = 0
+
+        elif pk_type == 'Pdd_mm_22_no_IR_resummation':
+            pk_output_type = Pdd_mm_22_no_IR_resum
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].has_rsd = 0
+                
+        elif pk_type == 'Pdd_mm_13_no_IR_resummation':
+            pk_output_type = Pdd_mm_13_no_IR_resum
+
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].has_rsd = 0
+
         else:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_type)
 
@@ -3761,13 +3728,15 @@ make        nonlinear_scale_cb(z, z_size)
                                      &self.pr,
                                      pk_output_type,
                                      <double*> z.data,
+                                     As_correction,
                                      eft_ip,
                                      z_size,
                                      kvec_pp,
                                      k_sizevec,
                                      muvec_pp,
                                      mu_sizevec,
-                                     out_pkz_pp)
+                                     out_pkz_pp,
+                                     NULL)
 
         free(mu_sizevec)
         free(k_sizevec)

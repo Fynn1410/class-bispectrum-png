@@ -18,6 +18,15 @@ int eft_necessary_pk_types_loops(
                       int * list_pk_types_size
                       );
 
+int eft_set_sampling_points_all(
+                      struct eft * peft0,
+                      const int eft_size,
+                      const double * const kvec_Mpc,
+                      const double * const muvec,
+                      const int k_size,
+                      const int mu_size
+                      );
+
 int eft_set_sampling_points(
                       struct eft * peft,
                       const double * const kvec_Mpc,
@@ -76,25 +85,26 @@ int eft_build_nonlinear_power_spectrum_wedges(
                       const double f_z,
                       const double * muvec,
                       int mu_size,
+                      const double As_ratio,
                       struct eft_input_parameters eft_ip,
                       double * pkmu
                       );
 
-int eft_build_nonlinear_power_spectrum_wedges_multiple(
-                      struct eft * peft,
-                      struct background * pba,
-                      struct primordial * ppm,
-                      struct fourier * pfo,
-                      const short index_pk_out_type,
-                      const double * const z,
-                      const double * const D_z,
-                      const double * const f_z,
-                      const int z_size,
-                      const double * muvec,
-                      int mu_size,
-                      struct eft_input_parameters eft_ip,
-                      double ** pkmu
-                      );
+// int eft_build_nonlinear_power_spectrum_wedges_multiple(
+//                       struct eft * peft,
+//                       struct background * pba,
+//                       struct primordial * ppm,
+//                       struct fourier * pfo,
+//                       const short index_pk_out_type,
+//                       const double * const z,
+//                       const double * const D_z,
+//                       const double * const f_z,
+//                       const int z_size,
+//                       const double * muvec,
+//                       int mu_size,
+//                       struct eft_input_parameters eft_ip,
+//                       double ** pkmu
+//                       );
 
 /** TODO: add free spectra_contributions */
 

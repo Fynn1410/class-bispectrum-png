@@ -1,11 +1,135 @@
 /**
  * module with tools for manipulating arrays
  * Julien Lesgourgues, 18.04.2010
+ * Christian Radermacher, 2023/24
  */
 
 #include "arrays.h"
 # include "parallel.h"
 
+
+/**
+ * @brief Internal function for searching supremum and infimum indices
+ *        for value in array using bisection
+ *
+ * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
+ * @param array_stride  Input: stride in array
+ * @param array_size    Input: size of array
+ * @param value         Input: value to search for
+ * @param inf_index     In/Output: infimum index (previous must be given)
+ * @param sup_index     Output: supremum index
+ *
+ * @return the error status
+ */
+int array_search_bisect_internal(
+                const double * const __restrict__ array0,
+                int array_stride,
+                const int array_size,
+                const double value,
+                int * const __restrict__ inf_index,
+                int * const __restrict__ sup_index,
+                ErrorMsg errmsg) {
+
+  int inf, sup, mid, reversed = _FALSE_;
+  const double * array = array0;
+
+  inf = 0;
+  sup = array_size-1;
+
+  if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
+    /** reverse the array indexing */
+    array_stride *= -1;
+    array += array_size-1;
+    reversed = _TRUE_;
+  }
+
+  class_test((value < array[0*array_stride]) || (value > array[(array_size-1)*array_stride]), errmsg, \
+            "value=%e is outside of the range of array values (y_min=%e, y_max=%e)",                  \
+            value, array[0*array_stride], array[(array_size-1)*array_stride]);
+
+  while (sup-inf > 1) {
+    mid = (int)(0.5*(inf+sup));
+    if (value < array[mid]) {sup=mid;}
+    else {inf=mid;}
+  }
+
+  if (reversed) { /** - descending values */
+    *inf_index = (array_size-1) - sup;
+    *sup_index = (array_size-1) - inf;
+  }
+  else {          /** - ascending values */
+    *inf_index = inf;
+    *sup_index = sup;
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Internal function for searching supremum and infimum indices
+ *        for value in array in the neighborhood of a previous infimum
+ *
+ * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
+ * @param array_stride  Input: stride in array
+ * @param array_size    Input: size of array
+ * @param value         Input: value to search for
+ * @param inf_index     In/Output: infimum index (previous must be given)
+ * @param sup_index     Output: supremum index
+ *
+ * @return the error status
+ */
+int array_search_closeby_internal(
+                const double * const __restrict__ array0,
+                int array_stride,
+                const int array_size,
+                const double value,
+                int * const __restrict__ inf_index,
+                int * const __restrict__ sup_index,
+                ErrorMsg errmsg) {
+
+  int inf, sup, reversed;
+  const double * array = array0;
+
+  if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
+    /** reverse the array indexing */
+    array_stride *= -1;
+    array += array_size-1;
+    inf = (array_size-1) - (*inf_index + 1);
+    reversed = _TRUE_;
+  }
+  else {                                                             /** - ascending values */
+    inf = *inf_index;
+    reversed = _FALSE_;
+  }
+
+  /** - search for spline interval containing x close to last inf */
+  // if (inf<0 || inf>(x_size-1)) return _FAILURE_;  handled by caller
+  while (value < array[inf*array_stride]) {
+    inf--;
+    class_test((inf < 0), errmsg, \
+              "value=%e is outside of the range of array values (y_min=%e, y_max=%e)", \
+              value, array[0*array_stride], array[(array_size-1)*array_stride]);
+  }
+  sup = inf + 1;
+  while (value > array[sup*array_stride]) {
+    sup++;
+    class_test((sup > (array_size-1)), errmsg, \
+              "value=%e is outside of the range of array values (y_min=%e, y_max=%e)", \
+              value, array[0*array_stride], array[(array_size-1)*array_stride]);
+  }
+  inf = sup - 1;
+
+  if (reversed) { /** - descending values */
+    *inf_index = (array_size-1) - sup;
+    *sup_index = (array_size-1) - inf;
+  }
+  else {          /** - ascending values */
+    *inf_index = inf;
+    *sup_index = sup;
+  }
+
+  return _SUCCESS_;
+}
 
 /**
  * Called by thermodynamics_init(); perturbations_sources().
@@ -458,51 +582,6 @@ static inline double dcompsum(const double * const summands, const int size, con
   return s + c;
 }
 #endif
-
-int array_integrate_internal(
-                const double * const x0,
-                const int x_size,
-                const int x_stride,
-                const double * const y0,
-                const int y_stride,
-                const double * const ddy0,
-                const int ddy_stride,
-                double * result,
-                const double condition_number_threshold,
-                double * condition_number) {
-
-  int index_x;
-  double h, sy, ty, sM, tM, sum, sum_abs;
-  double summands[x_size-1];
-
-  /** - compute the individual summands with compensation */
-  for (index_x = 0; index_x < x_size-1; index_x++) {
-    h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-    sy = d2sum(y0[(index_x+1)*y_stride], y0[index_x*y_stride], &ty);
-    sM = d2sum(ddy0[(index_x+1)*ddy_stride], ddy0[index_x*ddy_stride], &tM);
-    summands[index_x] = h/2. * ((sy - h*h/12. * sM) + (ty - h*h/12. * tM));
-  }
-
-  /** - sum them up and compute the condition number */
-  sum = 0.; sum_abs = 0.;
-  for (index_x = 0; index_x < x_size-1; index_x++) {
-    sum += summands[index_x];
-    #ifndef __FAST_MATH__
-    sum_abs += fabs(summands[index_x]);
-    #endif
-  }
-  *condition_number = sum_abs / fabs(sum);
-
-  /** - if condition number is higher than the threshold, recompute using compensated summation */
-  if (*condition_number > condition_number_threshold) {
-    sum = dcompsum(summands, x_size-1, 1);
-  }
-
-  *result = sum;
-
-  return _SUCCESS_;
-}
-
 
 /**
  * @brief Perform internal splining for the given input arrays (can be made identical) which are indexed as array[i*array_stride].
@@ -1360,6 +1439,324 @@ int array_logspline_table_one_column(
   return _SUCCESS_;
 }
 
+double dcompsumv(const double * const summands, const int size, const int num_accumulators) {
+  /** - TODO */
+  return 0.;
+}
+
+int array_integrate_internal(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                double * result,
+                const double condition_number_threshold,
+                double * condition_number) {
+
+  int index_x;
+  double h, sy, ty, sM, tM, sum, sum_abs;
+  double summands[x_size-1];
+
+  /** - compute the individual summands with compensation */
+  for (index_x = 0; index_x < x_size-1; index_x++) {
+    h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+    sy = d2sum(y0[(index_x+1)*y_stride], y0[index_x*y_stride], &ty);
+    sM = d2sum(ddy0[(index_x+1)*ddy_stride], ddy0[index_x*ddy_stride], &tM);
+    summands[index_x] = h/2. * ((sy - h*h/12. * sM) + (ty - h*h/12. * tM));
+  }
+
+  /** - sum them up and compute the condition number */
+  sum = 0.; sum_abs = 0.;
+  for (index_x = 0; index_x < x_size-1; index_x++) {
+    sum += summands[index_x];
+    #ifndef __FAST_MATH__
+    sum_abs += fabs(summands[index_x]);
+    #endif
+  }
+  *condition_number = sum_abs / fabs(sum);
+
+  /** - if condition number is higher than the threshold, recompute using compensated summation */
+  if (*condition_number > condition_number_threshold) {
+    sum = dcompsum(summands, x_size-1, 1);
+  }
+
+  *result = sum;
+
+  return _SUCCESS_;
+}
+
+int array_integrate_internal_partial_range(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                const double a,
+                const double b,
+                const int index_a,
+                const int index_b,
+                double * result) {
+
+  int index_x;
+  double h, b1, b2, sy, sM, dy, dM, sum;
+
+  index_x = index_a;
+  h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+  b1 = (a - x0[index_x*x_stride])/h;
+  sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+  dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+  sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+  dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+
+  sum = -h/2. * ( ( b1 * sy - b1*(b1 - 1.) * dy )   \
+                  -h*h/12. * ( b1*b1*(3. - 2.*b1) * sM + b1*b1*(b1*(b1 - 2.) + 1.) * dM ) );
+
+  if (index_b > index_a) {
+    sum += h/2. * ( sy - h*h/12. * sM );
+
+    for (index_x = index_a+1; index_x < index_b; index_x++) {
+      h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+      sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+      sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+      sum += h/2. * ( sy - h*h/12. * sM );
+    }
+
+    index_x = index_b;
+    h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+    b2 = (b - x0[index_x*x_stride])/h;
+    sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+    dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+    sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+    dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+  }
+
+  sum += h/2. * ( ( b2 * sy - b2*(b2 - 1.) * dy )   \
+                  -h*h/12. * ( b2*b2*(3. - 2.*b2) * sM + b2*b2*(b2*(b2 - 2.) + 1.) * dM ) );
+
+
+  *result = sum;
+
+  return _SUCCESS_;
+}
+
+int array_square_integrate_internal(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                double * result) {
+
+  int index_x;
+  double h, sy, sM, dM;
+  register double sum;
+
+  sum = 0.;
+  for (index_x = 0; index_x < x_size-1; index_x++) {
+    h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+    sy = y0[(index_x+1)*y_stride] + y0[index_x*y_stride];
+    sM = ddy0[(index_x+1)*ddy_stride] + ddy0[index_x*ddy_stride];
+
+    sum += h/3. * (sy*sy - y0[index_x*y_stride]*y0[(index_x+1)*y_stride]                                                                                \
+                  -2*h*h/15. * (sM*sy - 0.125*(ddy0[index_x*ddy_stride]*y0[(index_x+1)*y_stride] + ddy0[(index_x+1)*ddy_stride]*y0[index_x*y_stride]))  \
+                  +2*h*h*h*h/315. * (sM*sM - 0.0625*ddy0[index_x*ddy_stride]*ddy0[(index_x+1)*ddy_stride]) );
+  }
+  *result = sum;
+
+  return _SUCCESS_;
+}
+
+#define _SPL_SQUARE_EXP_SERIES_THRESHOLD_ 0.001
+int array_square_integrate_exponential_internal(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                const double bias,
+                const int derivative_order,
+                double * result,
+                int num_threads) {
+
+  int index_x;
+  double h, sy, dy, sM, dM, sx, bias_h;
+  register double sum;
+
+  #pragma omp parallel shared(x0, x_size, x_stride, y0, y_stride, ddy0, ddy_stride, bias, derivative_order, result, sum),   \
+                       private(index_x, h, sy, dy, sM, dM, sx, bias_h), default(none),                                    \
+                       if((num_threads > 1)), num_threads(num_threads)
+  {
+
+  sum = 0.;
+
+  switch (derivative_order)
+  {
+  case 0:
+    /** - spline function itself */
+    if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
+      #pragma omp for schedule(static), reduction(+:sum)
+      for (index_x = 0; index_x < x_size-1; index_x++) {
+        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+        sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+        dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+
+        sum += h*((2520*dy*dy - 84*dM*dy*h*h + h*h*h*h*(dM*dM + 63*sM*sM) - 1260*h*h*sM*sy + 7560*sy*sy)/30240.    \
+                  + bias*(2520*dy*dy*sx + h*h*h*h*(-6*dM*sM*h + dM*dM*sx + 63*sM*sM*sx)    \
+                          + 84*dy*h*(3*h*h*sM - dM*h*sx - 60*sy) + 84*h*h*(dM*h - 15*sM*sx)*sy + 7560*sx*sy*sy)/30240.      \
+                  + bias*bias*(1512*dy*dy*(3*h*h + 5*sx*sx) + h*h*h*h*(-36*dM*sM*h*sx + dM*dM*(h*h + 3*sx*sx) + 27*sM*sM*(h*h + 7*sx*sx))     \
+                               - 252*h*h*(3*h*h*sM - 2*dM*h*sx + 15*sM*sx*sx)*sy + 7560*(h*h + 3*sx*sx)*sy*sy - 36*dy*h*(3*dM*h*h*h - 42*h*h*sM*sx + 7*dM*h*sx*sx + 840*sx*sy))/181440.);
+      }
+    }
+    else {
+      #pragma omp for schedule(static), reduction(+:sum)
+      for (index_x = 0; index_x < x_size-1; index_x++) {
+        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+        sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+        dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+        bias_h = bias * h;
+
+        sum += exp(bias * sx) / (288.*pow(bias, 5)*bias_h*bias_h)   \
+              * ( -3*bias_h*(3*dM*dM*(10. + bias_h*bias_h) + 2*dM*sM*bias_h*(15. + bias_h*bias_h) + 9*bias_h*bias_h*sM*sM   \
+                              + 48*bias*bias*bias*bias*dy*(dy + bias_h*sy) + 12*bias*bias*bias_h*sM*(3*dy + bias_h*sy)      \
+                              + 4*bias*bias*dM*(dy*(12. + bias_h*bias_h) + 3*bias_h*sy)) * cosh(bias_h)
+                + (dM*dM*(90. + 39*bias_h*bias_h + bias_h*bias_h*bias_h*bias_h)       \
+                    + 6*dM*(3*bias_h*(5. + 2*bias_h*bias_h)*sM + 2*bias*bias*(dy*(12. + 5*bias_h*bias_h) + bias_h*(3. + bias_h*bias_h)*sy))   \
+                    + 9*(bias_h*bias_h*(3. + bias_h*bias_h)*sM*sM + 4*bias*bias*bias_h*sM*(dy*(3. + bias_h*bias_h) + bias_h*sy) + 8*bias*bias*bias*bias*(dy*dy*(2. + bias_h*bias_h) + 2*dy*sy*bias_h + bias_h*bias_h*sy*sy))) * sinh(bias_h));
+      }
+    }
+    break;
+
+  case 1:
+    /** - first derivative */
+    if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
+      #pragma omp for schedule(static), reduction(+:sum)
+      for (index_x = 0; index_x < x_size-1; index_x++) {
+        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+        dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+
+        sum += dy*dy/h + (h*h*h*h*h*(dM*dM + 15*sM*sM))/720.      \
+              + bias*(-dy*h*h*h*sM/6. + dy*dy*sx/h + h*h*h*h*h*(-2*dM*h*sM + sM*dM*sx + 15*sM*sM*sx))/720.    \
+              + bias*bias*(dy*h*h*h*(dM*h - 15*sM*sx))/90. + (dy*dy*(h*h + 3*sx*sx)) / (6.*h)                 \
+                          + (h*h*h*h*h*(-168*dM*h*sM*sx + 63*sM*sM*(3*h*h + 5*sx*sx) + dM*dM*(11*h*h + 21*sx*sx)))/30240.;
+      }
+    }
+    else {
+      #pragma omp for schedule(static), reduction(+:sum)
+      for (index_x = 0; index_x < x_size-1; index_x++) {
+        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+        dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+        bias_h = bias * h;
+
+        sum += exp(bias * sx) / (144.*pow(bias, 5)*bias_h*bias_h)   \
+              * (-6*bias_h*bias_h*(12*bias*bias*bias*dy*(dM + bias_h*sM) + bias_h*(dM*dM*(9. + bias_h*bias_h)     \
+                                    + dM*sM*bias_h*(9. + bias_h*bias_h) + 3*bias_h*bias_h*sM*sM)) * cosh(bias_h)
+                + (144*bias*bias*bias*bias*bias*bias*dy*dy + 24*bias*bias*bias*dy*bias_h*(dM*(3. + bias_h*bias_h)     \
+                    + 3*bias_h*sM) + bias_h*bias_h*(dM*dM*(54. + 24*bias_h*bias_h + bias_h*bias_h*bias_h*bias_h)      \
+                    + 6*dM*sM*bias_h*(9. + 4*bias_h*bias_h) + 9*bias_h*bias_h*(2. + bias_h*bias_h)*sM*sM)) * sinh(bias_h));
+      }
+    }
+    break;
+
+  case 2:
+    /** - second derivative */
+    if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
+      #pragma omp for schedule(static), reduction(+:sum)
+      for (index_x = 0; index_x < x_size-1; index_x++) {
+        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+        // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+
+        sum += h*((dM*dM + 3*sM*sM)/12.       \
+                + bias*(-2*dM*h*sM + dM*dM*sx + 3*sM*sM*sx)/12.       \
+                + bias*bias*(-20*dM*h*sM*sx + 5*sM*sM*(h*h + 3*sx*sx) + dM*dM*(3*h*h + 5*sx*sx))/120.);
+      }
+    }
+    else {
+      #pragma omp for schedule(static), reduction(+:sum)
+      for (index_x = 0; index_x < x_size-1; index_x++) {
+        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+        // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+        bias_h = bias * h;
+
+        sum += exp(bias * sx) / (4.*bias*bias_h*bias_h)     \
+              * (-2*dM*bias_h*(dM + bias_h*sM) * cosh(bias_h)     \
+                  + (dM*dM*(2. + bias_h*bias_h) + 2*dM*sM*bias_h + bias_h*bias_h*sM*sM) * sinh(bias_h));
+      }
+    }
+    break;
+
+  case 3:
+    /** - third derivative */
+    if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
+      #pragma omp for schedule(static), reduction(+:sum)
+      for (index_x = 0; index_x < x_size-1; index_x++) {
+        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+        // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+        // sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+
+        sum += 1./h*(dM*dM + bias*dM*dM*sx + bias*bias*dM*dM*(h*h + 3*sx*sx)/6.);
+      }
+    }
+    else {
+      #pragma omp for schedule(static), reduction(+:sum)
+      for (index_x = 0; index_x < x_size-1; index_x++) {
+        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+        // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+        // sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+        bias_h = bias * h;
+
+        sum += bias*dM*dM * exp(bias * sx) * sinh(bias_h) / (bias_h*bias_h);
+      }
+    }
+    break;
+
+  default:
+    /** - higher derivative vanish */
+    break;
+  }
+
+  } /** - end of parallel region */
+
+  *result = sum;
+
+  return _SUCCESS_;
+}
 
 /**
  * @brief Computes the spline integral.
@@ -1438,6 +1835,146 @@ int array_integrate_all_spline_table_lines(
                              _SPL_INTEGRATION_DEF_COND_THRESHOLD_,
                              cond_num + index_y);
   }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the spline integral in a partial range.
+ *        dI = dx S(x) on [a, b]
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param a           Input: lower limit of integration region
+ * @param b           Input: upper limit of integration region
+ * @param result      Output: integration result I with elements[index_y]
+ * @param errmsg
+ *
+ * @return the error status
+ */
+int array_integrate_all_spline_partial_range_table_lines(
+		      double * x,
+			    int x_size,
+			    double * y_array,
+			    int y_size,
+			    double * ddy_array,
+          double a,
+          double b,
+			    double * result,
+          ErrorMsg errmsg) {
+
+  int index_y, index_a, index_b, sup;
+  ErrorMsg err_search;
+
+  class_call(array_search_bisect_internal(x,
+                                          1,
+                                          x_size,
+                                          a,
+                                          &index_a,
+                                          &sup,
+                                          err_search),
+              err_search, errmsg);
+
+  class_call(array_search_bisect_internal(x,
+                                          1,
+                                          x_size,
+                                          b,
+                                          &index_b,
+                                          &sup,
+                                          err_search),
+              err_search, errmsg);
+
+  for (index_y = 0; index_y < y_size; index_y++) {
+    array_integrate_internal_partial_range(x,
+                                           x_size,
+                                           1,
+                                           y_array + index_y,
+                                           y_size,
+                                           ddy_array + index_y,
+                                           y_size,
+                                           a,
+                                           b,
+                                           index_a,
+                                           index_b,
+                                           result + index_y);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Computes the spline integral in a partial range.
+ *        dI = dx S(x) on [a, b]
+ * @param x           Input: contains x-values of the integration range
+ * @param x_size      Input: size of x-array to be used
+ * @param y_array     Input: contains y-values of the integrand with elements
+ *                            y_array[index_x*y_size + index_y]
+ * @param y_size      Input: number of columns in y-array
+ * @param ddy_array   Input: contains y''-values of the integrand obtained from splining with elements
+ *                            ddy_array[index_x*y_size + index_y]
+ * @param a           Input: lower limit of integration region
+ * @param b           Input: upper limit of integration region
+ * @param last_index  In/Output: close to infimum index of a in x, overwritten with infimum index of b in x
+ * @param result      Output: integration result I with elements[index_y]
+ * @param errmsg
+ *
+ * @return the error status
+ */
+int array_integrate_all_spline_partial_range_table_lines_closeby(
+		      double * x,
+			    int x_size,
+			    double * y_array,
+			    int y_size,
+			    double * ddy_array,
+          double a,
+          double b,
+          int * last_index,
+			    double * result,
+          ErrorMsg errmsg) {
+
+  int index_y, index_a, index_b, sup;
+  ErrorMsg err_search;
+
+  index_a = *last_index;
+  class_call(array_search_closeby_internal(x,
+                                          1,
+                                          x_size,
+                                          a,
+                                          &index_a,
+                                          &sup,
+                                          err_search),
+              err_search, errmsg);
+
+  index_b = sup;
+  class_call(array_search_closeby_internal(x,
+                                          1,
+                                          x_size,
+                                          b,
+                                          &index_b,
+                                          &sup,
+                                          err_search),
+              err_search, errmsg);
+
+  for (index_y = 0; index_y < y_size; index_y++) {
+    array_integrate_internal_partial_range(x,
+                                           x_size,
+                                           1,
+                                           y_array + index_y,
+                                           y_size,
+                                           ddy_array + index_y,
+                                           y_size,
+                                           a,
+                                           b,
+                                           index_a,
+                                           index_b,
+                                           result + index_y);
+  }
+
+  *last_index = index_b;
 
   return _SUCCESS_;
 }
@@ -1742,129 +2279,6 @@ int array_integrate_ratio(
     *(array+i*n_columns+index_int_y1_over_y2_dx)=sum;
   }
 
-
-  return _SUCCESS_;
-}
-
-/**
- * @brief Internal function for searching supremum and infimum indices
- *        for value in array using bisection
- *
- * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
- * @param array_stride  Input: stride in array
- * @param array_size    Input: size of array
- * @param value         Input: value to search for
- * @param inf_index     In/Output: infimum index (previous must be given)
- * @param sup_index     Output: supremum index
- *
- * @return the error status
- */
-int array_search_bisect_internal(
-                const double * const __restrict__ array0,
-                int array_stride,
-                const int array_size,
-                const double value,
-                int * const __restrict__ inf_index,
-                int * const __restrict__ sup_index,
-                ErrorMsg errmsg) {
-
-  int inf, sup, mid, reversed = _FALSE_;
-  const double * array = array0;
-
-  inf = 0;
-  sup = array_size-1;
-
-  if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
-    /** reverse the array indexing */
-    array_stride *= -1;
-    array += array_size-1;
-    reversed = _TRUE_;
-  }
-
-  class_test((value < array[0*array_stride]) || (value > array[(array_size-1)*array_stride]), errmsg, \
-            "value=%e is outside of the range of array values (y_min=%e, y_max=%e)",                  \
-            value, array[0*array_stride], array[(array_size-1)*array_stride]);
-
-  while (sup-inf > 1) {
-    mid = (int)(0.5*(inf+sup));
-    if (value < array[mid]) {sup=mid;}
-    else {inf=mid;}
-  }
-
-  if (reversed) { /** - descending values */
-    *inf_index = (array_size-1) - sup;
-    *sup_index = (array_size-1) - inf;
-  }
-  else {          /** - ascending values */
-    *inf_index = inf;
-    *sup_index = sup;
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * @brief Internal function for searching supremum and infimum indices
- *        for value in array in the neighborhood of a previous infimum
- *
- * @param array         Input: pointer to sorted array indexed as array[i*array_stride] with i < array_size
- * @param array_stride  Input: stride in array
- * @param array_size    Input: size of array
- * @param value         Input: value to search for
- * @param inf_index     In/Output: infimum index (previous must be given)
- * @param sup_index     Output: supremum index
- *
- * @return the error status
- */
-int array_search_closeby_internal(
-                const double * const __restrict__ array0,
-                int array_stride,
-                const int array_size,
-                const double value,
-                int * const __restrict__ inf_index,
-                int * const __restrict__ sup_index,
-                ErrorMsg errmsg) {
-
-  int inf, sup, reversed;
-  const double * array = array0;
-
-  if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
-    /** reverse the array indexing */
-    array_stride *= -1;
-    array += array_size-1;
-    inf = (array_size-1) - (*inf_index + 1);
-    reversed = _TRUE_;
-  }
-  else {                                                             /** - ascending values */
-    inf = *inf_index;
-    reversed = _FALSE_;
-  }
-
-  /** - search for spline interval containing x close to last inf */
-  // if (inf<0 || inf>(x_size-1)) return _FAILURE_;  handled by caller
-  while (value < array[inf*array_stride]) {
-    inf--;
-    class_test((inf < 0), errmsg, \
-              "value=%e is outside of the range of array values (y_min=%e, y_max=%e)", \
-              value, array[0*array_stride], array[(array_size-1)*array_stride]);
-  }
-  sup = inf + 1;
-  while (value > array[sup*array_stride]) {
-    sup++;
-    class_test((sup > (array_size-1)), errmsg, \
-              "value=%e is outside of the range of array values (y_min=%e, y_max=%e)", \
-              value, array[0*array_stride], array[(array_size-1)*array_stride]);
-  }
-  inf = sup - 1;
-
-  if (reversed) { /** - descending values */
-    *inf_index = (array_size-1) - sup;
-    *sup_index = (array_size-1) - inf;
-  }
-  else {          /** - ascending values */
-    *inf_index = inf;
-    *sup_index = sup;
-  }
 
   return _SUCCESS_;
 }
@@ -3595,8 +4009,7 @@ int array_convert_spline_table_columns_to_local_power_basis(
 		          const int y_size,
 		          const double * const ddy_array, /* array of size x_size*y_size */
               double * coefficients,  /* array of coefficients of size y_size*(x_size-1)*4, C-order */
-              double * breakpoints,   /* array of breakpoints of size y_size*x_size */
-			        ErrorMsg errmsg) {
+              double * breakpoints) { /* array of breakpoints of size y_size*x_size */
 
   int index_x, index_y;
   double h;
@@ -3611,7 +4024,7 @@ int array_convert_spline_table_columns_to_local_power_basis(
       coefficients[1*(x_size-1)*y_size + index_x*y_size + index_y] = ddy_array[index_y*x_size + index_x]/2.;
       coefficients[2*(x_size-1)*y_size + index_x*y_size + index_y] = (y_array[index_y*x_size + (index_x+1)] - y_array[index_y*x_size + index_x])/h     \
                                                                     - h/6.*(2.*ddy_array[index_y*x_size + index_x] + ddy_array[index_y*x_size + (index_x+1)]);
-      coefficients[3*(x_size-1)*y_size + index_x*y_size + index_y] = y_array[index_y*x_size + (index_x+1)];
+      coefficients[3*(x_size-1)*y_size + index_x*y_size + index_y] = y_array[index_y*x_size + index_x];
     }
   }
 

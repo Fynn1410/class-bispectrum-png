@@ -28,6 +28,7 @@ struct ext_storage
   short ** spectra_contributions_dimension;  /**< pointers to dimensions of spectra contributions; indexed as spectra_contributions_dimension[index_eft] */
 
   double ** period; /**< array of logarithmic period of tracer types; indexed as period[index_eft][index_tracer] */
+  int * fourier_coeff_size; /**< array of the number of Fourier coefficients for which the matrices were computed; indexed as fourier_coeff_size[index_eft] */
   int loop_matrices_stored; // = _FALSE_;
   int * eft_index_num;  /**< array of index_num for each eft-structure */
   int eft_size; // = 0;
