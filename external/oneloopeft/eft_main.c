@@ -546,6 +546,7 @@ int eft_linear_spectrum_rsd(
                   const int index_pk_type,
                   double * out_pk) {
 
+  int vec_size = 0;
   const double D2 = pow(D_z/peft->D_z0, 2.);
   struct indexed_rsd_arg * vec;
 
@@ -1644,15 +1645,15 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
         class_test(ddout_pkmu[index_z], peft->error_message, "The spline moment array must be allocated on the top-level, i.e. ddout_pkmu[index_z] must be a valid address.")
         /** - overwrite the k-grid */
         k_sizevec[index_z] = peft->k_size;
-        class_realloc(kvec[index_z], kvec[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
+        class_realloc(kvec[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
         for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
           for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
             kvec[index_z][index_mu*k_sizevec[index_z] + index_k] = exp(peft->ln_k[index_k]);
           }
         }
         /** - re-allocate the output arrays */
-        class_realloc(out_pkmu[index_z], out_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
-        class_realloc(ddout_pkmu[index_z], ddout_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
+        class_realloc(out_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
+        class_realloc(ddout_pkmu[index_z], k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double), peft->error_message);
 
         /** - copy the spline to the output */
         class_protect_memcpy(out_pkmu[index_z], pkmu_nl, k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double));
