@@ -689,11 +689,12 @@ int eft_fourier_transform_linear_spectra(
     /** ----------------- Load requested linear spectra w/o mu dependence ---------------------- */
 
     /** - for the Fourier components */
-    class_setup_parallel();
+    //class_setup_parallel();
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
-      class_run_parallel(=,
+      //class_run_parallel(=,
       int index_tracer_p;
       int index_pk_type_p;
+      //index_pk_type_p = index_pk_types[index_list];
       for (index_tracer_p = 0; index_tracer_p < eft_tracer_num; index_tracer_p++) {
         index_pk_type_p = index_pk_types[index_list];
         /** - allocate spectra and fourier coefficient arrays */
@@ -719,15 +720,15 @@ int eft_fourier_transform_linear_spectra(
                             peft->error_message,
                             peft->error_message);
       }
-      return _SUCCESS_;
-      );
+      //return _SUCCESS_;
+      //);
     }
     //class_finish_parallel();
 
     /** - for the moments of the lin. spectra */
     //class_setup_parallel();
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
-      class_run_parallel(=,
+      //class_run_parallel(=,
       int index_pk_type_p;
       index_pk_type_p = index_pk_types[index_list];
       /** - allocate spectra for moments */
@@ -747,13 +748,13 @@ int eft_fourier_transform_linear_spectra(
                                                     peft->pk_l_moments[index_pk_type_p]),
                           peft->error_message,
                           peft->error_message);
-      return _SUCCESS_;
-      );
+      //return _SUCCESS_;
+      //);
     }
-    class_finish_parallel();
+    //class_finish_parallel();
 
-    // JL TODO: when executing this as the only parallel loop in the function, it works
-    //          But when doing it after the previous two parallel loops, it produces a seg fault
+    // JL TODO: When executing this as the only parallel loop in the function, it works.
+    //          But when doing it after the previous two parallel loops, it produces a seg fault.
     //class_setup_parallel();
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
       //class_run_parallel(=,
@@ -788,8 +789,8 @@ int eft_fourier_transform_linear_spectra(
     }
     //class_finish_parallel();
 
-    // JL TODO: when executing this as the only parallel loop in the function, it works
-    //          But when doing it after the previous two parallel loops, it produces a seg fault
+    // JL TODO: When executing this as the only parallel loop in the function, it works.
+    //          But when doing it after the previous parallel loops, it produces a seg fault.
     //class_setup_parallel();
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
       //class_run_parallel(=,
@@ -905,9 +906,9 @@ int eft_fourier_transform_linear_spectra(
                               peft->error_message);
           peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + 0] /= peft->hp->period[index_tracer];
 
-          class_setup_parallel();
+          //class_setup_parallel();
           for (it = 1; it < num_independent_coefficients; it++) {
-            class_run_parallel(=,
+            //class_run_parallel(=,
             array_integrate_all_spline_table_lines_fourier_compensated(
                               peft->ln_k_fourier[index_tracer],
                               peft->hp->k_size_fourier,
@@ -921,21 +922,21 @@ int eft_fourier_transform_linear_spectra(
                               peft->error_message);
 
             peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + it] /= peft->hp->period[index_tracer];
-            return _SUCCESS_;
-            );
+            //return _SUCCESS_;
+            //);
           }
           //class_finish_parallel();
 
           /** - negative frequency components in standard order are fully dependent on the others */
           //class_setup_parallel();
           for (it = -(num_independent_coefficients-1); it < 0; it++) {
-            class_run_parallel(=,
+            //class_run_parallel(=,
             peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size + peft->hp->fourier_coeff_size + it]     \
                 = conj( peft->fourier_coeff[index_pk_type*eft_tracer_num + index_tracer][index_mu*peft->hp->fourier_coeff_size - it] );
-            return _SUCCESS_;
-            );
+            //return _SUCCESS_;
+            //);
           }
-          class_finish_parallel();
+          //class_finish_parallel();
 
           /** - debug information */
           if (peft->hp->eft_verbose > 2) {
@@ -944,9 +945,12 @@ int eft_fourier_transform_linear_spectra(
             M0 = peft->ddpk_l_biased[index_pk_type*eft_tracer_num + index_tracer] + index_mu*peft->hp->k_size_fourier;
             /** - compute the Lipschitz constant L of the second derivative: since the (biased) spline is a C^2 Lipschitz-continuous function,
              *    the magnitude of its Fourier coefficients is bounded by pi/2 * L / frequency^3 */
-            // JL TODO: parallelise this loop, keeping in mind that
-            //each thread should have the possibility to change the
-            //value of spline_lipschitz_const
+
+            // JL TODO: talk to CR. Parallelising this is not clean
+            // because different threads could try to modify
+            // spline_lipschitz_const simultaneously. Either give up
+            // parallelisation or code differently.
+
             // class_setup_parallel();
             for (it = 0; it <= peft->hp->k_size_fourier; it++) {
               //class_run_parallel(=,
@@ -961,12 +965,17 @@ int eft_fourier_transform_linear_spectra(
               //return _SUCCESS_;
               //);
             }
+            //class_finish_parallel();
+
             /** - compute the l2 norm of its Fourier coefficients: Because of Parseval's theorem,
              *    these norms must be equal when taking into account infinite Fourier components.
              *    By truncating the series we generate a loss whose norm we can evaluate. */
-            // JL TODO: parallelise this loop, keeping in mind that
-            //each thread should have the possibility to change the
-            //value of series_l2_norm
+
+            // JL TODO: talk to CR. Parallelising this is not clean
+            // because different threads could try to modify
+            // series_l2_norm simultaneously. Either give up
+            // parallelisation or code differently.
+
             // class_setup_parallel();
             for (it = 0; it < peft->hp->fourier_coeff_size; it++) {
               //class_run_parallel(=,
@@ -974,6 +983,8 @@ int eft_fourier_transform_linear_spectra(
               //return _SUCCESS_;
               //);
             }
+            //class_finish_parallel();
+
             /** - compute the L2 norm of the biased power spectra */
             class_call(array_square_integrate_all_spline_table_lines(
                                                                       peft->ln_k_fourier[index_tracer],
@@ -1030,7 +1041,8 @@ int eft_fourier_transform_linear_spectra(
         break;
       }
 
-    // JL TODO: parallelise this run currently. Current commented attempt leads to wrong output.
+    // JL TODO: Talk to CR. The current commented version leads to some wrong output.
+    // I believe that the declaration and allocation of pk_l_biased_fft, fourier_coeff_real and fft_plan should be done inside the parallel loop.
     //class_setup_parallel();
     for (index_list = 0; index_list < index_pk_types_size; index_list++) {
       //class_run_parallel(=,
@@ -1729,9 +1741,9 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
         class_protect_memcpy(ddout_pkmu[index_z], ddpkmu_nl, k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double));
       }
       else {  /** - interpolate to kvec */
-        class_setup_parallel();
+        //class_setup_parallel();
         for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-          class_run_parallel(=,
+          //class_run_parallel(=,
             int last_index = 0;
             int index_kp;
             double ln_k;
@@ -1753,10 +1765,10 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                 out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_kp] = 0.;
               }
             }
-            return _SUCCESS_;
-          );
+          //return _SUCCESS_;
+          //);
         }
-        class_finish_parallel();
+        //class_finish_parallel();
       }
     }
 
@@ -2151,8 +2163,16 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
 
   int index_z, index_mu, mu_sizevec[z_size];
   double ap_ratio, * kvec_true[z_size], * muvec_true[z_size], * out_pkmu[z_size];
+  //int index_z, index_mu;
+  //int * mu_sizevec;
+  //double ap_ratio, * kvec_true[z_size], * muvec_true[z_size];
+  //double ** out_pkmu;
 
   /** - allocate additional input/output arrays for power-spectrum wedges */
+
+  //class_alloc(mu_sizevec, z_size*sizeof(int), peft0->error_message);
+  //class_alloc(out_pkmu, z_size*sizeof(double*), peft0->error_message);
+
   for (index_z = 0; index_z < z_size; index_z++) {
     mu_sizevec[index_z] = gl_rule_multipole_sym_size;
     class_alloc(muvec_true[index_z], mu_sizevec[index_z]*sizeof(double), peft0->error_message);
@@ -2204,7 +2224,8 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
   }
 
   /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
-  class_setup_parallel();
+  // JL TODO: parallelise loop
+  //class_setup_parallel();
   for (index_z = 0; index_z < z_size; index_z++) {
     //class_run_parallel(=,
       int index_l;
@@ -2221,13 +2242,16 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
           out_pkl[index_z][index_l*k_sizevec[index_z] + index_k] *= 0.5*(4*index_l + 1);
         }
       }
-      //  return _SUCCESS_;
-      //);
+
+    //return _SUCCESS_;
+    //);
   }
-  class_finish_parallel();
+  //class_finish_parallel();
 
   for (index_z = 0; index_z < z_size; index_z++)
     free(out_pkmu[index_z]);
+  //free(out_pkmu);
+  //free(mu_sizevec);
 
   return _SUCCESS_;
 }
@@ -2326,7 +2350,7 @@ int eft_job_powerspectrum_multipoles(
   }
 
   /** - compute the multipoles with fixed Gauss-Lobatto quadrature */
-  class_setup_parallel();
+  //class_setup_parallel();
   for (index_z = 0; index_z < z_size; index_z++) {
     //class_run_parallel(=,
       int index_l;
@@ -2346,7 +2370,7 @@ int eft_job_powerspectrum_multipoles(
       //  return _SUCCESS_;
       //);
   }
-  class_finish_parallel();
+  //class_finish_parallel();
 
   for (index_z = 0; index_z < z_size; index_z++)
     free(out_pkmu[index_z]);
