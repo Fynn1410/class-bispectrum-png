@@ -1,4 +1,5 @@
 #include "common.h"
+#include "arrays.h"
 
 #include <ccomplex>
 #define class_complex std::complex<double>
@@ -87,7 +88,7 @@ extern "C" {
             double * result,
             ErrorMsg errmsg
             );
-            
+
 #ifdef __cplusplus
 }
 #endif

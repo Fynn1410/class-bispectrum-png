@@ -175,6 +175,55 @@ extern "C" {
 				    ErrorMsg errmsg
 				    );
 
+  int array_integrate_internal(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                double * result,
+                const double condition_number_threshold,
+                double * condition_number);
+
+  int array_integrate_internal_partial_range(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                const double a,
+                const double b,
+                const int index_a,
+                const int index_b,
+                double * result);
+
+  int array_square_integrate_internal(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                double * result);
+
+  int array_square_integrate_exponential_internal(
+                const double * const x0,
+                const int x_size,
+                const int x_stride,
+                const double * const y0,
+                const int y_stride,
+                const double * const ddy0,
+                const int ddy_stride,
+                const double bias,
+                const int derivative_order,
+                double * result,
+                int num_threads);
+
   int array_integrate_all_spline(
 				 double * array,
 				 int n_columns,

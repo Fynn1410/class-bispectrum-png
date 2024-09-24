@@ -1439,11 +1439,6 @@ int array_logspline_table_one_column(
   return _SUCCESS_;
 }
 
-double dcompsumv(const double * const summands, const int size, const int num_accumulators) {
-  /** - TODO */
-  return 0.;
-}
-
 int array_integrate_internal(
                 const double * const x0,
                 const int x_size,

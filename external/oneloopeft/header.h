@@ -321,7 +321,7 @@ int eft_linear_spectrum_rsd(
 
 int eft_apply_ap_effect_in_place(
         double ** kvec,
-        const int * k_sizevec,
+        int * k_sizevec,
         double ** muvec,
         const int * mu_sizevec,
         const int z_size,
@@ -407,7 +407,7 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,
-        const int * const k_sizevec,
+        int * const k_sizevec,
         const double * ap_parallel,
         const double * ap_perpendicular,
         double ** out_pkl
@@ -426,7 +426,7 @@ int eft_job_powerspectrum_multipoles(
         const struct eft_input_parameters * peft_ip,
         const int z_size,
         double ** kvec,
-        const int * const k_sizevec,
+        int * const k_sizevec,
         const double * ap_parallel,
         const double * ap_perpendicular,
         double ** out_pkl
