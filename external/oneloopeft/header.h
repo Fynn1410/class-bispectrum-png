@@ -12,6 +12,7 @@
 #include "../../include/primordial.h"
 #include "../../include/fft.h"
 #include "common_header.h"
+#include "parallel.h"
 
 #include <limits.h>
 
