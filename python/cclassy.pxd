@@ -49,53 +49,6 @@ cdef extern from "class.h":
         out_sigma_prime
         out_sigma_disp
 
-    cdef enum eft_struct_role:
-        eft_master
-        eft_slave
-
-    cdef enum eft_tracer:
-        eft_matter
-        eft_halo
-        eft_tracer_num
-
-    cdef enum eft_pk_type:
-        pk_lin
-        pk_nowiggle
-        pk_ir_resummed_lo
-        pkmu_rsd_ir_resummed_lo
-        pk_ir_resummed_nlo
-        pkmu_rsd_ir_resummed_nlo
-        pk_type_num
-
-    cdef enum eft_pk_out_type:
-        Pdd_mm_real
-        Pdd_mm_rsd
-        Pdd_hh_real
-        Pdd_hh_rsd
-        Pdd_mm_real_no_IR_resum
-        Pdd_mm_22
-        Pdd_mm_13
-        Pdd_mm_22_no_IR_resum
-        Pdd_mm_13_no_IR_resum
-        pk_out_type_num
-
-    cdef enum eft_arg_type:
-        points
-        cartesian_product
-
-    cdef enum eft_spectra_contribution:
-        finite_part
-        uv_divergence
-        ir_divergence
-        pole_divergence
-        eft_spectra_contribution_num
-
-    cdef enum sym_type:
-        no_finite_part
-        sym_vec
-        sym_mat_none
-        sym_mat_symmetric
-
     cdef enum eft_fourier_mode:
         fourier_mode_fft
         fourier_mode_spline
@@ -850,6 +803,49 @@ cdef extern from "class.h":
         double * coefficients,
         double * breakpoints
         )
+
+cdef extern from "header.h":
+
+    cdef enum eft_struct_role:
+        eft_master
+        eft_slave
+
+    cdef enum eft_tracer:
+        eft_matter
+        eft_halo
+        eft_tracer_num
+
+    cdef enum eft_pk_type:
+        pk_lin
+        pk_nowiggle
+        pk_ir_resummed_lo
+        pkmu_rsd_ir_resummed_lo
+        pk_ir_resummed_nlo
+        pkmu_rsd_ir_resummed_nlo
+        pk_type_num
+
+    cdef enum eft_pk_out_type:
+        Pdd_mm_real
+        Pdd_mm_rsd
+        Pdd_hh_real
+        Pdd_hh_rsd
+        Pdd_mm_real_no_IR_resum
+        Pdd_mm_22
+        Pdd_mm_13
+        Pdd_mm_22_no_IR_resum
+        Pdd_mm_13_no_IR_resum
+        pk_out_type_num
+
+    cdef enum eft_arg_type:
+        points
+        cartesian_product
+
+    cdef enum eft_spectra_contribution:
+        finite_part
+        uv_divergence
+        ir_divergence
+        pole_divergence
+        eft_spectra_contribution_num
 
     int eft_nearest_structure_in_time(
         void * peft0,

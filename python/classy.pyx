@@ -2823,7 +2823,7 @@ make        nonlinear_scale_cb(z, z_size)
           sd_amp[i] = self.sd.DI[i]*self.sd.DI_units*1.e26
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
-    
+
     def eft_set_output_sampling(self,
         np.ndarray[DTYPE_t,ndim=1] mu,
         np.ndarray[DTYPE_t,ndim=2] k):
@@ -2835,11 +2835,11 @@ make        nonlinear_scale_cb(z, z_size)
 
         cdef int mu_size = <int>mu.shape[0]
         cdef int k_size = <int>k.shape[1]
-    
+
         # check input consistency
         if (k.shape[0] != mu_size):
             raise CosmoSevereError("Array dimension mismatch, have ({1:d}) for mu and ({2:d}, {3:d}) for k.".format(mu.shape[0], k.shape[0], k.shape[1]))
-        
+
         cdef double[::1] mu_view = mu
         cdef double[:, ::1] k_view = k
 
@@ -2849,7 +2849,7 @@ make        nonlinear_scale_cb(z, z_size)
                                     &mu_view[0],
                                     k_size,
                                     mu_size)
-        
+
         return
 
     # TODO: to be removed
@@ -3215,7 +3215,7 @@ make        nonlinear_scale_cb(z, z_size)
                                                                   ddout_pkmuz[index_z],
                                                                   &coefficients_view[index_z, 0, 0, 0],
                                                                   &breakpoints_view[0])
-          
+
           free(out_pkmuz[index_z])
           free(ddout_pkmuz[index_z])
 
@@ -3528,7 +3528,7 @@ make        nonlinear_scale_cb(z, z_size)
         cdef double* ln_kvec = <double*>malloc(mu_size * k_size * sizeof(double))
         cdef double* muvec = <double*>malloc(mu_size * sizeof(double))
         # cdef double* out_pkmu_p = <double*>malloc(mu_size * k_size * sizeof(double))
-        cdef void* peft = self.fo.peft
+        cdef eft* peft = self.fo.peft
 
         if pkmu_type == 'pkmu_rsd_ir_resummed_lo':
             index_pk_type = pkmu_rsd_ir_resummed_lo
@@ -3695,7 +3695,7 @@ make        nonlinear_scale_cb(z, z_size)
             for index_z in range(z_size):
                 # fill input structures
                 eft_ip[index_z].has_rsd = 0
-                
+
         elif pk_type == 'Pdd_mm_13_no_IR_resummation':
             pk_output_type = Pdd_mm_13_no_IR_resum
 
