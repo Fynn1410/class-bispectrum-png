@@ -2,14 +2,21 @@
 
 //To be used for declaring which arguments a parallel clause 'captures' from the outside
 //This would be equivalent to the 'firstprivate' in OPENMP
+//(The variable takes the value it had before, but then, it is treated as a private variable;
+// however, unlike true private variables, these variables CANNOT BE CHANGED inside the // zone.
+// But if they are pointers, then the value pointer[private_variable] can of course be changed)
+//Thus, these variables are not exactly equivalent to the OPENMP shared variables, but in practise,
+//they do play the same role...
 #define with_arguments(...) __VA_ARGS__
-//To declare a list of arguments a parallel clause only has internally
+
+//Actual private variables, which can be changed inside the // zone, can be simply declared inside the loop.
+//To declare a list of private variables in a single line, use this macro
 //(necessary since comma-separated lists are interpreted as separate arguments
 // except when surrounded by backets as forced by this macro)
 #define declare_list_of_variables_inside_parallel_region(...) __VA_ARGS__
 
 // To be called WITHIN a given parallel loop. First argument is the parameters to 'capture',
-// corresponding to the 'firstprivate' in OPENMP.
+// corresponding to the 'firstprivate' in OPENMP (but, effectively, playing the same role as 'shared'.)
 // Usually either '=' to capture all necessary variables, or a list of arguments
 // declared within the 'with_arguments' macro for a more precise list
 // The second argument is the actual code to execute. That code should be formulated like
@@ -21,7 +28,7 @@
 // in source/perturbations.c, source/lensing.c, or tools/hypershperical.c
 #define class_run_parallel(arg1, arg2) future_output.push_back(task_system.AsyncTask([arg1] () {arg2}));
 
-// To be called ONLY ONCE without arguments before the intended parallel loop(s).
+// To be called without arguments before the intended parallel loop(s).
 #define class_setup_parallel()                    \
 Tools::TaskSystem task_system;                    \
 std::vector<std::future<int>> future_output;
@@ -33,6 +40,13 @@ for (std::future<int>& future : future_output) {  \
   if(future.get()!=_SUCCESS_) return _FAILURE_;   \
 }                                                 \
 future_output.clear();
+
+// If there are several loops to parallelise int he same function, and
+// you want one loop to be done before the other starts, you need to
+// put each of them within a { class_setup_parallel()
+// ... class_finish_parallel() }, where the brackets avoid that the
+// compiler compalins about the same variables task_system and
+// future_output being declared multiple times.
 
 //
 //  thread_pool.h
