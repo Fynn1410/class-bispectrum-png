@@ -41,6 +41,14 @@ for (std::future<int>& future : future_output) {  \
 }                                                 \
 future_output.clear();
 
+// A convenient macro to get the number of threads in a given run:
+#define class_parallel_num_threads() \
+task_system.count_
+
+// (an alternative could be:)
+// #define class_parallel_num_threads() \
+// task_system.GetNumThreads()
+
 // If there are several loops to parallelise int he same function, and
 // you want one loop to be done before the other starts, you need to
 // put each of them within a { class_setup_parallel()
