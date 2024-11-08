@@ -145,15 +145,16 @@
 #endif
 
 int array_integrate_internal_exponential(
-          double * x0,
-		      int x_size,
-          int x_stride,
-		      double * y0,
-		      int y_stride,
-		      double * ddy0,
-          int ddy_stride,
-          class_complex phase,
-          class_complex * result) {
+                                         double * x0,
+                                         int x_size,
+                                         int x_stride,
+                                         double * y0,
+                                         int y_stride,
+                                         double * ddy0,
+                                         int ddy_stride,
+                                         class_complex phase,
+                                         class_complex * result,
+                                         ErrorMsg errmsg) {
 
   int index_x;
   double h1, h2;                     /**< distance between control points i & (i-1) and (i+1) & i respectively */
@@ -241,7 +242,8 @@ int array_square_integrate_all_spline_table_lines(
                                     y_size,
                                     ddy_array + index_y,
                                     y_size,
-                                    result + index_y);
+                                    result + index_y,
+                                    errmsg);
   }
 
   return _SUCCESS_;
@@ -292,7 +294,8 @@ int array_square_integrate_exponential_all_spline_table_lines(
                                                 bias,
                                                 derivative_order,
                                                 result + index_y,
-                                                num_threads);
+                                                num_threads,
+                                                errmsg);
   }
 
   return _SUCCESS_;
@@ -343,7 +346,8 @@ int array_integrate_all_spline_exponential(
                                        array + index_ddy,
                                        n_columns,
                                        phase,
-                                       result);
+                                       result,
+                                       errmsg);
 
   return _SUCCESS_;
 }
@@ -393,7 +397,8 @@ int array_integrate_all_spline_table_lines_exponential(
                                          ddy_array + index_y,
                                          y_size,
                                          phase,
-                                         result + index_y);
+                                         result + index_y,
+                                         errmsg);
   }
 
   return _SUCCESS_;
@@ -409,7 +414,8 @@ int array_integrate_internal_exponential_pure_phase(
                         const int ddy_stride,
                         double phase,
                         class_complex * result,
-                        class_complex * condition_number) {
+                        class_complex * condition_number,
+                        ErrorMsg errmsg) {
 
   int index_x;
   double h1, h2;              /**< distance between control points i & (i-1) and (i+1) & i respectively */
@@ -474,7 +480,8 @@ int array_integrate_internal_exponential_pure_phase_compensated(
                         const double phase,
                         class_complex * result,
                         const double condition_number_threshold,
-                        class_complex * condition_number) {
+                        class_complex * condition_number,
+                        ErrorMsg errmsg) {
 
   int index_x;
   double h1, h2, dM1, dM2, t1, t2;    /**< distances between control points, spline moment differences and error variable */
@@ -574,7 +581,8 @@ int array_integrate_all_spline_fourier_compensated(
                                             phase,
                                             result,
                                             condition_num_threshold,
-                                            condition_num);
+                                            condition_num,
+                                            errmsg);
 }
 
 /**
@@ -626,7 +634,8 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
                                                     phase,
                                                     result + index_y,
                                                     condition_num_threshold,
-                                                    condition_num + index_y);
+                                                    condition_num + index_y,
+                                                    errmsg);
   }
 
   return _SUCCESS_;

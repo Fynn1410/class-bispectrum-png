@@ -801,7 +801,8 @@ cdef extern from "class.h":
         int y_size,
         double * ddy_array,
         double * coefficients,
-        double * breakpoints
+        double * breakpoints,
+        ErrorMsg errmsg
         )
 
 cdef extern from "header.h":

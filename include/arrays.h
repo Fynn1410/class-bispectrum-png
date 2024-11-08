@@ -23,6 +23,24 @@
 extern "C" {
 #endif
 
+  int array_search_bisect_internal(
+                const double * const __restrict__ array0,
+                int array_stride,
+                const int array_size,
+                const double value,
+                int * const __restrict__ inf_index,
+                int * const __restrict__ sup_index,
+                ErrorMsg errmsg);
+
+  int array_search_closeby_internal(
+                const double * const __restrict__ array0,
+                int array_stride,
+                const int array_size,
+                const double value,
+                int * const __restrict__ inf_index,
+                int * const __restrict__ sup_index,
+                ErrorMsg errmsg);
+
   int array_derive(
 		   double * array,
 		   int n_columns,
@@ -81,7 +99,49 @@ extern "C" {
 		   int index_ddydxdx,
 		   ErrorMsg errmsg);
 
+  int array_spline_internal_natural(
+                                    double * x0,
+                                    int x_stride,
+                                    double * y0,
+                                    int y_stride,
+                                    double * ddy0,
+                                    int ddy_stride,
+                                    int size,
+                                    double * super,
+                                    double * constants,
+                                    ErrorMsg errmsg
+                                    );
 
+  int array_spline_internal_hermite(
+                                    double * x0,
+                                    int x_stride,
+                                    double * y0,
+                                    int y_stride,
+                                    double * ddy0,
+                                    int ddy_stride,
+                                    int size,
+                                    double * super,
+                                    double * constants,
+                                    short use_approx,
+                                    double * dy_first,
+                                    double * dy_last,
+                                    ErrorMsg errmsg
+                                    );
+
+  int array_spline_internal_periodic(
+                                     double * x0,
+                                     int x_stride,
+                                     double * y0,
+                                     int y_stride,
+                                     double * ddy0,
+                                     int ddy_stride,
+                                     int size,
+                                     double * super,
+                                     double * constants,
+                                     double * constants_aux,
+                                     double * sol_aux,
+                                     ErrorMsg errmsg
+                                     );
 
   int array_spline(
 		   double * array,
@@ -141,6 +201,17 @@ extern "C" {
 		       ErrorMsg errmsg
 		       );
 
+  int array_spline_table_columns_parallel(
+                                          double * x, /* vector of size x_size */
+                                          int x_size,
+                                          double * y_array, /* array of size x_size*y_size with elements
+                                                               y_array[index_y*x_size+index_x] */
+                                          int y_size,
+                                          double * ddy_array, /* array of size x_size*y_size */
+                                          short spline_mode,
+                                          ErrorMsg errmsg
+                                          );
+
   int array_logspline_table_lines(
 				  double * x,
 				  int x_size,
@@ -185,7 +256,8 @@ extern "C" {
                 const int ddy_stride,
                 double * result,
                 const double condition_number_threshold,
-                double * condition_number);
+                double * condition_number,
+                ErrorMsg errmsg);
 
   int array_integrate_internal_partial_range(
                 const double * const x0,
@@ -199,7 +271,8 @@ extern "C" {
                 const double b,
                 const int index_a,
                 const int index_b,
-                double * result);
+                double * result,
+                ErrorMsg errmsg);
 
   int array_square_integrate_internal(
                 const double * const x0,
@@ -209,7 +282,8 @@ extern "C" {
                 const int y_stride,
                 const double * const ddy0,
                 const int ddy_stride,
-                double * result);
+                double * result,
+                ErrorMsg errmsg);
 
   int array_square_integrate_exponential_internal(
                 const double * const x0,
@@ -222,7 +296,8 @@ extern "C" {
                 const double bias,
                 const int derivative_order,
                 double * result,
-                int num_threads);
+                int num_threads,
+                ErrorMsg errmsg);
 
   int array_integrate_all_spline(
 				 double * array,
@@ -356,7 +431,8 @@ extern "C" {
 		      int n_lines,
 		      int index_x,   /** from 0 to (n_columns-1) */
 		      int index_y,
-		      double * result);
+		      double * result,
+              ErrorMsg errmsg);
 
   int array_integrate_ratio(
 			    double * array,
@@ -378,7 +454,8 @@ extern "C" {
                 const int ddy_stride,
                 double * result,
                 const double condition_number_threshold,
-                double * condition_number);
+                double * condition_number,
+                ErrorMsg errmsg);
 
   int array_interpolate(
 			double * array,
@@ -640,7 +717,8 @@ extern "C" {
                 const double x,
                 const int inf,
                 const int sup,
-                double * result);
+                double * result,
+                ErrorMsg errmsg);
 
   int array_convert_spline_table_columns_to_local_power_basis(
           const double * const x, /* vector of size x_size */
@@ -650,7 +728,8 @@ extern "C" {
           const int y_size,
           const double * const ddy_array, /* array of size x_size*y_size */
           double * coefficients,  /* array of coefficients of size y_size*(x_size-1)*4, Fortran order */
-          double * breakpoints);  /* array of breakpoints of size y_size*x_size */
+          double * breakpoints,
+          ErrorMsg errmsg);  /* array of breakpoints of size y_size*x_size */
 
   int array_smooth(double * array,
 		   int n_columns,

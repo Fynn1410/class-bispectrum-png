@@ -3214,7 +3214,8 @@ make        nonlinear_scale_cb(z, z_size)
                                                                   mu_size,
                                                                   ddout_pkmuz[index_z],
                                                                   &coefficients_view[index_z, 0, 0, 0],
-                                                                  &breakpoints_view[0])
+                                                                  &breakpoints_view[0],
+                                                                  self.fo.peft.error_message)
 
           free(out_pkmuz[index_z])
           free(ddout_pkmuz[index_z])
@@ -3647,7 +3648,7 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        pk_type_dict = {'Pdd_mm_real': Pdd_mm_real, 'Pdd_hh_real': Pdd_hh_real, 
+        pk_type_dict = {'Pdd_mm_real': Pdd_mm_real, 'Pdd_hh_real': Pdd_hh_real,
                         'Pdd_mm_real_no_IR_resummation': Pdd_mm_real_no_IR_resum, 'Pdd_hh_real_no_IR_resummation': Pdd_hh_real_no_IR_resum}
         try:
             pk_output_type = pk_type_dict[pk_type]
@@ -3710,7 +3711,7 @@ make        nonlinear_scale_cb(z, z_size)
         free(eft_ip)
 
         return out_pkz
-    
+
 ###################
 
     def eft_pkmu_rsd_grid(self,   \
@@ -3740,7 +3741,7 @@ make        nonlinear_scale_cb(z, z_size)
         # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
         cdef int mu_size, k_size, index_eft
         cdef eft* peft = self.fo.peft
-        
+
         # find the nearest eft structure
         eft_nearest_structure_in_time(self.fo.peft,
                                       self.fo.eft_size,
@@ -3782,7 +3783,7 @@ make        nonlinear_scale_cb(z, z_size)
         for index_part in range(4):
             # assign pointers
             out_pkmu_pp[index_part] = &out_pkmu_view[index_part, 0, 0]
-        
+
         eft_spectra_contributions_output(peft,
                                          index_pk_type_loop,
                                          index_moment,
@@ -3792,7 +3793,7 @@ make        nonlinear_scale_cb(z, z_size)
                                          out_pkmu_pp)
 
         return zout, muvec, kvec, out_pkmu
-    
+
 #################
 
     def get_sources(self):

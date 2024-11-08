@@ -17,6 +17,18 @@
 extern "C" {
 #endif
 
+  int array_integrate_internal_exponential(
+                                         double * x0,
+                                         int x_size,
+                                         int x_stride,
+                                         double * y0,
+                                         int y_stride,
+                                         double * ddy0,
+                                         int ddy_stride,
+                                         class_complex phase,
+                                         class_complex * result,
+                                         ErrorMsg errmsg);
+
   int array_integrate_all_spline_exponential(
             double * array,
             int n_columns,
@@ -39,6 +51,33 @@ extern "C" {
             class_complex * result,
             ErrorMsg errmsg
             );
+
+  int array_integrate_internal_exponential_pure_phase(
+                        double * x0,
+                        const int x_size,
+                        const int x_stride,
+                        double * y0,
+                        const int y_stride,
+                        double * ddy0,
+                        const int ddy_stride,
+                        double phase,
+                        class_complex * result,
+                        class_complex * condition_number,
+                        ErrorMsg errmsg);
+
+  int array_integrate_internal_exponential_pure_phase_compensated(
+                        double * x0,
+                        const int x_size,
+                        const int x_stride,
+                        double * y0,
+                        const int y_stride,
+                        double * ddy0,
+                        const int ddy_stride,
+                        const double phase,
+                        class_complex * result,
+                        const double condition_number_threshold,
+                        class_complex * condition_number,
+                        ErrorMsg errmsg);
 
   int array_integrate_all_spline_fourier_compensated(
             double * array,

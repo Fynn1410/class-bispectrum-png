@@ -610,8 +610,8 @@ int array_spline_internal_natural(
               int ddy_stride,
               int size,
               double * super,
-              double * constants
-              ) {
+              double * constants,
+              ErrorMsg errmsg) {
 
   int it;
   double h1, h2;
@@ -678,8 +678,8 @@ int array_spline_internal_hermite(
               double * constants,
               short use_approx,
               double * dy_first,
-              double * dy_last
-              ) {
+              double * dy_last,
+              ErrorMsg errmsg) {
 
   int it;
   double h1, h2;
@@ -764,8 +764,8 @@ int array_spline_internal_periodic(
               double * super,
               double * constants,
               double * constants_aux,
-              double * sol_aux
-              ) {
+              double * sol_aux,
+              ErrorMsg errmsg) {
 
   int it;
   double h1, h2;
@@ -848,7 +848,7 @@ int array_spline(
     class_alloc(constants, (n_lines-1)*sizeof(double), errmsg);
 
     array_spline_internal_natural(array+index_x, n_columns, array+index_y, n_columns, array+index_ddydx2, n_columns, \
-                                  n_lines, super, constants);
+                                  n_lines, super, constants, errmsg);
     break;
 
   case _SPLINE_EST_DERIV_:
@@ -857,7 +857,7 @@ int array_spline(
     double dy_first, dy_last;
 
     array_spline_internal_hermite(array+index_x, n_columns, array+index_y, n_columns, array+index_ddydx2, n_columns, \
-                                  n_lines, super, constants, _TRUE_, &dy_first, &dy_last);
+                                  n_lines, super, constants, _TRUE_, &dy_first, &dy_last, errmsg);
     break;
 
   case _SPLINE_PERIODIC_:
@@ -867,7 +867,7 @@ int array_spline(
     class_alloc(sol_aux, (n_lines-1)*sizeof(double), errmsg);
 
     array_spline_internal_periodic(array+index_x, n_columns, array+index_y, n_columns, array+index_ddydx2, n_columns, \
-                                    n_lines-1, super, constants, constants_aux, sol_aux);
+                                   n_lines-1, super, constants, constants_aux, sol_aux, errmsg);
 
     free(constants_aux);
     free(sol_aux);
@@ -907,7 +907,7 @@ int array_spline_table_line_to_line(
     class_alloc(constants, (n_lines-1)*sizeof(double), errmsg);
 
     array_spline_internal_natural(x, 1, array+index_y, n_columns, array+index_ddydx2, n_columns, \
-                                  n_lines, super, constants);
+                                  n_lines, super, constants, errmsg);
     break;
 
   case _SPLINE_EST_DERIV_:
@@ -916,7 +916,7 @@ int array_spline_table_line_to_line(
     double dy_first, dy_last;
 
     array_spline_internal_hermite(x, 1, array+index_y, n_columns, array+index_ddydx2, n_columns, \
-                                  n_lines, super, constants, _TRUE_, &dy_first, &dy_last);
+                                  n_lines, super, constants, _TRUE_, &dy_first, &dy_last, errmsg);
     break;
 
   case _SPLINE_PERIODIC_:
@@ -926,7 +926,7 @@ int array_spline_table_line_to_line(
     class_alloc(sol_aux, (n_lines-1)*sizeof(double), errmsg);
 
     array_spline_internal_periodic(x, 1, array+index_y, n_columns, array+index_ddydx2, n_columns, \
-                                    n_lines-1, super, constants, constants_aux, sol_aux);
+                                   n_lines-1, super, constants, constants_aux, sol_aux, errmsg);
 
     free(constants_aux);
     free(sol_aux);
@@ -967,7 +967,7 @@ int array_spline_table_lines(
     class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
 
     for (index_y=0; index_y < y_size; index_y++) {
-      array_spline_internal_natural(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants);
+      array_spline_internal_natural(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants, errmsg);
     }
     break;
 
@@ -978,7 +978,7 @@ int array_spline_table_lines(
 
     for (index_y=0; index_y < y_size; index_y++) {
       array_spline_internal_hermite(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants, \
-                                    _TRUE_, &dy_first, &dy_last);
+                                    _TRUE_, &dy_first, &dy_last, errmsg);
     }
     break;
 
@@ -990,7 +990,7 @@ int array_spline_table_lines(
 
     for (index_y=0; index_y < y_size; index_y++) {
       array_spline_internal_periodic(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size-1, super, constants, \
-                                      constants_aux, sol_aux);
+                                     constants_aux, sol_aux, errmsg);
     }
 
     free(constants_aux);
@@ -1030,10 +1030,17 @@ int array_spline_table_lines_parallel(
   case _SPLINE_NATURAL_:
     class_alloc(super, (x_size-1)*sizeof(double), errmsg);
     class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
-    for (index_y=0; index_y < y_size; index_y++) {
-      array_spline_internal_natural(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants);
+    {
+      class_setup_parallel();
+      for (index_y=0; index_y < y_size; index_y++) {
+        class_run_parallel( \
+          =,
+          array_spline_internal_natural(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants, errmsg);
+          return _SUCCESS_;
+                            );
+      }
+      class_finish_parallel();
     }
-
     free(super);
     free(constants);
     break;
@@ -1041,13 +1048,20 @@ int array_spline_table_lines_parallel(
   case _SPLINE_EST_DERIV_:
     class_alloc(super, (x_size-1)*sizeof(double), errmsg);
     class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
-    double dy_first, dy_last;
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      array_spline_internal_hermite(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants, \
-                                    _TRUE_, &dy_first, &dy_last);
+    {
+      class_setup_parallel();
+      for (index_y=0; index_y < y_size; index_y++) {
+        class_run_parallel( \
+          =,
+          double dy_first;
+          double dy_last;
+          array_spline_internal_hermite(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size, super, constants, \
+                                        _TRUE_, &dy_first, &dy_last, errmsg);
+          return _SUCCESS_;
+                            );
+      }
+      class_finish_parallel();
     }
-
     free(super);
     free(constants);
     break;
@@ -1057,12 +1071,18 @@ int array_spline_table_lines_parallel(
     class_alloc(constants, (x_size-2)*sizeof(double), errmsg);
     class_alloc(constants_aux, (x_size-2)*sizeof(double), errmsg);
     class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      array_spline_internal_periodic(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size-1, super, constants, \
-                                     constants_aux, sol_aux);
+    {
+      class_setup_parallel();
+      for (index_y=0; index_y < y_size; index_y++) {
+        class_run_parallel( \
+          =,
+          array_spline_internal_periodic(x, 1, y_array+index_y, y_size, ddy_array+index_y, y_size, x_size-1, super, constants, \
+                                         constants_aux, sol_aux, errmsg);
+          return _SUCCESS_;
+                            );
+      }
+      class_finish_parallel();
     }
-
     free(super);
     free(constants);
     free(constants_aux);
@@ -1075,6 +1095,93 @@ int array_spline_table_lines_parallel(
     class_build_error_string(errmsg, "error; %s", errmsg_mode);
     break;
   }
+
+  return _SUCCESS_;
+}
+
+// DEPRECATED
+int array_logspline_table_lines(
+			     double * x, /* vector of size x_size */
+			     int x_size,
+			     double * y_array, /* array of size x_size*y_size with elements
+						  y_array[index_x*y_size+index_y] */
+			     int y_size,
+			     double * ddlny_array, /* array of size x_size*y_size */
+			     short spline_mode,
+			     ErrorMsg errmsg
+			     ) {
+
+  int index_x, index_y;
+  double *ln_x, *ln_y;
+  double *super, *constants;
+  double *constants_aux, *sol_aux;
+
+  class_test(x_size < 3, errmsg, "%s(L:%d) there is no spline with less than 3 points", __func__, __LINE__);
+
+  class_alloc(ln_x, x_size*sizeof(double), errmsg);
+  class_alloc(ln_y, x_size*sizeof(double), errmsg);
+
+  switch (spline_mode)
+  {
+  case _SPLINE_NATURAL_:
+    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
+
+    for (index_y=0; index_y < y_size; index_y++) {
+      for (index_x=0; index_x < x_size; index_x++) {
+        ln_x[index_x] = log( x[index_x] );
+        ln_y[index_x] = log( y_array[index_x*y_size + index_y] );
+      }
+
+      array_spline_internal_natural(ln_x, 1, ln_y, 1, ddlny_array+index_y, y_size, x_size, super, constants, errmsg);
+    }
+    break;
+
+  case _SPLINE_EST_DERIV_:
+    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
+    double dy_first, dy_last;
+
+    for (index_y=0; index_y < y_size; index_y++) {
+      for (index_x=0; index_x < x_size; index_x++) {
+        ln_x[index_x] = log( x[index_x] );
+        ln_y[index_x] = log( y_array[index_x*y_size + index_y] );
+      }
+
+      array_spline_internal_hermite(ln_x, 1, ln_y, 1, ddlny_array+index_y, y_size, x_size, super, constants, \
+                                    _TRUE_, &dy_first, &dy_last, errmsg);
+    }
+    break;
+
+  case _SPLINE_PERIODIC_:
+    class_alloc(super, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(constants, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(constants_aux, (x_size-2)*sizeof(double), errmsg);
+    class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
+
+    for (index_y=0; index_y < y_size; index_y++) {
+      for (index_x=0; index_x < x_size; index_x++) {
+        ln_x[index_x] = log( x[index_x] );
+        ln_y[index_x] = log( y_array[index_x*y_size + index_y] );
+      }
+
+      array_spline_internal_periodic(ln_x, 1, ln_y, 1, ddlny_array+index_y, y_size, x_size-1, super, constants, \
+                                     constants_aux, sol_aux, errmsg);
+    }
+
+    free(constants_aux);
+    free(sol_aux);
+    break;
+
+  default:
+    class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
+    break;
+  }
+
+  free(super);
+  free(constants);
+  free(ln_x);
+  free(ln_y);
 
   return _SUCCESS_;
 }
@@ -1103,7 +1210,7 @@ int array_spline_table_columns(
     class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
 
     for (index_y=0; index_y < y_size; index_y++) {
-      array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants);
+      array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, errmsg);
     }
     break;
 
@@ -1114,7 +1221,7 @@ int array_spline_table_columns(
 
     for (index_y=0; index_y < y_size; index_y++) {
       array_spline_internal_hermite(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, \
-                                    _TRUE_, &dy_first, &dy_last);
+                                    _TRUE_, &dy_first, &dy_last, errmsg);
     }
     break;
 
@@ -1126,7 +1233,7 @@ int array_spline_table_columns(
 
     for (index_y=0; index_y < y_size; index_y++) {
       array_spline_internal_periodic(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size-1, super, constants, \
-                                      constants_aux, sol_aux);
+                                     constants_aux, sol_aux, errmsg);
     }
 
     free(constants_aux);
@@ -1166,11 +1273,17 @@ int array_spline_table_columns_parallel(
   case _SPLINE_NATURAL_:
     class_alloc(super, (x_size-1)*sizeof(double), errmsg);
     class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants);
+    {
+      class_setup_parallel();
+      for (index_y=0; index_y < y_size; index_y++) {
+        class_run_parallel( \
+          =,
+          array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, errmsg);
+          return _SUCCESS_;
+                            );
+      }
+      class_finish_parallel();
     }
-
     free(super);
     free(constants);
     break;
@@ -1178,13 +1291,20 @@ int array_spline_table_columns_parallel(
   case _SPLINE_EST_DERIV_:
     class_alloc(super, (x_size-1)*sizeof(double), errmsg);
     class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
-    double dy_first, dy_last;
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      array_spline_internal_hermite(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, \
-                                    _TRUE_, &dy_first, &dy_last);
+    {
+      class_setup_parallel();
+      for (index_y=0; index_y < y_size; index_y++) {
+        class_run_parallel( \
+          =,
+          double dy_first;
+          double dy_last;
+          array_spline_internal_hermite(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, \
+                                        _TRUE_, &dy_first, &dy_last, errmsg);
+          return _SUCCESS_;
+                            );
+      }
+      class_finish_parallel();
     }
-
     free(super);
     free(constants);
     break;
@@ -1194,12 +1314,18 @@ int array_spline_table_columns_parallel(
     class_alloc(constants, (x_size-2)*sizeof(double), errmsg);
     class_alloc(constants_aux, (x_size-2)*sizeof(double), errmsg);
     class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      array_spline_internal_periodic(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size-1, super, constants, \
-                                     constants_aux, sol_aux);
+    {
+      class_setup_parallel();
+      for (index_y=0; index_y < y_size; index_y++) {
+        class_run_parallel( \
+          =,
+          array_spline_internal_periodic(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size-1, super, constants, \
+                                         constants_aux, sol_aux, errmsg);
+          return _SUCCESS_;
+                            );
+      }
+      class_finish_parallel();
     }
-
     free(super);
     free(constants);
     free(constants_aux);
@@ -1238,7 +1364,7 @@ int array_spline_table_one_column(
     class_alloc(super, (x_size-1)*sizeof(double), errmsg);
     class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
 
-    array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants);
+    array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, errmsg);
     break;
 
   case _SPLINE_EST_DERIV_:
@@ -1247,7 +1373,7 @@ int array_spline_table_one_column(
     double dy_first, dy_last;
 
     array_spline_internal_hermite(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, \
-                                  _TRUE_, &dy_first, &dy_last);
+                                  _TRUE_, &dy_first, &dy_last, errmsg);
     break;
 
   case _SPLINE_PERIODIC_:
@@ -1257,7 +1383,7 @@ int array_spline_table_one_column(
     class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
 
     array_spline_internal_periodic(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size-1, super, constants, \
-                                    constants_aux, sol_aux);
+                                   constants_aux, sol_aux, errmsg);
 
     free(constants_aux);
     free(sol_aux);
@@ -1270,93 +1396,6 @@ int array_spline_table_one_column(
 
   free(super);
   free(constants);
-
-  return _SUCCESS_;
-}
-
-// DEPRECATED
-int array_logspline_table_lines(
-			     double * x, /* vector of size x_size */
-			     int x_size,
-			     double * y_array, /* array of size x_size*y_size with elements
-						  y_array[index_x*y_size+index_y] */
-			     int y_size,
-			     double * ddlny_array, /* array of size x_size*y_size */
-			     short spline_mode,
-			     ErrorMsg errmsg
-			     ) {
-
-  int index_x, index_y;
-  double *ln_x, *ln_y;
-  double *super, *constants;
-  double *constants_aux, *sol_aux;
-
-  class_test(x_size < 3, errmsg, "%s(L:%d) there is no spline with less than 3 points", __func__, __LINE__);
-
-  class_alloc(ln_x, x_size*sizeof(double), errmsg);
-  class_alloc(ln_y, x_size*sizeof(double), errmsg);
-
-  switch (spline_mode)
-  {
-  case _SPLINE_NATURAL_:
-    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
-    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      for (index_x=0; index_x < x_size; index_x++) {
-        ln_x[index_x] = log( x[index_x] );
-        ln_y[index_x] = log( y_array[index_x*y_size + index_y] );
-      }
-
-      array_spline_internal_natural(ln_x, 1, ln_y, 1, ddlny_array+index_y, y_size, x_size, super, constants);
-    }
-    break;
-
-  case _SPLINE_EST_DERIV_:
-    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
-    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
-    double dy_first, dy_last;
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      for (index_x=0; index_x < x_size; index_x++) {
-        ln_x[index_x] = log( x[index_x] );
-        ln_y[index_x] = log( y_array[index_x*y_size + index_y] );
-      }
-
-      array_spline_internal_hermite(ln_x, 1, ln_y, 1, ddlny_array+index_y, y_size, x_size, super, constants, \
-                                    _TRUE_, &dy_first, &dy_last);
-    }
-    break;
-
-  case _SPLINE_PERIODIC_:
-    class_alloc(super, (x_size-2)*sizeof(double), errmsg);
-    class_alloc(constants, (x_size-2)*sizeof(double), errmsg);
-    class_alloc(constants_aux, (x_size-2)*sizeof(double), errmsg);
-    class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
-
-    for (index_y=0; index_y < y_size; index_y++) {
-      for (index_x=0; index_x < x_size; index_x++) {
-        ln_x[index_x] = log( x[index_x] );
-        ln_y[index_x] = log( y_array[index_x*y_size + index_y] );
-      }
-
-      array_spline_internal_periodic(ln_x, 1, ln_y, 1, ddlny_array+index_y, y_size, x_size-1, super, constants, \
-                                      constants_aux, sol_aux);
-    }
-
-    free(constants_aux);
-    free(sol_aux);
-    break;
-
-  default:
-    class_stop(errmsg, "%s(L:%d) Spline mode not identified: %d",__func__,__LINE__,spline_mode);
-    break;
-  }
-
-  free(super);
-  free(constants);
-  free(ln_x);
-  free(ln_y);
 
   return _SUCCESS_;
 }
@@ -1395,7 +1434,7 @@ int array_logspline_table_one_column(
       ln_x[index_x] = log( x[index_x] );
       ln_y[index_x] = log( y_array[index_y*x_size + index_x] );
     }
-    array_spline_internal_natural(ln_x, 1, ln_y, 1, ddlny_array+index_y*x_size, 1, x_stop, super, constants);
+    array_spline_internal_natural(ln_x, 1, ln_y, 1, ddlny_array+index_y*x_size, 1, x_stop, super, constants, errmsg);
     break;
 
   case _SPLINE_EST_DERIV_:
@@ -1408,7 +1447,7 @@ int array_logspline_table_one_column(
       ln_y[index_x] = log( y_array[index_y*x_size + index_x] );
     }
     array_spline_internal_hermite(ln_x, 1, ln_y, 1, ddlny_array+index_y*x_size, 1, x_stop, super, constants, \
-                                  _TRUE_, &dy_first, &dy_last);
+                                  _TRUE_, &dy_first, &dy_last, errmsg);
     break;
 
   case _SPLINE_PERIODIC_:
@@ -1422,7 +1461,7 @@ int array_logspline_table_one_column(
       ln_y[index_x] = log( y_array[index_y*x_size + index_x] );
     }
     array_spline_internal_periodic(ln_x, 1, ln_y, 1, ddlny_array+index_y*x_size, 1, x_stop-1, super, constants, \
-                                    constants_aux, sol_aux);
+                                   constants_aux, sol_aux, errmsg);
 
     free(constants_aux);
     free(sol_aux);
@@ -1449,7 +1488,8 @@ int array_integrate_internal(
                 const int ddy_stride,
                 double * result,
                 const double condition_number_threshold,
-                double * condition_number) {
+                double * condition_number,
+                ErrorMsg errmsg) {
 
   int index_x;
   double h, sy, ty, sM, tM, sum, sum_abs;
@@ -1495,7 +1535,8 @@ int array_integrate_internal_partial_range(
                 const double b,
                 const int index_a,
                 const int index_b,
-                double * result) {
+                double * result,
+                ErrorMsg errmsg) {
 
   int index_x;
   double h, b1, b2, sy, sM, dy, dM, sum;
@@ -1547,7 +1588,8 @@ int array_square_integrate_internal(
                 const int y_stride,
                 const double * const ddy0,
                 const int ddy_stride,
-                double * result) {
+                double * result,
+                ErrorMsg errmsg) {
 
   int index_x;
   double h, sy, sM, dM;
@@ -1580,58 +1622,81 @@ int array_square_integrate_exponential_internal(
                 const double bias,
                 const int derivative_order,
                 double * result,
-                int num_threads) {
+                int num_threads,
+                ErrorMsg errmsg) {
 
   int index_x;
-  double h, sy, dy, sM, dM, sx, bias_h;
-  register double sum;
+  double * sum;
 
-  #pragma omp parallel shared(x0, x_size, x_stride, y0, y_stride, ddy0, ddy_stride, bias, derivative_order, result, sum),   \
-                       private(index_x, h, sy, dy, sM, dM, sx, bias_h), default(none),                                    \
-                       if((num_threads > 1)), num_threads(num_threads)
-  {
-
-  sum = 0.;
+  class_alloc(sum,sizeof(double),errmsg);
+  *sum = 0.;
 
   switch (derivative_order)
   {
   case 0:
     /** - spline function itself */
     if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
-      #pragma omp for schedule(static), reduction(+:sum)
-      for (index_x = 0; index_x < x_size-1; index_x++) {
-        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
-        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-        sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
-        dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
-        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
-        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+      {
+        class_setup_parallel();
+        for (index_x = 0; index_x < x_size-1; index_x++) {
+          class_run_parallel( \
+            =,
+            double sx;
+            double h;
+            double sy;
+            double dy;
+            double sM;
+            double dM;
+            sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+            h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+            sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+            dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+            sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+            dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
 
-        sum += h*((2520*dy*dy - 84*dM*dy*h*h + h*h*h*h*(dM*dM + 63*sM*sM) - 1260*h*h*sM*sy + 7560*sy*sy)/30240.    \
-                  + bias*(2520*dy*dy*sx + h*h*h*h*(-6*dM*sM*h + dM*dM*sx + 63*sM*sM*sx)    \
-                          + 84*dy*h*(3*h*h*sM - dM*h*sx - 60*sy) + 84*h*h*(dM*h - 15*sM*sx)*sy + 7560*sx*sy*sy)/30240.      \
-                  + bias*bias*(1512*dy*dy*(3*h*h + 5*sx*sx) + h*h*h*h*(-36*dM*sM*h*sx + dM*dM*(h*h + 3*sx*sx) + 27*sM*sM*(h*h + 7*sx*sx))     \
-                               - 252*h*h*(3*h*h*sM - 2*dM*h*sx + 15*sM*sx*sx)*sy + 7560*(h*h + 3*sx*sx)*sy*sy - 36*dy*h*(3*dM*h*h*h - 42*h*h*sM*sx + 7*dM*h*sx*sx + 840*sx*sy))/181440.);
+            *sum += h*((2520*dy*dy - 84*dM*dy*h*h + h*h*h*h*(dM*dM + 63*sM*sM) - 1260*h*h*sM*sy + 7560*sy*sy)/30240. \
+                      + bias*(2520*dy*dy*sx + h*h*h*h*(-6*dM*sM*h + dM*dM*sx + 63*sM*sM*sx) \
+                              + 84*dy*h*(3*h*h*sM - dM*h*sx - 60*sy) + 84*h*h*(dM*h - 15*sM*sx)*sy + 7560*sx*sy*sy)/30240. \
+                      + bias*bias*(1512*dy*dy*(3*h*h + 5*sx*sx) + h*h*h*h*(-36*dM*sM*h*sx + dM*dM*(h*h + 3*sx*sx) + 27*sM*sM*(h*h + 7*sx*sx)) \
+                                   - 252*h*h*(3*h*h*sM - 2*dM*h*sx + 15*sM*sx*sx)*sy + 7560*(h*h + 3*sx*sx)*sy*sy - 36*dy*h*(3*dM*h*h*h - 42*h*h*sM*sx + 7*dM*h*sx*sx + 840*sx*sy))/181440.);
+            return _SUCCESS_;
+                              );
+        }
+        class_finish_parallel();
       }
     }
     else {
-      #pragma omp for schedule(static), reduction(+:sum)
-      for (index_x = 0; index_x < x_size-1; index_x++) {
-        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
-        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-        sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
-        dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
-        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
-        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
-        bias_h = bias * h;
+      {
+        class_setup_parallel();
+        for (index_x = 0; index_x < x_size-1; index_x++) {
+          class_run_parallel( \
+            =,
+            double sx;
+            double h;
+            double sy;
+            double dy;
+            double sM;
+            double dM;
+            double bias_h;
+            sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+            h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+            sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+            dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+            sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+            dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+            bias_h = bias * h;
 
-        sum += exp(bias * sx) / (288.*pow(bias, 5)*bias_h*bias_h)   \
-              * ( -3*bias_h*(3*dM*dM*(10. + bias_h*bias_h) + 2*dM*sM*bias_h*(15. + bias_h*bias_h) + 9*bias_h*bias_h*sM*sM   \
-                              + 48*bias*bias*bias*bias*dy*(dy + bias_h*sy) + 12*bias*bias*bias_h*sM*(3*dy + bias_h*sy)      \
-                              + 4*bias*bias*dM*(dy*(12. + bias_h*bias_h) + 3*bias_h*sy)) * cosh(bias_h)
-                + (dM*dM*(90. + 39*bias_h*bias_h + bias_h*bias_h*bias_h*bias_h)       \
-                    + 6*dM*(3*bias_h*(5. + 2*bias_h*bias_h)*sM + 2*bias*bias*(dy*(12. + 5*bias_h*bias_h) + bias_h*(3. + bias_h*bias_h)*sy))   \
-                    + 9*(bias_h*bias_h*(3. + bias_h*bias_h)*sM*sM + 4*bias*bias*bias_h*sM*(dy*(3. + bias_h*bias_h) + bias_h*sy) + 8*bias*bias*bias*bias*(dy*dy*(2. + bias_h*bias_h) + 2*dy*sy*bias_h + bias_h*bias_h*sy*sy))) * sinh(bias_h));
+            *sum += exp(bias * sx) / (288.*pow(bias, 5)*bias_h*bias_h)   \
+            * ( -3*bias_h*(3*dM*dM*(10. + bias_h*bias_h) + 2*dM*sM*bias_h*(15. + bias_h*bias_h) + 9*bias_h*bias_h*sM*sM \
+                           + 48*bias*bias*bias*bias*dy*(dy + bias_h*sy) + 12*bias*bias*bias_h*sM*(3*dy + bias_h*sy) \
+                           + 4*bias*bias*dM*(dy*(12. + bias_h*bias_h) + 3*bias_h*sy)) * cosh(bias_h)
+                + (dM*dM*(90. + 39*bias_h*bias_h + bias_h*bias_h*bias_h*bias_h) \
+                   + 6*dM*(3*bias_h*(5. + 2*bias_h*bias_h)*sM + 2*bias*bias*(dy*(12. + 5*bias_h*bias_h) + bias_h*(3. + bias_h*bias_h)*sy)) \
+                   + 9*(bias_h*bias_h*(3. + bias_h*bias_h)*sM*sM + 4*bias*bias*bias_h*sM*(dy*(3. + bias_h*bias_h) + bias_h*sy) + 8*bias*bias*bias*bias*(dy*dy*(2. + bias_h*bias_h) + 2*dy*sy*bias_h + bias_h*bias_h*sy*sy))) * sinh(bias_h));
+            return _SUCCESS_;
+                              );
+        }
+        class_finish_parallel();
       }
     }
     break;
@@ -1639,38 +1704,63 @@ int array_square_integrate_exponential_internal(
   case 1:
     /** - first derivative */
     if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
-      #pragma omp for schedule(static), reduction(+:sum)
-      for (index_x = 0; index_x < x_size-1; index_x++) {
-        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
-        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
-        dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
-        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
-        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+      {
+        class_setup_parallel();
+        for (index_x = 0; index_x < x_size-1; index_x++) {
+          class_run_parallel( \
+            =,
+            double sx;
+            double h;
+            double dy;
+            double sM;
+            double dM;
+            sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+            h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+            // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+            dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+            sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+            dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
 
-        sum += dy*dy/h + (h*h*h*h*h*(dM*dM + 15*sM*sM))/720.      \
-              + bias*(-dy*h*h*h*sM/6. + dy*dy*sx/h + h*h*h*h*h*(-2*dM*h*sM + sM*dM*sx + 15*sM*sM*sx))/720.    \
-              + bias*bias*(dy*h*h*h*(dM*h - 15*sM*sx))/90. + (dy*dy*(h*h + 3*sx*sx)) / (6.*h)                 \
-                          + (h*h*h*h*h*(-168*dM*h*sM*sx + 63*sM*sM*(3*h*h + 5*sx*sx) + dM*dM*(11*h*h + 21*sx*sx)))/30240.;
+            *sum += dy*dy/h + (h*h*h*h*h*(dM*dM + 15*sM*sM))/720.        \
+            + bias*(-dy*h*h*h*sM/6. + dy*dy*sx/h + h*h*h*h*h*(-2*dM*h*sM + sM*dM*sx + 15*sM*sM*sx))/720. \
+            + bias*bias*(dy*h*h*h*(dM*h - 15*sM*sx))/90. + (dy*dy*(h*h + 3*sx*sx)) / (6.*h) \
+            + (h*h*h*h*h*(-168*dM*h*sM*sx + 63*sM*sM*(3*h*h + 5*sx*sx) + dM*dM*(11*h*h + 21*sx*sx)))/30240.;
+            return _SUCCESS_;
+                              );
+        }
+        class_finish_parallel();
       }
     }
     else {
-      #pragma omp for schedule(static), reduction(+:sum)
-      for (index_x = 0; index_x < x_size-1; index_x++) {
-        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
-        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
-        dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
-        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
-        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
-        bias_h = bias * h;
+      {
+        class_setup_parallel();
+        for (index_x = 0; index_x < x_size-1; index_x++) {
+          class_run_parallel( \
+            =,
+            double sx;
+            double h;
+            double dy;
+            double sM;
+            double dM;
+            double bias_h;
+            sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+            h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+            // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+            dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+            sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+            dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+            bias_h = bias * h;
 
-        sum += exp(bias * sx) / (144.*pow(bias, 5)*bias_h*bias_h)   \
-              * (-6*bias_h*bias_h*(12*bias*bias*bias*dy*(dM + bias_h*sM) + bias_h*(dM*dM*(9. + bias_h*bias_h)     \
-                                    + dM*sM*bias_h*(9. + bias_h*bias_h) + 3*bias_h*bias_h*sM*sM)) * cosh(bias_h)
-                + (144*bias*bias*bias*bias*bias*bias*dy*dy + 24*bias*bias*bias*dy*bias_h*(dM*(3. + bias_h*bias_h)     \
-                    + 3*bias_h*sM) + bias_h*bias_h*(dM*dM*(54. + 24*bias_h*bias_h + bias_h*bias_h*bias_h*bias_h)      \
-                    + 6*dM*sM*bias_h*(9. + 4*bias_h*bias_h) + 9*bias_h*bias_h*(2. + bias_h*bias_h)*sM*sM)) * sinh(bias_h));
+            *sum += exp(bias * sx) / (144.*pow(bias, 5)*bias_h*bias_h)   \
+            * (-6*bias_h*bias_h*(12*bias*bias*bias*dy*(dM + bias_h*sM) + bias_h*(dM*dM*(9. + bias_h*bias_h) \
+                  + dM*sM*bias_h*(9. + bias_h*bias_h) + 3*bias_h*bias_h*sM*sM)) * cosh(bias_h) \
+               + (144*bias*bias*bias*bias*bias*bias*dy*dy + 24*bias*bias*bias*dy*bias_h*(dM*(3. + bias_h*bias_h) \
+               + 3*bias_h*sM) + bias_h*bias_h*(dM*dM*(54. + 24*bias_h*bias_h + bias_h*bias_h*bias_h*bias_h) \
+               + 6*dM*sM*bias_h*(9. + 4*bias_h*bias_h) + 9*bias_h*bias_h*(2. + bias_h*bias_h)*sM*sM)) * sinh(bias_h));
+            return _SUCCESS_;
+                              );
+        }
+        class_finish_parallel();
       }
     }
     break;
@@ -1678,34 +1768,57 @@ int array_square_integrate_exponential_internal(
   case 2:
     /** - second derivative */
     if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
-      #pragma omp for schedule(static), reduction(+:sum)
-      for (index_x = 0; index_x < x_size-1; index_x++) {
-        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
-        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
-        // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
-        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
-        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+      {
+        class_setup_parallel();
+        for (index_x = 0; index_x < x_size-1; index_x++) {
+          class_run_parallel( \
+            =,
+            double sx;
+            double h;
+            double sM;
+            double dM;
+            sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+            h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+            // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+            // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+            sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+            dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
 
-        sum += h*((dM*dM + 3*sM*sM)/12.       \
-                + bias*(-2*dM*h*sM + dM*dM*sx + 3*sM*sM*sx)/12.       \
-                + bias*bias*(-20*dM*h*sM*sx + 5*sM*sM*(h*h + 3*sx*sx) + dM*dM*(3*h*h + 5*sx*sx))/120.);
+            *sum += h*((dM*dM + 3*sM*sM)/12.                           \
+                      + bias*(-2*dM*h*sM + dM*dM*sx + 3*sM*sM*sx)/12.   \
+                      + bias*bias*(-20*dM*h*sM*sx + 5*sM*sM*(h*h + 3*sx*sx) + dM*dM*(3*h*h + 5*sx*sx))/120.);
+            return _SUCCESS_;
+                              );
+        }
+        class_finish_parallel();
       }
     }
     else {
-      #pragma omp for schedule(static), reduction(+:sum)
-      for (index_x = 0; index_x < x_size-1; index_x++) {
-        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
-        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
-        // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
-        sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
-        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
-        bias_h = bias * h;
+      {
+        class_setup_parallel();
+        for (index_x = 0; index_x < x_size-1; index_x++) {
+          class_run_parallel( \
+            =,
+            double sx;
+            double h;
+            double sM;
+            double dM;
+            double bias_h;
+            sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+            h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+            // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+            // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+            sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+            dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+            bias_h = bias * h;
 
-        sum += exp(bias * sx) / (4.*bias*bias_h*bias_h)     \
-              * (-2*dM*bias_h*(dM + bias_h*sM) * cosh(bias_h)     \
-                  + (dM*dM*(2. + bias_h*bias_h) + 2*dM*sM*bias_h + bias_h*bias_h*sM*sM) * sinh(bias_h));
+            *sum += exp(bias * sx) / (4.*bias*bias_h*bias_h)       \
+            * (-2*dM*bias_h*(dM + bias_h*sM) * cosh(bias_h)             \
+               + (dM*dM*(2. + bias_h*bias_h) + 2*dM*sM*bias_h + bias_h*bias_h*sM*sM) * sinh(bias_h));
+            return _SUCCESS_;
+                              );
+        }
+        class_finish_parallel();
       }
     }
     break;
@@ -1713,30 +1826,51 @@ int array_square_integrate_exponential_internal(
   case 3:
     /** - third derivative */
     if (fabs(bias) < _SPL_SQUARE_EXP_SERIES_THRESHOLD_) {
-      #pragma omp for schedule(static), reduction(+:sum)
-      for (index_x = 0; index_x < x_size-1; index_x++) {
-        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
-        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
-        // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
-        // sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
-        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+      {
+        class_setup_parallel();
+        for (index_x = 0; index_x < x_size-1; index_x++) {
+          class_run_parallel( \
+            =,
+            double sx;
+            double h;
+            double dM;
+            sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+            h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+            // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+            // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+            // sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+            dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
 
-        sum += 1./h*(dM*dM + bias*dM*dM*sx + bias*bias*dM*dM*(h*h + 3*sx*sx)/6.);
+            *sum += 1./h*(dM*dM + bias*dM*dM*sx + bias*bias*dM*dM*(h*h + 3*sx*sx)/6.);
+            return _SUCCESS_;
+                              );
+        }
+        class_finish_parallel();
       }
     }
     else {
-      #pragma omp for schedule(static), reduction(+:sum)
-      for (index_x = 0; index_x < x_size-1; index_x++) {
-        sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
-        h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
-        // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
-        // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
-        // sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
-        dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
-        bias_h = bias * h;
+      {
+        class_setup_parallel();
+        for (index_x = 0; index_x < x_size-1; index_x++) {
+          class_run_parallel( \
+            =,
+            double sx;
+            double h;
+            double dM;
+            double bias_h;
+            sx = x0[(index_x+1)*x_stride] + x0[index_x*x_stride];
+            h = x0[(index_x+1)*x_stride] - x0[index_x*x_stride];
+            // sy = y0[index_x*y_stride] + y0[(index_x+1)*y_stride];
+            // dy = y0[index_x*y_stride] - y0[(index_x+1)*y_stride];
+            // sM = ddy0[index_x*ddy_stride] + ddy0[(index_x+1)*ddy_stride];
+            dM = ddy0[index_x*ddy_stride] - ddy0[(index_x+1)*ddy_stride];
+            bias_h = bias * h;
 
-        sum += bias*dM*dM * exp(bias * sx) * sinh(bias_h) / (bias_h*bias_h);
+            *sum += bias*dM*dM * exp(bias * sx) * sinh(bias_h) / (bias_h*bias_h);
+            return _SUCCESS_;
+                              );
+        }
+        class_finish_parallel();
       }
     }
     break;
@@ -1746,9 +1880,8 @@ int array_square_integrate_exponential_internal(
     break;
   }
 
-  } /** - end of parallel region */
-
-  *result = sum;
+  *result = *sum;
+  free(sum);
 
   return _SUCCESS_;
 }
@@ -1788,7 +1921,8 @@ int array_integrate_all_spline(
                                   n_columns,
                                   result,
                                   _SPL_INTEGRATION_DEF_COND_THRESHOLD_,
-                                  &cond_num);
+                                  &cond_num,
+                                  errmsg);
 }
 
 /**
@@ -1828,7 +1962,8 @@ int array_integrate_all_spline_table_lines(
                              y_size,
                              result + index_y,
                              _SPL_INTEGRATION_DEF_COND_THRESHOLD_,
-                             cond_num + index_y);
+                             cond_num + index_y,
+                             errmsg);
   }
 
   return _SUCCESS_;
@@ -1895,7 +2030,8 @@ int array_integrate_all_spline_partial_range_table_lines(
                                            b,
                                            index_a,
                                            index_b,
-                                           result + index_y);
+                                           result + index_y,
+                                           errmsg);
   }
 
   return _SUCCESS_;
@@ -1966,7 +2102,8 @@ int array_integrate_all_spline_partial_range_table_lines_closeby(
                                            b,
                                            index_a,
                                            index_b,
-                                           result + index_y);
+                                           result + index_y,
+                                           errmsg);
   }
 
   *last_index = index_b;
@@ -2014,7 +2151,8 @@ int array_integrate_all_spline_table_lines_compensated(
                              y_size,
                              result + index_y,
                              condition_num_threshold,
-                             condition_num + index_y);
+                             condition_num + index_y,
+                             errmsg);
   }
 
   return _SUCCESS_;
@@ -2290,7 +2428,8 @@ int array_interpolate_internal(
                                const double x,
                                const int inf,
                                const int sup,
-                               double * result) {
+                               double * result,
+                               ErrorMsg errmsg) {
 
   int i;
   double h,a,b;
@@ -2610,7 +2749,8 @@ int array_interpolate_spline_derivative(
                               x,
                               inf,
                               sup,
-                              result + i);
+                               result + i,
+                               errmsg);
   }
 
   return _SUCCESS_;
@@ -2656,7 +2796,8 @@ int array_interpolate_spline_derivative_closeby(
                               x,
                               inf,
                               sup,
-                              result + i);
+                               result + i,
+                               errmsg);
   }
 
   return _SUCCESS_;
@@ -4004,7 +4145,8 @@ int array_convert_spline_table_columns_to_local_power_basis(
 		          const int y_size,
 		          const double * const ddy_array, /* array of size x_size*y_size */
               double * coefficients,  /* array of coefficients of size y_size*(x_size-1)*4, C-order */
-              double * breakpoints) { /* array of breakpoints of size y_size*x_size */
+              double * breakpoints,
+              ErrorMsg errmsg) { /* array of breakpoints of size y_size*x_size */
 
   int index_x, index_y;
   double h;
@@ -4035,7 +4177,8 @@ int array_integrate_all(
 		   int n_lines,
 		   int index_x,   /** from 0 to (n_columns-1) */
 		   int index_y,
-		   double *result) {
+		   double *result,
+           ErrorMsg errmsg) {
 
   int i;
   double sum;
