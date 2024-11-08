@@ -13,15 +13,15 @@ int eft_necessary_spectra_contributions(struct eft * peft,
                                         int ** list_spectra_contributions,
                                         int * list_spectra_contributions_size) {
 
-  int index_pk_type, index_moment, num_moments, index_list, it = 0;
-
+  int index_pk_type, index_moment, num_moments, index_list = 0, it = 0;
+  
   switch (pk_out_type)
   {
   case Pdd_mm_real:
     *list_spectra_contributions_size = 2;
     class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
     for (index_moment = peft->index_I2200; index_moment <= peft->index_I1300; index_moment++) {
-      (*list_spectra_contributions)[index_moment - peft->index_I2200] = pk_ir_resummed_lo * peft->index_num + index_moment;
+      (*list_spectra_contributions)[it++] = pk_ir_resummed_lo * peft->index_num + index_moment;
     }
     break;
 
@@ -29,45 +29,85 @@ int eft_necessary_spectra_contributions(struct eft * peft,
     *list_spectra_contributions_size = 2;
     class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
     for (index_moment = peft->index_I2200; index_moment <= peft->index_I1300; index_moment++) {
-      (*list_spectra_contributions)[index_moment - peft->index_I2200] = pk_lin * peft->index_num + index_moment;
+      (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
     }
     break;
 
-  case Pdd_mm_22:
-    *list_spectra_contributions_size = 1;
-    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-    (*list_spectra_contributions)[0] = pk_ir_resummed_lo * peft->index_num + peft->index_I2200;
-    break;
-
-  case Pdd_mm_22_no_IR_resum:
-    *list_spectra_contributions_size = 1;
-    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-    (*list_spectra_contributions)[0] = pk_lin * peft->index_num + peft->index_I2200;
-    break;
-
-  case Pdd_mm_13:
-    *list_spectra_contributions_size = 1;
-    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-    (*list_spectra_contributions)[0] = pk_ir_resummed_lo * peft->index_num + peft->index_I1300;
-    break;
-
-  case Pdd_mm_13_no_IR_resum:
-    *list_spectra_contributions_size = 1;
-    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-    (*list_spectra_contributions)[0] = pk_lin * peft->index_num + peft->index_I1300;
-    break;
-
   case Pdd_mm_rsd:
-    /** TODO: */
-    *list_spectra_contributions_size = 0;
-    class_stop(peft->error_message, "Not implemented yet.");
+    if (peft->hp->integration_mode == fftlog) {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
+       *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_Jdelta202x, peft->index_Jdelta202y, peft->index_JG202x, peft->index_JG202y} */
+      const int exclusion_list_size = 14;
+      const int exclusion_list[14] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 20, 21, 22, 23};
+      num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = 2 * num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
+        }
+      }
+    }
+    else {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
+       *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y, 
+       *                                                      peft->index_JG202x, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+      const int exclusion_list_size = 22;
+      const int exclusion_list[22] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 19, 20, 21, 22, 23, 27, 29, 34, 36, 38, 40, 41};
+      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+      }
+    }
+    break;
+
+  case Pdd_mm_rsd_no_IR_resum:
+    if (peft->hp->integration_mode == fftlog) {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
+       *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_Jdelta202x, peft->index_Jdelta202y, peft->index_JG202x, peft->index_JG202y} */
+      const int exclusion_list_size = 14;
+      const int exclusion_list[14] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 20, 21, 22, 23};
+      num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      }
+    }
+    else {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
+       *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y, 
+       *                                                      peft->index_JG202x, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+      const int exclusion_list_size = 22;
+      const int exclusion_list[22] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 19, 20, 21, 22, 23, 27, 29, 34, 36, 38, 40, 41};
+      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      }
+    }
     break;
 
   case Pdd_hh_real:
     *list_spectra_contributions_size = 8;
     class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
     for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
-      (*list_spectra_contributions)[index_moment - peft->index_I2200] = pk_ir_resummed_lo * peft->index_num + index_moment;
+      (*list_spectra_contributions)[it++] = pk_ir_resummed_lo * peft->index_num + index_moment;
+    }
+    break;
+
+  case Pdd_hh_real_no_IR_resum:
+    *list_spectra_contributions_size = 8;
+    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+    for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
+      (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
     }
     break;
 
@@ -78,21 +118,101 @@ int eft_necessary_spectra_contributions(struct eft * peft,
       class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
       for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
         for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-          (*list_spectra_contributions)[(index_pk_type - pk_lin)*num_moments + (index_moment - peft->index_I2200)] = index_pk_type * peft->index_num + index_moment;
+          (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
         }
       }
     }
     else {
-      // const int exclusion_list_size = 10;
-      // const int exclusion_list[10] = {peft->index_J12102y, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z};
-      num_moments = peft->index_sigmav_mu - peft->index_I2200 + 1; // - exclusion_list_size;
+      /** Exclusion list for non-analytical angle-dependence {peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+      const int exclusion_list_size = 10;
+      const int exclusion_list[10] = {19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
+      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
       *list_spectra_contributions_size = num_moments;
       class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
       for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
-        // for (index_list = 0; (index_list < exclusion_list_size) && (index_moment != exclusion_list[index_list]); index_list++);
-        // if (index_list >= exclusion_list_size) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
         (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
-        // }
+      }
+    }
+    break;
+
+  case Pdd_hh_rsd_no_IR_resum:
+    if (peft->hp->integration_mode == fftlog) {
+      num_moments = peft->index_N22z - peft->index_I2200 + 1;
+      *list_spectra_contributions_size = num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      }
+    }
+    else {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+      const int exclusion_list_size = 10;
+      const int exclusion_list[10] = {19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
+      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      }
+    }
+    break;
+
+  case Pdd_hm_rsd:
+    if (peft->hp->integration_mode == fftlog) {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200} */
+      const int exclusion_list_size = 3;
+      const int exclusion_list[3] = {4, 5, 6};
+      num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = 2 * num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
+        }
+      }
+    }
+    else {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, 
+       *                                                      peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+      const int exclusion_list_size = 13;
+      const int exclusion_list[13] = {4, 5, 6, 19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
+      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+      }
+    }
+    break;
+
+  case Pdd_hm_rsd_no_IR_resum:
+    if (peft->hp->integration_mode == fftlog) {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200} */
+      const int exclusion_list_size = 3;
+      const int exclusion_list[3] = {4, 5, 6};
+      num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = 2 * num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      }
+    }
+    else {
+      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, 
+       *                                                      peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+      const int exclusion_list_size = 13;
+      const int exclusion_list[13] = {4, 5, 6, 19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
+      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
       }
     }
     break;
@@ -116,34 +236,25 @@ int eft_necessary_pk_types_loops(struct eft * peft,
   switch (pk_out_type)
   {
   case Pdd_mm_real:
-  case Pdd_mm_22:
-  case Pdd_mm_13:
-    *list_pk_types_size = 1;
-    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_ir_resummed_lo;
-    break;
-
-  case Pdd_mm_real_no_IR_resum:
-  case Pdd_mm_22_no_IR_resum:
-  case Pdd_mm_13_no_IR_resum:
-    *list_pk_types_size = 1;
-    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_lin;
-    break;
-
-  case Pdd_mm_rsd:
-    /** TODO: */
-    *list_pk_types_size = 0;
-    class_stop(peft->error_message, "Not implemented yet.");
-    break;
-
   case Pdd_hh_real:
     *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
     (*list_pk_types)[0] = pk_ir_resummed_lo;
     break;
 
+  case Pdd_mm_real_no_IR_resum:
+  case Pdd_hh_real_no_IR_resum:
+  case Pdd_mm_rsd_no_IR_resum:
+  case Pdd_hh_rsd_no_IR_resum:
+  case Pdd_hm_rsd_no_IR_resum:
+    *list_pk_types_size = 1;
+    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+    (*list_pk_types)[0] = pk_lin;
+    break;
+
+  case Pdd_mm_rsd:
   case Pdd_hh_rsd:
+  case Pdd_hm_rsd:
     if (peft->hp->integration_mode == fftlog) {
       *list_pk_types_size = 2;
       class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
@@ -176,38 +287,25 @@ int eft_necessary_pk_types_outside_loops(struct eft * peft,
   switch (pk_out_type)
   {
   case Pdd_mm_real:
-    *list_pk_types_size = 1;
-    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_ir_resummed_nlo;
-    break;
-
-  case Pdd_mm_22:
-  case Pdd_mm_13:
-    *list_pk_types_size = 0;
-    *list_pk_types = NULL;
-    break;
-
-  case Pdd_mm_real_no_IR_resum:
-  case Pdd_mm_22_no_IR_resum:
-  case Pdd_mm_13_no_IR_resum:
-    *list_pk_types_size = 1;
-    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_lin;
-    break;
-
-  case Pdd_mm_rsd:
-    /** TODO: */
-    *list_pk_types_size = 0;
-    class_stop(peft->error_message, "Not implemented yet.");
-    break;
-
   case Pdd_hh_real:
     *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
     (*list_pk_types)[0] = pk_ir_resummed_nlo;
     break;
 
+  case Pdd_mm_real_no_IR_resum:
+  case Pdd_hh_real_no_IR_resum:
+  case Pdd_mm_rsd_no_IR_resum:
+  case Pdd_hh_rsd_no_IR_resum:
+  case Pdd_hm_rsd_no_IR_resum:
+    *list_pk_types_size = 1;
+    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+    (*list_pk_types)[0] = pk_lin;
+    break;
+
+  case Pdd_mm_rsd:
   case Pdd_hh_rsd:
+  case Pdd_hm_rsd:
     *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
     (*list_pk_types)[0] = pkmu_rsd_ir_resummed_nlo;
@@ -316,6 +414,38 @@ int eft_set_sampling_points_mu_only(struct eft * peft,
   for (it = 0; it < pk_type_num*peft->index_num; it++) {
     peft->spectra_contributions_size[it] = 0;
   }
+
+  return _SUCCESS_;
+}
+
+int eft_get_sampling_points(struct eft * peft,
+                            double ** kvec_Mpc,
+                            double ** muvec,
+                            int * k_size,
+                            int * mu_size) {
+  
+  int it;
+
+  *k_size = peft->k_size;
+  *mu_size = peft->mu_size;
+
+  class_alloc(*muvec, peft->mu_size*sizeof(double), peft->error_message);
+  class_alloc(*kvec_Mpc, peft->mu_size*peft->k_size*sizeof(double), peft->error_message);
+
+  class_protect_memcpy(*muvec, peft->mu, peft->mu_size*sizeof(double));
+  for (it = 0; it < peft->mu_size*peft->k_size; it++) {
+    *kvec_Mpc[it] = exp( peft->ln_k[it] );
+  }
+
+  return _SUCCESS_;
+}
+
+int eft_get_sampling_grid_size(struct eft * peft,
+                               int * k_size,
+                               int * mu_size) {
+
+  *k_size = peft->k_size;
+  *mu_size = peft->mu_size;
 
   return _SUCCESS_;
 }
@@ -1749,29 +1879,78 @@ int eft_build_nonlinear_power_spectrum_wedges(
             pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
             break;
 
-          case Pdd_mm_22:
-          case Pdd_mm_22_no_IR_resum:
-            I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
-
-            Preal_loop = D4 * I2200;
-
-            pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
-            break;
-
-          case Pdd_mm_13:
-          case Pdd_mm_13_no_IR_resum:
-            I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
-
-            Preal_loop = D4 * I1300;
-
-            pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
-            break;
-
           case Pdd_mm_rsd:
-            // TODO
+          case Pdd_mm_rsd_no_IR_resum:
+            /** 0-th RSD moment */
+            I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
+            I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
+            /** 1-st RSD moment */
+            I2201      =             peft->spectra_contributions[index_pk_type][peft->index_I2201     *eft_spectra_contribution_num + index_part][index_mu_k];
+            I1301p3101 = Plin *      peft->spectra_contributions[index_pk_type][peft->index_I1301p3101*eft_spectra_contribution_num + index_part][index_mu_k];
+            J12101     = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J12101    *eft_spectra_contribution_num + index_part][index_mu_k];
+            J11201     = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J11201    *eft_spectra_contribution_num + index_part][index_mu_k];
+            J21101     = mu *        peft->spectra_contributions[index_pk_type][peft->index_J21101    *eft_spectra_contribution_num + index_part][index_mu_k];
+            /** 2-nd RSD moment */
+            J12102    = Plin * (peft->spectra_contributions[index_pk_type][peft->index_J12102x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J12102y   *eft_spectra_contribution_num + index_part][index_mu_k]);
+            J21102    =         peft->spectra_contributions[index_pk_type][peft->index_J21102x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J21102y   *eft_spectra_contribution_num + index_part][index_mu_k];
+            I2211     =         peft->spectra_contributions[index_pk_type][peft->index_I2211     *eft_spectra_contribution_num + index_part][index_mu_k];
+            I1311     = Plin *  peft->spectra_contributions[index_pk_type][peft->index_I1311     *eft_spectra_contribution_num + index_part][index_mu_k];
+            J12111    = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J12111*eft_spectra_contribution_num + index_part][index_mu_k];
+            J11211    = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J11211*eft_spectra_contribution_num + index_part][index_mu_k];
+            J21111    = mu *    peft->spectra_contributions[index_pk_type][peft->index_J21111    *eft_spectra_contribution_num + index_part][index_mu_k];
+            N11       =         peft->spectra_contributions[index_pk_type][peft->index_N11x      *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_N11y      *eft_spectra_contribution_num + index_part][index_mu_k];
+            /** 3-rd RSD moment */
+            J21112 =         peft->spectra_contributions[index_pk_type][peft->index_J21112x*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J21112y*eft_spectra_contribution_num + index_part][index_mu_k];
+            J12112 = Plin * (peft->spectra_contributions[index_pk_type][peft->index_J12112x*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J12112y*eft_spectra_contribution_num + index_part][index_mu_k]);
+            N12    = mu *   (peft->spectra_contributions[index_pk_type][peft->index_N12x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_N12y   *eft_spectra_contribution_num + index_part][index_mu_k]);
+            /** 4-th RSD moment */
+            N22 =          peft->spectra_contributions[index_pk_type][peft->index_N22x*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                + mu*mu * (peft->spectra_contributions[index_pk_type][peft->index_N22y*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                + mu*mu *  peft->spectra_contributions[index_pk_type][peft->index_N22z*eft_spectra_contribution_num + index_part][index_mu_k]);
+            
+            /** - assemble the power spectrum contributions from the RSD moments only from FFTLog loop terms */
+            Prsd0_loop = D4 * 2.*(I2200 + 3.*I1300);
+            Prsd1_loop = D4*f_z * (2.*mu*mu * (2.*I2201 + 3.*I1301p3101)   \
+                                  + 4.*mu*k * (J12101 + J11201 + J21101));
+            Prsd2_loop = D4*f_z*f_z * (mu*mu*k*k * 2.*(2.*J12102 + J21102)
+                                      + 2.*mu*mu*mu*mu * (I2211 + 3.*I1311) + 4.*mu*mu*mu*k * (J12111 + J11211 + J21111) + mu*mu*k*k * N11);
+            Prsd3_loop = D4*f_z*f_z*f_z * (2.*mu*mu*mu*mu*k*k * (J21112 + 2.*J12112) + 2.*mu*mu*mu*k*k*k * N12);
+            Prsd4_loop = D4*f_z*f_z*f_z*f_z * 0.5*mu*mu*mu*mu*k*k*k*k * N22;
+
+            /** - add counterterm contributions to UV-divergent parts */
+            if (index_part == uv_divergence) {
+              Prsd0_loop += D2 * eft_ip.c00 * k*k * Plin;
+              Prsd1_loop += D2*f_z * eft_ip.c10 * mu*mu*k*k * Plin;
+              Prsd2_loop += D2*f_z*f_z * (eft_ip.c20 + eft_ip.c22 * mu*mu) * mu*mu*k*k * Plin;
+              Prsd3_loop += D2*f_z*f_z*f_z * (eft_ip.c30 + eft_ip.c32 * mu*mu) * mu*mu*mu*mu*k*k * Plin;
+              Prsd4_loop += D2*f_z*f_z*f_z*f_z * eft_ip.c42 * mu*mu*mu*mu*mu*mu*k*k * Plin;
+            }
+
+            if (index_part == finite_part) {
+              if (peft->hp->integration_mode == fftlog) {
+                Prsd2_loop += -D4*f_z*f_z * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3. * mu*mu*k*k * Plin;
+                Prsd3_loop += -2.*D4*f_z*f_z*f_z * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3. * mu*mu*mu*mu*k*k * Plin;
+                Prsd4_loop += -D4*f_z*f_z*f_z*f_z * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3. * mu*mu*mu*mu*mu*mu*k*k * Plin;
+              }
+              else {
+                sigmav_mu = peft->spectra_contributions[index_pk_type][peft->index_sigmav_mu*eft_spectra_contribution_num + index_part][index_mu_k];
+                Prsd2_loop += -D4*f_z*f_z * sigmav_mu * mu*mu*k*k * Plin;
+                Prsd3_loop += -2.*D4*f_z*f_z*f_z * sigmav_mu * mu*mu*mu*mu*k*k * Plin;
+                Prsd4_loop += -D4*f_z*f_z*f_z*f_z * sigmav_mu * mu*mu*mu*mu*mu*mu*k*k * Plin;
+              }
+            }
+
+            pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Prsd0_loop + Prsd1_loop + Prsd2_loop + Prsd3_loop + Prsd4_loop;
             break;
 
           case Pdd_hh_real:
+          case Pdd_hh_real_no_IR_resum:
             I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
             I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
             Idelta200       =        peft->spectra_contributions[index_pk_type][peft->index_Idelta200*eft_spectra_contribution_num + index_part][index_mu_k];
@@ -1791,6 +1970,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
             break;
 
           case Pdd_hh_rsd:
+          case Pdd_hh_rsd_no_IR_resum:
             /** 0-th RSD moment */
             I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
             I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
@@ -1876,6 +2056,90 @@ int eft_build_nonlinear_power_spectrum_wedges(
             pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Prsd0_loop + Prsd1_loop + Prsd2_loop + Prsd3_loop + Prsd4_loop;
             break;
 
+          case Pdd_hm_rsd:
+          case Pdd_hm_rsd_no_IR_resum:
+            /** 0-th RSD moment */
+            I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
+            I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
+            Idelta200       =        peft->spectra_contributions[index_pk_type][peft->index_Idelta200*eft_spectra_contribution_num + index_part][index_mu_k];
+            IG200           =        peft->spectra_contributions[index_pk_type][peft->index_IG200*eft_spectra_contribution_num + index_part][index_mu_k];
+            FG200           = Plin * peft->spectra_contributions[index_pk_type][peft->index_FG200*eft_spectra_contribution_num + index_part][index_mu_k];
+            /** 1-st RSD moment */
+            I2201      =             peft->spectra_contributions[index_pk_type][peft->index_I2201     *eft_spectra_contribution_num + index_part][index_mu_k];
+            I1301p3101 = Plin *      peft->spectra_contributions[index_pk_type][peft->index_I1301p3101*eft_spectra_contribution_num + index_part][index_mu_k];
+            Idelta201  =             peft->spectra_contributions[index_pk_type][peft->index_Idelta201 *eft_spectra_contribution_num + index_part][index_mu_k];
+            IG201      =             peft->spectra_contributions[index_pk_type][peft->index_IG201     *eft_spectra_contribution_num + index_part][index_mu_k];
+            FG201      = Plin *      peft->spectra_contributions[index_pk_type][peft->index_FG201     *eft_spectra_contribution_num + index_part][index_mu_k];
+            J12101     = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J12101    *eft_spectra_contribution_num + index_part][index_mu_k];
+            J11201     = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J11201    *eft_spectra_contribution_num + index_part][index_mu_k];
+            J21101     = mu *        peft->spectra_contributions[index_pk_type][peft->index_J21101    *eft_spectra_contribution_num + index_part][index_mu_k];
+            Jdelta201  = mu *        peft->spectra_contributions[index_pk_type][peft->index_Jdelta201 *eft_spectra_contribution_num + index_part][index_mu_k];
+            JG201      = mu *        peft->spectra_contributions[index_pk_type][peft->index_JG201     *eft_spectra_contribution_num + index_part][index_mu_k];
+            /** 2-nd RSD moment */
+            J12102    = Plin * (peft->spectra_contributions[index_pk_type][peft->index_J12102x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J12102y   *eft_spectra_contribution_num + index_part][index_mu_k]);
+            J21102    =         peft->spectra_contributions[index_pk_type][peft->index_J21102x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J21102y   *eft_spectra_contribution_num + index_part][index_mu_k];
+            Jdelta202 =         peft->spectra_contributions[index_pk_type][peft->index_Jdelta202x*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_Jdelta202y*eft_spectra_contribution_num + index_part][index_mu_k];
+            JG202     =         peft->spectra_contributions[index_pk_type][peft->index_JG202x    *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_JG202y    *eft_spectra_contribution_num + index_part][index_mu_k];
+            I2211     =         peft->spectra_contributions[index_pk_type][peft->index_I2211     *eft_spectra_contribution_num + index_part][index_mu_k];
+            I1311     = Plin *  peft->spectra_contributions[index_pk_type][peft->index_I1311     *eft_spectra_contribution_num + index_part][index_mu_k];
+            J12111    = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J12111*eft_spectra_contribution_num + index_part][index_mu_k];
+            J11211    = Plin * mu * peft->spectra_contributions[index_pk_type][peft->index_J11211*eft_spectra_contribution_num + index_part][index_mu_k];
+            J21111    = mu *    peft->spectra_contributions[index_pk_type][peft->index_J21111    *eft_spectra_contribution_num + index_part][index_mu_k];
+            N11       =         peft->spectra_contributions[index_pk_type][peft->index_N11x      *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                      + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_N11y      *eft_spectra_contribution_num + index_part][index_mu_k];
+            /** 3-rd RSD moment */
+            J21112 =         peft->spectra_contributions[index_pk_type][peft->index_J21112x*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J21112y*eft_spectra_contribution_num + index_part][index_mu_k];
+            J12112 = Plin * (peft->spectra_contributions[index_pk_type][peft->index_J12112x*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_J12112y*eft_spectra_contribution_num + index_part][index_mu_k]);
+            N12    = mu *   (peft->spectra_contributions[index_pk_type][peft->index_N12x   *eft_spectra_contribution_num + index_part][index_mu_k]   \
+                   + mu*mu * peft->spectra_contributions[index_pk_type][peft->index_N12y   *eft_spectra_contribution_num + index_part][index_mu_k]);
+            /** 4-th RSD moment */
+            N22 =          peft->spectra_contributions[index_pk_type][peft->index_N22x*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                + mu*mu * (peft->spectra_contributions[index_pk_type][peft->index_N22y*eft_spectra_contribution_num + index_part][index_mu_k]   \
+                + mu*mu *  peft->spectra_contributions[index_pk_type][peft->index_N22z*eft_spectra_contribution_num + index_part][index_mu_k]);
+
+
+            /** - assemble the power spectrum contributions from the RSD moments only from FFTLog loop terms */
+            Prsd0_loop = D4 * (2.*eft_ip.b1 * (I2200 + 3.*I1300) + eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2 * IG200        \
+                              + 4.*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);
+            Prsd1_loop = D4*f_z * (mu*mu * ((1. + eft_ip.b1) * (2.*I2201 + 3.*I1301p3101) + eft_ip.b2 * Idelta201 + 2.*eft_ip.bG2 * IG201 + 4.*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG201)   \
+                                  + 2.*mu*k * (2.*eft_ip.b1 * (J12101 + J11201 + J21101) + 0.5*eft_ip.b2 * Jdelta201 + eft_ip.bG2 * JG201));
+            Prsd2_loop = D4*f_z*f_z * (mu*mu*k*k * ((1. + eft_ip.b1) * (2.*J12102 + J21102) + 0.5*eft_ip.b2 * Jdelta202 + eft_ip.bG2 * JG202)
+                                      + 2.*mu*mu*mu*mu * (I2211 + 3.*I1311) + 2.*mu*mu*mu*k * (1. + eft_ip.b1) * (J12111 + J11211 + J21111) + mu*mu*k*k * eft_ip.b1 * N11);
+            Prsd3_loop = D4*f_z*f_z*f_z * (2.*mu*mu*mu*mu*k*k * (J21112 + 2.*J12112) + mu*mu*mu*k*k*k * (1. + eft_ip.b1) * N12);
+            Prsd4_loop = D4*f_z*f_z*f_z*f_z * 0.5*mu*mu*mu*mu*k*k*k*k * N22;
+
+            /** - add counterterm contributions to UV-divergent parts */
+            if (index_part == uv_divergence) {
+              Prsd0_loop += D2 * eft_ip.c00 * k*k * Plin;
+              Prsd1_loop += D2*f_z * eft_ip.c10 * mu*mu*k*k * Plin;
+              Prsd2_loop += D2*f_z*f_z * (eft_ip.c20 + eft_ip.c22 * mu*mu) * mu*mu*k*k * Plin;
+              Prsd3_loop += D2*f_z*f_z*f_z * (eft_ip.c30 + eft_ip.c32 * mu*mu) * mu*mu*mu*mu*k*k * Plin;
+              Prsd4_loop += D2*f_z*f_z*f_z*f_z * eft_ip.c42 * mu*mu*mu*mu*mu*mu*k*k * Plin;
+            }
+
+            if (index_part == finite_part) {
+              if (peft->hp->integration_mode == fftlog) {
+                Prsd2_loop += -D4*f_z*f_z * (1. + eft_ip.b1)/2. * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3. * mu*mu*k*k * Plin;
+                Prsd3_loop += -D4*f_z*f_z*f_z * (1. + eft_ip.b1) * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3. * mu*mu*mu*mu*k*k * Plin;
+                Prsd4_loop += -D4*f_z*f_z*f_z*f_z * sigma_sq(peft, -1, (enum eft_pk_type)index_pk_type)/3. * mu*mu*mu*mu*mu*mu*k*k * Plin;
+              }
+              else {
+                sigmav_mu = peft->spectra_contributions[index_pk_type][peft->index_sigmav_mu*eft_spectra_contribution_num + index_part][index_mu_k];
+                Prsd2_loop += -D4*f_z*f_z * (1. + eft_ip.b1)/2. * sigmav_mu * mu*mu*k*k * Plin;
+                Prsd3_loop += -2.*D4*f_z*f_z*f_z * (1. + eft_ip.b1) * sigmav_mu * mu*mu*mu*mu*k*k * Plin;
+                Prsd4_loop += -D4*f_z*f_z*f_z*f_z * sigmav_mu * mu*mu*mu*mu*mu*mu*k*k * Plin;
+              }
+            }
+
+            pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Prsd0_loop + Prsd1_loop + Prsd2_loop + Prsd3_loop + Prsd4_loop;
+            break;
+
           default:
             break;
           }
@@ -1912,45 +2176,79 @@ int eft_build_nonlinear_power_spectrum_wedges(
       {
       case Pdd_mm_real:
         pkmu[index_mu*peft->k_size + index_k] = D2 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
-                        + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+                                              + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_mm_real_no_IR_resum:
         pkmu[index_mu*peft->k_size + index_k] = D2 * peft->pk_l[pk_lin][index_mu_k]   \
-                        + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
-        break;
-
-      case Pdd_mm_22:
-      case Pdd_mm_13:
-        pkmu[index_mu*peft->k_size + index_k] = pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
-        break;
-
-      case Pdd_mm_22_no_IR_resum:
-      case Pdd_mm_13_no_IR_resum:
-        pkmu[index_mu*peft->k_size + index_k] = pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+                                              + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_mm_rsd:
-        // TODO
+        if (peft->hp->integration_mode == fftlog) {
+          sigma2_tot_z0 = (1. + f_z*mu*mu*(2. + f_z)) * peft->Sigma2_ir + f_z*f_z*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
+          pkmu[index_mu*peft->k_size + index_k] = D2 * pow(1. + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+                                                  + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
+                                          + exp(-k*k * D2 * sigma2_tot_z0) * (pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
+                                                                            - pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]);
+        }
+        else {
+          pkmu[index_mu*peft->k_size + index_k] = D2 * pow(1. + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+                                                + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        }
+        break;
+
+      case Pdd_mm_rsd_no_IR_resum:
+        pkmu[index_mu*peft->k_size + index_k] = D2 * pow(1. + f_z*mu*mu, 2.) * peft->pk_l[pk_lin][index_mu*peft->k_size + index_k]    \
+                                              + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_hh_real:
         pkmu[index_mu*peft->k_size + index_k] = D2 * eft_ip.b1*eft_ip.b1 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
-                        + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+                                              + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        break;
+
+      case Pdd_hh_real_no_IR_resum:
+        pkmu[index_mu*peft->k_size + index_k] = D2 * eft_ip.b1*eft_ip.b1 * peft->pk_l[pk_lin][index_mu_k]   \
+                                              + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       case Pdd_hh_rsd:
         if (peft->hp->integration_mode == fftlog) {
           sigma2_tot_z0 = (1. + f_z*mu*mu*(2. + f_z)) * peft->Sigma2_ir + f_z*f_z*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
           pkmu[index_mu*peft->k_size + index_k] = D2 * pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
-                                                  + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
+                                                + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
                                           + exp(-k*k * D2 * sigma2_tot_z0) * (pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
                                                                             - pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]);
         }
         else {
           pkmu[index_mu*peft->k_size + index_k] = D2 * pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
-                                                  + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+                                                + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         }
+        break;
+
+      case Pdd_hh_rsd_no_IR_resum:
+        pkmu[index_mu*peft->k_size + index_k] = D2 * pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pk_lin][index_mu*peft->k_size + index_k]    \
+                                                + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        break;
+
+      case Pdd_hm_rsd:
+        if (peft->hp->integration_mode == fftlog) {
+          sigma2_tot_z0 = (1. + f_z*mu*mu*(2. + f_z)) * peft->Sigma2_ir + f_z*f_z*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
+          pkmu[index_mu*peft->k_size + index_k] = D2 * (eft_ip.b1 + (1.+eft_ip.b1)*f_z*mu*mu + f_z*f_z*mu*mu*mu*mu) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+                                                + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
+                                          + exp(-k*k * D2 * sigma2_tot_z0) * (pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
+                                                                            - pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]);
+        }
+        else {
+          pkmu[index_mu*peft->k_size + index_k] = D2 * (eft_ip.b1 + (1.+eft_ip.b1)*f_z*mu*mu + f_z*f_z*mu*mu*mu*mu) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+                                                + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+        }
+        break;
+
+      case Pdd_hm_rsd_no_IR_resum:
+        pkmu[index_mu*peft->k_size + index_k] = D2 * (eft_ip.b1 + (1.+eft_ip.b1)*f_z*mu*mu + f_z*f_z*mu*mu*mu*mu) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
+                                                + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
         break;
 
       default:

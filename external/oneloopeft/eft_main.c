@@ -2371,3 +2371,57 @@ int eft_job_powerspectrum_multipoles(
 
   return _SUCCESS_;
 }
+
+
+
+/**
+ * @brief Provides access to the internal spectra contributions for debugging purposes.
+ *        They are filled after having called eft_job that includes computing the requested contributions.
+ *        All arrays will be allocated with the right sizes.
+ * 
+ * @param peft          Input: pointer to the eft-structure
+ * @param pk_type       Input: type of linear power-spectrum used
+ * @param index_moment  Input: index of the moment (e.g. peft->index_I2200)
+ * @param zout          Output: redshift of the loaded spectra
+ * @param muvec_out     Output: cosine of line-of-sight angles; indexed as muvec_out[index_mu]
+ * @param kvec_Mpc_out  Output: wavenumbers [in 1/Mpc]; indexed as kvec_Mpc_out[index_mu*k_size_out + index_k]
+ * @param mu_size_out   Output: number of line-of-sight angles computed
+ * @param k_size_out    Output: number of wavenumbers computed per line-of-sight
+ * @param out_pkmu      Output: power-spectrum at zout,muvec,kvec; indexed as out_pkmu[index_part][index_mu*k_size_out + index_k]
+ * 
+ * @return the error status
+ */
+int eft_spectra_contributions_output(struct eft * peft,
+                                     enum eft_pk_type pk_type,
+                                     const int index_moment,
+                                     double * zout,
+                                     double * muvec_out,
+                                     double * kvec_Mpc_out,
+                                     double ** out_pkmu) {
+
+  int it, contribution_size;
+
+  contribution_size = peft->spectra_contributions_size[pk_type*peft->index_num + index_moment];
+  class_test(contribution_size <= 0, peft->error_message, "The requested spectra contribution was not initialized!");
+  class_test(contribution_size != peft->mu_size*peft->k_size, peft->error_message, "Internal size mismatch!");
+
+  /** - copy sizes and allocate output arrays */
+  // class_alloc(*muvec_out, peft->mu_size*sizeof(double), peft->error_message);
+  // class_alloc(*kvec_Mpc_out, contribution_size*sizeof(double), peft->error_message);
+  // class_alloc(*out_pkmu, eft_spectra_contribution_num*sizeof(double *), peft->error_message);
+  // for (it = 0; it < eft_spectra_contribution_num; it++) {
+  //   class_alloc(*out_pkmu[it], contribution_size*sizeof(double), peft->error_message);
+  // }
+
+  /** - copy grid and the parts of the spectra contribution */
+  *zout = peft->z0;
+  class_protect_memcpy(muvec_out, peft->mu, peft->mu_size*sizeof(double));
+  for (it = 0; it < contribution_size; it++) {
+    kvec_Mpc_out[it] = exp( peft->ln_k[it] );
+  }
+  for (it = 0; it < eft_spectra_contribution_num; it++) {
+    class_protect_memcpy(out_pkmu[it], peft->spectra_contributions[pk_type][index_moment*eft_spectra_contribution_num + it], contribution_size*sizeof(double));
+  }
+
+  return _SUCCESS_;
+}

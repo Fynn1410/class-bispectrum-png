@@ -3010,11 +3010,11 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        if pkmu_type == 'Pdd_mm_rsd':
-            pk_output_type = Pdd_mm_rsd
-        elif pkmu_type == 'Pdd_hh_rsd':
-            pk_output_type = Pdd_hh_rsd
-        else:
+        pkmu_type_dict = {'Pdd_mm_rsd': Pdd_mm_rsd, 'Pdd_hh_rsd': Pdd_hh_rsd, 'Pdd_hm_rsd': Pdd_hm_rsd,
+                          'Pdd_mm_rsd_no_IR_resummation': Pdd_mm_rsd_no_IR_resum, 'Pdd_hh_rsd_no_IR_resummation': Pdd_hh_rsd_no_IR_resum, 'Pdd_hm_rsd_no_IR_resummation': Pdd_hm_rsd_no_IR_resum}
+        try:
+            pk_output_type = pkmu_type_dict[pkmu_type]
+        except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
 
         # check input consistency
@@ -3137,11 +3137,11 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        if pkmu_type == 'Pdd_mm_rsd':
-            pk_output_type = Pdd_mm_rsd
-        elif pkmu_type == 'Pdd_hh_rsd':
-            pk_output_type = Pdd_hh_rsd
-        else:
+        pkmu_type_dict = {'Pdd_mm_rsd': Pdd_mm_rsd, 'Pdd_hh_rsd': Pdd_hh_rsd, 'Pdd_hm_rsd': Pdd_hm_rsd,
+                          'Pdd_mm_rsd_no_IR_resummation': Pdd_mm_rsd_no_IR_resum, 'Pdd_hh_rsd_no_IR_resummation': Pdd_hh_rsd_no_IR_resum, 'Pdd_hm_rsd_no_IR_resummation': Pdd_hm_rsd_no_IR_resum}
+        try:
+            pk_output_type = pkmu_type_dict[pkmu_type]
+        except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
 
         # check input consistency
@@ -3297,11 +3297,11 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        if pkmu_type == 'Pdd_mm_rsd':
-            pk_output_type = Pdd_mm_rsd
-        elif pkmu_type == 'Pdd_hh_rsd':
-            pk_output_type = Pdd_hh_rsd
-        else:
+        pkmu_type_dict = {'Pdd_mm_rsd': Pdd_mm_rsd, 'Pdd_hh_rsd': Pdd_hh_rsd, 'Pdd_hm_rsd': Pdd_hm_rsd,
+                          'Pdd_mm_rsd_no_IR_resummation': Pdd_mm_rsd_no_IR_resum, 'Pdd_hh_rsd_no_IR_resummation': Pdd_hh_rsd_no_IR_resum, 'Pdd_hm_rsd_no_IR_resummation': Pdd_hm_rsd_no_IR_resum}
+        try:
+            pk_output_type = pkmu_type_dict[pkmu_type]
+        except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
 
         # check input consistency
@@ -3432,11 +3432,11 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        if pkl_type == 'Pdd_mm_rsd':
-            pk_output_type = Pdd_mm_rsd
-        elif pkl_type == 'Pdd_hh_rsd':
-            pk_output_type = Pdd_hh_rsd
-        else:
+        pkl_type_dict = {'Pdd_mm_rsd': Pdd_mm_rsd, 'Pdd_hh_rsd': Pdd_hh_rsd, 'Pdd_hm_rsd': Pdd_hm_rsd,
+                         'Pdd_mm_rsd_no_IR_resummation': Pdd_mm_rsd_no_IR_resum, 'Pdd_hh_rsd_no_IR_resummation': Pdd_hh_rsd_no_IR_resum, 'Pdd_hm_rsd_no_IR_resummation': Pdd_hm_rsd_no_IR_resum}
+        try:
+            pk_output_type = pkl_type_dict[pkl_type]
+        except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkl_type)
 
         # check input consistency
@@ -3448,10 +3448,11 @@ make        nonlinear_scale_cb(z, z_size)
 
         for index_z in range(z_size):
             # fill input structures
-            eft_ip[index_z].b1 = biases[index_z, 0]
-            eft_ip[index_z].b2 = biases[index_z, 1]
-            eft_ip[index_z].bG2 = biases[index_z, 2]
-            eft_ip[index_z].btd = biases[index_z, 3]
+            if ((pk_output_type != Pdd_mm_rsd) and (pk_output_type != Pdd_mm_rsd_no_IR_resum)):
+                eft_ip[index_z].b1 = biases[index_z, 0]
+                eft_ip[index_z].b2 = biases[index_z, 1]
+                eft_ip[index_z].bG2 = biases[index_z, 2]
+                eft_ip[index_z].btd = biases[index_z, 3]
             eft_ip[index_z].c00 = counterterms[index_z, 0]
             eft_ip[index_z].c10 = counterterms[index_z, 1]
             eft_ip[index_z].c20 = counterterms[index_z, 2]
@@ -3530,12 +3531,12 @@ make        nonlinear_scale_cb(z, z_size)
         # cdef double* out_pkmu_p = <double*>malloc(mu_size * k_size * sizeof(double))
         cdef eft* peft = self.fo.peft
 
-        if pkmu_type == 'pkmu_rsd_ir_resummed_lo':
-            index_pk_type = pkmu_rsd_ir_resummed_lo
-        elif pkmu_type == 'pkmu_rsd_ir_resummed_nlo':
-            index_pk_type = pkmu_rsd_ir_resummed_nlo
-        else:
-            raise CosmoSevereError("%s was not recognized as an eft_pk_type" % pkmu_type)
+        pkmu_type_loop_dict = {'Pk_linear': pk_lin, 'Pk_nowiggle': pk_nowiggle, 'Pk_IR_resummed_LO': pk_ir_resummed_lo,
+                             'Pkmu_RSD_IR_resummed_LO': pkmu_rsd_ir_resummed_lo, 'Pk_IR_resummed_LO': pk_ir_resummed_nlo, 'Pkmu_RSD_IR_resummed_NLO': pkmu_rsd_ir_resummed_nlo}
+        try:
+            index_pk_type = pkmu_type_loop_dict[pkmu_type]
+        except KeyError:
+            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
 
         # loop over z values (in decreasing order, although the order does not matter)
         for index_z in reversed(range(z_size)):
@@ -3646,17 +3647,20 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        if pk_type == 'Pdd_mm_real':
-            pk_output_type = Pdd_mm_real
+        pk_type_dict = {'Pdd_mm_real': Pdd_mm_real, 'Pdd_hh_real': Pdd_hh_real, 
+                        'Pdd_mm_real_no_IR_resummation': Pdd_mm_real_no_IR_resum, 'Pdd_hh_real_no_IR_resummation': Pdd_hh_real_no_IR_resum}
+        try:
+            pk_output_type = pk_type_dict[pk_type]
+        except KeyError:
+            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_type)
 
+        if (pk_output_type == Pdd_mm_real) or (pk_output_type == Pdd_mm_real_no_IR_resum):
             for index_z in range(z_size):
                 # fill input structures
                 eft_ip[index_z].cs2 = counterterms[index_z, 0]
                 eft_ip[index_z].has_rsd = 0
 
-        elif pk_type == 'Pdd_hh_real':
-            pk_output_type = Pdd_hh_real
-
+        elif (pk_output_type == Pdd_hh_real) or (pk_output_type == Pdd_hh_real_no_IR_resum):
             for index_z in range(z_size):
                 # fill input structures
                 eft_ip[index_z].b1 = biases[index_z, 0]
@@ -3666,45 +3670,8 @@ make        nonlinear_scale_cb(z, z_size)
                 eft_ip[index_z].cs2 = counterterms[index_z, 0]
                 eft_ip[index_z].R2  = counterterms[index_z, 1]
                 eft_ip[index_z].has_rsd = 0
-
-        elif pk_type == 'Pdd_mm_real_no_IR_resummation':
-            pk_output_type = Pdd_mm_real_no_IR_resum
-
-            for index_z in range(z_size):
-                # fill input structures
-                eft_ip[index_z].cs2 = counterterms[index_z, 0]
-                eft_ip[index_z].has_rsd = 0
-
-        elif pk_type == 'Pdd_mm_22':
-            pk_output_type = Pdd_mm_22
-
-            for index_z in range(z_size):
-                # fill input structures
-                eft_ip[index_z].has_rsd = 0
-
-        elif pk_type == 'Pdd_mm_13':
-            pk_output_type = Pdd_mm_13
-
-            for index_z in range(z_size):
-                # fill input structures
-                eft_ip[index_z].has_rsd = 0
-
-        elif pk_type == 'Pdd_mm_22_no_IR_resummation':
-            pk_output_type = Pdd_mm_22_no_IR_resum
-
-            for index_z in range(z_size):
-                # fill input structures
-                eft_ip[index_z].has_rsd = 0
-
-        elif pk_type == 'Pdd_mm_13_no_IR_resummation':
-            pk_output_type = Pdd_mm_13_no_IR_resum
-
-            for index_z in range(z_size):
-                # fill input structures
-                eft_ip[index_z].has_rsd = 0
-
         else:
-            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_type)
+            raise CosmoSevereError("No biases loaded for pk_type = %s" % pk_type)
 
         # check input consistency
         if (k.shape[0] != z_size):
@@ -3743,6 +3710,90 @@ make        nonlinear_scale_cb(z, z_size)
         free(eft_ip)
 
         return out_pkz
+    
+###################
+
+    def eft_pkmu_rsd_grid(self,   \
+                  z,
+                  pk_type_loop,
+                  index_moment):
+        """
+        eft_pkmu_rsd_grid(mu, k, z, biases, counterterms, pkmu_type, (opt) As_correction)
+
+        Returns the oneloop power spectrum P_oneloop(k,mu,z)
+
+        Input parameters
+        ----------------
+        mu      : numpy array of mu values, indexed as mu[index_z, index_mu]
+        k       : numpy array of k values, indexed as k[index_z, index_mu, index_k]
+        z       : numpy array of z values, indexed as z[index_z]
+        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
+        biases : input: numpy array of biases [b1,b2,bG2,btd]
+        counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+
+        Returns:
+        --------
+        out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z, index_mu, index_k]
+
+        """
+
+        # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
+        cdef int mu_size, k_size, index_eft
+        cdef eft* peft = self.fo.peft
+        
+        # find the nearest eft structure
+        eft_nearest_structure_in_time(self.fo.peft,
+                                      self.fo.eft_size,
+                                      &self.ba,
+                                      &self.fo,
+                                      z,
+                                      &index_eft,
+                                      peft,
+                                      self.fo.peft[0].error_message)
+
+        # get mu_size and k_size
+        eft_get_sampling_grid_size(peft,
+                                   &k_size,
+                                   &mu_size)
+
+        cdef np.intp_t[:] out_pkmu_pointer_arr = np.zeros(4, dtype=np.intp)
+        cdef double** out_pkmu_pp = <double**>(<void*> &out_pkmu_pointer_arr[0])
+
+        # allocate output array
+        cdef double zout
+        cdef np.ndarray[DTYPE_t, ndim=2] kvec     = np.zeros((mu_size, k_size), dtype='float64', order='C')
+        cdef np.ndarray[DTYPE_t, ndim=1] muvec    = np.zeros((mu_size), dtype='float64', order='C')
+        cdef np.ndarray[DTYPE_t, ndim=3] out_pkmu = np.zeros((4, mu_size, k_size), dtype='float64', order='C')
+
+        cdef double[::1] mu_view = muvec
+        cdef double[:, ::1] k_view = kvec
+        cdef double[:, :, ::1] out_pkmu_view = out_pkmu
+
+        # fill input type enum
+        cdef eft_pk_type index_pk_type_loop
+
+        pk_type_loop_dict = {'Pk_linear': pk_lin, 'Pk_nowiggle': pk_nowiggle, 'Pk_IR_resummed_LO': pk_ir_resummed_lo,
+                             'Pkmu_RSD_IR_resummed_LO': pkmu_rsd_ir_resummed_lo, 'Pk_IR_resummed_LO': pk_ir_resummed_nlo, 'Pkmu_RSD_IR_resummed_NLO': pkmu_rsd_ir_resummed_nlo}
+        try:
+            index_pk_type_loop = pk_type_loop_dict[pk_type_loop]
+        except KeyError:
+            raise CosmoSevereError("%s was not recognized as a pk_type" % pk_type_loop)
+
+        for index_part in range(4):
+            # assign pointers
+            out_pkmu_pp[index_part] = &out_pkmu_view[index_part, 0, 0]
+        
+        eft_spectra_contributions_output(peft,
+                                         index_pk_type_loop,
+                                         index_moment,
+                                         &zout,
+                                         &mu_view[0],
+                                         &k_view[0, 0],
+                                         out_pkmu_pp)
+
+        return zout, muvec, kvec, out_pkmu
+    
+#################
 
     def get_sources(self):
         """

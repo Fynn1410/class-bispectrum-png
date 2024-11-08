@@ -504,11 +504,11 @@ cdef extern from "class.h":
         int k_size;
         double * mu;
         int mu_size;
-        double * pk_l[6];
-        double * ddpk_l[6];
+        double * pk_l[10];
+        double * ddpk_l[10];
 
         int * spectra_contributions_size;
-        double ** spectra_contributions[6];
+        double ** spectra_contributions[10];
         short * spectra_contributions_dimension;
 
         double * ln_k_moments;
@@ -829,11 +829,12 @@ cdef extern from "header.h":
         Pdd_mm_rsd
         Pdd_hh_real
         Pdd_hh_rsd
+        Pdd_hm_rsd
         Pdd_mm_real_no_IR_resum
-        Pdd_mm_22
-        Pdd_mm_13
-        Pdd_mm_22_no_IR_resum
-        Pdd_mm_13_no_IR_resum
+        Pdd_mm_rsd_no_IR_resum
+        Pdd_hh_real_no_IR_resum
+        Pdd_hh_rsd_no_IR_resum
+        Pdd_hm_rsd_no_IR_resum
         pk_out_type_num
 
     cdef enum eft_arg_type:
@@ -873,6 +874,20 @@ cdef extern from "header.h":
         double * muvec,
         int k_size,
         int mu_size
+        )
+
+    int eft_get_sampling_points(
+        void * peft,
+        double ** kvec_Mpc,
+        double ** muvec,
+        int * k_size,
+        int * mu_size
+        )
+
+    int eft_get_sampling_grid_size(
+        void * peft,
+        int * k_size,
+        int * mu_size
         )
 
     int eft_linear_spectrum_real(
@@ -964,6 +979,16 @@ cdef extern from "header.h":
         double * ap_parallel,
         double * ap_perpendicular,
         double ** out_pkl
+        )
+
+    int eft_spectra_contributions_output(
+        void * peft,
+        int pk_type,
+        int index_moment,
+        double * zout,
+        double * muvec_out,
+        double * kvec_Mpc_out,
+        double ** out_pkmu
         )
 
 cdef extern from "ext_storage.h":

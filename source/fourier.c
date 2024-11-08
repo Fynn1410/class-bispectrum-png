@@ -2247,7 +2247,7 @@ int fourier_init(
       class_alloc(out_pkmu, sizeof(double *), pfo->error_message);
       class_alloc(*out_pkmu, pfo->k_size*sizeof(double), pfo->error_message);
 
-      eft_ip_dummy = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .has_rsd = 0, .c00 = 0., .c10 = 0., .c22 = 0., .c32 = 0., .c20 = 0., .c30 = 0., .c42 = 0., .cs2 = 0., .R2 = 0. };
+      eft_ip_dummy = (struct eft_input_parameters){ .b1 = 1., .b2 = 0., .bG2 = 0., .btd = 0., .cs2 = 0., .R2 = 0., .has_rsd = 0, .c00 = 0., .c10 = 0., .c20 = 0., .c22 = 0., .c30 = 0., .c32 = 0., .c42 = 0. };
 
     /************************ END PRELIMINARY ZONE 1 **********************/
 

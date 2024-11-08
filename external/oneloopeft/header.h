@@ -18,7 +18,7 @@
 
 
 enum eft_pk_type {pk_lin, pk_nowiggle, pk_ir_resummed_lo, pkmu_rsd_ir_resummed_lo, pk_ir_resummed_nlo, pkmu_rsd_ir_resummed_nlo, pk_type_num};
-enum eft_pk_out_type {Pdd_mm_real, Pdd_mm_rsd, Pdd_hh_real, Pdd_hh_rsd, Pdd_mm_real_no_IR_resum, Pdd_mm_22, Pdd_mm_13, Pdd_mm_22_no_IR_resum, Pdd_mm_13_no_IR_resum, pk_out_type_num};
+enum eft_pk_out_type {Pdd_mm_real, Pdd_mm_rsd, Pdd_hh_real, Pdd_hh_rsd, Pdd_hm_rsd, Pdd_mm_real_no_IR_resum, Pdd_mm_rsd_no_IR_resum, Pdd_hh_real_no_IR_resum, Pdd_hh_rsd_no_IR_resum, Pdd_hm_rsd_no_IR_resum, pk_out_type_num};
 enum eft_arg_type {points, cartesian_product};
 enum eft_spectra_contribution {finite_part, uv_divergence, ir_divergence, pole_divergence, eft_spectra_contribution_num};
 enum sym_type {no_finite_part, sym_vec, sym_mat_none, sym_mat_symmetric};
@@ -51,15 +51,16 @@ static inline int eft_rsd_out_indicator(enum eft_pk_out_type pk_out_type) {
   case Pdd_mm_real:
   case Pdd_mm_real_no_IR_resum:
   case Pdd_hh_real:
-  case Pdd_mm_22:
-  case Pdd_mm_13:
-  case Pdd_mm_22_no_IR_resum:
-  case Pdd_mm_13_no_IR_resum:
+  case Pdd_hh_real_no_IR_resum:
     return _FALSE_;
     break;
 
   case Pdd_mm_rsd:
+  case Pdd_mm_rsd_no_IR_resum:
   case Pdd_hh_rsd:
+  case Pdd_hh_rsd_no_IR_resum:
+  case Pdd_hm_rsd:
+  case Pdd_hm_rsd_no_IR_resum:
     return _TRUE_;
     break;
 
@@ -431,6 +432,16 @@ int eft_job_powerspectrum_multipoles(
         const double * ap_parallel,
         const double * ap_perpendicular,
         double ** out_pkl
+        );
+
+int eft_spectra_contributions_output(
+        struct eft * peft,
+        enum eft_pk_type pk_type,
+        const int index_moment,
+        double * zout,
+        double * muvec_out,
+        double * kvec_Mpc_out,
+        double ** out_pkmu
         );
 
 #include "infrared_resummation.h"

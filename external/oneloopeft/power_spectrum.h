@@ -41,6 +41,20 @@ int eft_set_sampling_points_mu_only(
                       const int mu_size
                       );
 
+int eft_get_sampling_points(
+                      struct eft * peft,
+                      double ** kvec_Mpc,
+                      double ** muvec,
+                      int * k_size,
+                      int * mu_size
+                      );
+
+int eft_get_sampling_grid_size(
+                      struct eft * peft,
+                      int * k_size,
+                      int * mu_size
+                      );
+
 int eft_allocate_spectra_contributions(
                       struct eft * peft,
                       const int size,
