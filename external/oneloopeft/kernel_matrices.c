@@ -650,58 +650,69 @@ static class_complex (*loop_mat[NUM_MOMENTS])(const class_complex * const n)    
 
 int eft_compute_loop_matrices(struct eft * peft) {
 
-  int index_moment, it1, it2, use_tracer;
+  int index_moment;
 
-  class_complex n[2];
-  double * const n1_real = (double *)&(n[0]);
-  double * const n1_imag = (double *)&(n[0]) + 1;
-  double * const n2_real = (double *)&(n[1]);
-  double * const n2_imag = (double *)&(n[1]) + 1;
+  {
+    class_setup_parallel();
+    for (index_moment = 0; index_moment < peft->index_num; index_moment++) {
+      class_run_parallel( \
+        =,
+        int it1;
+        int it2;
+        int use_tracer;
+        class_complex n[2];
+        double * const n1_real = (double *)&(n[0]);
+        double * const n1_imag = (double *)&(n[0]) + 1;
+        double * const n2_real = (double *)&(n[1]);
+        double * const n2_imag = (double *)&(n[1]) + 1;
 
-  for (index_moment = 0; index_moment < peft->index_num; index_moment++) {
-    use_tracer = peft->use_tracer[index_moment];  // must be set for each individual moment
-    /** - generate matrices for different symmetry types in LAPACK-compatible storage schemes */
-    switch (peft->symmetry[index_moment])
-    {
-    case no_finite_part:
-      break;
+        use_tracer = peft->use_tracer[index_moment];  // must be set for each individual moment
+        /** - generate matrices for different symmetry types in LAPACK-compatible storage schemes */
+        switch (peft->symmetry[index_moment])
+          {
+          case no_finite_part:
+            break;
 
-    case sym_vec:
-      *n1_real = -0.5 * peft->hp->bias[use_tracer];
-      for (it1 = 0; it1 < peft->hp->fourier_coeff_size; it1++) {
-        *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
-        peft->loop_matrices[index_moment][it1] = (*loop_mat[index_moment])((const class_complex * const)&n);
-      }
-      break;
+          case sym_vec:
+            *n1_real = -0.5 * peft->hp->bias[use_tracer];
+            for (it1 = 0; it1 < peft->hp->fourier_coeff_size; it1++) {
+              *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
+              peft->loop_matrices[index_moment][it1] = (*loop_mat[index_moment])((const class_complex * const)&n);
+            }
+            break;
 
-    case sym_mat_none:
-      *n1_real = -0.5 * peft->hp->bias[use_tracer];
-      *n2_real = -0.5 * peft->hp->bias[use_tracer];
-      for (it2 = 0; it2 < peft->hp->fourier_coeff_size; it2++) {  /** - row-major array is best filled in this order */
-        for (it1 = 0; it1 < peft->hp->fourier_coeff_size; it1++) {
-          *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
-          *n2_imag = -0.5 * peft->fourier_frequencies[use_tracer][it2];
-          peft->loop_matrices[index_moment][it1 + it2*peft->hp->fourier_coeff_size] = (*loop_mat[index_moment])((const class_complex * const)&n);
-        }
-      }
-      break;
+          case sym_mat_none:
+            *n1_real = -0.5 * peft->hp->bias[use_tracer];
+            *n2_real = -0.5 * peft->hp->bias[use_tracer];
+            for (it2 = 0; it2 < peft->hp->fourier_coeff_size; it2++) {  /** - row-major array is best filled in this order */
+              for (it1 = 0; it1 < peft->hp->fourier_coeff_size; it1++) {
+                *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
+                *n2_imag = -0.5 * peft->fourier_frequencies[use_tracer][it2];
+                peft->loop_matrices[index_moment][it1 + it2*peft->hp->fourier_coeff_size] = (*loop_mat[index_moment])((const class_complex * const)&n);
+              }
+            }
+            break;
 
-    case sym_mat_symmetric:
-      *n1_real = -0.5 * peft->hp->bias[use_tracer];
-      *n2_real = -0.5 * peft->hp->bias[use_tracer];
-      for (it2 = 0; it2 < peft->hp->fourier_coeff_size; it2++) {
-        for (it1 = 0; it1 <= it2; it1++) {
-          *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
-          *n2_imag = -0.5 * peft->fourier_frequencies[use_tracer][it2];
-          /** - upper-triangular packed storage */
-          peft->loop_matrices[index_moment][it1 + it2*(it2+1)/2] = (*loop_mat[index_moment])((const class_complex * const)&n);
-        }
-      }
-      break;
+          case sym_mat_symmetric:
+            *n1_real = -0.5 * peft->hp->bias[use_tracer];
+            *n2_real = -0.5 * peft->hp->bias[use_tracer];
+            for (it2 = 0; it2 < peft->hp->fourier_coeff_size; it2++) {
+              for (it1 = 0; it1 <= it2; it1++) {
+                *n1_imag = -0.5 * peft->fourier_frequencies[use_tracer][it1];
+                *n2_imag = -0.5 * peft->fourier_frequencies[use_tracer][it2];
+                /** - upper-triangular packed storage */
+                peft->loop_matrices[index_moment][it1 + it2*(it2+1)/2] = (*loop_mat[index_moment])((const class_complex * const)&n);
+              }
+            }
+            break;
 
-    default:
-       break;
+          default:
+            break;
+          }
+        return _SUCCESS_;
+                          );
     }
+    class_finish_parallel();
   }
 
   return _SUCCESS_;
