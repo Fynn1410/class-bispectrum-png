@@ -38,7 +38,7 @@ int eft_ln_pk_nw_gfilter(
                       double * ln_pknw_array) {
 
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, last_index;
-  double ln_pk0_z, k0, smoothing_scale;
+  double ln_pk0_z, k0;
   double *pk_approx_f, *intg_splines, *intg_result;
 
   /** - define indices for the spline array */
@@ -54,13 +54,18 @@ int eft_ln_pk_nw_gfilter(
   k0 = pfo->k[index_k0];
 
   /** - compute the Eisenstein-Hu approximation to the nowiggle power spectrum */
-  for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
-    pk_approx_f[it_q] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_q], k0);
-
-    /** - also write the array of x-values for splining */
-    intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
+  {
+    class_setup_parallel();
+    for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
+      class_run_parallel( \
+        =,
+        pk_approx_f[it_q] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_q], k0);
+        intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
+        return _SUCCESS_;
+                          );
+    }
+    class_finish_parallel();
   }
-
 
   /** - compute the gaussian window integral at every tau */
   for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++)
@@ -86,30 +91,39 @@ int eft_ln_pk_nw_gfilter(
                   pfo->error_message);
 
     /** - integrate the same function with different windows */
-    for (it_k = 0; it_k < k_size; it_k++)
     {
-      /** - compute the running smoothing scale */
-      smoothing_scale = gfilter_smoothing_scale(pfo->ln_k[index_kmin + it_k]);
-      // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((pfo->ln_k[index_kmin + it_k] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
+      class_setup_parallel();
+      for (it_k = 0; it_k < k_size; it_k++) {
+        class_run_parallel( \
+          =,
+          int smoothing_scale;
 
-      /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
-      class_call(array_integrate_all_spline_gaussian_window(intg_splines,
-                                                            index_num,
-                                                            pfo->k_size_extra,
-                                                            index_x,
-                                                            index_y,
-                                                            index_ddy,
-                                                            pfo->ln_k[index_kmin + it_k],
-                                                            smoothing_scale,
-                                                            intg_result + it_k,
-                                                            pfo->error_message),
-                  pfo->error_message,
-                  pfo->error_message);
+          /** - compute the running smoothing scale */
+          smoothing_scale = gfilter_smoothing_scale(pfo->ln_k[index_kmin + it_k]);
+          // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((pfo->ln_k[index_kmin + it_k] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
 
-      //fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num + index_ddy], intg_result[it_k]);
+          /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
+          class_call(array_integrate_all_spline_gaussian_window(intg_splines,
+                                                                index_num,
+                                                                pfo->k_size_extra,
+                                                                index_x,
+                                                                index_y,
+                                                                index_ddy,
+                                                                pfo->ln_k[index_kmin + it_k],
+                                                                smoothing_scale,
+                                                                intg_result + it_k,
+                                                                pfo->error_message),
+                     pfo->error_message,
+                     pfo->error_message);
 
-      /** - multiply with prefactors and take log */
-      intg_result[it_k] = log( pk_approx_f[index_kmin + it_k] * intg_result[it_k] ) + ln_pk0_z;
+          //fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num + index_ddy], intg_result[it_k]);
+
+          /** - multiply with prefactors and take log */
+          intg_result[it_k] = log( pk_approx_f[index_kmin + it_k] * intg_result[it_k] ) + ln_pk0_z;
+          return _SUCCESS_;
+                            );
+      }
+      class_finish_parallel();
     }
 
     /** - write to output array */
