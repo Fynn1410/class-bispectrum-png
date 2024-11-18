@@ -1269,75 +1269,75 @@ int array_spline_table_columns_parallel(
   class_test(x_size < 3, errmsg, "%s(L:%d) there is no spline with less than 3 points", __func__, __LINE__);
 
   switch (spline_mode)
-  {
-  case _SPLINE_NATURAL_:
-    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
-    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
     {
-      class_setup_parallel();
+    case _SPLINE_NATURAL_:
+      class_alloc(super, (x_size-1)*sizeof(double), errmsg);
+      class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
+      //{
+      //class_setup_parallel();
       for (index_y=0; index_y < y_size; index_y++) {
-        class_run_parallel( \
-          =,
-          array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, errmsg);
-          return _SUCCESS_;
-                            );
+        //class_run_parallel(                   \
+        // =,
+        array_spline_internal_natural(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, errmsg);
+        //return _SUCCESS_;
+        //                  );
       }
-      class_finish_parallel();
-    }
-    free(super);
-    free(constants);
-    break;
+      //class_finish_parallel();
+      //}
+      free(super);
+      free(constants);
+      break;
 
-  case _SPLINE_EST_DERIV_:
-    class_alloc(super, (x_size-1)*sizeof(double), errmsg);
-    class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
-    {
-      class_setup_parallel();
+    case _SPLINE_EST_DERIV_:
+      class_alloc(super, (x_size-1)*sizeof(double), errmsg);
+      class_alloc(constants, (x_size-1)*sizeof(double), errmsg);
+      //{
+      //class_setup_parallel();
       for (index_y=0; index_y < y_size; index_y++) {
-        class_run_parallel( \
-          =,
-          double dy_first;
-          double dy_last;
-          array_spline_internal_hermite(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, \
-                                        _TRUE_, &dy_first, &dy_last, errmsg);
-          return _SUCCESS_;
-                            );
+        //class_run_parallel(                   \
+        //=,
+        double dy_first;
+        double dy_last;
+        array_spline_internal_hermite(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size, super, constants, \
+                                      _TRUE_, &dy_first, &dy_last, errmsg);
+        //return _SUCCESS_;
+        //                  );
       }
-      class_finish_parallel();
-    }
-    free(super);
-    free(constants);
-    break;
+      //class_finish_parallel();
+      //}
+      free(super);
+      free(constants);
+      break;
 
-  case _SPLINE_PERIODIC_:
-    class_alloc(super, (x_size-2)*sizeof(double), errmsg);
-    class_alloc(constants, (x_size-2)*sizeof(double), errmsg);
-    class_alloc(constants_aux, (x_size-2)*sizeof(double), errmsg);
-    class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
-    {
-      class_setup_parallel();
+    case _SPLINE_PERIODIC_:
+      class_alloc(super, (x_size-2)*sizeof(double), errmsg);
+      class_alloc(constants, (x_size-2)*sizeof(double), errmsg);
+      class_alloc(constants_aux, (x_size-2)*sizeof(double), errmsg);
+      class_alloc(sol_aux, (x_size-1)*sizeof(double), errmsg);
+      //{
+      //class_setup_parallel();
       for (index_y=0; index_y < y_size; index_y++) {
-        class_run_parallel( \
-          =,
-          array_spline_internal_periodic(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size-1, super, constants, \
-                                         constants_aux, sol_aux, errmsg);
-          return _SUCCESS_;
-                            );
+        //class_run_parallel(                   \
+        //=,
+        array_spline_internal_periodic(x, 1, y_array+index_y*x_size, 1, ddy_array+index_y*x_size, 1, x_size-1, super, constants, \
+                                       constants_aux, sol_aux, errmsg);
+        //return _SUCCESS_;
+        //                  );
       }
-      class_finish_parallel();
-    }
-    free(super);
-    free(constants);
-    free(constants_aux);
-    free(sol_aux);
-    break;
+      //class_finish_parallel();
+      //}
+      free(super);
+      free(constants);
+      free(constants_aux);
+      free(sol_aux);
+      break;
 
-  default:
-    ErrorMsg errmsg_mode;
-    class_sprintf(errmsg_mode, "Spline mode not identified: %d", spline_mode);
-    class_build_error_string(errmsg, "error; %s", errmsg_mode);
-    break;
-  }
+    default:
+      ErrorMsg errmsg_mode;
+      class_sprintf(errmsg_mode, "Spline mode not identified: %d", spline_mode);
+      class_build_error_string(errmsg, "error; %s", errmsg_mode);
+      break;
+    }
 
   return _SUCCESS_;
 }

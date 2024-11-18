@@ -1819,6 +1819,53 @@ int eft_build_nonlinear_power_spectrum_wedges(
   double * pkmu_loop[pk_type_num*eft_spectra_contribution_num]; /**< nonlinear power spectrum still with separated finite and divergent parts */
   double * mu_real = NULL;
   double D2, D4;
+  int index_pk_type;
+  int index_moment;
+  int index_part_sum;
+  int index_mu_k;
+  double k;
+  double mu;
+  double Plin;
+  double I2200;
+  double I1300;
+  double Idelta200;
+  double IG200;
+  double Idelta2delta200;
+  double IG2G200;
+  double Idelta2G200;
+  double FG200;
+  double I2201;
+  double Idelta201;
+  double IG201;
+  double J21101;
+  double Jdelta201;
+  double JG201;
+  double FG201;
+  double I1301p3101;
+  double J12101;
+  double J11201;
+  double J21102;
+  double Jdelta202;
+  double JG202;
+  double I2211;
+  double J21111;
+  double N11;
+  double J12102;
+  double I1311;
+  double J12111;
+  double J11211;
+  double J21112;
+  double N12;
+  double J12112;
+  double N22;
+  double sigmav_mu;
+  double Preal_loop;
+  double Prsd0_loop;
+  double Prsd1_loop;
+  double Prsd2_loop;
+  double Prsd3_loop;
+  double Prsd4_loop;
+  double sigma2_tot_z0;
 
   if (!peft->hp->use_interpolation) {
     muvec = peft->mu; mu_size = peft->mu_size;
@@ -1881,19 +1928,21 @@ int eft_build_nonlinear_power_spectrum_wedges(
   D4 = pow(D_z/peft->D_z0, 4.) * As_ratio*As_ratio;
 
   /** - compute the loop power spectra of every internal pk_type in the list for every k, mu, still separated into finite, UV, IR and pole parts */
-  {
-    class_setup_parallel();
+  //{
+    //class_setup_parallel();
+    //fprintf(stderr,"In eft_build_nonlinear_power_spectrum_wedges with %d threads\n",task_system.GetNumThreads());
     for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
       for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
         for (index_k = 0; index_k < peft->k_size; index_k++) {
           for (index_mu = 0; index_mu < mu_size; index_mu++) {
-            class_run_parallel( \
-              =,
-              int index_pk_type;
-              int index_moment;
-              int index_mu_k;
-              double k;
-              double mu;
+            //class_run_parallel(               \
+              //=,
+            //int index_pk_type;
+            //int index_moment;
+              //int index_mu_k;
+              //double k;
+              //double mu;
+            /*
               double Plin;
               double I2200;
               double I1300;
@@ -1934,6 +1983,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
               double Prsd2_loop;
               double Prsd3_loop;
               double Prsd4_loop;
+            */
 
               index_pk_type = pk_types_loops[index_list];
 
@@ -2223,51 +2273,51 @@ int eft_build_nonlinear_power_spectrum_wedges(
                 default:
                   break;
                 }
-              return _SUCCESS_;
-                                );
+              //return _SUCCESS_;
+              //                  );
           }
         }
       }
     }
-    class_finish_parallel();
-  }
+    //class_finish_parallel();
+    //}
 
   /** - sum the parts of the power spectrum and accumulate in the last defined part index,
    *    add the finite part last to utilize cancellations between divergent parts */
-  {
-    class_setup_parallel();
+  //{
+    //class_setup_parallel();
     for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
       for (index_mu = 0; index_mu < mu_size; index_mu++) {
         for (index_k = 0; index_k < peft->k_size; index_k++) {
-          class_run_parallel( \
-            =,
-            int index_pk_type;
-            int index_part_sum;
+          //class_run_parallel(                 \
+            //=,
+          //int index_pk_type;
+          //int index_part_sum;
             index_pk_type = pk_types_loops[index_list];
 
             for (index_part_sum = eft_spectra_contribution_num-2; index_part_sum >= 0; index_part_sum--) {
               pkmu_loop[index_pk_type*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k] \
                 += pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part_sum][index_mu*peft->k_size + index_k];
             }
-            return _SUCCESS_;
-                              );
+            //return _SUCCESS_;
+            //                  );
         }
       }
-    }
-    class_finish_parallel();
+      //}
+    //class_finish_parallel();
   }
 
   /** - combine with the linear spectra to produce the full spectrum with loop corrections */
-  {
-    class_setup_parallel();
+  //{
+    //class_setup_parallel();
     for (index_mu = 0; index_mu < mu_size; index_mu++) {
       for (index_k = 0; index_k < peft->k_size; index_k++) {
-        class_run_parallel( \
-          =,
-          int index_mu_k;
-          double k;
-          double mu;
-          double sigma2_tot_z0;
+        //class_run_parallel(                   \
+          //=,
+        //int index_mu_k;
+        // double k;
+        // double mu;
+        //  double sigma2_tot_z0;
 
           if (peft->hp->use_interpolation) { index_mu_k = index_k; }
           else { index_mu_k = index_mu*peft->k_size + index_k; }
@@ -2357,12 +2407,12 @@ int eft_build_nonlinear_power_spectrum_wedges(
             default:
               break;
             }
-          return _SUCCESS_;
-                            );
+          //return _SUCCESS_;
+          //                  );
       }
     }
-    class_finish_parallel();
-  }
+    //class_finish_parallel();
+    //}
 
   for (index_list = 0; index_list < pk_types_loops_size; index_list++) {
     for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {

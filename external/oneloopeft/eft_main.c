@@ -7,6 +7,8 @@
 */
 
 #include "header.h"
+//#include "time.h"
+//#include "sys/time.h"
 
 int eft_spline_sample_points_nonuniform(
                     const double k_min,
@@ -1522,6 +1524,21 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
   int sorted_indexvec[z_size];
   double sorted_zvec[z_size], sorted_f_zvec[z_size], sorted_D_zvec[z_size];
   ErrorMsg errmsg;
+  /*
+  clock_t c_start,c_end;
+  struct timeval begin, end;
+  struct timeval end_pr;
+  struct timeval z1,z2,z3,z4,z5,z6,z7,z8,z9,z10,z11,z12;
+  long seconds;
+  long microseconds;
+  double elapsed;
+  */
+  int last_index_p;
+  int index_k_p;
+  double ln_k_p;
+
+  //c_start = clock();
+  //gettimeofday(&begin, 0);
 
   /** - sort the redshift array in increasing order */
   for (index_z = 0; index_z < z_size; index_z++) {
@@ -1547,7 +1564,12 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                 errmsg, peft0->error_message);
   }
 
+  //gettimeofday(&end_pr, 0);
+
   for (index_z_sort = 0; index_z_sort < z_size; index_z_sort++) {  /** - main z-loop */
+
+    //gettimeofday(&z1, 0);
+
     index_eft = index_eft_min_dist[index_z_sort];
 
     peft = peft0 + index_eft;
@@ -1571,17 +1593,23 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                   peft->error_message, peft->error_message);
     }
 
+    //gettimeofday(&z2, 0);
+
     class_call(eft_necessary_spectra_contributions(peft,
                                                    pk_out_type,
                                                    &list_spectra_contributions,
                                                    &list_spectra_contributions_size),
                peft->error_message, peft->error_message);
 
+    //gettimeofday(&z3, 0);
+
     class_call(eft_necessary_pk_types_loops(peft,
                                             pk_out_type,
                                             &list_pk_types_loops,
                                             &list_pk_types_loops_size),
                peft->error_message, peft->error_message);
+
+    //gettimeofday(&z4, 0);
 
     /** - compile a list of pk_types of which to compute the Fourier transform,
      *    if use_interpolation = FALSE then this list will contain all of list_pk_types_loops */
@@ -1595,6 +1623,8 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
       }
     }
 
+    //gettimeofday(&z5, 0);
+
     class_alloc(list_spectra_contributions_not_loaded, list_spectra_contributions_size*sizeof(int), peft->error_message);
     list_spectra_contributions_not_loaded_size = 0;
     for (index_list = 0; index_list < list_spectra_contributions_size; index_list++) {
@@ -1603,6 +1633,8 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
         list_spectra_contributions_not_loaded[list_spectra_contributions_not_loaded_size++] = index_spectra_contribution;
       }
     }
+
+    //gettimeofday(&z6, 0);
 
     /* load the spectra at the latest redshift in sub_zvec */
     z = zvec[index_z];
@@ -1633,6 +1665,13 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                          1),
                   peft->error_message, peft->error_message);
     }
+    /*
+    else {
+      fprintf(stderr,"Did not go there\n");
+    }
+    */
+
+    //gettimeofday(&z7, 0);
 
     /** - allocate arrays for the necessary spectra_contributions */
     class_call(eft_allocate_spectra_contributions(peft,
@@ -1640,6 +1679,8 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                   list_spectra_contributions,
                                                   list_spectra_contributions_size),
                 peft->error_message, peft->error_message);
+
+    //gettimeofday(&z8, 0);
 
     if (eft_hp->integration_mode == fftlog) {
       /** - then compute the spectra_contributions that are not yet loaded */
@@ -1673,6 +1714,8 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     }
     else { class_stop(peft->error_message, "EFT integration mode not recognized, was %d", eft_hp->integration_mode); }
 
+    //gettimeofday(&z9, 0);
+
     if (eft_hp->use_interpolation) {
       class_realloc(pkmu_nl, peft->k_size*mu_sizevec[index_z]*sizeof(double),
                     peft->error_message);
@@ -1697,6 +1740,8 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                          pkmu_out),
                 peft->error_message, peft->error_message);
 
+    //gettimeofday(&z10, 0);
+
     /** - spline the output power spectrum and interpolate */
     if (eft_hp->use_interpolation) {
       class_call(array_spline_table_columns_parallel(peft->ln_k,
@@ -1708,7 +1753,10 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                      peft->error_message),
                   peft->error_message, peft->error_message);
 
+      //gettimeofday(&z11, 0);
+
       if (ddout_pkmu) { /** - output the spline */
+        fprintf(stderr,"Here\n");
         class_test(ddout_pkmu[index_z], peft->error_message, "The spline moment array must be allocated on the top-level, i.e. ddout_pkmu[index_z] must be a valid address.")
         /** - overwrite the k-grid */
         k_sizevec[index_z] = peft->k_size;
@@ -1727,48 +1775,130 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
         class_protect_memcpy(ddout_pkmu[index_z], ddpkmu_nl, k_sizevec[index_z]*mu_sizevec[index_z]*sizeof(double));
       }
       else {  /** - interpolate to kvec */
-        {
-          class_setup_parallel();
-          for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
-            for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
-              class_run_parallel( \
-                =,
-                int last_index_p = 0;
-                double ln_k_p;
-                ln_k_p = log(kvec[index_z][index_mu*k_sizevec[index_z] + index_k]);
-                if ((ln_k_p >= peft->ln_k[0]) && (ln_k_p <= peft->ln_k[peft->k_size-1])) {
-                  array_interpolate_spline_growing_closeby(peft->ln_k,
-                                                           peft->k_size,
-                                                           pkmu_nl + index_mu*peft->k_size,
-                                                           ddpkmu_nl + index_mu*peft->k_size,
-                                                           1,
-                                                           ln_k_p,
-                                                           &last_index_p,
-                                                           &(out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k]),
-                                                           1,
-                                                           peft->error_message);
-                }
-                else {
-                  out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k] = 0.;
-                }
-                return _SUCCESS_;
-                                  );
+        //fprintf(stderr,"There\n");
+        //{
+        //class_setup_parallel();
+        //fprintf(stderr,"In eft_job_powerspectrum_wedges_ext_growth_rate with %d threads\n",task_system.GetNumThreads());
+        for (index_mu = 0; index_mu < mu_sizevec[index_z]; index_mu++) {
+          //for (index_k = 0; index_k < k_sizevec[index_z]; index_k++) {
+          //class_run_parallel(                 \
+          //=,
+          //int last_index_p = 0;
+          //int index_k_p;
+          //double ln_k_p;
+          last_index_p = 0;
+          for (index_k_p = 0; index_k_p < k_sizevec[index_z]; index_k_p++) {
+            ln_k_p = log(kvec[index_z][index_mu*k_sizevec[index_z] + index_k_p]);
+            if ((ln_k_p >= peft->ln_k[0]) && (ln_k_p <= peft->ln_k[peft->k_size-1])) {
+              array_interpolate_spline_growing_closeby(peft->ln_k,
+                                                       peft->k_size,
+                                                       pkmu_nl + index_mu*peft->k_size,
+                                                       ddpkmu_nl + index_mu*peft->k_size,
+                                                       1,
+                                                       ln_k_p,
+                                                       &last_index_p,
+                                                       &(out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k_p]),
+                                                       1,
+                                                       peft->error_message);
+            }
+            else {
+              out_pkmu[index_z][index_mu*k_sizevec[index_z] + index_k_p] = 0.;
             }
           }
-          class_finish_parallel();
+          //return _SUCCESS_;
+          //                  );
         }
+        //class_finish_parallel();
+        //}
       }
     }
+
+    //gettimeofday(&z12, 0);
 
     free(list_pk_types_loops);
     free(list_pk_types_loops_not_loaded);
     free(list_spectra_contributions);
     free(list_spectra_contributions_not_loaded);
 
+    /*
+    seconds = z2.tv_sec - z1.tv_sec;
+    microseconds = z2.tv_usec - z1.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z1 - z2 : %.6f s\n",elapsed);
+
+    seconds = z3.tv_sec - z2.tv_sec;
+    microseconds = z3.tv_usec - z2.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z2 - z3 : %.6f s\n",elapsed);
+
+    seconds = z4.tv_sec - z3.tv_sec;
+    microseconds = z4.tv_usec - z3.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z3 - z4 : %.6f s\n",elapsed);
+
+    seconds = z5.tv_sec - z4.tv_sec;
+    microseconds = z5.tv_usec - z4.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z4 - z5 : %.6f s\n",elapsed);
+
+    seconds = z6.tv_sec - z5.tv_sec;
+    microseconds = z6.tv_usec - z5.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z5 - z6 : %.6f s\n",elapsed);
+
+    seconds = z7.tv_sec - z6.tv_sec;
+    microseconds = z7.tv_usec - z6.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z6 - z7 : %.6f s\n",elapsed);
+
+    seconds = z8.tv_sec - z7.tv_sec;
+    microseconds = z8.tv_usec - z7.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z7 - z8 : %.6f s\n",elapsed);
+
+    seconds = z9.tv_sec - z8.tv_sec;
+    microseconds = z9.tv_usec - z8.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z8 - z9 : %.6f s\n",elapsed);
+
+    seconds = z10.tv_sec - z9.tv_sec;
+    microseconds = z10.tv_usec - z9.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z9 - z10: %.6f s\n",elapsed);
+
+    seconds = z11.tv_sec - z10.tv_sec;
+    microseconds = z11.tv_usec - z10.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z10- z11: %.6f s\n",elapsed);
+
+    seconds = z12.tv_sec - z11.tv_sec;
+    microseconds = z12.tv_usec - z11.tv_usec;
+    elapsed = seconds + microseconds*1e-6;
+    fprintf(stderr,"z11- z12: %.6f s\n",elapsed);
+    */
+
   } /** - end of z-loop */
 
   free(pkmu_nl);
   free(ddpkmu_nl);
+
+  /*
+  c_end = clock();
+  gettimeofday(&end, 0);
+  seconds = end.tv_sec - begin.tv_sec;
+  microseconds = end.tv_usec - begin.tv_usec;
+  elapsed = seconds + microseconds*1e-6;
+
+  fprintf(stderr,"In eft_job_powerspectrum_wedges_ext_growth_rate: clock = %.6f s, time = %.6f s\n",
+          (double)(c_end-c_start)/CLOCKS_PER_SEC,
+          elapsed
+          );
+
+  seconds = end_pr.tv_sec - begin.tv_sec;
+  microseconds = end_pr.tv_usec - begin.tv_usec;
+  elapsed = seconds + microseconds*1e-6;
+  fprintf(stderr,"Preambule: %.6f s\n",elapsed);
+  */
 
   return _SUCCESS_;
 }
@@ -2378,7 +2508,7 @@ int eft_job_powerspectrum_multipoles(
  * @brief Provides access to the internal spectra contributions for debugging purposes.
  *        They are filled after having called eft_job that includes computing the requested contributions.
  *        All arrays will be allocated with the right sizes.
- * 
+ *
  * @param peft          Input: pointer to the eft-structure
  * @param pk_type       Input: type of linear power-spectrum used
  * @param index_moment  Input: index of the moment (e.g. peft->index_I2200)
@@ -2388,7 +2518,7 @@ int eft_job_powerspectrum_multipoles(
  * @param mu_size_out   Output: number of line-of-sight angles computed
  * @param k_size_out    Output: number of wavenumbers computed per line-of-sight
  * @param out_pkmu      Output: power-spectrum at zout,muvec,kvec; indexed as out_pkmu[index_part][index_mu*k_size_out + index_k]
- * 
+ *
  * @return the error status
  */
 int eft_spectra_contributions_output(struct eft * peft,
