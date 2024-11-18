@@ -14,7 +14,6 @@
 
 #include "wnw_split.h"
 
-
 /**
  * @brief Compute the nowiggle component of linear matter power spectrum using 1d logarithmic Gaussian filter.
  * @param pba         Input: pointer to background structure
@@ -27,130 +26,6 @@
  * @return the error status
  */
 int eft_ln_pk_nw_gfilter(
-                      struct precision *ppr,
-                      struct background *pba,
-                      struct primordial *ppm,
-                      struct fourier *pfo,
-                      const int index_pk,
-                      const int index_k0,
-                      const int index_kmin,
-                      const int k_size,
-                      double * ln_pknw_array) {
-
-  int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, last_index;
-  double ln_pk0_z, k0;
-  double *pk_approx_f, *intg_splines, *intg_result;
-
-  /** - define indices for the spline array */
-  class_define_index(index_x, _TRUE_, it_q, 1);
-  class_define_index(index_y, _TRUE_, it_q, 1);
-  class_define_index(index_ddy, _TRUE_, it_q, 1);
-  index_num = it_q;
-
-  class_alloc(pk_approx_f, pfo->k_size_extra * sizeof(double), pfo->error_message);
-  class_alloc(intg_splines, pfo->k_size_extra * index_num * sizeof(double), pfo->error_message);
-  class_alloc(intg_result, k_size * sizeof(double), pfo->error_message);
-
-  k0 = pfo->k[index_k0];
-
-  /** - compute the Eisenstein-Hu approximation to the nowiggle power spectrum */
-  {
-    class_setup_parallel();
-    for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
-      class_run_parallel( \
-        =,
-        pk_approx_f[it_q] = eft_pk_nw_eisenstein_hu_factor(pba, ppm, pfo, pfo->k[it_q], k0);
-        intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
-        return _SUCCESS_;
-                          );
-    }
-    class_finish_parallel();
-  }
-
-  /** - compute the gaussian window integral at every tau */
-  for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++)
-  {
-    /** - power spectrum at fixing scale at tau */
-    ln_pk0_z = pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + index_k0];
-
-    /** - compute the integrand at the control points once */
-    for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
-      intg_splines[it_q*index_num + index_y] = exp( pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + it_q] - ln_pk0_z) \
-                                                  / pk_approx_f[it_q];
-
-    /** - spline the integrand function without exponential once */
-    class_call(array_spline(intg_splines,
-                              index_num,
-                              pfo->k_size_extra,
-                              index_x,
-                              index_y,
-                              index_ddy,
-                              _SPLINE_EST_DERIV_,
-                              pfo->error_message),
-                  pfo->error_message,
-                  pfo->error_message);
-
-    /** - integrate the same function with different windows */
-    {
-      class_setup_parallel();
-      for (it_k = 0; it_k < k_size; it_k++) {
-        class_run_parallel( \
-          =,
-          int smoothing_scale;
-
-          /** - compute the running smoothing scale */
-          smoothing_scale = gfilter_smoothing_scale(pfo->ln_k[index_kmin + it_k]);
-          // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((pfo->ln_k[index_kmin + it_k] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
-
-          /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
-          class_call(array_integrate_all_spline_gaussian_window(intg_splines,
-                                                                index_num,
-                                                                pfo->k_size_extra,
-                                                                index_x,
-                                                                index_y,
-                                                                index_ddy,
-                                                                pfo->ln_k[index_kmin + it_k],
-                                                                smoothing_scale,
-                                                                intg_result + it_k,
-                                                                pfo->error_message),
-                     pfo->error_message,
-                     pfo->error_message);
-
-          //fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num + index_ddy], intg_result[it_k]);
-
-          /** - multiply with prefactors and take log */
-          intg_result[it_k] = log( pk_approx_f[index_kmin + it_k] * intg_result[it_k] ) + ln_pk0_z;
-          return _SUCCESS_;
-                            );
-      }
-      class_finish_parallel();
-    }
-
-    /** - write to output array */
-    memcpy(ln_pknw_array + it_tau*pfo->k_size_extra + index_kmin,
-            intg_result,
-            k_size * sizeof(double));
-  }
-
-  free(pk_approx_f);
-  free(intg_splines);
-  free(intg_result);
-
-  return _SUCCESS_;
-}
-
-/**
- * @brief Compute the nowiggle component of linear matter power spectrum using 1d logarithmic Gaussian filter.
- * @param pba         Input: pointer to background structure
- * @param ppm         Input: pointer to primordial structure
- * @param pfo         Input: pointer to fourier structure
- * @param k0          Input: fixing scale k in pfo->k, i.e. the largest usable scale
- * @param ln_pknw_array  Output: Dewiggled power spectrum for every pfo->k and pfo->tau
- *                            in units of (Mpc)^3 [size = pfo->k_size_extra * pfo->tau_size].
- *                            Indexed as ln_pknw_array[index_tau * pfo->k_size_extra + index_k]
- * @return the error status
- */
-int eft_ln_pk_nw_gfilter_parallel(
                       struct precision *ppr,
                       struct background *pba,
                       struct primordial *ppm,

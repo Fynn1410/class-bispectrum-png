@@ -14,6 +14,7 @@
 #include "fourier.h"
 #include <time.h>
 #include "../external/oneloopeft/header.h"
+#include "sys/time.h"
 
 /**
  * Return the P(k,z) for a given redshift z and pk type (_m, _cb)
@@ -3442,12 +3443,12 @@ int fourier_wnw_split(
 
   /** - compute the nowiggle spectrum using gaussian filter */
   // JL TODO: move this function from oneloop module to a separate wnw_split module
-  class_call(eft_ln_pk_nw_gfilter_parallel(ppr, pba, ppm, pfo,
-                                           *(pfo->nowiggle_pk_index),
-                                           index_k0,
-                                           index_k_min,
-                                           k_nw_size,
-                                           pfo->ln_pk_l_nw_extra),
+  class_call(eft_ln_pk_nw_gfilter(ppr, pba, ppm, pfo,
+                                  *(pfo->nowiggle_pk_index),
+                                  index_k0,
+                                  index_k_min,
+                                  k_nw_size,
+                                  pfo->ln_pk_l_nw_extra),
              pfo->error_message,
              pfo->error_message);
 
