@@ -18,6 +18,8 @@ vpath .base build
 ###### LINES TO ADAPT TO YOUR PLATEFORM ################
 ########################################################
 
+#DIRECT_INTEGRATION=yes
+
 # your C compiler:
 CC       = gcc
 #CC       = icc
@@ -103,7 +105,7 @@ HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)
 # import Cuba library if direct_integration is requested
 ifneq ($(DIRECT_INTEGRATION),)
 #INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.2
-EXTERNAL += direct_integration.o
+EXTERNAL += direct_integration.opp
 #HEADERFILES += $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.2/*.h)
 CCFLAG += -DDIRECT_INTEGRATION
 LIBRARIES += -lcuba
