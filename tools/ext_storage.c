@@ -129,8 +129,8 @@ int ext_save(struct ext_storage * pext,
 
 int ext_insert_eft(struct ext_storage * pext,
                    struct eft * peft,
-                   const int index_eft,
-                   const int num_matrices,
+                   int index_eft,
+                   int num_matrices,
                    ErrorMsg errmsg) {
 
   int index_moment, index_tracer;

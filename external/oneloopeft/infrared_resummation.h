@@ -21,24 +21,24 @@ double eft_ir_sigma2(
             struct background * pba,
             struct primordial * ppm,
             struct fourier * pfo, 
-            const double z, 
-            const double k_split,
-            const double k_bao
+            double z, 
+            double k_split,
+            double k_bao
             );
 
 double eft_ir_dsigma2(
             struct background * pba,
             struct primordial * ppm,
             struct fourier * pfo, 
-            const double z, 
-            const double k_split,
-            const double k_bao
+            double z, 
+            double k_split,
+            double k_bao
             );
 
 int eft_real_argument_list_rect(
-            const double * const ln_kvec,
-            const int k_size,
-            const int mu_size,
+            double * ln_kvec,
+            int k_size,
+            int mu_size,
             struct indexed_real_arg ** vec,
             ErrorMsg errmsg
             );
@@ -48,11 +48,11 @@ int eft_ir_pk_lo(
             struct primordial * ppm,
             struct fourier * pfo,
             enum linear_or_logarithmic mode,
-            const struct indexed_real_arg * const vec,
-            const int vec_size,
-            const double z,
-            const int linear_spectrum_index,
-            const double sigma2_ir_at_z,
+            struct indexed_real_arg * vec,
+            int vec_size,
+            double z,
+            int linear_spectrum_index,
+            double sigma2_ir_at_z,
             double * out_pk
             );
 
@@ -61,27 +61,27 @@ int eft_ir_pk_nlo(
             struct primordial * ppm,
             struct fourier * pfo,
             enum linear_or_logarithmic mode,
-            const struct indexed_real_arg * const vec,
-            const int vec_size,
-            const double z,
-            const int linear_spectrum_index,
-            const double sigma2_ir_at_z,
+            struct indexed_real_arg * vec,
+            int vec_size,
+            double z,
+            int linear_spectrum_index,
+            double sigma2_ir_at_z,
             double * out_pk
             );
 
 int eft_rsd_argument_list_rect(
-            const double * const ln_kvec,
-            const int k_size,
-            const double * const muvec,
-            const int mu_size,
+            double * ln_kvec,
+            int k_size,
+            double * muvec,
+            int mu_size,
             struct indexed_rsd_arg ** vec,
             ErrorMsg errmsg
             );
 
 int eft_rsd_argument_list(
-            const double * const ln_kvec,
-            const double * const muvec,
-            const int size,
+            double * ln_kvec,
+            double * muvec,
+            int size,
             struct indexed_rsd_arg ** vec,
             ErrorMsg errmsg
             );
@@ -91,13 +91,13 @@ int eft_ir_pk_rsd_lo(
             struct primordial * ppm,
             struct fourier * pfo,
             enum linear_or_logarithmic mode,
-            const struct indexed_rsd_arg * const vec,
-            const int vec_size,
-            const double z,
-            const double f,
-            const int linear_spectrum_index,
-            const double sigma2_ir_at_z,
-            const double dsigma2_ir_at_z,
+            struct indexed_rsd_arg * vec,
+            int vec_size,
+            double z,
+            double f,
+            int linear_spectrum_index,
+            double sigma2_ir_at_z,
+            double dsigma2_ir_at_z,
             double * out_pk
             );
 
@@ -106,13 +106,13 @@ int eft_ir_pk_rsd_nlo(
             struct primordial * ppm,
             struct fourier * pfo,
             enum linear_or_logarithmic mode,
-            const struct indexed_rsd_arg * const vec,
-            const int vec_size,
-            const double z,
-            const double f,
-            const int linear_spectrum_index,
-            const double sigma2_ir_at_z,
-            const double dsigma2_ir_at_z,
+            struct indexed_rsd_arg * vec,
+            int vec_size,
+            double z,
+            double f,
+            int linear_spectrum_index,
+            double sigma2_ir_at_z,
+            double dsigma2_ir_at_z,
             double * out_pk
             );
 
@@ -121,12 +121,12 @@ int eft_ir_pk_rsd_nlo(
 //             struct background * pba,
 //             struct primordial * ppm,
 //             struct fourier * pfo, 
-//             const struct eft_hyper_parameters hp,
+//             struct eft_hyper_parameters hp,
 //             struct eft * peft,
 //             double * biases,
 //             int biases_size,
-//             const double z, 
-//             const double sigma2_ir_at_z,
+//             double z, 
+//             double sigma2_ir_at_z,
 //             enum eft_pk_type use_pk_type,
 //             double * moments,
 //             int * moments_n,

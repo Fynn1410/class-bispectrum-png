@@ -10,14 +10,14 @@
 //#include "sys/time.h"
 
 int eft_spline_sample_points_nonuniform(
-                    const double k_min,
-                    const double k_feature,
-                    const double k_max,
-                    const double rel_amplitude,
-                    const double width,
-                    const int num_points,
+                    double k_min,
+                    double k_feature,
+                    double k_max,
+                    double rel_amplitude,
+                    double width,
+                    int num_points,
                     double * ln_k_sample,
-                    const short verbosity) {
+                    short verbosity) {
 
   int N;
   double density_outer;
@@ -175,7 +175,7 @@ int eft_allocate_loop_matrices(struct eft * peft) {
 
 
 int eft_indices(struct eft * peft,
-                const short eft_role) {
+                short eft_role) {
 
   int i = 0, index_pk_type, index_moment, index_part, index_tracer;
 
@@ -370,8 +370,8 @@ int eft_init(struct precision * ppr,
             struct eft_hyper_parameters * eft_hp,
             struct eft_input_parameters * eft_ip,
             struct ext_storage * pext,
-            const short eft_role,
-            const int index) {
+            short eft_role,
+            int index) {
 
   int index_tracer, index_moment, index_pk_type;
 
@@ -422,7 +422,7 @@ int eft_init(struct precision * ppr,
 /** TODO: inline this, problem with Pdd_mm_real located in here [Sigma2 is zero] */
 /**
  * @brief Computes linear and possibly infrared-resummed power spectra in real-space.
- *        
+ *
  * @param pba       Input: pointer to background structure
  * @param ppm       Input: pointer to primordial structure
  * @param pfo       Input: pointer to fourier structure
@@ -436,7 +436,7 @@ int eft_init(struct precision * ppr,
  * @param D_z       Input: growth rate D at z
  * @param index_pk_type   Input: index of the powerspectrum type (eft_pk_type)
  * @param out_pk    Output: real-space powerspectrum (in Mpc^3); size of kvec_size*n_columns
- * 
+ *
  * @return the error status
  */
 int eft_linear_spectrum_real(
@@ -445,21 +445,21 @@ int eft_linear_spectrum_real(
                   struct fourier * pfo,
                   struct eft * peft,
                   enum linear_or_logarithmic mode,
-                  const double * const ln_kvec,
-                  const int kvec_size,
-                  const int n_columns,
-                  const double z,
-                  const double f_z,
-                  const double D_z,
-                  const int index_pk_type,
+                  double * ln_kvec,
+                  int kvec_size,
+                  int n_columns,
+                  double z,
+                  double f_z,
+                  double D_z,
+                  int index_pk_type,
                   double * out_pk) {
 
   int it;
   double * ln_kvec_sorted, * pk_l;
   struct indexed_real_arg * vec;
-  const double D2 = pow(D_z/peft->D_z0, 2.);
+  double D2 = pow(D_z/peft->D_z0, 2.);
 
-  class_call(eft_real_argument_list_rect(ln_kvec, 
+  class_call(eft_real_argument_list_rect(ln_kvec,
                                          kvec_size,
                                          n_columns,
                                          &vec,
@@ -552,7 +552,7 @@ int eft_linear_spectrum_real(
 
 /**
  * @brief Computes linear and possibly infrared-resummed power spectra in redshift-space.
- *        
+ *
  * @param pba       Input: pointer to background structure
  * @param ppm       Input: pointer to primordial structure
  * @param pfo       Input: pointer to fourier structure
@@ -568,7 +568,7 @@ int eft_linear_spectrum_real(
  * @param D_z       Input: growth rate D at z
  * @param index_pk_type   Input: index of the powerspectrum type (eft_pk_type)
  * @param out_pk    Output: redshift-space powerspectrum (in Mpc^3); size of either kvec_size*muvec_size or kvec_size (== muvec_size) depending on arg_type
- * 
+ *
  * @return the error status
  */
 int eft_linear_spectrum_rsd(
@@ -577,19 +577,19 @@ int eft_linear_spectrum_rsd(
                   struct fourier * pfo,
                   struct eft * peft,
                   enum linear_or_logarithmic mode,
-                  const double * const ln_kvec,
-                  const int kvec_size,
-                  const double * const muvec,
-                  const int muvec_size,
+                  double * ln_kvec,
+                  int kvec_size,
+                  double * muvec,
+                  int muvec_size,
                   enum eft_arg_type arg_type,
-                  const double z,
-                  const double f_z,
-                  const double D_z,
-                  const int index_pk_type,
+                  double z,
+                  double f_z,
+                  double D_z,
+                  int index_pk_type,
                   double * out_pk) {
 
   int vec_size = 0;
-  const double D2 = pow(D_z/peft->D_z0, 2.);
+  double D2 = pow(D_z/peft->D_z0, 2.);
   struct indexed_rsd_arg * vec;
 
   if (arg_type == cartesian_product) {
@@ -663,8 +663,8 @@ int eft_linear_spectrum_rsd(
  * @return the error status (always succeeds)
  */
 int eft_get_fourier_frequencies(
-                  const double period,
-                  const int num_frequencies,
+                  double period,
+                  int num_frequencies,
                   double * frequencies) {
 
   int m;
@@ -685,16 +685,16 @@ int eft_fourier_transform_linear_spectra(
                             struct fourier * pfo,
                             struct primordial * ppm,
                             struct eft * peft,
-                            const double z,
-                            const double f,
-                            const double D,
-                            const int * const index_pk_types,
-                            const int index_pk_types_size) {
+                            double z,
+                            double f,
+                            double D,
+                            int * index_pk_types,
+                            int index_pk_types_size) {
 
   int index_tracer, index_pk_type, index_mu, index_list, it;
   int mu_size;
   // int * index_pk_types, index_pk_types_size = 0;
-  const int num_independent_coefficients = peft->hp->num_positive_fourier_freq + 1;
+  int num_independent_coefficients = peft->hp->num_positive_fourier_freq + 1;
   double ** pk_l_biased_p;
   double spline_lipschitz_const = 0., spline_L2_norm, series_l2_norm = 0.;
   double * M0;
@@ -1188,19 +1188,19 @@ int eft_fourier_transform_linear_spectra(
   return _SUCCESS_;
 }
 
-int eft_save_matrix_to_file(const class_complex * matrix,
-                            const int size,
-                            const short symmetry,
-                            const short tracer,
-                            const double period,
+int eft_save_matrix_to_file(class_complex * matrix,
+                            int size,
+                            short symmetry,
+                            short tracer,
+                            double period,
                             FileName filename,
-                            const short permit_overwrite,
+                            short permit_overwrite,
                             ErrorMsg errmsg,
-                            const short print_message) {
+                            short print_message) {
 
   FILE * file;
   size_t write_count = 0, read_count = 0;
-  const long info = ((long)size << 32) | (symmetry << 16) | tracer;
+  long info = ((long)size << 32) | (symmetry << 16) | tracer;
   long read_info;
   double read_period;
   short write;
@@ -1263,13 +1263,13 @@ int eft_save_matrix_to_file(const class_complex * matrix,
 }
 
 int eft_read_matrix_from_file(class_complex * matrix,
-                            const int size,
-                            const short symmetry,
-                            const short tracer,
-                            const double period,
+                            int size,
+                            short symmetry,
+                            short tracer,
+                            double period,
                             FileName filename,
                             ErrorMsg errmsg,
-                            const short print_message) {
+                            short print_message) {
 
   FILE * file;
   size_t read_count = 0;
@@ -1313,7 +1313,7 @@ int eft_read_matrix_from_file(class_complex * matrix,
 
 int eft_get_loop_matrices(struct eft * peft,
                           struct ext_storage * pext,
-                          const int index) {
+                          int index) {
 
   int index_moment, counter = 0;  /** - loop matrices for the current eft struct may need to be recomputed independently of the hyperparameters, if stored matrices are invalid */
   FileName filename;
@@ -1419,10 +1419,10 @@ int eft_get_loop_matrices(struct eft * peft,
 int eft_apply_ap_effect_in_place(double ** kvec,
                                  int * k_sizevec,
                                  double ** muvec,
-                                 const int * mu_sizevec,
-                                 const int z_size,
-                                 const double * ap_parallel,
-                                 const double * ap_perpendicular) {
+                                 int * mu_sizevec,
+                                 int z_size,
+                                 double * ap_parallel,
+                                 double * ap_perpendicular) {
 
   int index_z, index_mu, index_k;
   double ap_ratio, sqrt_factor;
@@ -1443,8 +1443,8 @@ int eft_apply_ap_effect_in_place(double ** kvec,
 
 
 double eft_temporal_distance(struct background * pba,
-                             const double z,
-                             const double z_eft,
+                             double z,
+                             double z_eft,
                              ErrorMsg errmsg) {
 
   /* double tau, tau_eft;
@@ -1462,10 +1462,10 @@ double eft_temporal_distance(struct background * pba,
 }
 
 int eft_nearest_structure_in_time(struct eft * peft0,
-                                  const int peft_size,
+                                  int peft_size,
                                   struct background * pba,
                                   struct fourier * pfo,
-                                  const double z,
+                                  double z,
                                   int * index_eft_min_dist,
                                   struct eft * peft_min_dist,
                                   ErrorMsg errmsg_out
@@ -1498,7 +1498,7 @@ int eft_nearest_structure_in_time(struct eft * peft0,
   return _SUCCESS_;
 }
 
-static int indexed_double_cmp_inc(const void * a, const void * b) {
+int indexed_double_cmp_inc(const void * a, const void * b) {
   struct indexed_double * a_ = (struct indexed_double *)a;
   struct indexed_double * b_ = (struct indexed_double *)b;
   if ((*a_).value < (*b_).value)
@@ -1542,24 +1542,24 @@ static int indexed_double_cmp_inc(const void * a, const void * b) {
  */
 int eft_job_powerspectrum_wedges_ext_growth_rate(
                                 struct eft * peft0,
-                                const int peft_size,
-                                const double * const f_z_pk_eft,
-                                const double * const D_z_pk_eft,
+                                int peft_size,
+                                double * f_z_pk_eft,
+                                double * D_z_pk_eft,
                                 struct background * pba,
                                 struct fourier * pfo,
                                 struct primordial * ppm,
                                 struct precision * ppr,
                                 enum eft_pk_out_type pk_out_type,
-                                const double * const zvec,
-                                const double * const f_zvec,
-                                const double * const D_zvec,
-                                const double As_correction,
-                                const struct eft_input_parameters * peft_ip,
-                                const int z_size,
+                                double * zvec,
+                                double * f_zvec,
+                                double * D_zvec,
+                                double As_correction,
+                                struct eft_input_parameters * peft_ip,
+                                int z_size,
                                 double ** kvec,
-                                int * const k_sizevec,
+                                int * k_sizevec,
                                 double ** muvec,
-                                const int * const mu_sizevec,
+                                int * mu_sizevec,
                                 double ** out_pkmu,
                                 double ** ddout_pkmu
                                 ) {
@@ -1643,7 +1643,7 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     if (peft->hp->eft_verbose > 2) {
       printf("Requiring %d spectra contributions for %d pk_types.\n", list_spectra_contributions_size, list_pk_types_loops_size);
     }
-    
+
 
     /** - compile a list of pk_types of which to compute the Fourier transform,
      *    if use_interpolation = FALSE then this list will contain all of list_pk_types_loops */
@@ -1859,12 +1859,12 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
   return _SUCCESS_;
 }
 
-// static const int gl_rule_mu_avg_size = 3;
-// static const double gl_mu_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
-// static const double gl_mu_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
-// static const int gl_rule_k_avg_size = 5;
-// static const double gl_k_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
-// static const double gl_k_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
+// int gl_rule_mu_avg_size = 3;
+// double gl_mu_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+// double gl_mu_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
+// int gl_rule_k_avg_size = 5;
+// double gl_k_avg_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+// double gl_k_avg_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
 
 // /**
 //  * @brief Computes power-spectrum wedges at given redshifts, wavenumbers and l.o.s. angles
@@ -1899,25 +1899,25 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
 //  */
 // int eft_job_powerspectrum_wedges_averaged_ext_growth_rate(
 //                                 struct eft * peft0,
-//                                 const int peft_size,
-//                                 const double * const f_z_pk_eft,
-//                                 const double * const D_z_pk_eft,
+//                                 int peft_size,
+//                                 double * f_z_pk_eft,
+//                                 double * D_z_pk_eft,
 //                                 struct background * pba,
 //                                 struct fourier * pfo,
 //                                 struct primordial * ppm,
 //                                 struct precision * ppr,
 //                                 enum eft_pk_out_type pk_out_type,
-//                                 const double * const zvec,
-//                                 const double * const f_zvec,
-//                                 const double * const D_zvec,
-//                                 const struct eft_input_parameters * peft_ip,
-//                                 const int z_size,
+//                                 double * zvec,
+//                                 double * f_zvec,
+//                                 double * D_zvec,
+//                                 struct eft_input_parameters * peft_ip,
+//                                 int z_size,
 //                                 double ** kvec_upper_fid,
 //                                 double ** kvec_lower_fid,
-//                                 const int * const k_sizevec,
+//                                 int * k_sizevec,
 //                                 double ** muvec_upper_fid,
 //                                 double ** muvec_lower_fid,
-//                                 const int * const mu_sizevec,
+//                                 int * mu_sizevec,
 //                                 double * ap_parallel,
 //                                 double * ap_perpendicular,
 //                                 double ** out_pkmu
@@ -2008,20 +2008,20 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
  * @return the error status
  */
 int eft_job_powerspectrum_wedges(struct eft * peft0,
-                                 const int peft_size,
+                                 int peft_size,
                                  struct background * pba,
                                  struct fourier * pfo,
                                  struct primordial * ppm,
                                  struct precision * ppr,
                                  enum eft_pk_out_type pk_out_type,
-                                 const double * const zvec,
-                                 const double As_correction,
-                                 const struct eft_input_parameters * peft_ip,
-                                 const int z_size,
+                                 double * zvec,
+                                 double As_correction,
+                                 struct eft_input_parameters * peft_ip,
+                                 int z_size,
                                  double ** kvec,
-                                 int * const k_sizevec,
+                                 int * k_sizevec,
                                  double ** muvec,
-                                 const int * const mu_sizevec,
+                                 int * mu_sizevec,
                                  double ** out_pkmu,
                                  double ** ddout_pkmu
                                  ) {
@@ -2092,15 +2092,15 @@ int eft_job_powerspectrum_wedges(struct eft * peft0,
 /* same as previous function with different input/output format (flattened arrays with lower rank pointers, assuming that the number of k and mu values is independent of z) */
 
 int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
-                                      const int peft_size,
+                                      int peft_size,
                                       struct background * pba,
                                       struct fourier * pfo,
                                       struct primordial * ppm,
                                       struct precision * ppr,
                                       enum eft_pk_out_type pk_out_type,
-                                      const double * const z, // indexed as z[index_z]
-                                      const struct eft_input_parameters * peft_ip,
-                                      const int z_size,
+                                      double * z, // indexed as z[index_z]
+                                      struct eft_input_parameters * peft_ip,
+                                      int z_size,
                                       double * k, // indexed as k[index_z + z_size*(index_mu + mu_size*index_k)]
                                       int k_size,
                                       double * mu, // indexed as mu[index_z + z_size*index_mu]
@@ -2177,13 +2177,13 @@ int eft_job_powerspectrum_wedges_grid(struct eft * peft0,
 }
 
 #define MULTIPOLE_SIZE 3
-// static const int gl_rule_size = 9;
-// static const double gl_abscissa[] = {-1., -0.89975799541146015731, -0.67718627951073775345, -0.36311746382617815871, 0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
-// static const double gl_weights[] = {0.027777777777777777778, -0.067801868533905777326, 0.087327403186094540303, -0.098096963223617334406, 0.10158730158730158730, -0.098096963223617334406, 0.087327403186094540303, -0.067801868533905777326, 0.027777777777777777778};
-static const int gl_rule_multipole_sym_size = 5;
-static const double gl_multipole_sym_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
-static const double gl_multipole_sym_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
-static const double lg_measure[][MULTIPOLE_SIZE] = { {1., -0.5, 0.375}, {1., -0.30221856119666629454, -0.043391796245607083376}, {1., 0.18787188573639255829, -0.42463134814493003484}, {1., 0.71434667546027373625, 0.20648468285207557975}, {1., 1., 1.} };
+// int gl_rule_size = 9;
+// double gl_abscissa[] = {-1., -0.89975799541146015731, -0.67718627951073775345, -0.36311746382617815871, 0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+// double gl_weights[] = {0.027777777777777777778, -0.067801868533905777326, 0.087327403186094540303, -0.098096963223617334406, 0.10158730158730158730, -0.098096963223617334406, 0.087327403186094540303, -0.067801868533905777326, 0.027777777777777777778};
+const int gl_rule_multipole_sym_size = 5;
+const double gl_multipole_sym_abscissa[] = {0., 0.36311746382617815871, 0.67718627951073775345, 0.89975799541146015731, 1.};
+const double gl_multipole_sym_weights[] = {0.37151927437641723356, 0.69285702194609269023, 0.54907742500032347056, 0.33099072312161105009, 0.055555555555555555556};
+const double lg_measure[][MULTIPOLE_SIZE] = { {1., -0.5, 0.375}, {1., -0.30221856119666629454, -0.043391796245607083376}, {1., 0.18787188573639255829, -0.42463134814493003484}, {1., 0.71434667546027373625, 0.20648468285207557975}, {1., 1., 1.} };
 
 /**
  * @brief Computes power-spectrum multipoles at given redshifts and fiducial wavenumbers
@@ -2214,24 +2214,24 @@ static const double lg_measure[][MULTIPOLE_SIZE] = { {1., -0.5, 0.375}, {1., -0.
  */
 int eft_job_powerspectrum_multipoles_ext_growth_rate(
                                 struct eft * peft0,
-                                const int peft_size,
-                                const double * const f_z_pk_eft,
-                                const double * const D_z_pk_eft,
+                                int peft_size,
+                                double * f_z_pk_eft,
+                                double * D_z_pk_eft,
                                 struct background * pba,
                                 struct fourier * pfo,
                                 struct primordial * ppm,
                                 struct precision * ppr,
                                 enum eft_pk_out_type pk_out_type,
-                                const double * const zvec,
-                                const double * const f_zvec,
-                                const double * const D_zvec,
-                                const double As_correction,
-                                const struct eft_input_parameters * peft_ip,
-                                const int z_size,
+                                double * zvec,
+                                double * f_zvec,
+                                double * D_zvec,
+                                double As_correction,
+                                struct eft_input_parameters * peft_ip,
+                                int z_size,
                                 double ** kvec,
-                                int * const k_sizevec,
-                                const double * ap_parallel,
-                                const double * ap_perpendicular,
+                                int * k_sizevec,
+                                double * ap_parallel,
+                                double * ap_perpendicular,
                                 double ** out_pkl
                                 ) {
 
@@ -2353,20 +2353,20 @@ int eft_job_powerspectrum_multipoles_ext_growth_rate(
  */
 int eft_job_powerspectrum_multipoles(
                                 struct eft * peft0,
-                                const int peft_size,
+                                int peft_size,
                                 struct background * pba,
                                 struct fourier * pfo,
                                 struct primordial * ppm,
                                 struct precision * ppr,
                                 enum eft_pk_out_type pk_out_type,
-                                const double * const zvec,
-                                const double As_correction,
-                                const struct eft_input_parameters * peft_ip,
-                                const int z_size,
+                                double * zvec,
+                                double As_correction,
+                                struct eft_input_parameters * peft_ip,
+                                int z_size,
                                 double ** kvec,
-                                int * const k_sizevec,
-                                const double * ap_parallel,
-                                const double * ap_perpendicular,
+                                int * k_sizevec,
+                                double * ap_parallel,
+                                double * ap_perpendicular,
                                 double ** out_pkl
                                 ) {
 
@@ -2499,7 +2499,7 @@ int eft_job_powerspectrum_multipoles(
  */
 int eft_spectra_contributions_output(struct eft * peft,
                                      enum eft_pk_type pk_type,
-                                     const int index_moment,
+                                     int index_moment,
                                      double * zout,
                                      double * muvec_out,
                                      double * kvec_Mpc_out,

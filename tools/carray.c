@@ -5,14 +5,14 @@
 #ifdef __FAST_MATH__
 #warning Kahan-Neumaier summation is incompatible with -ffast-math. Defaulting to uncompensated summation.
 
-  static inline double d2sum(const double a, const double b, double *__restrict__ t) {
+  inline double d2sum(double a, double b, double *__restrict__ t) {
     double s;
     s = a + b;
     *t = 0.;
     return s;
   }
 
-  static inline double dcompsum(const double * const summands, const int size, const int stride) {
+  inline double dcompsum(double * summands, int size, int stride) {
     int i;
     double s;
 
@@ -23,14 +23,14 @@
     return s;
   }
 
-  static inline class_complex c2sum(const class_complex a, const class_complex b, class_complex * __restrict__ t) {
+  inline class_complex c2sum(class_complex a, class_complex b, class_complex * __restrict__ t) {
     class_complex s;
     s = a + b;
     *t = class_complex(0., 0.);
     return s;
   }
 
-  static inline class_complex ccompsum(class_complex * const summands, const int size, const int stride) {
+  inline class_complex ccompsum(class_complex * summands, int size, int stride) {
     int i;
     class_complex s;
 
@@ -50,7 +50,7 @@
    * @param t    Output: floating-point error of the operation a + b
    * @return the sum s = float(a + b)
    */
-  static inline double d2sum(const double a, const double b, double * __restrict__ t) {
+  inline double d2sum(double a, double b, double * __restrict__ t) {
     double s, ap, bp, da, db;
     s = a + b;
     ap = s - b;
@@ -68,7 +68,7 @@
    * @param stride    Input: stride in the summands array
    * @return compensated sum of the input array
    */
-  static inline double dcompsum(const double * const summands, const int size, const int stride) {
+  inline double dcompsum(double * summands, int size, int stride) {
     int i;
     double s, c, t, in;
 
@@ -95,7 +95,7 @@
    *  @param t    Output: floating-point error of the operation a + b
    *  @return the complex sum s = float(a + b)
    */
-  static inline class_complex c2sum(const class_complex a, const class_complex b, class_complex * __restrict__ t) {
+  inline class_complex c2sum(class_complex a, class_complex b, class_complex * __restrict__ t) {
     class_complex s, ap, bp, da, db;
     s = a + b;
     ap = s - b;
@@ -113,7 +113,7 @@
    * @param stride    Input: stride in the summands array
    * @return compensated sum of the input array
    */
-  static inline class_complex ccompsum(class_complex * const summands, const int size, const int stride) {
+  inline class_complex ccompsum(class_complex * summands, int size, int stride) {
     int i;
     double sr, si, cr, ci, tr, ti, inr, ini;
 
@@ -272,8 +272,8 @@ int array_square_integrate_exponential_all_spline_table_lines(
 			    double * y_array,
 			    int y_size,
 			    double * ddy_array,
-          const double bias,
-          const int derivative_order,
+          double bias,
+          int derivative_order,
 			    double * result,
           ErrorMsg errmsg) {
 
@@ -406,12 +406,12 @@ int array_integrate_all_spline_table_lines_exponential(
 
 int array_integrate_internal_exponential_pure_phase(
                         double * x0,
-                        const int x_size,
-                        const int x_stride,
+                        int x_size,
+                        int x_stride,
                         double * y0,
-                        const int y_stride,
+                        int y_stride,
                         double * ddy0,
-                        const int ddy_stride,
+                        int ddy_stride,
                         double phase,
                         class_complex * result,
                         class_complex * condition_number,
@@ -471,15 +471,15 @@ int array_integrate_internal_exponential_pure_phase(
 /** - assumes periodic splines with S(x0) = S(xn), S'(x0) = S'(xn), S''(x0) = S''(xn) */
 int array_integrate_internal_exponential_pure_phase_compensated(
                         double * x0,
-                        const int x_size,
-                        const int x_stride,
+                        int x_size,
+                        int x_stride,
                         double * y0,
-                        const int y_stride,
+                        int y_stride,
                         double * ddy0,
-                        const int ddy_stride,
-                        const double phase,
+                        int ddy_stride,
+                        double phase,
                         class_complex * result,
-                        const double condition_number_threshold,
+                        double condition_number_threshold,
                         class_complex * condition_number,
                         ErrorMsg errmsg) {
 
@@ -562,7 +562,7 @@ int array_integrate_all_spline_fourier_compensated(
           int index_ddy,
           double phase,
           class_complex * result,
-          const double condition_num_threshold,
+          double condition_num_threshold,
           class_complex * condition_num,
           ErrorMsg errmsg) {
 
@@ -612,7 +612,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 		      double * ddy_array,
           double phase,
           class_complex * result,
-          const double condition_num_threshold,
+          double condition_num_threshold,
           class_complex * condition_num,
           ErrorMsg errmsg) {
 
@@ -651,12 +651,12 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //  *
 //  * @return function value at x
 //  */
-// inline double array_polynomial(const double * pcoeff,
-//                         const int coeff_size,
-//                         const int min_pow,
-//                         const double x) {
+// inline double array_polynomial(double * pcoeff,
+//                         int coeff_size,
+//                         int min_pow,
+//                         double x) {
 //   int j;
-//   const double x_min_pow = pow(x, min_pow);
+//   double x_min_pow = pow(x, min_pow);
 //   register double x_pow = 1., sum;
 
 //   sum = pcoeff[0];
@@ -677,8 +677,8 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //  * @return function value at x
 //  */
 // inline double array_trigonometric_ring(double x,
-//                                         const int n) {
-//   const int m = (((n % 4) + 4) % 4);
+//                                         int n) {
+//   int m = (((n % 4) + 4) % 4);
 //   switch (m)
 //   {
 //   case 0:
@@ -696,9 +696,9 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 // }
 
 // int array_bessel_series_expansion_integral(
-//           const double * pcoeff,
-//           const int n,
-//           const double x,
+//           double * pcoeff,
+//           int n,
+//           double x,
 //           double * result,
 //           ErrorMsg errmsg) {
 
@@ -760,7 +760,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //           int index_x,   /** from 0 to (n_columns-1) */
 //           int index_y,
 //           int index_ddy,
-//           const int n,
+//           int n,
 //           double coeff,
 //           double shift,
 //           double * result,
@@ -771,8 +771,8 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //   double a, b, Ms, dM, ys, dy;
 //   double prt_res, prt_sum, apow, bpow, pcoeff[4], bessel_j_a[n+1], bessel_j_b[n+1];
 //   double intg_func_b, intg_func_a;
-//   const double coeff_border_ab[4] = {9.9123380e-1, 2.1567720e-2, -3.1745158e-5, -3.6693021e-8};
-//   const double border = array_polynomial(coeff_border_ab, 4, 0, (double)n);
+//   double coeff_border_ab[4] = {9.9123380e-1, 2.1567720e-2, -3.1745158e-5, -3.6693021e-8};
+//   double border = array_polynomial(coeff_border_ab, 4, 0, (double)n);
 //   ErrorMsg internal_error;
 
 //   class_test( coeff * (array[0*n_columns+index_x] - shift) < 0.,

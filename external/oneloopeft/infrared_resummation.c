@@ -12,7 +12,7 @@
 /** Integration measure for Sigma^2(z):  1 - j_0(q_osc) + 2 j_2(q_osc)
  * error is always below 1e-10
 */
-static inline double ir_sigma2_measure(const double q_osc) {
+inline double ir_sigma2_measure(double q_osc) {
   return (q_osc > 0.01) ? (1. - sin(q_osc) / q_osc + 2. * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) ))    \
                         : (3.*q_osc*q_osc/10. - q_osc*q_osc*q_osc*q_osc/56.);
 }
@@ -33,9 +33,9 @@ double eft_ir_sigma2(
               struct background * pba,
               struct primordial * ppm,
               struct fourier * pfo,
-              const double z,
-              const double k_split,
-              const double k_bao) {
+              double z,
+              double k_split,
+              double k_bao) {
 
   int split_index = 0, index_y, index_ddy, index_num = 0, it_q;
   double q, q_osc, result;
@@ -126,7 +126,7 @@ double eft_ir_sigma2(
 /** Integration measure for Sigma^2(z):  j_2(q_osc)
  * error is always below 1e-10, except at the roots
 */
-static inline double ir_dsigma2_measure(const double q_osc) {
+inline double ir_dsigma2_measure(double q_osc) {
   return (q_osc > 0.01) ? ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc))    \
                         : (q_osc*q_osc/15. - q_osc*q_osc*q_osc*q_osc/210.);
 }
@@ -148,9 +148,9 @@ double eft_ir_dsigma2(
               struct background * pba,
               struct primordial * ppm,
               struct fourier * pfo,
-              const double z,
-              const double k_split,
-              const double k_bao) {
+              double z,
+              double k_split,
+              double k_bao) {
 
   int split_index = 0, index_y, index_ddy, index_num = 0, it_q;
   double q, q_osc, result;
@@ -237,7 +237,7 @@ double eft_ir_dsigma2(
   return result;
 }
 
-static int indexed_real_arg_cmp_k(const void * a, const void * b) {
+int indexed_real_arg_cmp_k(const void * a, const void * b) {
   struct indexed_real_arg * a_ = (struct indexed_real_arg *)a;
   struct indexed_real_arg * b_ = (struct indexed_real_arg *)b;
   if ((*a_).ln_k < (*b_).ln_k)
@@ -259,9 +259,9 @@ static int indexed_real_arg_cmp_k(const void * a, const void * b) {
  * 
  * @return the error status
  */
-int eft_real_argument_list_rect(const double * const ln_kvec,
-                                const int k_size,
-                                const int n_columns,
+int eft_real_argument_list_rect(double * ln_kvec,
+                                int k_size,
+                                int n_columns,
                                 struct indexed_real_arg ** vec,
                                 ErrorMsg errmsg) {
 
@@ -303,11 +303,11 @@ int eft_ir_pk_lo(
             struct primordial * ppm,
             struct fourier * pfo,
             enum linear_or_logarithmic mode,
-            const struct indexed_real_arg * const vec,
-            const int vec_size,
-            const double z,
-            const int linear_spectrum_index,
-            const double sigma2_ir_at_z,
+            struct indexed_real_arg * vec,
+            int vec_size,
+            double z,
+            int linear_spectrum_index,
+            double sigma2_ir_at_z,
             double * out_pk) {
 
   int it;
@@ -389,11 +389,11 @@ int eft_ir_pk_nlo(
             struct primordial * ppm,
             struct fourier * pfo,
             enum linear_or_logarithmic mode,
-            const struct indexed_real_arg * const vec,
-            const int vec_size,
-            const double z,
-            const int linear_spectrum_index,
-            const double sigma2_ir_at_z,
+            struct indexed_real_arg * vec,
+            int vec_size,
+            double z,
+            int linear_spectrum_index,
+            double sigma2_ir_at_z,
             double * out_pk) {
 
   int it;
@@ -454,7 +454,7 @@ int eft_ir_pk_nlo(
   return _SUCCESS_;
 }
 
-static int indexed_rsd_arg_cmp_k(const void * a, const void * b) {
+int indexed_rsd_arg_cmp_k(const void * a, const void * b) {
   struct indexed_rsd_arg * a_ = (struct indexed_rsd_arg *)a;
   struct indexed_rsd_arg * b_ = (struct indexed_rsd_arg *)b;
   if ((*a_).ln_k < (*b_).ln_k)
@@ -477,10 +477,10 @@ static int indexed_rsd_arg_cmp_k(const void * a, const void * b) {
  *
  * @return the error status
  */
-int eft_rsd_argument_list_rect(const double * const ln_kvec,
-                               const int k_size,
-                               const double * const muvec,
-                               const int mu_size,
+int eft_rsd_argument_list_rect(double * ln_kvec,
+                               int k_size,
+                               double * muvec,
+                               int mu_size,
                                struct indexed_rsd_arg ** vec,
                                ErrorMsg errmsg) {
 
@@ -503,9 +503,9 @@ int eft_rsd_argument_list_rect(const double * const ln_kvec,
   return _SUCCESS_;
 }
 
-int eft_rsd_argument_list(const double * const ln_kvec,
-                          const double * const muvec,
-                          const int size,
+int eft_rsd_argument_list(double * ln_kvec,
+                          double * muvec,
+                          int size,
                           struct indexed_rsd_arg ** vec,
                           ErrorMsg errmsg) {
 
@@ -551,13 +551,13 @@ int eft_ir_pk_rsd_lo(
             struct primordial * ppm,
             struct fourier * pfo,
             enum linear_or_logarithmic mode,
-            const struct indexed_rsd_arg * const vec,
-            const int vec_size,
-            const double z,
-            const double f,
-            const int linear_spectrum_index,
-            const double sigma2_ir_at_z,
-            const double dsigma2_ir_at_z,
+            struct indexed_rsd_arg * vec,
+            int vec_size,
+            double z,
+            double f,
+            int linear_spectrum_index,
+            double sigma2_ir_at_z,
+            double dsigma2_ir_at_z,
             double * out_pk) {
 
   int it;
@@ -647,13 +647,13 @@ int eft_ir_pk_rsd_nlo(
             struct primordial * ppm,
             struct fourier * pfo,
             enum linear_or_logarithmic mode,
-            const struct indexed_rsd_arg * const vec,
-            const int vec_size,
-            const double z,
-            const double f,
-            const int linear_spectrum_index,
-            const double sigma2_ir_at_z,
-            const double dsigma2_ir_at_z,
+            struct indexed_rsd_arg * vec,
+            int vec_size,
+            double z,
+            double f,
+            int linear_spectrum_index,
+            double sigma2_ir_at_z,
+            double dsigma2_ir_at_z,
             double * out_pk) {
 
   int it;
@@ -779,13 +779,13 @@ int eft_ir_pk_rsd_nlo(
 //               struct background * pba,
 //               struct primordial * ppm,
 //               struct fourier * pfo,
-//               const struct eft_hyper_parameters hp,
+//               struct eft_hyper_parameters hp,
 //               struct eft * peft,
 //               double * biases,
 //               int biases_size,
-//               const double z,
-//               const int linear_spectrum_index,
-//               const double sigma2_ir_at_z,
+//               double z,
+//               int linear_spectrum_index,
+//               double sigma2_ir_at_z,
 //               enum eft_pk_type use_pk_type,
 //               double * moments,
 //               int * moments_n,

@@ -22,16 +22,16 @@
  * @return the error status
  */
 int array_search_bisect_internal(
-                const double * const __restrict__ array0,
+                double * __restrict__ array0,
                 int array_stride,
-                const int array_size,
-                const double value,
-                int * const __restrict__ inf_index,
-                int * const __restrict__ sup_index,
+                int array_size,
+                double value,
+                int * __restrict__ inf_index,
+                int * __restrict__ sup_index,
                 ErrorMsg errmsg) {
 
   int inf, sup, mid, reversed = _FALSE_;
-  const double * array = array0;
+  double * array = array0;
 
   inf = 0;
   sup = array_size-1;
@@ -79,16 +79,16 @@ int array_search_bisect_internal(
  * @return the error status
  */
 int array_search_closeby_internal(
-                const double * const __restrict__ array0,
+                double * __restrict__ array0,
                 int array_stride,
-                const int array_size,
-                const double value,
-                int * const __restrict__ inf_index,
-                int * const __restrict__ sup_index,
+                int array_size,
+                double value,
+                int * __restrict__ inf_index,
+                int * __restrict__ sup_index,
                 ErrorMsg errmsg) {
 
   int inf, sup, reversed;
-  const double * array = array0;
+  double * array = array0;
 
   if (array[0*array_stride] > array[(array_size-1)*array_stride]) {  /** - descending values */
     /** reverse the array indexing */
@@ -477,14 +477,14 @@ int array_derive_two(
  *
  * @return the error status
  */
-int arrays_tridiagonal_solve(const int size,
-                            const double * const diag,
-                            const double * const superdiag,
-                            const double * const subdiag,
-                            const double * const constant,
+int arrays_tridiagonal_solve(int size,
+                            double * diag,
+                            double * superdiag,
+                            double * subdiag,
+                            double * constant,
                             double * solution,
                             double * superdiag_f,
-                            const short compute_forward_superdiagonal,
+                            short compute_forward_superdiagonal,
                             double * constant_f) {
 
   int it;
@@ -525,14 +525,14 @@ int arrays_tridiagonal_solve(const int size,
 #ifdef __FAST_MATH__
 #warning Kahan-Neumaier summation is incompatible with -ffast-math. Defaulting to uncompensated summation.
 
-static inline double d2sum(const double a, const double b, double *__restrict__ t) {
+inline double d2sum(double a, double b, double *__restrict__ t) {
   double s;
   s = a + b;
   *t = 0.;
   return s;
 }
 
-static inline double dcompsum(const double * const summands, const int size, const int stride) {
+inline double dcompsum(double * summands, int size, int stride) {
   int i;
   double s;
 
@@ -544,7 +544,7 @@ static inline double dcompsum(const double * const summands, const int size, con
 }
 
 #else
-static inline double d2sum(const double a, const double b, double * __restrict__ t) {
+inline double d2sum(double a, double b, double * __restrict__ t) {
   double s, ap, bp, da, db;
   s = a + b;
   ap = s - b;
@@ -562,7 +562,7 @@ static inline double d2sum(const double a, const double b, double * __restrict__
  * @param stride    Input: stride in the summands array
  * @return compensated sum of the input array
  */
-static inline double dcompsum(const double * const summands, const int size, const int stride) {
+inline double dcompsum(double * summands, int size, int stride) {
   int i;
   double s, c, t, in;
 
@@ -1479,15 +1479,15 @@ int array_logspline_table_one_column(
 }
 
 int array_integrate_internal(
-                const double * const x0,
-                const int x_size,
-                const int x_stride,
-                const double * const y0,
-                const int y_stride,
-                const double * const ddy0,
-                const int ddy_stride,
+                double * x0,
+                int x_size,
+                int x_stride,
+                double * y0,
+                int y_stride,
+                double * ddy0,
+                int ddy_stride,
                 double * result,
-                const double condition_number_threshold,
+                double condition_number_threshold,
                 double * condition_number,
                 ErrorMsg errmsg) {
 
@@ -1524,17 +1524,17 @@ int array_integrate_internal(
 }
 
 int array_integrate_internal_partial_range(
-                const double * const x0,
-                const int x_size,
-                const int x_stride,
-                const double * const y0,
-                const int y_stride,
-                const double * const ddy0,
-                const int ddy_stride,
-                const double a,
-                const double b,
-                const int index_a,
-                const int index_b,
+                double * x0,
+                int x_size,
+                int x_stride,
+                double * y0,
+                int y_stride,
+                double * ddy0,
+                int ddy_stride,
+                double a,
+                double b,
+                int index_a,
+                int index_b,
                 double * result,
                 ErrorMsg errmsg) {
 
@@ -1581,13 +1581,13 @@ int array_integrate_internal_partial_range(
 }
 
 int array_square_integrate_internal(
-                const double * const x0,
-                const int x_size,
-                const int x_stride,
-                const double * const y0,
-                const int y_stride,
-                const double * const ddy0,
-                const int ddy_stride,
+                double * x0,
+                int x_size,
+                int x_stride,
+                double * y0,
+                int y_stride,
+                double * ddy0,
+                int ddy_stride,
                 double * result,
                 ErrorMsg errmsg) {
 
@@ -1612,15 +1612,15 @@ int array_square_integrate_internal(
 
 #define _SPL_SQUARE_EXP_SERIES_THRESHOLD_ 0.001
 int array_square_integrate_exponential_internal(
-                const double * const x0,
-                const int x_size,
-                const int x_stride,
-                const double * const y0,
-                const int y_stride,
-                const double * const ddy0,
-                const int ddy_stride,
-                const double bias,
-                const int derivative_order,
+                double * x0,
+                int x_size,
+                int x_stride,
+                double * y0,
+                int y_stride,
+                double * ddy0,
+                int ddy_stride,
+                double bias,
+                int derivative_order,
                 double * result,
                 int num_threads,
                 ErrorMsg errmsg) {
@@ -2135,7 +2135,7 @@ int array_integrate_all_spline_table_lines_compensated(
 			    int y_size,
 			    double * ddy_array,
 			    double * result,
-          const double condition_num_threshold,
+          double condition_num_threshold,
           double * condition_num,
           ErrorMsg errmsg) {
 
@@ -2417,17 +2417,17 @@ int array_integrate_ratio(
 }
 
 int array_interpolate_internal(
-                               const double * const x0,
-                               const int x_size,
-                               const int x_stride,
-                               const double * const y0,
-                               const int y_stride,
-                               const double * const ddy0,
-                               const int ddy_stride,
-                               const short derivative_order,
-                               const double x,
-                               const int inf,
-                               const int sup,
+                               double * x0,
+                               int x_size,
+                               int x_stride,
+                               double * y0,
+                               int y_stride,
+                               double * ddy0,
+                               int ddy_stride,
+                               short derivative_order,
+                               double x,
+                               int inf,
+                               int sup,
                                double * result,
                                ErrorMsg errmsg) {
 
@@ -2712,16 +2712,16 @@ int array_interpolate_spline(
 }
 
 int array_interpolate_spline_derivative(
-                const double * const __restrict__ x_array,
-                const int n_lines,
-                const double * const __restrict__ array,
-                const double * const __restrict__ array_splined,
-                const int n_columns,
-                const double x,
-                const short derivative_order,
-                int * const __restrict__ last_index,
+                double * __restrict__ x_array,
+                int n_lines,
+                double * __restrict__ array,
+                double * __restrict__ array_splined,
+                int n_columns,
+                double x,
+                short derivative_order,
+                int * __restrict__ last_index,
                 double * __restrict__ result,
-                const int result_size, /** from 1 to n_columns */
+                int result_size, /** from 1 to n_columns */
                 ErrorMsg errmsg) {
 
   int inf, sup, i;
@@ -2757,16 +2757,16 @@ int array_interpolate_spline_derivative(
 }
 
 int array_interpolate_spline_derivative_closeby(
-                const double * const __restrict__ x_array,
-                const int n_lines,
-                const double * const __restrict__ array,
-                const double * const __restrict__ array_splined,
-                const int n_columns,
-                const double x,
-                const short derivative_order,
-                int * const __restrict__ last_index,
+                double * __restrict__ x_array,
+                int n_lines,
+                double * __restrict__ array,
+                double * __restrict__ array_splined,
+                int n_columns,
+                double x,
+                short derivative_order,
+                int * __restrict__ last_index,
                 double * __restrict__ result,
-                const int result_size, /** from 1 to n_columns */
+                int result_size, /** from 1 to n_columns */
                 ErrorMsg errmsg) {
 
   int inf, sup, i;
@@ -3610,12 +3610,12 @@ int array_interpolate_spline_growing_hunt(
  */
 int array_spline_solve_table_lines(
                       double * x_array,
-                      const int x_size,
+                      int x_size,
                       double * y_array,
                       double * ddy_array,
-                      const double y,
+                      double y,
                       double * x,
-                      const int ascending,
+                      int ascending,
                       int * last,
                       ErrorMsg errmsg) {
 
@@ -4138,12 +4138,12 @@ int array_interpolate_parabola(double x1,
 }
 
 int array_convert_spline_table_columns_to_local_power_basis(
-              const double * const x, /* vector of size x_size */
-		          const int x_size,
-		          const double * const y_array, /* array of size x_size*y_size with elements
+              double * x, /* vector of size x_size */
+		          int x_size,
+		          double * y_array, /* array of size x_size*y_size with elements
 					                                      y_array[index_y*x_size+index_x] */
-		          const int y_size,
-		          const double * const ddy_array, /* array of size x_size*y_size */
+		          int y_size,
+		          double * ddy_array, /* array of size x_size*y_size */
               double * coefficients,  /* array of coefficients of size y_size*(x_size-1)*4, C-order */
               double * breakpoints,
               ErrorMsg errmsg) { /* array of breakpoints of size y_size*x_size */

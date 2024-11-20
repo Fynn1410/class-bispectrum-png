@@ -14,7 +14,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
                                         int * list_spectra_contributions_size) {
 
   int index_pk_type, index_moment, num_moments, index_list = 0, it = 0;
-  
+
   switch (pk_out_type)
   {
   case Pdd_mm_real:
@@ -50,14 +50,14 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
           index_list = 0;
           for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-            if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+            if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
             (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
           }
         }
       }
       else {
         /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
-         *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y, 
+         *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y,
          *                                                      peft->index_JG202x, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
         const int exclusion_list_size = 22;
         const int exclusion_list[22] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 19, 20, 21, 22, 23, 27, 29, 34, 36, 38, 40, 41};
@@ -65,7 +65,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         *list_spectra_contributions_size = num_moments;
         class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
         for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
           (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
         }
       }
@@ -83,13 +83,13 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         *list_spectra_contributions_size = num_moments;
         class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
         for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
           (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
         }
       }
       else {
         /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
-         *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y, 
+         *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y,
          *                                                      peft->index_JG202x, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
         const int exclusion_list_size = 22;
         const int exclusion_list[22] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 19, 20, 21, 22, 23, 27, 29, 34, 36, 38, 40, 41};
@@ -97,7 +97,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         *list_spectra_contributions_size = num_moments;
         class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
         for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
           (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
         }
       }
@@ -144,7 +144,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         *list_spectra_contributions_size = num_moments;
         class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
         for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
           (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
         }
       }
@@ -169,7 +169,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         *list_spectra_contributions_size = num_moments;
         class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
         for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
           (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
         }
       }
@@ -185,7 +185,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
       *list_spectra_contributions_size = num_moments;
       class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
       for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
         (*list_spectra_contributions)[it++] = pk_ir_resummed_lo * peft->index_num + index_moment;
       }
     }
@@ -200,7 +200,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
       *list_spectra_contributions_size = num_moments;
       class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
       for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
         (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
       }
     }
@@ -218,13 +218,13 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
           index_list = 0;
           for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-            if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+            if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
             (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
           }
         }
       }
       else {
-        /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, 
+        /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y,
          *                                                      peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
         const int exclusion_list_size = 13;
         const int exclusion_list[13] = {4, 5, 6, 19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
@@ -232,7 +232,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         *list_spectra_contributions_size = num_moments;
         class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
         for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
           (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
         }
       }
@@ -249,12 +249,12 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         *list_spectra_contributions_size = 2 * num_moments;
         class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
         for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
           (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
         }
       }
       else {
-        /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, 
+        /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y,
          *                                                      peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
         const int exclusion_list_size = 13;
         const int exclusion_list[13] = {4, 5, 6, 19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
@@ -262,7 +262,7 @@ int eft_necessary_spectra_contributions(struct eft * peft,
         *list_spectra_contributions_size = num_moments;
         class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
         for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
           (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
         }
       }
@@ -344,7 +344,7 @@ int eft_necessary_pk_types_loops(struct eft * peft,
 }
 
 int eft_necessary_pk_types_outside_loops(struct eft * peft,
-                                         const short pk_out_type,
+                                         short pk_out_type,
                                          int ** list_pk_types,
                                          int * list_pk_types_size) {
 
@@ -387,11 +387,11 @@ int eft_necessary_pk_types_outside_loops(struct eft * peft,
 }
 
 int eft_set_sampling_points_all(struct eft * peft0,
-                                const int eft_size,
-                                const double * const kvec_Mpc,
-                                const double * const muvec,
-                                const int k_size,
-                                const int mu_size) {
+                                int eft_size,
+                                double * kvec_Mpc,
+                                double * muvec,
+                                int k_size,
+                                int mu_size) {
 
     int index_eft;
 
@@ -408,10 +408,10 @@ int eft_set_sampling_points_all(struct eft * peft0,
 }
 
 int eft_set_sampling_points(struct eft * peft,
-                            const double * const kvec_Mpc,
-                            const double * const muvec,
-                            const int k_size,
-                            const int mu_size) {
+                            double * kvec_Mpc,
+                            double * muvec,
+                            int k_size,
+                            int mu_size) {
 
   int it;
 
@@ -450,8 +450,8 @@ int eft_set_sampling_points(struct eft * peft,
 }
 
 int eft_set_sampling_points_mu_only(struct eft * peft,
-                                    const double * const muvec,
-                                    const int mu_size) {
+                                    double * muvec,
+                                    int mu_size) {
 
   int it;
 
@@ -487,7 +487,7 @@ int eft_set_sampling_points_mu_only(struct eft * peft,
 int eft_get_sampling_points(struct eft * peft,
                             double * kvec_Mpc,
                             double * muvec) {
-  
+
   int it;
 
   // *k_size = peft->k_size;
@@ -525,9 +525,9 @@ int eft_get_sampling_grid_size(struct eft * peft,
  * @return the error status
  */
 int eft_allocate_spectra_contributions(struct eft * peft,
-                                       const int size,
-                                       const int * const moment_list,
-                                       const int moment_list_size) {
+                                       int size,
+                                       int * moment_list,
+                                       int moment_list_size) {
 
   int index_list, index_pk_type, index_moment, index_part;
   div_t list_elem;
@@ -563,8 +563,8 @@ int eft_allocate_spectra_contributions(struct eft * peft,
 
 
 int eft_compute_spectra_contributions(struct eft * peft,
-                                      const int * const moment_list,
-                                      const int moment_list_size) {
+                                      int * moment_list,
+                                      int moment_list_size) {
 
   int index_k, index_list;
 
@@ -680,13 +680,13 @@ int eft_load_linear_spectra(struct background * pba,
                             struct fourier * pfo,
                             struct primordial * ppm,
                             struct eft * peft,
-                            const double z,
-                            const double f,
-                            const double D,
-                            const int * const pk_types,
-                            const int pk_types_size,
-                            const double * const muvec,
-                            const int mu_size) {
+                            double z,
+                            double f,
+                            double D,
+                            int * pk_types,
+                            int pk_types_size,
+                            double * muvec,
+                            int mu_size) {
 
   int index_list, index_mu, index_pk_type, size, rsd_indicator;
   double * ln_k;
@@ -770,7 +770,7 @@ int eft_load_linear_spectra(struct background * pba,
 }
 
 
-double sigma_sq(struct eft * peft, const short n, enum eft_pk_type pk_type) {
+double sigma_sq(struct eft * peft, short n, enum eft_pk_type pk_type) {
   short found = _FALSE_;
   int index_moment;
   class_complex value;
@@ -810,7 +810,7 @@ double sigma_sq(struct eft * peft, const short n, enum eft_pk_type pk_type) {
   }
 }
 
-double shot_sym_sq(struct eft * peft, const short n, const short m, enum eft_pk_type pk_type) {
+double shot_sym_sq(struct eft * peft, short n, short m, enum eft_pk_type pk_type) {
   short found = _FALSE_;
   int index_moment;
   double value;
@@ -853,7 +853,7 @@ double shot_sym_sq(struct eft * peft, const short n, const short m, enum eft_pk_
   }
 }
 
-double plin_of_lnk_uv(struct eft * peft, const short derivative_order, enum eft_pk_type pk_type) {
+double plin_of_lnk_uv(struct eft * peft, short derivative_order, enum eft_pk_type pk_type) {
   double value;
   int inf = peft->hp->k_size_moments-2;
 
@@ -875,7 +875,7 @@ double plin_of_lnk_uv(struct eft * peft, const short derivative_order, enum eft_
   return value;
 }
 
-double plin_of_lnk_ir(struct eft * peft, const short derivative_order, enum eft_pk_type pk_type) {
+double plin_of_lnk_ir(struct eft * peft, short derivative_order, enum eft_pk_type pk_type) {
   double value;
   int inf = 0;
 
@@ -897,7 +897,7 @@ double plin_of_lnk_ir(struct eft * peft, const short derivative_order, enum eft_
   return value;
 }
 
-double shot_sq(struct eft * peft, const short n, const short m, enum eft_pk_type pk_type) {
+double shot_sq(struct eft * peft, short n, short m, enum eft_pk_type pk_type) {
   short found = _FALSE_;
   int index_moment, code;
   double value = 0., uv_boundary = 0., ir_boundary = 0.;
@@ -992,7 +992,7 @@ double shot_sq(struct eft * peft, const short n, const short m, enum eft_pk_type
   }
 }
 
-// double plin_of_lnk_out(struct eft * peft, double ln_k, int * last_index, const short derivative_order, enum eft_pk_type pk_type) {
+// double plin_of_lnk_out(struct eft * peft, double ln_k, int * last_index, short derivative_order, enum eft_pk_type pk_type) {
 //   double value;
 
 //   if (array_interpolate_spline_derivative_closeby(
@@ -1014,12 +1014,12 @@ double shot_sq(struct eft * peft, const short n, const short m, enum eft_pk_type
 // }
 
 int add_plin_contribution(struct eft * peft,
-                          const int k_power,
-                          const int mu_power,
-                          const short derivative_order,
-                          const double prefactor,
+                          int k_power,
+                          int mu_power,
+                          short derivative_order,
+                          double prefactor,
                           double * out_pkmu0,
-                          const int pk_type_and_moment) {
+                          int pk_type_and_moment) {
 
   int it_k, it_mu, pk_type, mu_size, last_index = 0;
   double plin;
@@ -1063,11 +1063,11 @@ int add_plin_contribution(struct eft * peft,
 }
 
 int add_shot_contribution(struct eft * peft,
-                          const int k_power,
-                          const int mu_power,
-                          const double prefactor,
+                          int k_power,
+                          int mu_power,
+                          double prefactor,
                           double * out_pkmu0,
-                          const int pk_type_and_moment) {
+                          int pk_type_and_moment) {
 
   int it_k, it_mu, mu_size;
 
@@ -1095,8 +1095,8 @@ int add_shot_contribution(struct eft * peft,
 
 
 int eft_compute_divergences(struct eft * peft,
-                            const int * const moment_list,
-                            const int moment_list_size) {
+                            int * moment_list,
+                            int moment_list_size) {
 
   int index_list, index_part;
 
@@ -1880,13 +1880,13 @@ int eft_build_nonlinear_power_spectrum_wedges(
                                   struct background * pba,
                                   struct primordial * ppm,
                                   struct fourier * pfo,
-                                  const short index_pk_out_type,
-                                  const double z,
-                                  const double D_z,
-                                  const double f_z,
-                                  const double * muvec,
+                                  short index_pk_out_type,
+                                  double z,
+                                  double D_z,
+                                  double f_z,
+                                  double * muvec,
                                   int mu_size,
-                                  const double As_ratio,
+                                  double As_ratio,
                                   struct eft_input_parameters eft_ip,
                                   double * pkmu) {  /**< pkmu[index_mu*peft->k_size + index_k] */
 
@@ -2269,7 +2269,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
                   Idelta200       =        peft->spectra_contributions[index_pk_type][peft->index_Idelta200*eft_spectra_contribution_num + index_part][index_mu_k];
                   IG200           =        peft->spectra_contributions[index_pk_type][peft->index_IG200*eft_spectra_contribution_num + index_part][index_mu_k];
                   FG200           = Plin * peft->spectra_contributions[index_pk_type][peft->index_FG200*eft_spectra_contribution_num + index_part][index_mu_k];
-                  
+
                   /** - assemble the power spectrum contributions from the moments only from FFTLog loop terms */
                   Preal_loop = D4 * (2.*eft_ip.b1 * (I2200 + 3.*I1300) + eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2 * IG200        \
                                      + 4.*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);

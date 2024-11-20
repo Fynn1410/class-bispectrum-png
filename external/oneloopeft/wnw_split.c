@@ -30,10 +30,10 @@ int eft_ln_pk_nw_gfilter(
                       struct background *pba,
                       struct primordial *ppm,
                       struct fourier *pfo,
-                      const int index_pk,
-                      const int index_k0,
-                      const int index_kmin,
-                      const int k_size,
+                      int index_pk,
+                      int index_k0,
+                      int index_kmin,
+                      int k_size,
                       double * ln_pknw_array) {
 
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num;
@@ -144,10 +144,10 @@ int eft_ln_pk_nw_gfilter_3d(
                       struct background *pba,
                       struct primordial *ppm,
                       struct fourier *pfo,
-                      const int index_pk,
-                      const int index_k0,
-                      const int index_kmin,
-                      const int k_size,
+                      int index_pk,
+                      int index_k0,
+                      int index_kmin,
+                      int k_size,
                       double *ln_pknw_array) {
 
   int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num, last_index;
@@ -273,8 +273,8 @@ int eft_ln_pk_nw_gfilter_3d(
 //                       struct background *pba,
 //                       struct primordial *ppm,
 //                       struct fourier *pfo,
-//                       const int index_k0,
-//                       const int index_pk,
+//                       int index_k0,
+//                       int index_pk,
 //                       double *ln_pknw_array) {
 
 //   int it_k, it_tau, last_index;
@@ -340,11 +340,11 @@ int eft_ln_pk_nw_gfilter_3d(
 //                                 struct background *pba,
 //                                 struct primordial *ppm,
 //                                 struct fourier *pfo,
-//                                 const int index_k0,
-//                                 const int index_pk,
+//                                 int index_k0,
+//                                 int index_pk,
 //                                 double *ln_pknw_array) {
 
-//   const double smoothing_scale = 0.25 * log(10); // lambda * (1 Mpc)
+//   double smoothing_scale = 0.25 * log(10); // lambda * (1 Mpc)
 
 //   double *pk_approx_f, *intg_splines, k0;
 //   int index_x, index_y, index_ddy;
@@ -427,8 +427,8 @@ double eft_pk_nw_eisenstein_hu_factor(
                                       struct background *pba,
                                       struct primordial *ppm,
                                       struct fourier *pfo,
-                                      const double k,
-                                      const double k0) {
+                                      double k,
+                                      double k0) {
 
     return pow(k/k0, ppm->n_s) * pow(T0(pba, ppm, pfo, k)/T(pba, ppm, pfo, k0), 2.);
 }
@@ -448,8 +448,8 @@ double eft_pk_w_eisenstein_hu_factor(
                                       struct background *pba,
                                       struct primordial *ppm,
                                       struct fourier *pfo,
-                                      const double k,
-                                      const double k0) {
+                                      double k,
+                                      double k0) {
 
     return pow(k/k0, ppm->n_s) * pow(T(pba, ppm, pfo, k)/T(pba, ppm, pfo, k0), 2.);
 }

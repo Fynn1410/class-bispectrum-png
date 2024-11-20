@@ -869,9 +869,9 @@ int fourier_pk_l_extra_at_kvec_and_z(
                                      struct fourier * pfo,
                                      enum linear_or_logarithmic mode,
                                      double * ln_kvec,
-                                     const int kvec_size,
-                                     const double z,
-                                     const int index_pk,
+                                     int kvec_size,
+                                     double z,
+                                     int index_pk,
                                      double * out_pk) {
 
   int index_k, index_kvec, last_index = 0;
@@ -1217,7 +1217,7 @@ int fourier_pk_l_nw_extra_at_z(
                                struct background * pba,
                                struct fourier * pfo,
                                enum linear_or_logarithmic mode,
-                               const double z,
+                               double z,
                                double * out_pk) {
 
   double tau;
@@ -1330,8 +1330,8 @@ int fourier_pk_l_nw_extra_at_k_and_z(
                                      struct primordial * ppm,
                                      struct fourier * pfo,
                                      enum linear_or_logarithmic mode,
-                                     const double k,
-                                     const double z,
+                                     double k,
+                                     double z,
                                      double * out_pk) {
 
   double * out_pk_at_z;
@@ -1520,8 +1520,8 @@ int fourier_pk_l_nw_extra_at_kvec_and_z(
                                         struct fourier * pfo,
                                         enum linear_or_logarithmic mode,
                                         double * ln_kvec, // log(kvec[index_kvec])
-                                        const int kvec_size,
-                                        const double z,
+                                        int kvec_size,
+                                        double z,
                                         double * out_pk) {
 
   int index_k, index_kvec, last_index = 0;

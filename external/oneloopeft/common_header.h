@@ -22,7 +22,7 @@ const static FileName eft_loop_matrix_files_default[NUM_MOMENTS] = {"I2200", "I1
                                                                     "N22x", "N22y", "N22z"};  /**< default filenames for the loop matrices */
 
 
-int eft_ln_pk_nw_gfilter_parallel(struct precision *ppr, struct background *pba, struct primordial *ppm, struct fourier *pfo, const int index_pk, const int index_k0, const int index_kmin, const int k_size, double *ln_pknw_array);
+int eft_ln_pk_nw_gfilter_parallel(struct precision *ppr, struct background *pba, struct primordial *ppm, struct fourier *pfo, int index_pk, int index_k0, int index_kmin, int k_size, double *ln_pknw_array);
 
 struct eft_input_parameters
 {

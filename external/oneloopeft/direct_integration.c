@@ -12,27 +12,27 @@
 /** All kernels can be expressed in terms of k^2, q^2 and |k-q|^2 */
 
 /** F2_s(q, k-q) */
-static double eft_di_kernel_F2s_q_kmq(const double k_sq, const double q_sq, const double kmq_sq) {
+double eft_di_kernel_F2s_q_kmq(double k_sq, double q_sq, double kmq_sq) {
   return (2.*k_sq*k_sq + 3.*k_sq*(kmq_sq + q_sq) - 5.*(kmq_sq - q_sq)*(kmq_sq - q_sq)) / (28.*kmq_sq*q_sq);
 }
 
 /** F2_s(q, -k) */
-static double eft_di_kernel_F2s_q_mk(const double k_sq, const double q_sq, const double kmq_sq) {
+double eft_di_kernel_F2s_q_mk(double k_sq, double q_sq, double kmq_sq) {
   return (-5.*k_sq*k_sq + k_sq*(3.*kmq_sq + 10.*q_sq) + (2.*kmq_sq*kmq_sq + 3.*kmq_sq*q_sq - 5.*q_sq*q_sq)) / (28.*k_sq*q_sq);
 }
 
 /** G2_s(q, k-q) */
-static double eft_di_kernel_G2s_q_kmq(const double k_sq, const double q_sq, const double kmq_sq) {
+double eft_di_kernel_G2s_q_kmq(double k_sq, double q_sq, double kmq_sq) {
   return (4.*k_sq*k_sq - k_sq*(kmq_sq + q_sq) - 3.*(kmq_sq - q_sq)*(kmq_sq - q_sq)) / (28.*kmq_sq*q_sq);
 }
 
 /** G2_s(q, -k) */
-static double eft_di_kernel_G2s_q_mk(const double k_sq, const double q_sq, const double kmq_sq) {
+double eft_di_kernel_G2s_q_mk(double k_sq, double q_sq, double kmq_sq) {
   return -(3.*k_sq*k_sq + k_sq*(kmq_sq - 6.*q_sq) + (-4.*kmq_sq*kmq_sq + kmq_sq*q_sq + 3.*q_sq*q_sq)) / (28.*k_sq*q_sq);
 }
 
 /** F3_s(k, q, -q) */
-static double eft_di_kernel_F3s(const double k_sq, const double q_sq, const double kmq_sq) {
+double eft_di_kernel_F3s(double k_sq, double q_sq, double kmq_sq) {
   return -(6.*k_sq*k_sq*k_sq*k_sq                                                                                 \
           +k_sq*k_sq*k_sq*(31.*kmq_sq + 3.*q_sq)                                                                  \
           -k_sq*k_sq*(66.*kmq_sq*kmq_sq - 5.*kmq_sq*q_sq + 45.*q_sq*q_sq)                                         \
@@ -41,7 +41,7 @@ static double eft_di_kernel_F3s(const double k_sq, const double q_sq, const doub
 }
 
 /** G3_s(k, q, -q) */
-static double eft_di_kernel_G3s(const double k_sq, const double q_sq, const double kmq_sq) {
+double eft_di_kernel_G3s(double k_sq, double q_sq, double kmq_sq) {
   return -(6.*k_sq*k_sq*k_sq*k_sq                                                                               \
           +k_sq*k_sq*k_sq*(kmq_sq - 15.*q_sq)                                                                   \
           -k_sq*k_sq*(18.*kmq_sq*kmq_sq - 11.*kmq_sq*q_sq - 9.*q_sq*q_sq)                                       \
@@ -50,21 +50,21 @@ static double eft_di_kernel_G3s(const double k_sq, const double q_sq, const doub
 }
 
 /** S2(q, k-q) = (q.(k-q))^2/(|q|^2*|k-q|^2) - 1 = (k mu_q - q)^2/|k-q|^2 - 1 */
-static double eft_di_kernel_S2(const double k_sq, const double q_sq, const double kmq_sq) {
+double eft_di_kernel_S2(double k_sq, double q_sq, double kmq_sq) {
   double k, q, kmq;
   k = sqrt(k_sq); q = sqrt(q_sq); kmq = sqrt(kmq_sq);
   return (k + kmq + q)*(k + kmq - q)*(-k + kmq + q)*(-k + kmq - q) / (4.*kmq_sq*q_sq);
 }
 
 /** (k-q)_par / |k-q|^2 */
-static double eft_di_los_kernel_kmq(const double k_sq, const double q_sq, const double kmq_sq, const double cos_thetakmq) {
+double eft_di_los_kernel_kmq(double k_sq, double q_sq, double kmq_sq, double cos_thetakmq) {
   double kmq;
   kmq = sqrt(kmq_sq);
   return cos_thetakmq / kmq;
 }
 
 /** (q)_par / |q|^2 */
-static double eft_di_los_kernel_q(const double k_sq, const double q_sq, const double kmq_sq, const double cos_thetaq, const double cos_phiq, const double cos_theta) {
+double eft_di_los_kernel_q(double k_sq, double q_sq, double kmq_sq, double cos_thetaq, double cos_phiq, double cos_theta) {
   double q;
   q = sqrt(q_sq);
   return (cos_theta*cos_thetaq - sqrt(1. - cos_theta*cos_theta)*sqrt(1. - cos_thetaq*cos_thetaq)*cos_phiq) / q;
@@ -83,18 +83,18 @@ static double eft_di_los_kernel_q(const double k_sq, const double q_sq, const do
  *
  * @return the error status (_CUBA_ERROR_ for immediate abortion)
  */
-int eft_di_integrands(const int * ndim,
-                      const double * x,
-                      const int * ncomp,
+int eft_di_integrands(int * ndim,
+                      double * x,
+                      int * ncomp,
                       double * f,
                       void * userdata,
-                      const int * nvec,
-                      const int * core) {
+                      int * nvec,
+                      int * core) {
 
   int it, index_list, index_moment, index_comp = 0;
   struct direct_integration_parameters * params = (struct direct_integration_parameters *)userdata;
   struct eft_hyper_parameters * hp = (struct eft_hyper_parameters *)params->eft_hp;
-  const double k = exp(params->ln_k), cos_theta = params->mu, sin_theta = sqrt(1. - params->mu * params->mu), k_sq = exp(2.*params->ln_k);
+  double k = exp(params->ln_k), cos_theta = params->mu, sin_theta = sqrt(1. - params->mu * params->mu), k_sq = exp(2.*params->ln_k);
   double * ln_q, * q_sq, * cos_thetaq, * ln_kmq, *kmq_sq, * cos_thetakmq, * cos_phiq, * measure;
   double * plin_rsd_q, * plin_rsd_kmq, q, kmq, sin_thetaq;
   short * remove_point;
@@ -390,11 +390,11 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
                                          struct fourier * pfo,
                                          struct primordial * ppm,
                                          struct precision * ppr,
-                                         const int * const moment_list,
-                                         const int moment_list_size,
-                                         const double z,
-                                         const double f,
-                                         const double D) {
+                                         int * moment_list,
+                                         int moment_list_size,
+                                         double z,
+                                         double f,
+                                         double D) {
 
   int index_k, index_mu;
   int ncores = 0, npoints = ppr->eft_di_vecsize, naccel = 0, npointsaccel = 0;

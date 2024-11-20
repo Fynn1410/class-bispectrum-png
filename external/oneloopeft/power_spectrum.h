@@ -20,25 +20,25 @@ int eft_necessary_pk_types_loops(
 
 int eft_set_sampling_points_all(
                       struct eft * peft0,
-                      const int eft_size,
-                      const double * const kvec_Mpc,
-                      const double * const muvec,
-                      const int k_size,
-                      const int mu_size
+                      int eft_size,
+                      double * kvec_Mpc,
+                      double * muvec,
+                      int k_size,
+                      int mu_size
                       );
 
 int eft_set_sampling_points(
                       struct eft * peft,
-                      const double * const kvec_Mpc,
-                      const double * const muvec,
-                      const int k_size,
-                      const int mu_size
+                      double * kvec_Mpc,
+                      double * muvec,
+                      int k_size,
+                      int mu_size
                       );
 
 int eft_set_sampling_points_mu_only(
                       struct eft * peft,
-                      const double * const muvec,
-                      const int mu_size
+                      double * muvec,
+                      int mu_size
                       );
 
 int eft_get_sampling_points(
@@ -55,15 +55,15 @@ int eft_get_sampling_grid_size(
 
 int eft_allocate_spectra_contributions(
                       struct eft * peft,
-                      const int size,
-                      const int * const moment_list,
-                      const int moment_list_size
+                      int size,
+                      int * moment_list,
+                      int moment_list_size
                       );
 
 int eft_compute_spectra_contributions(
                       struct eft * peft,
-                      const int * const moment_list,
-                      const int moment_list_size
+                      int * moment_list,
+                      int moment_list_size
                       );
 
 int eft_load_linear_spectra(
@@ -71,19 +71,19 @@ int eft_load_linear_spectra(
                       struct fourier * pfo,
                       struct primordial * ppm,
                       struct eft * peft,
-                      const double z,
-                      const double f,
-                      const double D,
-                      const int * const pk_types,
-                      const int pk_types_size,
-                      const double * const muvec,
-                      const int mu_size
+                      double z,
+                      double f,
+                      double D,
+                      int * pk_types,
+                      int pk_types_size,
+                      double * muvec,
+                      int mu_size
                       );
 
 int eft_compute_divergences(
                       struct eft * peft,
-                      const int * const moment_list,
-                      const int moment_list_size
+                      int * moment_list,
+                      int moment_list_size
                       );
 
 int eft_build_nonlinear_power_spectrum_wedges(
@@ -91,20 +91,20 @@ int eft_build_nonlinear_power_spectrum_wedges(
                       struct background * pba,
                       struct primordial * ppm,
                       struct fourier * pfo,
-                      const short index_pk_out_type,
-                      const double z,
-                      const double D_z,
-                      const double f_z,
-                      const double * muvec,
+                      short index_pk_out_type,
+                      double z,
+                      double D_z,
+                      double f_z,
+                      double * muvec,
                       int mu_size,
-                      const double As_ratio,
+                      double As_ratio,
                       struct eft_input_parameters eft_ip,
                       double * pkmu
                       );
 
 double sigma_sq(        \
                       struct eft * peft, 
-                      const short n, 
+                      short n, 
                       enum eft_pk_type pk_type
                       );
 
@@ -113,12 +113,12 @@ double sigma_sq(        \
 //                       struct background * pba,
 //                       struct primordial * ppm,
 //                       struct fourier * pfo,
-//                       const short index_pk_out_type,
-//                       const double * const z,
-//                       const double * const D_z,
-//                       const double * const f_z,
-//                       const int z_size,
-//                       const double * muvec,
+//                       short index_pk_out_type,
+//                       double * z,
+//                       double * D_z,
+//                       double * f_z,
+//                       int z_size,
+//                       double * muvec,
 //                       int mu_size,
 //                       struct eft_input_parameters eft_ip,
 //                       double ** pkmu

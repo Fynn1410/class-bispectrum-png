@@ -35,7 +35,7 @@ int get_error_status(double * last_argument)
  * @param z     Input: Complex argument
  * @return      value of Gamma(z) / NaN at a singularity
 */
-class_complex cGamma(const class_complex z)
+class_complex cGamma(class_complex z)
 {
   const double g = 6.0246800407767295;
   const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
@@ -74,7 +74,7 @@ class_complex cGamma(const class_complex z)
 }
 
 
-// Why is this not just tgamma??? 
+// Why is this not just tgamma???
 
 /**
  * @brief Real Gamma function approximated using the
@@ -83,7 +83,7 @@ class_complex cGamma(const class_complex z)
  * @param x     Input: Real argument
  * @return      value of Gamma(x) / NaN at a singularity
 */
-double rGamma(const double x)
+double rGamma(double x)
 {
   const double g = 6.0246800407767295;
   const double co[LANCZOS_GAMMA_N] = {2.506628274631000,
