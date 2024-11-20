@@ -92,7 +92,7 @@ int eft_di_integrands(const int * ndim,
                       const int * core) {
 
   int it, index_list, index_moment, index_comp = 0;
-  struct direct_integration_parameters * params = userdata;
+  struct direct_integration_parameters * params = (struct direct_integration_parameters *)userdata;
   struct eft_hyper_parameters * hp = (struct eft_hyper_parameters *)params->eft_hp;
   const double k = exp(params->ln_k), cos_theta = params->mu, sin_theta = sqrt(1. - params->mu * params->mu), k_sq = exp(2.*params->ln_k);
   double * ln_q, * q_sq, * cos_thetaq, * ln_kmq, *kmq_sq, * cos_thetakmq, * cos_phiq, * measure;
@@ -398,12 +398,7 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
 
   int index_k, index_mu;
   int ncores = 0, npoints = ppr->eft_di_vecsize, naccel = 0, npointsaccel = 0;
-  double * result, * error, * prob, max_rel_error;
   //div_t list_elem;
-  struct direct_integration_parameters di_params = { .peft = peft, .eft_hp = peft->hp,    \
-                                                     .pba = pba, .pfo = pfo, .ppm = ppm,  \
-                                                     .moment_list = moment_list, .moment_list_size = moment_list_size,  \
-                                                     .z = z, .f_z = f, .ln_k = 0., .mu = 0.};
 
   peft->z0 = z;
   peft->f_z0 = f; /**< growth rate may be supplied externally */
@@ -418,32 +413,31 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
 
   printf("Starting direct integration.\n");
 
-  class_alloc_parallel(result, moment_list_size*sizeof(double), peft->error_message);
-  class_alloc_parallel(error,  moment_list_size*sizeof(double), peft->error_message);
-  class_alloc_parallel(prob,   moment_list_size*sizeof(double), peft->error_message);
-
   class_setup_parallel();
   for (index_mu = 0; index_mu < peft->mu_size; index_mu++) {
     for (index_k = 0; index_k < peft->k_size; index_k++) {
       class_run_parallel( \
         =,
-        int nregions;
-        int neval;
-        int fail;
-        int index_list;
+        int declare_list_of_variables_inside_parallel_region(nregions, neval, fail, index_list, index_pk_type, index_moment, max_error_index);
         div_t list_elem;
-        int index_pk_type;
-        int index_moment;
-        int max_error_index;
+        double declare_list_of_variables_inside_parallel_region(*result, *error, *prob, max_rel_error);
+        struct direct_integration_parameters declare_list_of_variables_inside_parallel_region(di_params = {                     \
+                                                          .peft = peft, .pba = pba, .ppm = ppm, .pfo = pfo, .eft_hp = peft->hp, \
+                                                          .moment_list = moment_list, .moment_list_size = moment_list_size,     \
+                                                          .z = z, .f_z = f, .ln_k = 0., .mu = 0.};);
         /** - load the sampling point */
         di_params.ln_k = peft->ln_k[index_mu*peft->k_size + index_k];
         di_params.mu   = peft->mu[index_mu];
+
+        class_alloc(result, moment_list_size*sizeof(double), peft->error_message);
+        class_alloc(error,  moment_list_size*sizeof(double), peft->error_message);
+        class_alloc(prob,   moment_list_size*sizeof(double), peft->error_message);
 
         /** - compute the integral using cubature rules */
         Cuhre(3,
               moment_list_size,
               eft_di_integrands,
-              &di_params,
+              (void *)&di_params,
               ppr->eft_di_vecsize,
               ppr->eft_di_epsrel,
               ppr->eft_di_epsabs,
@@ -500,15 +494,16 @@ int eft_di_compute_spectra_contributions(struct eft * peft,
             printf("Direct integration (mu = %6.3f, ln(k) = %6.3f): accuracy goal not met in %.2e evaluations; highest rel. error is %.2e for index_moment = %d \n", di_params.mu, di_params.ln_k, (double)neval, max_rel_error, index_moment);
           }
         }
+
+        free(result);
+        free(error);
+        free(prob);
+
         return _SUCCESS_;
                           );
     }
   }
   class_finish_parallel();
-
-  free(result);
-  free(error);
-  free(prob);
 
   return _SUCCESS_;
 }

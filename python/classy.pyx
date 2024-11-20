@@ -116,6 +116,12 @@ cdef class Class:
     # Keeps track of the structures initialized, in view of cleaning.
     cdef object ncp
 
+    # Dictionary of powerspectrum outputs
+    cdef object ps_real_type_dict
+    cdef object ps_rsd_type_dict
+    # Dictionary of internal powerspectrum types in loop integrals
+    cdef object ps_type_loops_dict
+
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
     # access other quantities. Alternatively, you can also define a method, and
@@ -151,6 +157,12 @@ cdef class Class:
         sprintf(self.fc.filename,"%s",dumc)
         self.ncp = set()
         ext_init(&self.ex)
+        self.ps_real_type_dict = {'pdd_mm_real': Pdd_mm_real, 'pdd_hh_real': Pdd_hh_real, 'pdd_hm_real': Pdd_hm_real,
+                                  'pdd_mm_real_no_ir_resummation': Pdd_mm_real_no_IR_resum, 'pdd_hh_real_no_ir_resummation': Pdd_hh_real_no_IR_resum, 'pdd_hm_real_no_ir_resummation': Pdd_hm_real_no_IR_resum}
+        self.ps_rsd_type_dict = {'pdd_mm_rsd': Pdd_mm_rsd, 'pdd_hh_rsd': Pdd_hh_rsd, 'pdd_hm_rsd': Pdd_hm_rsd,
+                                 'pdd_mm_rsd_no_ir_resummation': Pdd_mm_rsd_no_IR_resum, 'pdd_hh_rsd_no_ir_resummation': Pdd_hh_rsd_no_IR_resum, 'pdd_hm_rsd_no_ir_resummation': Pdd_hm_rsd_no_IR_resum}
+        self.ps_type_loops_dict = {'pk_linear': pk_lin, 'pk_nowiggle': pk_nowiggle, 'pk_ir_resummed_lo': pk_ir_resummed_lo,
+                                   'pkmu_rsd_ir_resummed_lo': pkmu_rsd_ir_resummed_lo, 'pk_ir_resummed_nlo': pk_ir_resummed_nlo, 'pkmu_rsd_ir_resummed_nlo': pkmu_rsd_ir_resummed_nlo}
         if default: self.set_default()
 
     def __dealloc__(self):
@@ -2824,14 +2836,60 @@ make        nonlinear_scale_cb(z, z_size)
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
 
+    def _memoryview_safe(self, x):
+        """Make array safe to run in a Cython memoryview-based kernel. These
+        kernels typically break down with the error ``ValueError: buffer source
+        array is read-only`` when running in dask distributed.
+        """
+        if not x.flags.writeable:
+            if not x.flags.owndata:
+                x = x.copy(order='C')
+            x.setflags(write=True)
+        if not x.flags['C_CONTIGUOUS']:
+            x = np.ascontiguousarray(x)
+        return x
+
+    def eft_get_output_sampling(self, double z):
+        cdef int index_eft, k_size, mu_size, index_mu, index_k
+        cdef eft* peft = self.fo.peft
+        cdef double zout
+
+        # find the nearest eft structure
+        eft_nearest_structure_in_time(self.fo.peft,
+                                      self.fo.eft_size,
+                                      &self.ba,
+                                      &self.fo,
+                                      z,
+                                      &index_eft,
+                                      peft,
+                                      self.fo.peft[0].error_message)
+        zout = peft.z0
+
+        # get the output sampling grid
+        eft_get_sampling_grid_size(peft,
+                                   &k_size,
+                                   &mu_size)
+
+        if (peft.hp.eft_verbose > 1):
+            print("Retrieved output sampling grid with k_size = {0:d} and mu_size = {1:d}.".format(k_size, mu_size))
+
+        cdef np.ndarray[DTYPE_t, ndim=1] muvec = np.zeros((mu_size), dtype='float64', order='C')
+        cdef np.ndarray[DTYPE_t, ndim=2] kvec  = np.zeros((mu_size, k_size), dtype='float64', order='C')
+        cdef double[::1] mu_view = muvec
+        cdef double[:, ::1] k_view = kvec
+        
+        eft_get_sampling_points(peft,
+                                &k_view[0, 0],
+                                &mu_view[0])
+
+        return zout, muvec, kvec
+
     def eft_set_output_sampling(self,
         np.ndarray[DTYPE_t,ndim=1] mu,
         np.ndarray[DTYPE_t,ndim=2] k):
 
-        if not mu.flags['C_CONTIGUOUS']:
-            mu = np.ascontiguousarray(mu)
-        if not k.flags['C_CONTIGUOUS']:
-            k = np.ascontiguousarray(k)
+        mu = self._memoryview_safe(mu)
+        k  = self._memoryview_safe(k)
 
         cdef int mu_size = <int>mu.shape[0]
         cdef int k_size = <int>k.shape[1]
@@ -2852,98 +2910,7 @@ make        nonlinear_scale_cb(z, z_size)
 
         return
 
-    # TODO: to be removed
-    # def eft_job_powerspectrum_wedges_grid(self,
-    #     np.ndarray[DTYPE_t,ndim=1] mu,
-    #     np.ndarray[DTYPE_t,ndim=1] k,
-    #     np.ndarray[DTYPE_t,ndim=1] z,
-    #     int mu_size,int k_size,int z_size,pk_output,biases,counterterms,R2,cs2,has_rsd):
-    #     """
-    #     eft_job_powerspectrum_wedges_grid(mi,k,z,mu_size,k_size,z_size,pk_output,biases,counterterms,R2,cs2,has_rsd)
-
-    #     Returns the oneloop power spectrum P_oneloop(k,mu,z)
-
-    #     Input parameters
-    #     ----------------
-    #     mu      : numpy array of mu values, indexed as mu[index_z + z_size*index_mu], of size z_size*mu_size
-    #     k       : numpy array of k values, indexed as k[index_z + z_size*(index_mu + mu_size*index_k)], of size z_size*mu_size*k_size
-    #     z       : numpy array of z values, indexed as z[index_z], of size z_size
-    #     mu_size : number of mu values
-    #     k_size  : number of k values
-    #     z_size  : number of z values
-    #     pk_output: input: one of 'Pdd_mm_real','Pdd_mm_rsd','Pdd_hh_real','Pdd_hh_rsd'
-    #     biases : input: numpy array of biases [b1,b2,bG2,btd]
-    #     counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
-    #     R2 : input: R2 parameter in EFT
-    #     cs2 : input: cs2 parameter in EFT
-    #     has_rsd : input: boolean (do we want redshift space distortions?)
-
-    #     Returns:
-    #     --------
-    #     out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z + z_size*(index_mu + mu_size*index_k)]
-
-    #     """
-
-    #     # check input consistency
-    #     if len(mu) != mu_size*z_size:
-    #         raise CosmoSevereError("mu should have dimension %d, not %" %(mu_size*z_size,len(mu)))
-    #     if len(k) != k_size*mu_size*z_size:
-    #         raise CosmoSevereError("k should have dimension %d, not %" %(k_size*mu_size*z_size,len(k)))
-    #     if len(z) != z_size:
-    #         raise CosmoSevereError("z should have dimension %d, not %" %(z_size,len(z)))
-
-    #     # allocate output array
-    #     cdef np.ndarray[DTYPE_t,ndim=1] out_pkmuz = np.zeros(z_size*k_size*mu_size,'float64')
-
-    #     # fill input structure
-    #     cdef eft_input_parameters eft_ip_test
-
-    #     eft_ip_test.b1 = biases[0]
-    #     eft_ip_test.b2 = biases[1]
-    #     eft_ip_test.bG2 = biases[2]
-    #     eft_ip_test.btd = biases[3]
-    #     eft_ip_test.c00 = counterterms[0]
-    #     eft_ip_test.c10 = counterterms[1]
-    #     eft_ip_test.c20 = counterterms[2]
-    #     eft_ip_test.c22 = counterterms[3]
-    #     eft_ip_test.c30 = counterterms[4]
-    #     eft_ip_test.c32 = counterterms[5]
-    #     eft_ip_test.c42 = counterterms[6]
-    #     eft_ip_test.has_rsd = has_rsd
-    #     eft_ip_test.R2 = R2
-    #     eft_ip_test.cs2 = cs2
-
-    #     # fill input type enum
-    #     cdef eft_pk_out_type pk_output_type
-
-    #     if pk_output == 'Pdd_mm_real':
-    #         pk_output_type = Pdd_mm_real
-    #     elif pk_output == 'Pdd_mm_rsd':
-    #         pk_output_type = Pdd_mm_rsd
-    #     elif pk_output == 'Pdd_hh_real':
-    #         pk_output_type = Pdd_hh_real
-    #     elif pk_output == 'Pdd_hh_rsd':
-    #         pk_output_type = Pdd_hh_rsd
-    #     else:
-    #         raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_output)
-
-    #     eft_job_powerspectrum_wedges_grid(self.fo.peft,
-    #                                       self.fo.eft_size,
-    #                                       &self.ba,
-    #                                       &self.fo,
-    #                                       &self.pm,
-    #                                       &self.pr,
-    #                                       pk_output_type,
-    #                                       <double*> z.data,
-    #                                       &eft_ip_test,
-    #                                       z_size,
-    #                                       <double*> k.data,
-    #                                       k_size,
-    #                                       <double*> mu.data,
-    #                                       mu_size,
-    #                                       <double*>out_pkmuz.data)
-
-    #     return out_pkmuz
+###################
 
     def eft_pkmu_rsd_grid(self,   \
                   np.ndarray[DTYPE_t, ndim=2] mu,  \
@@ -2963,7 +2930,7 @@ make        nonlinear_scale_cb(z, z_size)
         mu      : numpy array of mu values, indexed as mu[index_z, index_mu]
         k       : numpy array of k values, indexed as k[index_z, index_mu, index_k]
         z       : numpy array of z values, indexed as z[index_z]
-        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
+        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd', 'Pdd_hm_rsd'
         biases : input: numpy array of biases [b1,b2,bG2,btd]
         counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
 
@@ -2975,12 +2942,9 @@ make        nonlinear_scale_cb(z, z_size)
 
         # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
 
-        if not mu.flags['C_CONTIGUOUS']:
-            mu = np.ascontiguousarray(mu)
-        if not k.flags['C_CONTIGUOUS']:
-            k = np.ascontiguousarray(k)
-        if not z.flags['C_CONTIGUOUS']:
-            z = np.ascontiguousarray(z)
+        mu = self._memoryview_safe(mu)
+        k  = self._memoryview_safe(k)
+        z  = self._memoryview_safe(z)
 
         cdef int z_size = <int>z.shape[0]
         cdef int mu_size = <int>mu.shape[1]
@@ -3010,10 +2974,8 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        pkmu_type_dict = {'Pdd_mm_rsd': Pdd_mm_rsd, 'Pdd_hh_rsd': Pdd_hh_rsd, 'Pdd_hm_rsd': Pdd_hm_rsd,
-                          'Pdd_mm_rsd_no_IR_resummation': Pdd_mm_rsd_no_IR_resum, 'Pdd_hh_rsd_no_IR_resummation': Pdd_hh_rsd_no_IR_resum, 'Pdd_hm_rsd_no_IR_resummation': Pdd_hm_rsd_no_IR_resum}
         try:
-            pk_output_type = pkmu_type_dict[pkmu_type]
+            pk_output_type = self.ps_rsd_type_dict[pkmu_type.lower()]
         except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
 
@@ -3026,10 +2988,11 @@ make        nonlinear_scale_cb(z, z_size)
 
         for index_z in range(z_size):
             # fill input structures
-            eft_ip[index_z].b1 = biases[index_z, 0]
-            eft_ip[index_z].b2 = biases[index_z, 1]
-            eft_ip[index_z].bG2 = biases[index_z, 2]
-            eft_ip[index_z].btd = biases[index_z, 3]
+            if ((pk_output_type != Pdd_mm_rsd) and (pk_output_type != Pdd_mm_rsd_no_IR_resum)):
+                eft_ip[index_z].b1 = biases[index_z, 0]
+                eft_ip[index_z].b2 = biases[index_z, 1]
+                eft_ip[index_z].bG2 = biases[index_z, 2]
+                eft_ip[index_z].btd = biases[index_z, 3]
             eft_ip[index_z].c00 = counterterms[index_z, 0]
             eft_ip[index_z].c10 = counterterms[index_z, 1]
             eft_ip[index_z].c20 = counterterms[index_z, 2]
@@ -3089,20 +3052,18 @@ make        nonlinear_scale_cb(z, z_size)
         z       : numpy array of z values, indexed as z[index_z]
         biases : input: numpy array of biases [b1,b2,bG2,btd]
         counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
-        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
+        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd', 'Pdd_hm_rsd'
 
         Returns:
         --------
-        ???
+        PPoly spline object
 
         """
 
         # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
 
-        if not mu.flags['C_CONTIGUOUS']:
-            mu = np.ascontiguousarray(mu)
-        if not z.flags['C_CONTIGUOUS']:
-            z = np.ascontiguousarray(z)
+        mu = self._memoryview_safe(mu)
+        z  = self._memoryview_safe(z)
 
         cdef int z_size = <int>z.shape[0]
         cdef int mu_size = <int>mu.shape[1]
@@ -3137,10 +3098,8 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        pkmu_type_dict = {'Pdd_mm_rsd': Pdd_mm_rsd, 'Pdd_hh_rsd': Pdd_hh_rsd, 'Pdd_hm_rsd': Pdd_hm_rsd,
-                          'Pdd_mm_rsd_no_IR_resummation': Pdd_mm_rsd_no_IR_resum, 'Pdd_hh_rsd_no_IR_resummation': Pdd_hh_rsd_no_IR_resum, 'Pdd_hm_rsd_no_IR_resummation': Pdd_hm_rsd_no_IR_resum}
         try:
-            pk_output_type = pkmu_type_dict[pkmu_type]
+            pk_output_type = self.ps_rsd_type_dict[pkmu_type.lower()]
         except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
 
@@ -3153,10 +3112,11 @@ make        nonlinear_scale_cb(z, z_size)
 
         for index_z in range(z_size):
             # fill input structures
-            eft_ip[index_z].b1 = biases[index_z, 0]
-            eft_ip[index_z].b2 = biases[index_z, 1]
-            eft_ip[index_z].bG2 = biases[index_z, 2]
-            eft_ip[index_z].btd = biases[index_z, 3]
+            if ((pk_output_type != Pdd_mm_rsd) and (pk_output_type != Pdd_mm_rsd_no_IR_resum)):
+                eft_ip[index_z].b1 = biases[index_z, 0]
+                eft_ip[index_z].b2 = biases[index_z, 1]
+                eft_ip[index_z].bG2 = biases[index_z, 2]
+                eft_ip[index_z].btd = biases[index_z, 3]
             eft_ip[index_z].c00 = counterterms[index_z, 0]
             eft_ip[index_z].c10 = counterterms[index_z, 1]
             eft_ip[index_z].c20 = counterterms[index_z, 2]
@@ -3263,12 +3223,9 @@ make        nonlinear_scale_cb(z, z_size)
 
         # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
 
-        if not mu.flags['C_CONTIGUOUS']:
-            mu = np.ascontiguousarray(mu)
-        if not k.flags['C_CONTIGUOUS']:
-            k = np.ascontiguousarray(k)
-        if not z.flags['C_CONTIGUOUS']:
-            z = np.ascontiguousarray(z)
+        mu = self._memoryview_safe(mu)
+        k  = self._memoryview_safe(k)
+        z  = self._memoryview_safe(z)
 
         cdef int z_size = <int>z.shape[0]
         cdef int mu_size = <int>mu.shape[1]
@@ -3298,10 +3255,8 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        pkmu_type_dict = {'Pdd_mm_rsd': Pdd_mm_rsd, 'Pdd_hh_rsd': Pdd_hh_rsd, 'Pdd_hm_rsd': Pdd_hm_rsd,
-                          'Pdd_mm_rsd_no_IR_resummation': Pdd_mm_rsd_no_IR_resum, 'Pdd_hh_rsd_no_IR_resummation': Pdd_hh_rsd_no_IR_resum, 'Pdd_hm_rsd_no_IR_resummation': Pdd_hm_rsd_no_IR_resum}
         try:
-            pk_output_type = pkmu_type_dict[pkmu_type]
+            pk_output_type = self.ps_rsd_type_dict[pkmu_type.lower()]
         except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
 
@@ -3314,10 +3269,11 @@ make        nonlinear_scale_cb(z, z_size)
 
         for index_z in range(z_size):
             # fill input structures
-            eft_ip[index_z].b1 = biases[index_z, 0]
-            eft_ip[index_z].b2 = biases[index_z, 1]
-            eft_ip[index_z].bG2 = biases[index_z, 2]
-            eft_ip[index_z].btd = biases[index_z, 3]
+            if ((pk_output_type != Pdd_mm_rsd) and (pk_output_type != Pdd_mm_rsd_no_IR_resum)):
+                eft_ip[index_z].b1 = biases[index_z, 0]
+                eft_ip[index_z].b2 = biases[index_z, 1]
+                eft_ip[index_z].bG2 = biases[index_z, 2]
+                eft_ip[index_z].btd = biases[index_z, 3]
             eft_ip[index_z].c00 = counterterms[index_z, 0]
             eft_ip[index_z].c10 = counterterms[index_z, 1]
             eft_ip[index_z].c20 = counterterms[index_z, 2]
@@ -3358,7 +3314,7 @@ make        nonlinear_scale_cb(z, z_size)
                 for index_k in range(k_size):
                     k2 = k[index_z,index_mu,index_k]**2
                     out_pkmuz[index_z,index_mu,index_k] += stochasticterms[index_z,0] * \
-                        (1. +stochasticterms[index_z,1] + \
+                        (1. + stochasticterms[index_z,1] + \
                         k2*(stochasticterms[index_z,2] + stochasticterms[index_z,3]*f_mu2 + stochasticterms[index_z,4]*f_mu2*f_mu2*k2))
 
         free(mu_sizevec)
@@ -3401,14 +3357,10 @@ make        nonlinear_scale_cb(z, z_size)
 
         # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
 
-        if not k.flags['C_CONTIGUOUS']:
-            k = np.ascontiguousarray(k)
-        if not z.flags['C_CONTIGUOUS']:
-            z = np.ascontiguousarray(z)
-        if not ap_parallel.flags['C_CONTIGUOUS']:
-            ap_parallel = np.ascontiguousarray(ap_parallel)
-        if not ap_perpendicular.flags['C_CONTIGUOUS']:
-            ap_perpendicular = np.ascontiguousarray(ap_perpendicular)
+        k = self._memoryview_safe(k)
+        z = self._memoryview_safe(z)
+        ap_parallel      = self._memoryview_safe(ap_parallel)
+        ap_perpendicular = self._memoryview_safe(ap_perpendicular)
 
         cdef int z_size = <int>z.shape[0]
         cdef int k_size = <int>k.shape[1]
@@ -3433,10 +3385,8 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        pkl_type_dict = {'Pdd_mm_rsd': Pdd_mm_rsd, 'Pdd_hh_rsd': Pdd_hh_rsd, 'Pdd_hm_rsd': Pdd_hm_rsd,
-                         'Pdd_mm_rsd_no_IR_resummation': Pdd_mm_rsd_no_IR_resum, 'Pdd_hh_rsd_no_IR_resummation': Pdd_hh_rsd_no_IR_resum, 'Pdd_hm_rsd_no_IR_resummation': Pdd_hm_rsd_no_IR_resum}
         try:
-            pk_output_type = pkl_type_dict[pkl_type]
+            pk_output_type = self.ps_rsd_type_dict[pkl_type.lower()]
         except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkl_type)
 
@@ -3489,6 +3439,89 @@ make        nonlinear_scale_cb(z, z_size)
 
         return out_pklz
 
+    def eft_pk_linear_real_grid(self,   \
+        np.ndarray[DTYPE_t, ndim=3] k,   \
+        np.ndarray[DTYPE_t, ndim=1] z,   \
+        pk_type):
+        """
+        eft_pk_linear_real_grid(k, z, pkmu_type)
+
+        Returns the IR resummed power spectrum P_linear(k,z)
+        The flag 'pk_ir_resummed_lo' returns the leading order result
+            (Pk_nw + exp(-k^2 Sigma^2) Pk_w).
+        The flag 'pk_ir_resummed_nlo' returns the next-to-leading order result
+            (with Pk_w mutiplied by extra factor (1+k^2 Sigma^2) )
+
+        Input parameters
+        ----------------
+        k       : numpy array of k values, indexed as k[index_z, index_mu, index_k]
+        z       : numpy array of z values, indexed as z[index_z]
+        pk_type: input: one of 'pk_ir_resummed_lo', 'pk_ir_resummed_nlo'
+
+        Returns:
+        --------
+        out_pkmuz : a numpy array of P(k,z) indexed as out_pkmuz[index_z, index_mu, index_k]
+
+        """
+
+        cdef int index_z,index_k,index_mu,index_pk_type,index_eft;
+        cdef double zz, D_z, f_z;
+
+        # Allocate output array for the classy function
+        cdef int z_size = <int>z.shape[0]
+        cdef int mu_size = <int>k.shape[1]
+        cdef int k_size = <int>k.shape[2]
+        cdef np.ndarray[DTYPE_t, ndim=3] out_pkmuz = np.zeros((z_size, mu_size, k_size), dtype='float64', order='C')
+        cdef double[:, :, ::1] out_pkmuz_view = out_pkmuz
+
+        # Allocate input and output arrays for the C function
+        cdef double* ln_kvec = <double*>malloc(mu_size * k_size * sizeof(double))
+        # cdef double* out_pkmu_p = <double*>malloc(mu_size * k_size * sizeof(double))
+        cdef eft* peft = self.fo.peft
+
+        try:
+            index_pk_type = self.ps_type_loops_dict[pk_type.lower()]
+        except KeyError:
+            raise CosmoSevereError("%s was not recognized as a pk_type" % pk_type)
+
+        # loop over z values (in decreasing order, although the order does not matter)
+        for index_z in reversed(range(z_size)):
+            zz = z[index_z]
+            D_z = self.scale_independent_growth_factor(zz)
+            f_z = self.scale_independent_growth_factor_f(zz)
+
+            # find the nearest eft structure
+            eft_nearest_structure_in_time(self.fo.peft,
+                                          self.fo.eft_size,
+                                          &self.ba,
+                                          &self.fo,
+                                          zz,
+                                          &index_eft,
+                                          peft,
+                                          self.fo.peft[0].error_message)
+
+            # create arrays kvec[...] and muvec[...] for this z
+            # k[index_k=0, index_mu=0], k[1,0], ..., k[(n-1),0], k[0,1], ...
+            for index_mu in range(mu_size):
+                for index_k in range(k_size):
+                    ln_kvec[index_mu*k_size + index_k] = log( k[index_z, index_mu, index_k] )
+
+            eft_linear_spectrum_real(&self.ba,
+                                     &self.pm,
+                                     &self.fo,
+                                     peft,
+                                     linear,
+                                     ln_kvec,
+                                     k_size,
+                                     mu_size,
+                                     zz,
+                                     f_z,
+                                     D_z,
+                                     index_pk_type,
+                                     &out_pkmuz_view[index_z, 0, 0])   # out_pkmu_p
+
+        return out_pkmuz
+
     def eft_pkmu_linear_rsd_grid(self,   \
         np.ndarray[DTYPE_t, ndim=2] mu,  \
         np.ndarray[DTYPE_t, ndim=3] k,   \
@@ -3532,12 +3565,10 @@ make        nonlinear_scale_cb(z, z_size)
         # cdef double* out_pkmu_p = <double*>malloc(mu_size * k_size * sizeof(double))
         cdef eft* peft = self.fo.peft
 
-        pkmu_type_loop_dict = {'Pk_linear': pk_lin, 'Pk_nowiggle': pk_nowiggle, 'Pk_IR_resummed_LO': pk_ir_resummed_lo,
-                             'Pkmu_RSD_IR_resummed_LO': pkmu_rsd_ir_resummed_lo, 'Pk_IR_resummed_LO': pk_ir_resummed_nlo, 'Pkmu_RSD_IR_resummed_NLO': pkmu_rsd_ir_resummed_nlo}
         try:
-            index_pk_type = pkmu_type_loop_dict[pkmu_type]
+            index_pk_type = self.ps_type_loops_dict[pkmu_type.lower()]
         except KeyError:
-            raise CosmoSevereError("%s was not recognized as a pk_output_type" % pkmu_type)
+            raise CosmoSevereError("%s was not recognized as a pk_type" % pkmu_type)
 
         # loop over z values (in decreasing order, although the order does not matter)
         for index_z in reversed(range(z_size)):
@@ -3578,11 +3609,6 @@ make        nonlinear_scale_cb(z, z_size)
                                     index_pk_type,
                                     &out_pkmuz_view[index_z, 0, 0])   # out_pkmu_p
 
-            # TODO: do this without copying data, just using pointers into out_pkmuz
-            # for index_mu in range(mu_size):
-            #     for index_k in range(k_size):
-            #         out_pkmuz[index_z, index_mu, index_k] = out_pkmu_p[index_k+index_mu*k_size]
-
         return out_pkmuz
 
     def eft_pk_real_grid(self,   \
@@ -3614,10 +3640,8 @@ make        nonlinear_scale_cb(z, z_size)
 
         # use numpy.ctypes.data_as() and C_Contigouous and numpy.ctypes.shape_as
 
-        if not k.flags['C_CONTIGUOUS']:
-            k = np.ascontiguousarray(k)
-        if not z.flags['C_CONTIGUOUS']:
-            z = np.ascontiguousarray(z)
+        k  = self._memoryview_safe(k)
+        z  = self._memoryview_safe(z)
 
         cdef int z_size = <int>z.shape[0]
         cdef int k_size = <int>k.shape[1]
@@ -3648,10 +3672,8 @@ make        nonlinear_scale_cb(z, z_size)
         # fill input type enum
         cdef eft_pk_out_type pk_output_type
 
-        pk_type_dict = {'Pdd_mm_real': Pdd_mm_real, 'Pdd_hh_real': Pdd_hh_real,
-                        'Pdd_mm_real_no_IR_resummation': Pdd_mm_real_no_IR_resum, 'Pdd_hh_real_no_IR_resummation': Pdd_hh_real_no_IR_resum}
         try:
-            pk_output_type = pk_type_dict[pk_type]
+            pk_output_type = self.ps_real_type_dict[pk_type.lower()]
         except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_output_type" % pk_type)
 
@@ -3670,6 +3692,15 @@ make        nonlinear_scale_cb(z, z_size)
                 eft_ip[index_z].btd = biases[index_z, 3]
                 eft_ip[index_z].cs2 = counterterms[index_z, 0]
                 eft_ip[index_z].R2  = counterterms[index_z, 1]
+                eft_ip[index_z].has_rsd = 0
+        elif (pk_output_type == Pdd_hm_real) or (pk_output_type == Pdd_hm_real_no_IR_resum):
+            for index_z in range(z_size):
+                # fill input structures
+                eft_ip[index_z].b1 = biases[index_z, 0]
+                eft_ip[index_z].b2 = biases[index_z, 1]
+                eft_ip[index_z].bG2 = biases[index_z, 2]
+                eft_ip[index_z].btd = biases[index_z, 3]
+                eft_ip[index_z].c00 = counterterms[index_z, 0]
                 eft_ip[index_z].has_rsd = 0
         else:
             raise CosmoSevereError("No biases loaded for pk_type = %s" % pk_type)
@@ -3711,37 +3742,37 @@ make        nonlinear_scale_cb(z, z_size)
         free(eft_ip)
 
         return out_pkz
-
+    
 ###################
 
-    def eft_pkmu_rsd_grid(self,   \
+    def eft_pkmu_rsd_contribution(self,   \
                   z,
                   pk_type_loop,
                   index_moment):
         """
-        eft_pkmu_rsd_grid(mu, k, z, biases, counterterms, pkmu_type, (opt) As_correction)
+        eft_pkmu_rsd_contribution(z, pk_type_loop, index_moment)
 
-        Returns the oneloop power spectrum P_oneloop(k,mu,z)
+        Returns contributions to a oneloop power spectrum
 
         Input parameters
         ----------------
-        mu      : numpy array of mu values, indexed as mu[index_z, index_mu]
-        k       : numpy array of k values, indexed as k[index_z, index_mu, index_k]
-        z       : numpy array of z values, indexed as z[index_z]
-        pkmu_type: input: one of 'Pdd_mm_rsd', 'Pdd_hh_rsd'
-        biases : input: numpy array of biases [b1,b2,bG2,btd]
-        counterterms : input: numpy array of counterterms [c00,c10,c22,c32,c20,c30,c42]
+        z       : approximate redshift value (it will take the nearest structure)
+        pk_type_loop: input: one of 'Pk_linear', 'Pk_nowiggle', 'Pk_IR_resummed_LO', 'Pkmu_RSD_IR_resummed_LO', 'Pk_IR_resummed_LO', 'Pkmu_RSD_IR_resummed_NLO'
+        index_moment: index of the spectra contribution
 
         Returns:
         --------
-        out_pkmuz : a numpy array of P(k,mu,z) indexed as out_pkmuz[index_z, index_mu, index_k]
+        zout      : actual redshift at which the power spectrum was loaded
+        muvec     : array of cosine of line-of-sight angles; size of mu_size, usually 1
+        kvec      : array of comoving wavenumbers; size of (mu_size, k_size)
+        out_pkmu  : array of P(k,mu) indexed as out_pkmu[index_mu, index_k]
 
         """
 
         # use numpy.ctypes.data_as() and C_COntigouous and numpy.ctypes.shape_as
         cdef int mu_size, k_size, index_eft
         cdef eft* peft = self.fo.peft
-
+        
         # find the nearest eft structure
         eft_nearest_structure_in_time(self.fo.peft,
                                       self.fo.eft_size,
@@ -3770,30 +3801,63 @@ make        nonlinear_scale_cb(z, z_size)
         cdef double[:, ::1] k_view = kvec
         cdef double[:, :, ::1] out_pkmu_view = out_pkmu
 
+        cdef double* zout_p  = <double*>&zout
+        cdef double* muvec_p = <double*>&mu_view[0]
+        cdef double* kvec_p  = <double*>&k_view[0, 0]
+
         # fill input type enum
         cdef eft_pk_type index_pk_type_loop
 
-        pk_type_loop_dict = {'Pk_linear': pk_lin, 'Pk_nowiggle': pk_nowiggle, 'Pk_IR_resummed_LO': pk_ir_resummed_lo,
-                             'Pkmu_RSD_IR_resummed_LO': pkmu_rsd_ir_resummed_lo, 'Pk_IR_resummed_LO': pk_ir_resummed_nlo, 'Pkmu_RSD_IR_resummed_NLO': pkmu_rsd_ir_resummed_nlo}
         try:
-            index_pk_type_loop = pk_type_loop_dict[pk_type_loop]
+            index_pk_type_loop = self.ps_type_loops_dict[pk_type_loop.lower()]
         except KeyError:
             raise CosmoSevereError("%s was not recognized as a pk_type" % pk_type_loop)
 
         for index_part in range(4):
             # assign pointers
             out_pkmu_pp[index_part] = &out_pkmu_view[index_part, 0, 0]
-
+        
+        if peft.spectra_contributions_size[index_pk_type_loop*peft.index_num + index_moment] <= 0:
+            raise CosmoComputationError("Contribution with index_pk_type = {0:d} and index_moment = {1:d} was not computed.".format(index_pk_type_loop, index_moment))
+        
         eft_spectra_contributions_output(peft,
                                          index_pk_type_loop,
                                          index_moment,
-                                         &zout,
-                                         &mu_view[0],
-                                         &k_view[0, 0],
+                                         zout_p,
+                                         muvec_p,
+                                         kvec_p,
                                          out_pkmu_pp)
-
+        
         return zout, muvec, kvec, out_pkmu
 
+    def eft_sigma_sq(self,  \
+                  double z,
+                  int n,
+                  pk_type_loop):
+
+        cdef int index_eft
+        cdef eft* peft = self.fo.peft
+        cdef double sigma_n_sq
+
+        try:
+            index_pk_type = self.ps_type_loops_dict[pk_type_loop.lower()]
+        except KeyError:
+            raise CosmoSevereError("%s was not recognized as a pk_type" % pk_type_loop)
+
+        # find the nearest eft structure
+        eft_nearest_structure_in_time(self.fo.peft,
+                                      self.fo.eft_size,
+                                      &self.ba,
+                                      &self.fo,
+                                      z,
+                                      &index_eft,
+                                      peft,
+                                      self.fo.peft[0].error_message)
+
+        sigma_n_sq = sigma_sq(peft, n, <eft_pk_type>index_pk_type)
+
+        return sigma_n_sq
+    
 #################
 
     def get_sources(self):

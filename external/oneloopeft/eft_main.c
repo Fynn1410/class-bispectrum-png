@@ -420,6 +420,25 @@ int eft_init(struct precision * ppr,
 }
 
 /** TODO: inline this, problem with Pdd_mm_real located in here [Sigma2 is zero] */
+/**
+ * @brief Computes linear and possibly infrared-resummed power spectra in real-space.
+ *        
+ * @param pba       Input: pointer to background structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pfo       Input: pointer to fourier structure
+ * @param peft      Input: pointer to eft structure
+ * @param mode      Input: linear or logarithmic
+ * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc); size of kvec_size*n_columns
+ * @param kvec_size Input: size of array of wavenumbers
+ * @param n_columns Input: number of columns
+ * @param z         Input: redshift
+ * @param f_z       Input: logarithmic growth rate f at z
+ * @param D_z       Input: growth rate D at z
+ * @param index_pk_type   Input: index of the powerspectrum type (eft_pk_type)
+ * @param out_pk    Output: real-space powerspectrum (in Mpc^3); size of kvec_size*n_columns
+ * 
+ * @return the error status
+ */
 int eft_linear_spectrum_real(
                   struct background * pba,
                   struct primordial * ppm,
@@ -440,11 +459,12 @@ int eft_linear_spectrum_real(
   struct indexed_real_arg * vec;
   const double D2 = pow(D_z/peft->D_z0, 2.);
 
-  class_call(eft_real_argument_list_rect(ln_kvec, kvec_size,
-                                                  n_columns,
-                                                  &vec,
-                                                  peft->error_message),
-                      peft->error_message, peft->error_message);
+  class_call(eft_real_argument_list_rect(ln_kvec, 
+                                         kvec_size,
+                                         n_columns,
+                                         &vec,
+                                         peft->error_message),
+             peft->error_message, peft->error_message);
 
   switch (index_pk_type)
   {
@@ -479,15 +499,15 @@ int eft_linear_spectrum_real(
       ln_kvec_sorted[it] = vec[it].ln_k;
     }
     class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba,
-                                                            ppm,
-                                                            pfo,
-                                                            mode,
-                                                            ln_kvec_sorted,
-                                                            kvec_size*n_columns,
-                                                            z,
-                                                            pk_l),
-                        pfo->error_message,
-                        peft->error_message);
+                                                   ppm,
+                                                   pfo,
+                                                   mode,
+                                                   ln_kvec_sorted,
+                                                   kvec_size*n_columns,
+                                                   z,
+                                                   pk_l),
+               pfo->error_message,
+               peft->error_message);
     for (it = 0; it < kvec_size*n_columns; it++) {
       out_pk[vec[it].index] = pk_l[it];
     }
@@ -497,26 +517,26 @@ int eft_linear_spectrum_real(
 
   case pk_ir_resummed_lo:
     class_call(eft_ir_pk_lo(pba, ppm, pfo, mode,
-                                     vec,
-                                     kvec_size*n_columns,
-                                     z,
-                                     peft->hp->linear_spectrum_index,
-                                     peft->Sigma2_ir * D2,
-                                     out_pk),
-                        pfo->error_message,
-                        peft->error_message);
+                            vec,
+                            kvec_size*n_columns,
+                            z,
+                            peft->hp->linear_spectrum_index,
+                            peft->Sigma2_ir * D2,
+                            out_pk),
+              pfo->error_message,
+              peft->error_message);
     break;
 
   case pk_ir_resummed_nlo:
     class_call(eft_ir_pk_nlo(pba, ppm, pfo, mode,
-                                      vec,
-                                      kvec_size*n_columns,
-                                      z,
-                                      peft->hp->linear_spectrum_index,
-                                      peft->Sigma2_ir * D2,
-                                      out_pk),
-                        pfo->error_message,
-                        peft->error_message);
+                             vec,
+                             kvec_size*n_columns,
+                             z,
+                             peft->hp->linear_spectrum_index,
+                             peft->Sigma2_ir * D2,
+                             out_pk),
+              pfo->error_message,
+              peft->error_message);
     break;
 
   default:
@@ -529,7 +549,28 @@ int eft_linear_spectrum_real(
   return _SUCCESS_;
 }
 
-// TODO: inline this
+
+/**
+ * @brief Computes linear and possibly infrared-resummed power spectra in redshift-space.
+ *        
+ * @param pba       Input: pointer to background structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pfo       Input: pointer to fourier structure
+ * @param peft      Input: pointer to eft structure
+ * @param mode      Input: linear or logarithmic
+ * @param ln_kvec   Input: array of logarithmic wavenumbers in ascending order (in 1/Mpc); size of kvec_size
+ * @param kvec_size Input: size of array of wavenumbers
+ * @param muvec     Input: array of cosine of line-of-sight angles; size of muvec_size
+ * @param muvec_size  Input: size of array of cosine of line-of-sight angles
+ * @param arg_type  Input: argument mode; either cartesian_product or points (kvec_size == muvec_size)
+ * @param z         Input: redshift
+ * @param f_z       Input: logarithmic growth rate f at z
+ * @param D_z       Input: growth rate D at z
+ * @param index_pk_type   Input: index of the powerspectrum type (eft_pk_type)
+ * @param out_pk    Output: redshift-space powerspectrum (in Mpc^3); size of either kvec_size*muvec_size or kvec_size (== muvec_size) depending on arg_type
+ * 
+ * @return the error status
+ */
 int eft_linear_spectrum_rsd(
                   struct background * pba,
                   struct primordial * ppm,
@@ -574,30 +615,30 @@ int eft_linear_spectrum_rsd(
   {
   case pkmu_rsd_ir_resummed_lo:
     class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, mode,
-                                         vec,
-                                         vec_size,
-                                         z,
-                                         f_z,
-                                         peft->hp->linear_spectrum_index,
-                                         peft->Sigma2_ir * D2,
-                                         peft->dSigma2_ir * D2,
-                                         out_pk),
-                        pfo->error_message,
-                        peft->error_message);
+                                vec,
+                                vec_size,
+                                z,
+                                f_z,
+                                peft->hp->linear_spectrum_index,
+                                peft->Sigma2_ir * D2,
+                                peft->dSigma2_ir * D2,
+                                out_pk),
+              pfo->error_message,
+              peft->error_message);
     break;
 
   case pkmu_rsd_ir_resummed_nlo:
     class_call(eft_ir_pk_rsd_nlo(pba, ppm, pfo, mode,
-                                          vec,
-                                          vec_size,
-                                          z,
-                                          f_z,
-                                          peft->hp->linear_spectrum_index,
-                                          peft->Sigma2_ir * D2,
-                                          peft->dSigma2_ir * D2,
-                                          out_pk),
-                        pfo->error_message,
-                        peft->error_message);
+                                 vec,
+                                 vec_size,
+                                 z,
+                                 f_z,
+                                 peft->hp->linear_spectrum_index,
+                                 peft->Sigma2_ir * D2,
+                                 peft->dSigma2_ir * D2,
+                                 out_pk),
+              pfo->error_message,
+              peft->error_message);
     break;
 
   default:
@@ -876,6 +917,10 @@ int eft_fourier_transform_linear_spectra(
 
   }
 
+  if (peft->hp->eft_verbose > 3) {
+    printf("-> Loaded %d linear power spectra for Fourier decomposition.\n", index_pk_types_size);
+  }
+
   /* Compute the Fourier coefficients of the power spectra */
   switch (peft->hp->fourier_mode)
   {
@@ -1136,6 +1181,10 @@ int eft_fourier_transform_linear_spectra(
     }
   }
 
+  if (peft->hp->eft_verbose > 3) {
+    printf("-> Computed the Fourier decomposition using method %d.\n", peft->hp->fourier_mode);
+  }
+
   return _SUCCESS_;
 }
 
@@ -1293,16 +1342,16 @@ int eft_get_loop_matrices(struct eft * peft,
             if (peft->loop_matrices_size[index_moment] == 0) { continue; }
             sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
             class_call(eft_save_matrix_to_file(peft->loop_matrices[index_moment],
-                                                        peft->loop_matrices_size[index_moment],
-                                                        peft->symmetry[index_moment],
-                                                        peft->use_tracer[index_moment],
-                                                        peft->hp->period[peft->use_tracer[index_moment]],
-                                                        filename,
-                                                        _TRUE_,
-                                                        peft->error_message,
-                                                        (peft->hp->eft_verbose > 2) ? _TRUE_ : _FALSE_),
-                                peft->error_message,
-                                peft->error_message);
+                                               peft->loop_matrices_size[index_moment],
+                                               peft->symmetry[index_moment],
+                                               peft->use_tracer[index_moment],
+                                               peft->hp->period[peft->use_tracer[index_moment]],
+                                               filename,
+                                               _TRUE_,
+                                               peft->error_message,
+                                               (peft->hp->eft_verbose > 2) ? _TRUE_ : _FALSE_),
+                        peft->error_message,
+                        peft->error_message);
           }
           if (peft->hp->eft_verbose > 1) {
             printf("Wrote %d loop matrix files to '%s' \n", peft->moments_allocated, peft->hp->eft_loop_matrix_directory);
@@ -1310,6 +1359,7 @@ int eft_get_loop_matrices(struct eft * peft,
         }
       }
       else {  /** - load the matrices from files without raising errors at this point if flag is set */
+        /** TODO: could be done in parallel as before with num_threads = num_parallel_files */
         for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
           if (peft->loop_matrices_size[index_moment] == 0) { continue; }
           sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
@@ -1590,9 +1640,13 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                             &list_pk_types_loops_size),
                peft->error_message, peft->error_message);
 
+    if (peft->hp->eft_verbose > 2) {
+      printf("Requiring %d spectra contributions for %d pk_types.\n", list_spectra_contributions_size, list_pk_types_loops_size);
+    }
+    
+
     /** - compile a list of pk_types of which to compute the Fourier transform,
      *    if use_interpolation = FALSE then this list will contain all of list_pk_types_loops */
-
     class_alloc(list_pk_types_loops_not_loaded, list_pk_types_loops_size*sizeof(int), peft->error_message);
     list_pk_types_loops_not_loaded_size = 0;
     for (index_list = 0; index_list < list_pk_types_loops_size; index_list++) {
@@ -1619,6 +1673,9 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     if (list_pk_types_loops_not_loaded_size > 0 && peft->hp->integration_mode == fftlog) {
       /** - compute the Fourier transforms */
       /** TODO: think about if this is the right strategy, since here peft->z0 = z */
+      if (peft->hp->eft_verbose > 2) {
+        printf("Decomposing the linear power spectrum into Fourier components.\n");
+      }
       class_call(eft_fourier_transform_linear_spectra(ppr, pba, pfo, ppm,
                                                       peft,
                                                       z,
@@ -1629,6 +1686,9 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                   peft->error_message, peft->error_message);
 
       /** - load the real-space linear spectra */
+      if (peft->hp->eft_verbose > 3) {
+        printf("Loading linear power spectrum that are needed inside loops.\n");
+      }
       class_call(eft_load_linear_spectra(pba, pfo, ppm,
                                          peft,
                                          z,
@@ -1652,6 +1712,10 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
                                                   list_spectra_contributions,
                                                   list_spectra_contributions_size),
                 peft->error_message, peft->error_message);
+
+    if (peft->hp->eft_verbose > 1) {
+      printf("Computing %d spectra contributions for %d pk_types.\n", list_spectra_contributions_not_loaded_size, list_pk_types_loops_not_loaded_size);
+    }
 
     if (eft_hp->integration_mode == fftlog) {
       /** - then compute the spectra_contributions that are not yet loaded */
@@ -1694,6 +1758,10 @@ int eft_job_powerspectrum_wedges_ext_growth_rate(
     }
     else {
       pkmu_out = out_pkmu[index_z];
+    }
+
+    if (peft->hp->eft_verbose > 2) {
+      printf("Building the power spectrum of type %d. \n", pk_out_type);
     }
 
     /** - build the power spectrum; this will always be done */

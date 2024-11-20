@@ -1,4 +1,5 @@
 /** #if DIRECT_INTEGRATION : make will only compile this file if DIRECT_INTEGRATION=yes is given */
+#ifdef DIRECT_INTEGRATION
 
 #include "header.h"
 #include "../../include/common.h"
@@ -44,5 +45,7 @@ int eft_di_compute_spectra_contributions(
                     const double D
                     );
 
+
+#endif
 
 #endif

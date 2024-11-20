@@ -116,7 +116,7 @@ endif
 %.opp:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CPP) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.opp
 
-TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.opp carray.opp parser.o quadrature.o hyperspherical.opp common.o trigonometric_integrals.o fft.opp ext_storage.opp
+TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o evolver_ndf15.o arrays.opp carray.opp parser.o quadrature.o hyperspherical.opp common.o trigonometric_integrals.o fft.opp ext_storage.opp
 
 SOURCE = input.o background.o thermodynamics.o perturbations.opp primordial.opp fourier.opp transfer.opp harmonic.opp lensing.opp distortions.o
 

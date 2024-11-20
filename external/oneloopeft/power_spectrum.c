@@ -14,212 +14,266 @@ int eft_necessary_spectra_contributions(struct eft * peft,
                                         int * list_spectra_contributions_size) {
 
   int index_pk_type, index_moment, num_moments, index_list = 0, it = 0;
-
+  
   switch (pk_out_type)
   {
   case Pdd_mm_real:
-    *list_spectra_contributions_size = 2;
-    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-    for (index_moment = peft->index_I2200; index_moment <= peft->index_I1300; index_moment++) {
-      (*list_spectra_contributions)[it++] = pk_ir_resummed_lo * peft->index_num + index_moment;
+    {
+      *list_spectra_contributions_size = 2;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_I1300; index_moment++) {
+        (*list_spectra_contributions)[it++] = pk_ir_resummed_lo * peft->index_num + index_moment;
+      }
     }
     break;
 
   case Pdd_mm_real_no_IR_resum:
-    *list_spectra_contributions_size = 2;
-    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-    for (index_moment = peft->index_I2200; index_moment <= peft->index_I1300; index_moment++) {
-      (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+    {
+      *list_spectra_contributions_size = 2;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_I1300; index_moment++) {
+        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      }
     }
     break;
 
   case Pdd_mm_rsd:
-    if (peft->hp->integration_mode == fftlog) {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
-       *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_Jdelta202x, peft->index_Jdelta202y, peft->index_JG202x, peft->index_JG202y} */
-      const int exclusion_list_size = 14;
-      const int exclusion_list[14] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 20, 21, 22, 23};
-      num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = 2 * num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
-        for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-          (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
+    {
+      if (peft->hp->integration_mode == fftlog) {
+        /** Exclusion list for analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
+         *                                                  peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_Jdelta202x, peft->index_Jdelta202y, peft->index_JG202x, peft->index_JG202y} */
+        const int exclusion_list_size = 14;
+        const int exclusion_list[14] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 20, 21, 22, 23};
+        num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = 2 * num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
+          index_list = 0;
+          for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+            if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+            (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
+          }
         }
       }
-    }
-    else {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
-       *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y,
-       *                                                      peft->index_JG202x, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
-      const int exclusion_list_size = 22;
-      const int exclusion_list[22] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 19, 20, 21, 22, 23, 27, 29, 34, 36, 38, 40, 41};
-      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-        (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+      else {
+        /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
+         *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y, 
+         *                                                      peft->index_JG202x, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+        const int exclusion_list_size = 22;
+        const int exclusion_list[22] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 19, 20, 21, 22, 23, 27, 29, 34, 36, 38, 40, 41};
+        num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+        }
       }
     }
     break;
 
   case Pdd_mm_rsd_no_IR_resum:
-    if (peft->hp->integration_mode == fftlog) {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
-       *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_Jdelta202x, peft->index_Jdelta202y, peft->index_JG202x, peft->index_JG202y} */
-      const int exclusion_list_size = 14;
-      const int exclusion_list[14] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 20, 21, 22, 23};
-      num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+    {
+      if (peft->hp->integration_mode == fftlog) {
+        /** Exclusion list for analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
+         *                                                  peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_Jdelta202x, peft->index_Jdelta202y, peft->index_JG202x, peft->index_JG202y} */
+        const int exclusion_list_size = 14;
+        const int exclusion_list[14] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 20, 21, 22, 23};
+        num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+        }
       }
-    }
-    else {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
-       *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y,
-       *                                                      peft->index_JG202x, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
-      const int exclusion_list_size = 22;
-      const int exclusion_list[22] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 19, 20, 21, 22, 23, 27, 29, 34, 36, 38, 40, 41};
-      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      else {
+        /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta200, peft->index_IG200, peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_FG200,
+         *                                                      peft->index_IG201, peft->index_Jdelta201, peft->index_JG201, peft->index_FG201, peft->index_J21102y, peft->index_Jdelta202x, peft->index_Jdelta202y, 
+         *                                                      peft->index_JG202x, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+        const int exclusion_list_size = 22;
+        const int exclusion_list[22] = {2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 19, 20, 21, 22, 23, 27, 29, 34, 36, 38, 40, 41};
+        num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+        }
       }
     }
     break;
 
   case Pdd_hh_real:
-    *list_spectra_contributions_size = 8;
-    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-    for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
-      (*list_spectra_contributions)[it++] = pk_ir_resummed_lo * peft->index_num + index_moment;
+    {
+      *list_spectra_contributions_size = 8;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
+        (*list_spectra_contributions)[it++] = pk_ir_resummed_lo * peft->index_num + index_moment;
+      }
     }
     break;
 
   case Pdd_hh_real_no_IR_resum:
-    *list_spectra_contributions_size = 8;
-    class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-    for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
-      (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+    {
+      *list_spectra_contributions_size = 8;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
+        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      }
     }
     break;
 
   case Pdd_hh_rsd:
-    if (peft->hp->integration_mode == fftlog) {
-      num_moments = peft->index_N22z - peft->index_I2200 + 1;
-      *list_spectra_contributions_size = 2 * num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
-        for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-          (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
+    {
+      if (peft->hp->integration_mode == fftlog) {
+        num_moments = peft->index_N22z - peft->index_I2200 + 1;
+        *list_spectra_contributions_size = 2 * num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
+          for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+            (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
+          }
         }
       }
-    }
-    else {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
-      const int exclusion_list_size = 10;
-      const int exclusion_list[10] = {19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
-      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-        (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+      else {
+        /** Exclusion list for non-analytical angle-dependence {peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+        const int exclusion_list_size = 10;
+        const int exclusion_list[10] = {19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
+        num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+        }
       }
     }
     break;
 
   case Pdd_hh_rsd_no_IR_resum:
-    if (peft->hp->integration_mode == fftlog) {
-      num_moments = peft->index_N22z - peft->index_I2200 + 1;
-      *list_spectra_contributions_size = num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+    {
+      if (peft->hp->integration_mode == fftlog) {
+        num_moments = peft->index_N22z - peft->index_I2200 + 1;
+        *list_spectra_contributions_size = num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+          (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+        }
+      }
+      else {
+        /** Exclusion list for non-analytical angle-dependence {peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+        const int exclusion_list_size = 10;
+        const int exclusion_list[10] = {19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
+        num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+        }
       }
     }
-    else {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
-      const int exclusion_list_size = 10;
-      const int exclusion_list[10] = {19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
-      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+    break;
+
+  case Pdd_hm_real:
+    {
+      /** Exclusion list for analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200} */
+      const int exclusion_list_size = 3;
+      const int exclusion_list[3] = {4, 5, 6};
+      num_moments = peft->index_FG200 - peft->index_I2200 - exclusion_list_size + 1;
       *list_spectra_contributions_size = num_moments;
       class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; (index_moment <= peft->index_sigmav_mu); index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+        (*list_spectra_contributions)[it++] = pk_ir_resummed_lo * peft->index_num + index_moment;
+      }
+    }
+    break;
+
+  case Pdd_hm_real_no_IR_resum:
+    {
+      /** Exclusion list for analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200} */
+      const int exclusion_list_size = 3;
+      const int exclusion_list[3] = {4, 5, 6};
+      num_moments = peft->index_FG200 - peft->index_I2200 - exclusion_list_size + 1;
+      *list_spectra_contributions_size = num_moments;
+      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+      for (index_moment = peft->index_I2200; index_moment <= peft->index_FG200; index_moment++) {
+        if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
         (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
       }
     }
     break;
 
   case Pdd_hm_rsd:
-    if (peft->hp->integration_mode == fftlog) {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200} */
-      const int exclusion_list_size = 3;
-      const int exclusion_list[3] = {4, 5, 6};
-      num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = 2 * num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
-        for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-          if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-          (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
+    {
+      if (peft->hp->integration_mode == fftlog) {
+        /** Exclusion list for analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200} */
+        const int exclusion_list_size = 3;
+        const int exclusion_list[3] = {4, 5, 6};
+        num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = 2 * num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_pk_type = pk_lin; index_pk_type <= pk_nowiggle; index_pk_type++) {
+          index_list = 0;
+          for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+            if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+            (*list_spectra_contributions)[it++] = index_pk_type * peft->index_num + index_moment;
+          }
         }
       }
-    }
-    else {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y,
-       *                                                      peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
-      const int exclusion_list_size = 13;
-      const int exclusion_list[13] = {4, 5, 6, 19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
-      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-        (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+      else {
+        /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, 
+         *                                                      peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+        const int exclusion_list_size = 13;
+        const int exclusion_list[13] = {4, 5, 6, 19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
+        num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = pkmu_rsd_ir_resummed_lo * peft->index_num + index_moment;
+        }
       }
     }
     break;
 
   case Pdd_hm_rsd_no_IR_resum:
-    if (peft->hp->integration_mode == fftlog) {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200} */
-      const int exclusion_list_size = 3;
-      const int exclusion_list[3] = {4, 5, 6};
-      num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = 2 * num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+    {
+      if (peft->hp->integration_mode == fftlog) {
+        /** Exclusion list for analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200} */
+        const int exclusion_list_size = 3;
+        const int exclusion_list[3] = {4, 5, 6};
+        num_moments = peft->index_N22z - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = 2 * num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_N22z; index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+        }
       }
-    }
-    else {
-      /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y,
-       *                                                      peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
-      const int exclusion_list_size = 13;
-      const int exclusion_list[13] = {4, 5, 6, 19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
-      num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
-      *list_spectra_contributions_size = num_moments;
-      class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
-      for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
-        if (index_moment == exclusion_list[index_list]) { index_list++; continue; }
-        (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+      else {
+        /** Exclusion list for non-analytical angle-dependence {peft->index_Idelta2delta200, peft->index_IG2G200, peft->index_Idelta2G200, peft->index_J21102y, peft->index_Jdelta202y, peft->index_JG202y, peft->index_N11y, 
+         *                                                      peft->index_J12102y, peft->index_J21112y, peft->index_J12112y, peft->index_N12y, peft->index_N22y, peft->index_N22z} */
+        const int exclusion_list_size = 13;
+        const int exclusion_list[13] = {4, 5, 6, 19, 21, 23, 27, 29, 34, 36, 38, 40, 41};
+        num_moments = peft->index_sigmav_mu - peft->index_I2200 - exclusion_list_size + 1;
+        *list_spectra_contributions_size = num_moments;
+        class_alloc(*list_spectra_contributions, (*list_spectra_contributions_size)*sizeof(int), peft->error_message);
+        for (index_moment = peft->index_I2200; index_moment <= peft->index_sigmav_mu; index_moment++) {
+          if (index_moment == exclusion_list[index_list]) { index_list++; continue; } 
+          (*list_spectra_contributions)[it++] = pk_lin * peft->index_num + index_moment;
+        }
       }
     }
     break;
 
   default:
-    *list_spectra_contributions_size = 0;
-    class_stop(peft->error_message, "Invalid pk_out_type = %d given.", pk_out_type);
+    {
+      *list_spectra_contributions_size = 0;
+      class_stop(peft->error_message, "Invalid pk_out_type = %d given.", pk_out_type);
+    }
     break;
   }
 
@@ -237,40 +291,50 @@ int eft_necessary_pk_types_loops(struct eft * peft,
   {
   case Pdd_mm_real:
   case Pdd_hh_real:
-    *list_pk_types_size = 1;
-    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_ir_resummed_lo;
+  case Pdd_hm_real:
+    {
+      *list_pk_types_size = 1;
+      class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+      (*list_pk_types)[0] = pk_ir_resummed_lo;
+    }
     break;
 
   case Pdd_mm_real_no_IR_resum:
   case Pdd_hh_real_no_IR_resum:
+  case Pdd_hm_real_no_IR_resum:
   case Pdd_mm_rsd_no_IR_resum:
   case Pdd_hh_rsd_no_IR_resum:
   case Pdd_hm_rsd_no_IR_resum:
-    *list_pk_types_size = 1;
-    class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-    (*list_pk_types)[0] = pk_lin;
+    {
+      *list_pk_types_size = 1;
+      class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+      (*list_pk_types)[0] = pk_lin;
+    }
     break;
 
   case Pdd_mm_rsd:
   case Pdd_hh_rsd:
   case Pdd_hm_rsd:
-    if (peft->hp->integration_mode == fftlog) {
-      *list_pk_types_size = 2;
-      class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-      (*list_pk_types)[0] = pk_lin;
-      (*list_pk_types)[1] = pk_nowiggle;
-    }
-    else {
-      *list_pk_types_size = 1;
-      class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
-      (*list_pk_types)[0] = pkmu_rsd_ir_resummed_lo;
+    {
+      if (peft->hp->integration_mode == fftlog) {
+        *list_pk_types_size = 2;
+        class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+        (*list_pk_types)[0] = pk_lin;
+        (*list_pk_types)[1] = pk_nowiggle;
+      }
+      else {
+        *list_pk_types_size = 1;
+        class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
+        (*list_pk_types)[0] = pkmu_rsd_ir_resummed_lo;
+      }
     }
     break;
 
   default:
-    *list_pk_types_size = 0;
-    class_stop(peft->error_message, "Invalid pk_out_type = %d given.", pk_out_type);
+    {
+      *list_pk_types_size = 0;
+      class_stop(peft->error_message, "Invalid pk_out_type = %d given.", pk_out_type);
+    }
     break;
   }
 
@@ -288,6 +352,7 @@ int eft_necessary_pk_types_outside_loops(struct eft * peft,
   {
   case Pdd_mm_real:
   case Pdd_hh_real:
+  case Pdd_hm_real:
     *list_pk_types_size = 1;
     class_alloc(*list_pk_types, (*list_pk_types_size)*sizeof(int), peft->error_message);
     (*list_pk_types)[0] = pk_ir_resummed_nlo;
@@ -295,6 +360,7 @@ int eft_necessary_pk_types_outside_loops(struct eft * peft,
 
   case Pdd_mm_real_no_IR_resum:
   case Pdd_hh_real_no_IR_resum:
+  case Pdd_hm_real_no_IR_resum:
   case Pdd_mm_rsd_no_IR_resum:
   case Pdd_hh_rsd_no_IR_resum:
   case Pdd_hm_rsd_no_IR_resum:
@@ -419,22 +485,20 @@ int eft_set_sampling_points_mu_only(struct eft * peft,
 }
 
 int eft_get_sampling_points(struct eft * peft,
-                            double ** kvec_Mpc,
-                            double ** muvec,
-                            int * k_size,
-                            int * mu_size) {
-
+                            double * kvec_Mpc,
+                            double * muvec) {
+  
   int it;
 
-  *k_size = peft->k_size;
-  *mu_size = peft->mu_size;
+  // *k_size = peft->k_size;
+  // *mu_size = peft->mu_size;
 
-  class_alloc(*muvec, peft->mu_size*sizeof(double), peft->error_message);
-  class_alloc(*kvec_Mpc, peft->mu_size*peft->k_size*sizeof(double), peft->error_message);
+  // class_alloc(*muvec, peft->mu_size*sizeof(double), peft->error_message);
+  // class_alloc(*kvec_Mpc, peft->mu_size*peft->k_size*sizeof(double), peft->error_message);
 
-  class_protect_memcpy(*muvec, peft->mu, peft->mu_size*sizeof(double));
+  class_protect_memcpy(muvec, peft->mu, peft->mu_size*sizeof(double));
   for (it = 0; it < peft->mu_size*peft->k_size; it++) {
-    *kvec_Mpc[it] = exp( peft->ln_k[it] );
+    kvec_Mpc[it] = exp( peft->ln_k[it] );
   }
 
   return _SUCCESS_;
@@ -480,6 +544,10 @@ int eft_allocate_spectra_contributions(struct eft * peft,
     }
 
     if (peft->spectra_contributions_size[moment_list[index_list]] != size) {  /** - different size allocated: realloc */
+      if (peft->hp->eft_verbose > 3) {
+        printf("-> Allocating spectra contribution pk_type = %d, index_moment = %d of size %d \n", index_pk_type, index_moment, size);
+      }
+
       peft->spectra_contributions_size[moment_list[index_list]] = size;
 
       for (index_part = 0; index_part < eft_spectra_contribution_num; index_part++) {
@@ -2194,6 +2262,26 @@ int eft_build_nonlinear_power_spectrum_wedges(
                   pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Prsd0_loop + Prsd1_loop + Prsd2_loop + Prsd3_loop + Prsd4_loop;
                   break;
 
+                case Pdd_hm_real:
+                case Pdd_hm_real_no_IR_resum:
+                  I2200           =        peft->spectra_contributions[index_pk_type][peft->index_I2200*eft_spectra_contribution_num + index_part][index_mu_k];
+                  I1300           = Plin * peft->spectra_contributions[index_pk_type][peft->index_I1300*eft_spectra_contribution_num + index_part][index_mu_k];
+                  Idelta200       =        peft->spectra_contributions[index_pk_type][peft->index_Idelta200*eft_spectra_contribution_num + index_part][index_mu_k];
+                  IG200           =        peft->spectra_contributions[index_pk_type][peft->index_IG200*eft_spectra_contribution_num + index_part][index_mu_k];
+                  FG200           = Plin * peft->spectra_contributions[index_pk_type][peft->index_FG200*eft_spectra_contribution_num + index_part][index_mu_k];
+                  
+                  /** - assemble the power spectrum contributions from the moments only from FFTLog loop terms */
+                  Preal_loop = D4 * (2.*eft_ip.b1 * (I2200 + 3.*I1300) + eft_ip.b2 * Idelta200 + 2.*eft_ip.bG2 * IG200        \
+                                     + 4.*(eft_ip.bG2 + 0.4*eft_ip.btd) * FG200);
+
+                  /** - add counterterm contributions to UV-divergent parts */
+                  if (index_part == uv_divergence) {
+                    Preal_loop += D2 * eft_ip.c00 * k*k * Plin;
+                  }
+
+                  pkmu_loop[index_pk_type*eft_spectra_contribution_num + index_part][index_mu*peft->k_size + index_k] = Preal_loop;
+                  break;
+
                 case Pdd_hm_rsd:
                 case Pdd_hm_rsd_no_IR_resum:
                   /** 0-th RSD moment */
@@ -2393,6 +2481,16 @@ int eft_build_nonlinear_power_spectrum_wedges(
                 + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
               break;
 
+            case Pdd_hm_real:
+              pkmu[index_mu*peft->k_size + index_k] = D2 * eft_ip.b1 * peft->pk_l[pk_ir_resummed_nlo][index_mu_k]   \
+                + pkmu_loop[pk_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+              break;
+
+            case Pdd_hm_real_no_IR_resum:
+              pkmu[index_mu*peft->k_size + index_k] = D2 * eft_ip.b1 * peft->pk_l[pk_lin][index_mu_k]   \
+                + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+              break;
+
             case Pdd_hm_rsd:
               if (peft->hp->integration_mode == fftlog) {
                 sigma2_tot_z0 = (1. + f_z*mu*mu*(2. + f_z)) * peft->Sigma2_ir + f_z*f_z*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
@@ -2408,8 +2506,8 @@ int eft_build_nonlinear_power_spectrum_wedges(
               break;
 
             case Pdd_hm_rsd_no_IR_resum:
-              pkmu[index_mu*peft->k_size + index_k] = D2 * (eft_ip.b1 + (1.+eft_ip.b1)*f_z*mu*mu + f_z*f_z*mu*mu*mu*mu) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
-                + pkmu_loop[pkmu_rsd_ir_resummed_lo*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
+              pkmu[index_mu*peft->k_size + index_k] = D2 * (eft_ip.b1 + (1.+eft_ip.b1)*f_z*mu*mu + f_z*f_z*mu*mu*mu*mu) * peft->pk_l[pk_lin][index_mu*peft->k_size + index_k]    \
+                + pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k];
               break;
 
             default:

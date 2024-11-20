@@ -43,10 +43,8 @@ int eft_set_sampling_points_mu_only(
 
 int eft_get_sampling_points(
                       struct eft * peft,
-                      double ** kvec_Mpc,
-                      double ** muvec,
-                      int * k_size,
-                      int * mu_size
+                      double * kvec_Mpc,
+                      double * muvec
                       );
 
 int eft_get_sampling_grid_size(
@@ -102,6 +100,12 @@ int eft_build_nonlinear_power_spectrum_wedges(
                       const double As_ratio,
                       struct eft_input_parameters eft_ip,
                       double * pkmu
+                      );
+
+double sigma_sq(        \
+                      struct eft * peft, 
+                      const short n, 
+                      enum eft_pk_type pk_type
                       );
 
 // int eft_build_nonlinear_power_spectrum_wedges_multiple(

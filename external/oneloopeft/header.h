@@ -18,7 +18,7 @@
 
 
 enum eft_pk_type {pk_lin, pk_nowiggle, pk_ir_resummed_lo, pkmu_rsd_ir_resummed_lo, pk_ir_resummed_nlo, pkmu_rsd_ir_resummed_nlo, pk_type_num};
-enum eft_pk_out_type {Pdd_mm_real, Pdd_mm_rsd, Pdd_hh_real, Pdd_hh_rsd, Pdd_hm_rsd, Pdd_mm_real_no_IR_resum, Pdd_mm_rsd_no_IR_resum, Pdd_hh_real_no_IR_resum, Pdd_hh_rsd_no_IR_resum, Pdd_hm_rsd_no_IR_resum, pk_out_type_num};
+enum eft_pk_out_type {Pdd_mm_real, Pdd_mm_rsd, Pdd_hh_real, Pdd_hh_rsd, Pdd_hm_real, Pdd_hm_rsd, Pdd_mm_real_no_IR_resum, Pdd_mm_rsd_no_IR_resum, Pdd_hh_real_no_IR_resum, Pdd_hh_rsd_no_IR_resum, Pdd_hm_real_no_IR_resum, Pdd_hm_rsd_no_IR_resum, pk_out_type_num};
 enum eft_arg_type {points, cartesian_product};
 enum eft_spectra_contribution {finite_part, uv_divergence, ir_divergence, pole_divergence, eft_spectra_contribution_num};
 enum sym_type {no_finite_part, sym_vec, sym_mat_none, sym_mat_symmetric};
@@ -52,6 +52,8 @@ static inline int eft_rsd_out_indicator(enum eft_pk_out_type pk_out_type) {
   case Pdd_mm_real_no_IR_resum:
   case Pdd_hh_real:
   case Pdd_hh_real_no_IR_resum:
+  case Pdd_hm_real:
+  case Pdd_hm_real_no_IR_resum:
     return _FALSE_;
     break;
 
@@ -124,8 +126,8 @@ struct eft
   double Sigma2_ir;
   double dSigma2_ir;
 
-  double * pk_nl[pk_out_type_num];  /**< final nonlinear power spectrum pk_nl[index_pk_out_type][index_mu*k_size + index_k] */
-  double * ddpk_nl[pk_out_type_num];  /**< second derivative of the final nonlinear power spectrum pk_nl[index_pk_out_type][index_mu*k_size + index_k]; spline of P_nl(ln(k)) */
+  // double * pk_nl[pk_out_type_num];  /**< final nonlinear power spectrum pk_nl[index_pk_out_type][index_mu*k_size + index_k] */
+  // double * ddpk_nl[pk_out_type_num];  /**< second derivative of the final nonlinear power spectrum pk_nl[index_pk_out_type][index_mu*k_size + index_k]; spline of P_nl(ln(k)) */
 
   /** @name - indices of spectra contributions (guaranteed to be consecutive in {0,..., index_num}) */
   //@{
@@ -446,6 +448,6 @@ int eft_spectra_contributions_output(
 
 #include "infrared_resummation.h"
 #include "power_spectrum.h"
-//#include "direct_integration.h"
+#include "direct_integration.h"
 
 #endif

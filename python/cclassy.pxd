@@ -830,11 +830,13 @@ cdef extern from "header.h":
         Pdd_mm_rsd
         Pdd_hh_real
         Pdd_hh_rsd
+        Pdd_hm_real
         Pdd_hm_rsd
         Pdd_mm_real_no_IR_resum
         Pdd_mm_rsd_no_IR_resum
         Pdd_hh_real_no_IR_resum
         Pdd_hh_rsd_no_IR_resum
+        Pdd_hm_real_no_IR_resum
         Pdd_hm_rsd_no_IR_resum
         pk_out_type_num
 
@@ -879,16 +881,20 @@ cdef extern from "header.h":
 
     int eft_get_sampling_points(
         void * peft,
-        double ** kvec_Mpc,
-        double ** muvec,
-        int * k_size,
-        int * mu_size
+        double * kvec_Mpc,
+        double * muvec
         )
 
     int eft_get_sampling_grid_size(
         void * peft,
         int * k_size,
         int * mu_size
+        )
+
+    double sigma_sq(
+        void * peft, 
+        short n, 
+        int index_pk_type
         )
 
     int eft_linear_spectrum_real(

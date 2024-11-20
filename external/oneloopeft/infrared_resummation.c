@@ -248,6 +248,17 @@ static int indexed_real_arg_cmp_k(const void * a, const void * b) {
       return 0;
 }
 
+/**
+ * @brief Compiles an argument list of wavenumbers for the real space linear power-spectrum functions.
+ * 
+ * @param ln_kvec   Input: array of logarithm of wavenumbers (in 1/Mpc); indexed as ln_kvec[index_col*k_size + index_k]
+ * @param k_size    Input: number of wavenumbers per column
+ * @param n_columns Input: number of columns
+ * @param vec       Output: argument list
+ * @param errmsg
+ * 
+ * @return the error status
+ */
 int eft_real_argument_list_rect(const double * const ln_kvec,
                                 const int k_size,
                                 const int n_columns,
