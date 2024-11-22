@@ -2689,6 +2689,8 @@ int fourier_init(
     // free(muvec_real);
     // free(out_pkmu_real);
 
+  pfo->is_allocated = _TRUE_;
+
   return _SUCCESS_;
 }
 
@@ -2774,6 +2776,8 @@ int fourier_free(
     free(pfo->z_pk_eft);
     free(pfo->eft_ip);
   }
+
+  pfo->is_allocated = _FALSE_;
 
   return _SUCCESS_;
 }
