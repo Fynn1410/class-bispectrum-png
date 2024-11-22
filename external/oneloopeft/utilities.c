@@ -45,7 +45,7 @@ class_complex cGamma(class_complex z)
       -7.347584327845915e-6, 8.208805790146655e-6,
       -5.159543403041225e-6, 2.319631454949221e-6,
       -6.671246136975432e-7, 9.060393467651553e-8};
-  register class_complex Lg;
+  class_complex Lg;
   class_complex t;
   double r;
 
@@ -93,7 +93,7 @@ double rGamma(double x)
       -7.347584327845915e-6, 8.208805790146655e-6,
       -5.159543403041225e-6, 2.319631454949221e-6,
       -6.671246136975432e-7, 9.060393467651553e-8};
-  register double Lg;
+  double Lg;
   double t;
 
   if (x < 0.5)

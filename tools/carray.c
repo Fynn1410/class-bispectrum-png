@@ -12,6 +12,7 @@
     return s;
   }
 
+/*
   inline double dcompsum(double * summands, int size, int stride) {
     int i;
     double s;
@@ -22,13 +23,16 @@
     }
     return s;
   }
+*/
 
+/*
   inline class_complex c2sum(class_complex a, class_complex b, class_complex * __restrict__ t) {
     class_complex s;
     s = a + b;
     *t = class_complex(0., 0.);
     return s;
   }
+*/
 
   inline class_complex ccompsum(class_complex * summands, int size, int stride) {
     int i;
@@ -68,6 +72,7 @@
    * @param stride    Input: stride in the summands array
    * @return compensated sum of the input array
    */
+/*
   inline double dcompsum(double * summands, int size, int stride) {
     int i;
     double s, c, t, in;
@@ -87,6 +92,7 @@
 
     return s + c;
   }
+*/
 
   /**
    *  @brief Computes the floating-point error t of the complex sum a + b, such that a + b = s + t.
@@ -95,6 +101,7 @@
    *  @param t    Output: floating-point error of the operation a + b
    *  @return the complex sum s = float(a + b)
    */
+/*
   inline class_complex c2sum(class_complex a, class_complex b, class_complex * __restrict__ t) {
     class_complex s, ap, bp, da, db;
     s = a + b;
@@ -105,6 +112,7 @@
     *t = da + db;
     return s;
   }
+*/
 
   /**
    * @brief Kahan-Babushka-Neumaier compensated summation for an array of complex doubles.
@@ -159,7 +167,7 @@ int array_integrate_internal_exponential(
   int index_x;
   double h1, h2;                     /**< distance between control points i & (i-1) and (i+1) & i respectively */
   class_complex phase_invpow[4];    /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
-  register class_complex sum;
+  class_complex sum;
 
   for (index_x = 0; index_x < 4; index_x++) phase_invpow[index_x] = cpow(phase, -(index_x+1));
 
@@ -382,7 +390,7 @@ int array_integrate_all_spline_table_lines_exponential(
   int i, index_x, index_y;
   double h1, h2;                     /**< distance between control points i & (i-1) and (i+1) & i respectively */
   class_complex phase_invpow[4];    /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
-  register class_complex sum;
+  class_complex sum;
 
   class_test(x_size<2,
              errmsg,
@@ -420,8 +428,8 @@ int array_integrate_internal_exponential_pure_phase(
   int index_x;
   double h1, h2;              /**< distance between control points i & (i-1) and (i+1) & i respectively */
   double phase_invpow[4];     /**< contains powers of phase as phase_pow[n] = phase^(-n-1) */
-  register class_complex sum;
-  register class_complex sum_abs;
+  class_complex sum;
+  class_complex sum_abs;
   double spline_factor, real, imag;
 
   for (index_x = 0; index_x < 4; index_x++) phase_invpow[index_x] = pow(phase, -(index_x+1));
@@ -657,7 +665,7 @@ int array_integrate_all_spline_table_lines_fourier_compensated(
 //                         double x) {
 //   int j;
 //   double x_min_pow = pow(x, min_pow);
-//   register double x_pow = 1., sum;
+//   double x_pow = 1., sum;
 
 //   sum = pcoeff[0];
 //   for (j = 1; j < coeff_size; j++) {

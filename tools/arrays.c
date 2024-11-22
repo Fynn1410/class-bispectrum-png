@@ -1593,7 +1593,7 @@ int array_square_integrate_internal(
 
   int index_x;
   double h, sy, sM, dM;
-  register double sum;
+  double sum;
 
   sum = 0.;
   for (index_x = 0; index_x < x_size-1; index_x++) {

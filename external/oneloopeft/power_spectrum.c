@@ -712,8 +712,29 @@ int eft_load_linear_spectra(struct background * pba,
   /** - load the spectra into the arrays */
   for (index_list = 0; index_list < pk_types_size; index_list++) {
     index_pk_type = pk_types[index_list];
-    rsd_indicator = eft_rsd_indicator((enum eft_pk_type)index_pk_type);
-    if (rsd_indicator) {
+
+    switch ((enum eft_pk_type)index_pk_type)
+      {
+      case pk_lin:
+      case pk_nowiggle:
+      case pk_ir_resummed_lo:
+      case pk_ir_resummed_nlo:
+        rsd_indicator = _FALSE_;
+        break;
+
+      case pkmu_rsd_ir_resummed_lo:
+      case pkmu_rsd_ir_resummed_nlo:
+        rsd_indicator = _TRUE_;
+        break;
+
+      default:
+        class_stop(peft->error_message,
+                   "index_pk_type=%d does not match any valid option",
+                   index_pk_type);
+        break;
+      }
+
+    if (rsd_indicator == _TRUE_) {
       class_call(eft_linear_spectrum_rsd(pba, ppm, pfo, peft,
                                          linear,
                                          ln_k,
@@ -1942,6 +1963,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
   double Prsd3_loop;
   double Prsd4_loop;
   double sigma2_tot_z0;
+  int rsd_out_indicator;
 
   if (!peft->hp->use_interpolation) {
     muvec = peft->mu; mu_size = peft->mu_size;
@@ -1949,8 +1971,35 @@ int eft_build_nonlinear_power_spectrum_wedges(
     //class_stop(peft->error_message, "Not implemented yet.")
   }
 
+  switch ((enum eft_pk_out_type)index_pk_out_type)
+    {
+    case Pdd_mm_real:
+    case Pdd_mm_real_no_IR_resum:
+    case Pdd_hh_real:
+    case Pdd_hh_real_no_IR_resum:
+    case Pdd_hm_real:
+    case Pdd_hm_real_no_IR_resum:
+      rsd_out_indicator =  _FALSE_;
+      break;
+
+    case Pdd_mm_rsd:
+    case Pdd_mm_rsd_no_IR_resum:
+    case Pdd_hh_rsd:
+    case Pdd_hh_rsd_no_IR_resum:
+    case Pdd_hm_rsd:
+    case Pdd_hm_rsd_no_IR_resum:
+      rsd_out_indicator = _TRUE_;
+      break;
+
+    default:
+      class_stop(peft->error_message,
+                 "index_pk_out_type=%d does not match any valid option",
+                 index_pk_out_type);
+      break;
+    }
+
   /** - if a real space spectrum is requested, ignore the mu input and let muvec point to a valid address with a constant value */
-  if (!eft_rsd_out_indicator((enum eft_pk_out_type)index_pk_out_type)) {
+  if (rsd_out_indicator == _FALSE_) {
     class_alloc(mu_real, mu_size*sizeof(double), peft->error_message);
     for (index_mu = 0; index_mu < mu_size; index_mu++) { mu_real[it] = 0.; }
     muvec = mu_real;

@@ -23,55 +23,6 @@ enum eft_arg_type {points, cartesian_product};
 enum eft_spectra_contribution {finite_part, uv_divergence, ir_divergence, pole_divergence, eft_spectra_contribution_num};
 enum sym_type {no_finite_part, sym_vec, sym_mat_none, sym_mat_symmetric};
 
-
-inline int eft_rsd_indicator(enum eft_pk_type pk_type) {
-  switch (pk_type)
-  {
-  case pk_lin:
-  case pk_nowiggle:
-  case pk_ir_resummed_lo:
-  case pk_ir_resummed_nlo:
-    return _FALSE_;
-    break;
-
-  case pkmu_rsd_ir_resummed_lo:
-  case pkmu_rsd_ir_resummed_nlo:
-    return _TRUE_;
-    break;
-
-  default:
-    return -1;
-    break;
-  }
-}
-
-inline int eft_rsd_out_indicator(enum eft_pk_out_type pk_out_type) {
-  switch (pk_out_type)
-  {
-  case Pdd_mm_real:
-  case Pdd_mm_real_no_IR_resum:
-  case Pdd_hh_real:
-  case Pdd_hh_real_no_IR_resum:
-  case Pdd_hm_real:
-  case Pdd_hm_real_no_IR_resum:
-    return _FALSE_;
-    break;
-
-  case Pdd_mm_rsd:
-  case Pdd_mm_rsd_no_IR_resum:
-  case Pdd_hh_rsd:
-  case Pdd_hh_rsd_no_IR_resum:
-  case Pdd_hm_rsd:
-  case Pdd_hm_rsd_no_IR_resum:
-    return _TRUE_;
-    break;
-
-  default:
-    return -1;
-    break;
-  }
-}
-
 #include "wnw_split.h"
 #include "kernel_matrices.h"
 

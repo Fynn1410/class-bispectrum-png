@@ -9,14 +9,6 @@
 
 #include "infrared_resummation.h"
 
-/** Integration measure for Sigma^2(z):  1 - j_0(q_osc) + 2 j_2(q_osc)
- * error is always below 1e-10
-*/
-inline double ir_sigma2_measure(double q_osc) {
-  return (q_osc > 0.01) ? (1. - sin(q_osc) / q_osc + 2. * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) ))    \
-                        : (3.*q_osc*q_osc/10. - q_osc*q_osc*q_osc*q_osc/56.);
-}
-
 /**
  * @brief Compute the suppression factor Sigma^2(z) in real space
  *        d(Sigma^2(z)) = 1/(6 pi^2) dln(q) q P_nw(z, q) (1 - j_0(q/k_bao) + 2 j_2(q/k_bao))
@@ -40,6 +32,7 @@ double eft_ir_sigma2(
   int split_index = 0, index_y, index_ddy, index_num = 0, it_q;
   double q, q_osc, result;
   double *ln_q, *intg_splines, *pk_nw;
+  double ir_sigma2_measure;
 
   /** - search for k_split in pfo->ln_k */
   class_call(array_hunt_ascending(pfo->ln_k,
@@ -81,7 +74,14 @@ double eft_ir_sigma2(
   {
     q = exp(ln_q[it_q]);
     q_osc = q / k_bao;
-    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q] * ir_sigma2_measure(q_osc);
+
+    /* Integration measure for Sigma^2(z):
+       1 - j_0(q_osc) + 2 j_2(q_osc)
+       error is always below 1e-10 */
+    ir_sigma2_measure = (q_osc > 0.01) ? (1. - sin(q_osc) / q_osc + 2. * ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc) )) \
+      : (3.*q_osc*q_osc/10. - q_osc*q_osc*q_osc*q_osc/56.);
+
+    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q] * ir_sigma2_measure;
                                 /** q * P_nw(z, q) * (1 - j_0(q/k_BAO) + 2 j_2(q/k_bao)) */
   }
 
@@ -123,14 +123,6 @@ double eft_ir_sigma2(
   return result;
 }
 
-/** Integration measure for Sigma^2(z):  j_2(q_osc)
- * error is always below 1e-10, except at the roots
-*/
-inline double ir_dsigma2_measure(double q_osc) {
-  return (q_osc > 0.01) ? ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc))    \
-                        : (q_osc*q_osc/15. - q_osc*q_osc*q_osc*q_osc/210.);
-}
-
 /**
  * @brief Compute the suppression factor IR_sigma2 in redshift space (CLASS-PT: 2004.106007v2 p. 15)
  *        d(DSigma^2(z)) = 1/(2 pi^2) dln(q) q P_nw(z, q) j_2(q/k_bao)
@@ -155,6 +147,7 @@ double eft_ir_dsigma2(
   int split_index = 0, index_y, index_ddy, index_num = 0, it_q;
   double q, q_osc, result;
   double *ln_q, *intg_splines, *pk_nw;
+  double ir_dsigma2_measure;
 
   /** - search for k_split in pfo->ln_k */
   class_call(array_hunt_ascending(pfo->ln_k,
@@ -196,7 +189,15 @@ double eft_ir_dsigma2(
   {
     q = exp(ln_q[it_q]);
     q_osc = q / k_bao;
-    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q] * ir_dsigma2_measure(q_osc);
+
+    /* Integration measure for Sigma^2(z):
+       j_2(q_osc)
+       error is always below 1e-10, except at the roots
+    */
+    ir_dsigma2_measure = (q_osc > 0.01) ? ((3. / (q_osc*q_osc) - 1.) * sin(q_osc) / q_osc - 3. * cos(q_osc) / (q_osc*q_osc)) \
+      : (q_osc*q_osc/15. - q_osc*q_osc*q_osc*q_osc/210.);
+
+    intg_splines[it_q*index_num + index_y] = q * pk_nw[it_q] * ir_dsigma2_measure;
                                               /** q * P_nw(z, q) * j_2(q/k_bao) */
   }
 
@@ -250,13 +251,13 @@ int indexed_real_arg_cmp_k(const void * a, const void * b) {
 
 /**
  * @brief Compiles an argument list of wavenumbers for the real space linear power-spectrum functions.
- * 
+ *
  * @param ln_kvec   Input: array of logarithm of wavenumbers (in 1/Mpc); indexed as ln_kvec[index_col*k_size + index_k]
  * @param k_size    Input: number of wavenumbers per column
  * @param n_columns Input: number of columns
  * @param vec       Output: argument list
  * @param errmsg
- * 
+ *
  * @return the error status
  */
 int eft_real_argument_list_rect(double * ln_kvec,

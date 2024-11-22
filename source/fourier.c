@@ -942,7 +942,7 @@ int fourier_pk_l_extra_at_kvec_and_z(
     free(ln_pk_primordial);
   }
 
-  for (index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
+  for (index_kvec = index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
     /** - Deal with case kmin<=k<=kmax */
     class_call(array_interpolate_spline_growing_closeby(pfo->ln_k,
                                                         pfo->k_size_extra,
@@ -958,7 +958,7 @@ int fourier_pk_l_extra_at_kvec_and_z(
                   pfo->error_message);
   }
 
-  for (index_kvec; index_kvec < kvec_size; index_kvec++) {
+  for (index_kvec = index_kvec; index_kvec < kvec_size; index_kvec++) {
     /** - for k higher than kmax in pfo->ln_k, write zero to output */
     out_pk[index_kvec] = 0.;
   }
@@ -1591,7 +1591,7 @@ int fourier_pk_l_nw_extra_at_kvec_and_z(
 
   if (ln_pk_primordial) free(ln_pk_primordial);
 
-  for (index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
+  for (index_kvec = index_kvec; index_kvec < kvec_size && ln_kvec[index_kvec] <= pfo->ln_k[pfo->k_size_extra-1]; index_kvec++) {
     /** - Deal with case kmin<=k<=kmax */
     class_call(array_interpolate_spline_growing_closeby(pfo->ln_k,
                                                         pfo->k_size_extra,
@@ -1607,7 +1607,7 @@ int fourier_pk_l_nw_extra_at_kvec_and_z(
                   pfo->error_message);
   }
 
-  for (index_kvec; index_kvec < kvec_size; index_kvec++) {
+  for (index_kvec = index_kvec; index_kvec < kvec_size; index_kvec++) {
     /** - for k higher than kmax in pfo->ln_k, write zero to output */
     out_pk[index_kvec] = 0.;
   }

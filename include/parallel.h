@@ -42,12 +42,10 @@ for (std::future<int>& future : future_output) {  \
 future_output.clear();
 
 // A convenient macro to get the number of threads in a given run:
-#define class_parallel_num_threads() \
-task_system.count_
+//#define class_parallel_num_threads() task_system.count_
 
 // (an alternative could be:)
-// #define class_parallel_num_threads() \
-// task_system.GetNumThreads()
+//#define class_parallel_num_threads() task_system.GetNumThreads()
 
 // If there are several loops to parallelise int he same function, and
 // you want one loop to be done before the other starts, you need to
@@ -156,7 +154,7 @@ public:
 
   static unsigned int GetNumThreads() {
     unsigned int number_of_threads = std::thread::hardware_concurrency();
-    for (const std::string& env_var_name : {"OMP_NUM_THREADS", "SLURM_CPUS_PER_TASK"}) {
+    for (const std::string env_var_name : {"OMP_NUM_THREADS", "SLURM_CPUS_PER_TASK"}) {
       if (char* s = std::getenv(env_var_name.c_str())) {
         int threads = std::atoi(s);
         if ((threads > 0) && (threads <= 8192)) {

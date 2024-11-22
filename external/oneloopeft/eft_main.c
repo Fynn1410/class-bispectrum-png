@@ -46,10 +46,11 @@ int eft_spline_sample_points_nonuniform(
     else {
       density_outer = (double)(num_points - 1) / (tau_max - width*sqrt_ampl_1 + rel_amplitude*width*(arctan_sqrt_ampl_1 - atan(tau_min/width)));
       N_bound2 = (int)ceil(density_outer*rel_amplitude*width*(arctan_sqrt_ampl_1 - atan(tau_min/width)));
+      N_bound2 = MIN(num_points,N_bound2);
 
-      for (N = 0; N < num_points && N < N_bound2; N++)
+      for (N = 0; N < N_bound2; N++)
         ln_k_sample[N] = ln_k_feature + width * tan( atan(tau_min/width) + (double)N/(density_outer*rel_amplitude*width) );
-      for (N; N < num_points; N++)
+      for (N = N_bound2; N < num_points; N++)
         ln_k_sample[N] = ln_k_feature + width*sqrt_ampl_1 + rel_amplitude*width*(atan(tau_min/width) - arctan_sqrt_ampl_1) + (double)N/density_outer;
     }
   }
@@ -57,23 +58,26 @@ int eft_spline_sample_points_nonuniform(
   else if (tau_max <= width*sqrt_ampl_1) {
     density_outer = (double)(num_points - 1) / (-tau_min - width*sqrt_ampl_1 + rel_amplitude*width*(atan(tau_max/width) + arctan_sqrt_ampl_1));
     N_bound1 = (int)ceil(-density_outer*(tau_min + width*sqrt_ampl_1));
+    N_bound1 = MIN(num_points,N_bound1);
 
-    for (N = 0; N < num_points && N < N_bound1; N++)
+    for (N = 0; N < N_bound1; N++)
       ln_k_sample[N] = ln_k_feature + tau_min + (double)N/density_outer;
-    for (N; N < num_points; N++)
+    for (N = N_bound1; N < num_points; N++)
       ln_k_sample[N] = ln_k_feature + width * tan( (tau_min + width*sqrt_ampl_1 + (double)N/density_outer)/(rel_amplitude*width) - arctan_sqrt_ampl_1 );
   }
   /** - both borders are inside the region [k_min, k_max] */
   else {
     density_outer = (double)(num_points - 1) / (tau_max - tau_min - 2.*width*sqrt_ampl_1 + 2.*rel_amplitude*width*arctan_sqrt_ampl_1);
     N_bound1 = (int)ceil(density_outer*(-width*sqrt_ampl_1 - tau_min));
+    N_bound1 = MIN(num_points,N_bound1);
     N_bound2 = (int)ceil(density_outer*(-width*sqrt_ampl_1 - tau_min + 2.*rel_amplitude*width*arctan_sqrt_ampl_1));
+    N_bound2 = MIN(num_points,N_bound2);
 
-    for (N = 0; N < num_points && N < N_bound1; N++)
+    for (N = 0; N < N_bound1; N++)
       ln_k_sample[N] = ln_k_feature + tau_min + (double)N/density_outer;
-    for (N; N < num_points && N < N_bound2; N++)
+    for (N = N_bound1; N < N_bound2; N++)
       ln_k_sample[N] = ln_k_feature + width * tan( (tau_min + width*sqrt_ampl_1 + (double)N/density_outer)/(rel_amplitude*width) - arctan_sqrt_ampl_1 );
-    for (N; N < num_points; N++)
+    for (N = N_bound2; N < num_points; N++)
       ln_k_sample[N] = ln_k_feature + tau_min + 2.*width*sqrt_ampl_1 - 2.*rel_amplitude*width*arctan_sqrt_ampl_1 + (double)N/density_outer;
   }
 
@@ -419,7 +423,6 @@ int eft_init(struct precision * ppr,
   return _SUCCESS_;
 }
 
-/** TODO: inline this, problem with Pdd_mm_real located in here [Sigma2 is zero] */
 /**
  * @brief Computes linear and possibly infrared-resummed power spectra in real-space.
  *
@@ -1340,7 +1343,7 @@ int eft_get_loop_matrices(struct eft * peft,
         if (peft->hp->write_loop_matrices == _TRUE_) {  /** - and save them if flag is set */
           for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
             if (peft->loop_matrices_size[index_moment] == 0) { continue; }
-            sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
+            class_sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
             class_call(eft_save_matrix_to_file(peft->loop_matrices[index_moment],
                                                peft->loop_matrices_size[index_moment],
                                                peft->symmetry[index_moment],
@@ -1362,7 +1365,7 @@ int eft_get_loop_matrices(struct eft * peft,
         /** TODO: could be done in parallel as before with num_threads = num_parallel_files */
         for (index_moment = 0; index_moment < peft->moments_allocated; index_moment++) {
           if (peft->loop_matrices_size[index_moment] == 0) { continue; }
-          sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
+          class_sprintf(filename, "%s_%03d.mat", peft->hp->eft_loop_matrix_files[index_moment], index);
           // class_call(eft_read_matrix_from_file(peft->loop_matrices[index_moment],
           //                                               peft->loop_matrices_size[index_moment],
           //                                               peft->symmetry[index_moment],
