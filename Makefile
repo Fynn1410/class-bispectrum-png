@@ -100,7 +100,7 @@ endif
 # update flags for including oneloopeft
 vpath %.c $(ONELOOPEFT)
 INCLUDES += -I../$(ONELOOPEFT)
-EXTERNAL += eft_main.opp kernel_matrices.opp wnw_split.opp infrared_resummation.opp power_spectrum.opp utilities.opp
+EXTERNAL += eft_main.opp kernel_matrices.opp infrared_resummation.opp power_spectrum.opp utilities.opp
 HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)
 # import Cuba library if direct_integration is requested
 ifneq ($(DIRECT_INTEGRATION),)

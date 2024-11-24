@@ -4,7 +4,7 @@
  * based on prototype version of Azadeh Moradinezhad Dizgah & Dennis Linde
  *
  * this module can be used by others without ever referencing eft structures
- * contains infrared-resummed linear matter power spectra while the wiggle-nowiggle separation is performed in wnw_split.c
+ * contains infrared-resummed linear matter power spectra while the wiggle-nowiggle separation is performed in fourier.c
 */
 
 #include "infrared_resummation.h"

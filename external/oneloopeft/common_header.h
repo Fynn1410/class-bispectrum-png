@@ -2,8 +2,6 @@
 #ifndef __EFFECTIVE_FIELD_THEORY_COMMON__
 #define __EFFECTIVE_FIELD_THEORY_COMMON__
 
-#define gfilter_smoothing_scale(ln_k) (0.6907755279 * exp( -pow((ln_k - (-3.4538776395)) / 2.752115578658, 2) ) + 0.06907755279)
-
 //Using an enum to define the length of the enum is discouraged
 enum eft_tracer {eft_matter, eft_halo, eft_tracer_num}; /**< nothing more than the number of distinct bias choices we want to use */
 enum eft_fourier_mode {fourier_mode_fft, fourier_mode_spline};
@@ -21,8 +19,6 @@ const static FileName eft_loop_matrix_files_default[NUM_MOMENTS] = {"I2200", "I1
                                                                     "J21112x", "J21112y", "N12x", "N12y", "J12112x", "J12112y",                                                   \
                                                                     "N22x", "N22y", "N22z"};  /**< default filenames for the loop matrices */
 
-
-int eft_ln_pk_nw_gfilter_parallel(struct precision *ppr, struct background *pba, struct primordial *ppm, struct fourier *pfo, int index_pk, int index_k0, int index_kmin, int k_size, double *ln_pknw_array);
 
 struct eft_input_parameters
 {

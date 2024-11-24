@@ -13,6 +13,8 @@
 
 #define _MAX_NUM_EXTRAPOLATION_ 100000
 
+#define fourier_gfilter_smoothing_scale(ln_k) (0.6907755279 * exp( -pow((ln_k - (-3.4538776395)) / 2.752115578658, 2) ) + 0.06907755279)
+
 enum non_linear_method {nl_none,nl_halofit,nl_HMcode,nl_oneloopPT};
 enum pk_outputs {pk_linear,pk_nonlinear};
 
@@ -667,6 +669,70 @@ extern "C" {
                                      double * sigma_prime_cb,
                                      struct fourier_workspace * pnw
                                      );
+
+  int fourier_nowiggle_gfilter(
+                               struct precision *ppr,
+                               struct background *pba,
+                               struct primordial *ppm,
+                               struct fourier *pfo,
+                               int index_pk,
+                               int index_k0,
+                               int index_kmin,
+                               int k_size,
+                               double *ln_pknw_array);
+
+  int fourier_nowiggle_gfilter_3d(
+                                  struct precision *ppr,
+                                  struct background *pba,
+                                  struct primordial *ppm,
+                                  struct fourier *pfo,
+                                  int index_pk,
+                                  int index_k0,
+                                  int index_kmin,
+                                  int k_size,
+                                  double *ln_pknw_array);
+
+  int fourier_eisenstein_hu_nowiggle_factor(
+                                            struct background *pba,
+                                            struct primordial *ppm,
+                                            struct fourier *pfo,
+                                            double k,
+                                            double k0,
+                                            double * nowiggle_factor);
+
+  int fourier_eisenstein_hu_wiggle_factor(
+                                          struct background *pba,
+                                          struct primordial *ppm,
+                                          struct fourier *pfo,
+                                          double k,
+                                          double k0,
+                                          double * wiggle_factor);
+
+  int fourier_eisenstein_hu_T0(
+                               struct background * pba,
+                               struct primordial * ppm,
+                               struct fourier * pfo,
+                               double k,
+                               double * T0
+                               );
+
+  int fourier_eisenstein_hu_T(
+                              struct background * pba,
+                              struct primordial * ppm,
+                              struct fourier * pfo,
+                              double k,
+                              double * T
+                              );
+
+  int fourier_eisenstein_hu_Tt0(
+                                struct background * pba,
+                                struct primordial * ppm,
+                                struct fourier * pfo,
+                                double k,
+                                double x1,
+                                double x2,
+                                double * Tt0
+                                );
 
 #ifdef __cplusplus
 }

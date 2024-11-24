@@ -23,7 +23,6 @@ enum eft_arg_type {points, cartesian_product};
 enum eft_spectra_contribution {finite_part, uv_divergence, ir_divergence, pole_divergence, eft_spectra_contribution_num};
 enum sym_type {no_finite_part, sym_vec, sym_mat_none, sym_mat_symmetric};
 
-#include "wnw_split.h"
 #include "kernel_matrices.h"
 
 struct indexed_double

@@ -2130,15 +2130,15 @@ int fourier_init(
     /** --> allocate temporary arrays for spectra at each given time/redshift */
 
     class_alloc(pk_nl,
-                pfo->k_size*sizeof(double),
+                pfo->k_size*sizeof(double*),
                 pfo->error_message);
 
     class_alloc(lnpk_l,
-                pfo->k_size*sizeof(double),
+                pfo->k_size*sizeof(double*),
                 pfo->error_message);
 
     class_alloc(ddlnpk_l,
-                pfo->k_size*sizeof(double),
+                pfo->k_size*sizeof(double*),
                 pfo->error_message);
 
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++){
@@ -2862,9 +2862,9 @@ int fourier_indices(
   class_alloc(pfo->ln_pk_l_extra,pfo->pk_size*sizeof(double*),pfo->error_message);
 
   for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
-    class_alloc(pfo->ln_pk_ic_l[index_pk],   pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
-    class_alloc(pfo->ln_pk_l[index_pk],      pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
-    class_alloc(pfo->ln_pk_l_extra[index_pk],pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
+    class_alloc(pfo->ln_pk_ic_l[index_pk],   pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double),pfo->error_message);
+    class_alloc(pfo->ln_pk_l[index_pk],      pfo->ln_tau_size*pfo->k_size*sizeof(double),pfo->error_message);
+    class_alloc(pfo->ln_pk_l_extra[index_pk],pfo->ln_tau_size*pfo->k_size_extra*sizeof(double),pfo->error_message);
   }
 
   /** - if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
@@ -2877,15 +2877,15 @@ int fourier_indices(
     class_alloc(pfo->ddln_pk_l_extra,pfo->pk_size*sizeof(double*),pfo->error_message);
 
     for (index_pk=0; index_pk<pfo->pk_size; index_pk++) {
-      class_alloc(pfo->ddln_pk_ic_l[index_pk],   pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double*),pfo->error_message);
-      class_alloc(pfo->ddln_pk_l[index_pk],      pfo->ln_tau_size*pfo->k_size*sizeof(double*),pfo->error_message);
-      class_alloc(pfo->ddln_pk_l_extra[index_pk],pfo->ln_tau_size*pfo->k_size_extra*sizeof(double*),pfo->error_message);
+      class_alloc(pfo->ddln_pk_ic_l[index_pk],   pfo->ln_tau_size*pfo->k_size*pfo->ic_ic_size*sizeof(double),pfo->error_message);
+      class_alloc(pfo->ddln_pk_l[index_pk],      pfo->ln_tau_size*pfo->k_size*sizeof(double),pfo->error_message);
+      class_alloc(pfo->ddln_pk_l_extra[index_pk],pfo->ln_tau_size*pfo->k_size_extra*sizeof(double),pfo->error_message);
     }
   }
 
   /** - array of sigma8 values */
 
-  class_alloc(pfo->sigma8,pfo->pk_size*sizeof(double*),pfo->error_message);
+  class_alloc(pfo->sigma8,pfo->pk_size*sizeof(double),pfo->error_message);
 
   /** - if non-linear computations needed, allocate array of
       non-linear correction ratio R_nl(k,z), k_nl(z) and P_nl(k,z)
@@ -3438,12 +3438,12 @@ int fourier_wnw_split(
    */
   for (index_k_min = 0; index_k_min < pfo->k_size_extra; index_k_min++) {
     ln_k_nw_min = pfo->ln_k[index_k_min];
-    smoothing_scale = gfilter_smoothing_scale(ln_k_nw_min);
+    smoothing_scale = fourier_gfilter_smoothing_scale(ln_k_nw_min);
     if (ln_k_nw_min - pfo->ln_k[0] > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
   }
   for (index_k_max = pfo->k_size_extra-1; index_k_max >= 0; index_k_max--) {
     ln_k_nw_max = pfo->ln_k[index_k_max];
-    smoothing_scale = gfilter_smoothing_scale(ln_k_nw_max);
+    smoothing_scale = fourier_gfilter_smoothing_scale(ln_k_nw_max);
     if (pfo->ln_k[pfo->k_size_extra-1] - ln_k_nw_max > ppr->nowiggle_boundary_dist_sigma_units * smoothing_scale) { break; }
   }
   k_nw_size = index_k_max - index_k_min + 1;
@@ -3455,13 +3455,13 @@ int fourier_wnw_split(
          pfo->ln_tau_size * pfo->k_size_extra * sizeof(double));
 
   /** - compute the nowiggle spectrum using gaussian filter */
-  // JL TODO: move this function from oneloop module to a separate wnw_split module
-  class_call(eft_ln_pk_nw_gfilter(ppr, pba, ppm, pfo,
-                                  *(pfo->nowiggle_pk_index),
-                                  index_k0,
-                                  index_k_min,
-                                  k_nw_size,
-                                  pfo->ln_pk_l_nw_extra),
+
+  class_call(fourier_nowiggle_gfilter(ppr, pba, ppm, pfo,
+                                      *(pfo->nowiggle_pk_index),
+                                      index_k0,
+                                      index_k_min,
+                                      k_nw_size,
+                                      pfo->ln_pk_l_nw_extra),
              pfo->error_message,
              pfo->error_message);
 
@@ -5919,6 +5919,502 @@ int fourier_hmcode_sigmaprime_at_z(
     *sigma_prime_cb = *sigma_prime;
   }
 
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Compute the nowiggle component of linear matter power spectrum using 1d logarithmic Gaussian filter.
+ * @param ppr         Input: pointer to precision parameters
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param index_pk    Input: index of the pk type, either index_m or index_cb
+ * @param index_k0    Input: index of pivot scale used for dewiggling
+ * @param index_kmin  Input: index of first wavenumber at wich spectrum gets dewiggled
+ * @param k_size      Input: number of wavenumbers in range over which spectrum gets dewiggled
+ * @param ln_pknw_array  Output: Dewiggled power spectrum for every pfo->k and pfo->tau
+ *                            in units of (Mpc)^3 [size = pfo->k_size_extra * pfo->tau_size].
+ *                            Indexed as ln_pknw_array[index_tau * pfo->k_size_extra + index_k]
+ * @return the error status
+ */
+
+int fourier_nowiggle_gfilter(
+                             struct precision *ppr,
+                             struct background *pba,
+                             struct primordial *ppm,
+                             struct fourier *pfo,
+                             int index_pk,
+                             int index_k0,
+                             int index_kmin,
+                             int k_size,
+                             double * ln_pknw_array) {
+
+  int it_k = 0, it_q = 0, it_tau, index_x, index_y, index_ddy, index_num;
+  double ln_pk0_z, k0, smoothing_scale;
+  double *pk_approx_f, *intg_splines, *intg_result;
+
+  class_alloc(pk_approx_f, pfo->k_size_extra * sizeof(double), pfo->error_message);
+
+  k0 = pfo->k[index_k0];
+
+  /** - define indices for the spline array */
+  it_q = 0;
+  class_define_index(index_x, _TRUE_, it_q, 1);
+  class_define_index(index_y, _TRUE_, it_q, 1);
+  class_define_index(index_ddy, _TRUE_, it_q, 1);
+  index_num = it_q;
+
+  class_alloc(intg_splines, pfo->k_size_extra * index_num * sizeof(double), pfo->error_message);
+  class_alloc(intg_result, k_size * sizeof(double), pfo->error_message);
+
+  for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
+
+    class_call(fourier_eisenstein_hu_nowiggle_factor(pba, ppm, pfo, pfo->k[it_q], k0, &(pk_approx_f[it_q])),
+               pfo->error_message,
+               pfo->error_message);
+
+    /** - also write the array of x-values for splining */
+    intg_splines[it_q*index_num + index_x] = pfo->ln_k[it_q];
+  }
+
+  /** - compute the Gaussian window integral at every tau */
+  for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++)
+    {
+      /** - power spectrum at fixing scale at tau */
+      ln_pk0_z = pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + index_k0];
+
+      /** - compute the integrand at the control points once */
+      for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
+        intg_splines[it_q*index_num + index_y] = \
+          exp(pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + it_q] - ln_pk0_z ) \
+          / pk_approx_f[it_q];
+
+      /** - spline the integrand function without exponential once */
+      class_call(array_spline(intg_splines,
+                              index_num,
+                              pfo->k_size_extra,
+                              index_x,
+                              index_y,
+                              index_ddy,
+                              _SPLINE_EST_DERIV_,
+                              pfo->error_message),
+                 pfo->error_message,
+                 pfo->error_message);
+
+      /** - integrate the same function with different windows */
+      for (it_k = 0; it_k < k_size; it_k++)
+        {
+          /** - compute the running smoothing scale */
+          smoothing_scale = fourier_gfilter_smoothing_scale(intg_splines[(index_kmin + it_k)*index_num + index_x]);
+          // smoothing_scale = ppr->nowiggle_filter_amplitude * exp( -pow((intg_splines[(index_kmin + it_k)*index_num + index_x] - ppr->nowiggle_filter_ln_k_center) / ppr->nowiggle_filter_ln_k_width, 2) ) + ppr->nowiggle_filter_const;
+
+          /** - integrate the spline with gaussian window with mean = ln(k) and stddev = smoothing_scale */
+          class_call(array_integrate_all_spline_gaussian_window(
+                                                                intg_splines,
+                                                                index_num,
+                                                                pfo->k_size_extra,
+                                                                index_x,
+                                                                index_y,
+                                                                index_ddy,
+                                                                intg_splines[(index_kmin + it_k)*index_num + index_x],
+                                                                smoothing_scale,
+                                                                intg_result + it_k,
+                                                                pfo->error_message),
+                     pfo->error_message,
+                     pfo->error_message);
+
+          //fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num + index_ddy], intg_result[it_k]);
+
+          /** - multiply with prefactors and take log */
+          intg_result[it_k] = log( pk_approx_f[index_kmin + it_k] * intg_result[it_k] ) + ln_pk0_z;
+        }
+
+      /** - write to output array */
+      memcpy(&(ln_pknw_array[it_tau*pfo->k_size_extra + index_kmin]),
+             intg_result,
+             k_size * sizeof(double));
+    }
+
+  free(intg_splines);
+  free(intg_result);
+
+  free(pk_approx_f);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * @brief Compute the nowiggle component of linear matter power spectrum using 3d Gaussian filter.
+ * @param ppr         Input: pointer to precision parameters
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pfo         Input: pointer to fourier structure
+ * @param index_pk    Input: index of the pk type, either index_m or index_cb
+ * @param index_k0    Input: index of pivot scale used for dewiggling
+ * @param index_kmin  Input: index of first wavenumber at wich spectrum gets dewiggled
+ * @param k_size      Input: number of wavenumbers in range over which spectrum gets dewiggled
+ * @param ln_pknw_array  Output: Dewiggled power spectrum for every pfo->k and pfo->tau
+ *                            in units of (Mpc)^3 [size = pfo->k_size_extra * pfo->tau_size].
+ *                            Indexed as ln_pknw_array[index_tau * pfo->k_size_extra + index_k]
+ * @return the error status
+ */
+
+int fourier_nowiggle_gfilter_3d(
+                                struct precision *ppr,
+                                struct background *pba,
+                                struct primordial *ppm,
+                                struct fourier *pfo,
+                                int index_pk,
+                                int index_k0,
+                                int index_kmin,
+                                int k_size,
+                                double *ln_pknw_array) {
+
+  int it_k = 0, it_q, it_tau, index_x, index_y, index_ddy, index_num, last_index;
+  double ln_pk0_z, k0, smoothing_scale;
+  double *pk_approx_f, *intg_splines, *intg_result1, *intg_result2;
+
+  /** - define indices for the spline array */
+  it_q = 0;
+  class_define_index(index_x, _TRUE_, it_q, 1);
+  class_define_index(index_y, _TRUE_, it_q, 1);
+  class_define_index(index_ddy, _TRUE_, it_q, 1);
+  index_num = it_q;
+
+  class_alloc(pk_approx_f, pfo->k_size_extra * sizeof(double), pfo->error_message);
+  class_alloc(intg_splines, pfo->k_size_extra * index_num * sizeof(double), pfo->error_message);
+  class_alloc(intg_result1, k_size * sizeof(double), pfo->error_message);
+  class_alloc(intg_result2, k_size * sizeof(double), pfo->error_message);
+
+  k0 = pfo->k[index_k0];
+
+  /** - compute the Eisenstein-Hu approximation to the nowiggle power spectrum */
+  for (it_q = 0; it_q < pfo->k_size_extra; it_q++) {
+
+    class_call(fourier_eisenstein_hu_nowiggle_factor(pba, ppm, pfo, pfo->k[it_q], k0, &(pk_approx_f[it_q])),
+               pfo->error_message,
+               pfo->error_message);
+
+    /** - also write the array of x-values for splining */
+    intg_splines[it_q*index_num + index_x] = pfo->k[it_q];
+  }
+
+  /** - compute the gaussian window integral at every tau */
+  for (it_tau = 0; it_tau < pfo->ln_tau_size; it_tau++) {
+
+    /** - power spectrum at fixing scale at tau */
+    ln_pk0_z = pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + index_k0];
+
+    /** - compute the integrand at the control points once */
+    for (it_q = 0; it_q < pfo->k_size_extra; it_q++)
+      intg_splines[it_q*index_num + index_y] =                          \
+        exp( pfo->ln_k[it_q] + pfo->ln_pk_l_extra[index_pk][it_tau*pfo->k_size_extra + it_q] - ln_pk0_z) \
+        / pk_approx_f[it_q];
+
+    /** - spline the integrand function without exponential once */
+    class_call(array_spline(intg_splines,
+                            index_num,
+                            pfo->k_size_extra,
+                            index_x,
+                            index_y,
+                            index_ddy,
+                            _SPLINE_EST_DERIV_,
+                            pfo->error_message),
+               pfo->error_message,
+               pfo->error_message);
+
+    /** - integrate the same function with different windows */
+    for (it_k = 0; it_k < k_size; it_k++) {
+
+      /** - compute the running smoothing scale */
+      smoothing_scale = /*4. * exp(-0.5*pow((pfo->ln_k[index_kmin + it_k] + 5.)/2., 2.)) +*/ 0.1;
+      smoothing_scale *= pfo->k[it_k];
+
+      /** - integrate the spline with gaussian window with mean = k and stddev = smoothing_scale */
+      class_call(array_integrate_all_spline_gaussian_window(intg_splines,
+                                                            index_num,
+                                                            pfo->k_size_extra,
+                                                            index_x,
+                                                            index_y,
+                                                            index_ddy,
+                                                            pfo->k[index_kmin + it_k],
+                                                            smoothing_scale,
+                                                            intg_result1 + it_k,
+                                                            pfo->error_message),
+                 pfo->error_message,
+                 pfo->error_message);
+
+      /** - integrate the spline with gaussian window with mean = -k and stddev = smoothing_scale */
+      class_call(array_integrate_all_spline_gaussian_window(intg_splines,
+                                                            index_num,
+                                                            pfo->k_size_extra,
+                                                            index_x,
+                                                            index_y,
+                                                            index_ddy,
+                                                            -pfo->k[index_kmin + it_k],
+                                                            smoothing_scale,
+                                                            intg_result2 + it_k,
+                                                            pfo->error_message),
+                 pfo->error_message,
+                 pfo->error_message);
+
+
+      //fprintf(stderr, "%.15e  %.15e  %.15e  %.15e \n", pfo->k[index_kmin + it_k], intg_splines[(index_kmin+it_k)*index_num + index_y], intg_splines[(index_kmin+it_k)*index_num - index_ddy], intg_result1[it_k] + intg_result2[it_k]);
+      /** - multiply with prefactors and take log */
+      intg_result1[it_k] = log(pk_approx_f[index_kmin + it_k] * (intg_result1[it_k] - intg_result2[it_k])) \
+        - pfo->ln_k[index_kmin + it_k] + ln_pk0_z;
+
+    }
+
+    /** - write to output array */
+    memcpy(&(ln_pknw_array[it_tau*pfo->k_size_extra + index_kmin]),
+           intg_result1,
+           k_size * sizeof(double));
+  }
+
+  free(pk_approx_f);
+  free(intg_splines);
+  free(intg_result1);
+  free(intg_result2);
+
+  return _SUCCESS_;
+}
+
+/**
+ * @brief Compute the Eisentein-Hu approximate nowiggle factor of the linear matter power spectrum
+ *
+ * @param pba     Input: pointer to background structure
+ * @param ppm     Input: pointer to primordial structure
+ * @param pfo     Input: pointer to fourier structure
+ * @param k       Input: wavenumber in units of 1/Mpc
+ * @param k0      Input: smallest value of k, i.e. the largest scale
+ * @param nowiggle_factor Output: approximate nowiggled power spectrum at z divided by the original linear spectrum
+ * @return the error status
+ */
+
+int fourier_eisenstein_hu_nowiggle_factor(
+                                          struct background *pba,
+                                          struct primordial *ppm,
+                                          struct fourier *pfo,
+                                          double k,
+                                          double k0,
+                                          double * nowiggle_factor) {
+
+  double T_k,T_k0;
+
+  class_call(fourier_eisenstein_hu_T0(pba, ppm, pfo, k, &T_k),
+             pfo->error_message,
+             pfo->error_message);
+
+  class_call(fourier_eisenstein_hu_T(pba, ppm, pfo, k0, &T_k0),
+             pfo->error_message,
+             pfo->error_message);
+
+  *nowiggle_factor = pow(k/k0, ppm->n_s) * pow(T_k/T_k0, 2.);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * @brief Compute the Eisentein-Hu approximate wiggle factor of the linear matter power spectrum
+ *
+ * @param pba     Input: pointer to background structure
+ * @param ppm     Input: pointer to primordial structure
+ * @param pfo     Input: pointer to fourier structure
+ * @param k       Input: wavenumber in units of 1/Mpc
+ * @param k0      Input: smallest value of k, i.e. the largest scale
+ * @param wiggle_factor Output: approximate wiggled power spectrum at z divided by the original linear spectrum
+ * @return the error status
+ */
+
+int fourier_eisenstein_hu_wiggle_factor(
+                                        struct background *pba,
+                                        struct primordial *ppm,
+                                        struct fourier *pfo,
+                                        double k,
+                                        double k0,
+                                        double * wiggle_factor) {
+
+  double T_k,T_k0;
+
+  class_call(fourier_eisenstein_hu_T(pba, ppm, pfo, k, &T_k),
+             pfo->error_message,
+             pfo->error_message);
+
+  class_call(fourier_eisenstein_hu_T(pba, ppm, pfo, k0, &T_k0),
+             pfo->error_message,
+             pfo->error_message);
+
+  *wiggle_factor = pow(k/k0, ppm->n_s) * pow(T_k/T_k0, 2.);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Compute the no-baryon transfer function given in Eq. 29 of EH astro-ph/9709112
+ *
+ * @param pba     Input: pointer to background structure
+ * @param ppm     Input: pointer to primordial structure
+ * @param pfo     Input: pointer to fourier structure
+ * @param k       Input: wavenumber in unit of 1/Mpc
+ * @param T0      Output: the needed function
+ * @return the error status
+ */
+int fourier_eisenstein_hu_T0(
+                             struct background *pba,
+                             struct primordial *ppm,
+                             struct fourier *pfo,
+                             double k,
+                             double * T0) {
+
+  double ombh2,omch2,om0h2,om0,theta;
+  double s,AG,Gamma,q,L0,C0;
+
+  ombh2 = pow(pba->h,2.) * pba->Omega0_b;
+  omch2 = pow(pba->h,2.) * pba->Omega0_cdm;
+  om0h2 = ombh2 + omch2;
+  om0   = om0h2/pow(pba->h,2.);
+  theta = pba->T_cmb/2.7;
+
+  ///approximate sound speed given in Eq. (26) of EH astro-ph/9709112
+  s     = 44.5 * log(9.83/om0h2)/sqrt(1.+10.*pow(ombh2,3./4.));
+
+  AG    = 1. - 0.328*log(431.*om0h2)*ombh2/om0h2 + 0.38*log(22.3*om0h2)*pow(ombh2/om0h2,2.);
+  Gamma = om0 * pba->h * (AG + (1. - AG)/(1.+pow(0.43*k*s,4.)));
+  q     = k/pba->h *pow(theta,2.)/Gamma ;
+  L0    = log(2.*exp(1.) + 1.8 * q);
+  C0    = 14.2 + 731./(1.+62.5*q);
+
+  *T0   = L0/(L0+C0*pow(q,2.));
+
+  return _SUCCESS_;
+}
+
+/**
+ * Compute the total baryon+CDM transfer function
+ *
+ * @param pba     Input: pointer to background structure
+ * @param ppm     Input: pointer to primordial structure
+ * @param pfo     Input: pointer to fourier structure
+ * @param k       Input: wavenumber in units of 1/Mpc
+ * @param T       Output: the needed function
+ * @return the error status
+ */
+
+int fourier_eisenstein_hu_T(
+                            struct background *pba,
+                            struct primordial *ppm,
+                            struct fourier *pfo,
+                            double k,
+                            double *T) {
+
+  double ombh2,omch2,om0h2,om0,theta;
+  double HH0,zeq,keq,k_silk;
+  double beta_node,s,st;
+  double bb1,bb2,zd,Rd,y,G;
+  double a1,a2,alphac,b1,b2,betac;
+  double alphab,betab,f;
+  double Tt01, Tt02, Tt03, Tb,Tc;
+
+  ombh2 = pow(pba->h,2.) * pba->Omega0_b;
+  omch2 = pow(pba->h,2.) * pba->Omega0_cdm;
+  om0h2 = ombh2 + omch2;
+  om0   = om0h2/pow(pba->h,2.);
+  theta = pba->T_cmb/2.7;
+
+  HH0     = 1.e5*pba->h/_c_;   ///H0 value divided by the speed of light
+  zeq     = 2.5e4 * om0h2 * pow(theta,-4.);
+  keq     = sqrt(2.*om0*pow(HH0,2.)*zeq);
+  k_silk  = 1.6*pow(ombh2,0.52)*pow(om0h2,0.73)*(1.+pow(10.4*om0h2,-0.95));  ////in 1/Mpc
+
+  beta_node = 8.41*pow(om0h2,0.435);
+
+  ///approximate sound speed given in Eq. (26) of EH astro-ph/9709112
+  s         = 44.5 * log(9.83/om0h2)/sqrt(1.+10.*pow(ombh2,3./4.));
+
+  st        = s/pow(1.+ pow(beta_node/(k*s),3.),1./3.);
+
+  bb1   = 0.313 * pow(om0h2,-0.419) * (1.+0.607*pow(om0h2,0.674));
+  bb2   = 0.238 * pow(om0h2,0.223);
+  zd    = 1291. * pow(om0h2,0.251)/(1.+0.659*pow(om0h2,0.828))*(1.+bb1*pow(ombh2,bb2));
+  Rd    = 31.5 * ombh2*pow(theta,-4.)*pow(zd/1.e3,-1.);
+  y     = (1.+zeq)/(1.+zd);
+  G     = y*(-6.*sqrt(1.+y)+(2.+3.*y)*log((sqrt(1.+y)+1.)/(sqrt(1.+y)-1.)));
+
+  a1     = pow(46.9*om0h2,0.670)*(1.+pow(32.1*om0h2,-0.532));
+  a2     = pow(12.0*om0h2,0.424)*(1.+pow(45.*om0h2,-0.582));
+  alphac = pow(a1,-ombh2/om0h2) * pow(a2,-pow(ombh2/om0h2,3.));
+  b1     = 0.944*pow(1.+pow(458.*om0h2,-0.708),-1.);
+  b2     = pow(0.395 * om0h2,-0.0266);
+  betac  = pow(1. + b1*(pow(omch2/om0h2,b2)-1.),-1.);
+
+  alphab = 2.07*keq*s*pow(1.+Rd,-3./4.)*G;
+  betab  = 0.5 + ombh2/om0h2 + (3.-2.*ombh2/om0h2) * sqrt(pow(17.2*om0h2,2.)+1.);
+  f      = 1./(1.+pow(k*s/5.4, 4.));
+
+  class_call(fourier_eisenstein_hu_Tt0(pba,ppm,pfo,k,1.,1.,&Tt01),
+             pfo->error_message,
+             pfo->error_message);
+
+  class_call(fourier_eisenstein_hu_Tt0(pba,ppm,pfo,k,1.,betac,&Tt02),
+             pfo->error_message,
+             pfo->error_message);
+
+  class_call(fourier_eisenstein_hu_Tt0(pba,ppm,pfo,k,alphac,betac,&Tt03),
+             pfo->error_message,
+             pfo->error_message);
+
+  //Eq. 21 of EH astro-ph/9709112
+  Tb = (Tt01/(1.+pow(k*s/5.2,2.)) + alphab/(1.+pow(betab/(k*s),3.)) * exp(-pow(k/k_silk,1.4)))* sin(k*st) / (k*st);
+  ///Eq. 17 of EH astro-ph/9709112
+  Tc = f*Tt02 + (1.-f)*Tt03;
+
+  *T = ombh2/om0h2 * Tb + omch2/om0h2 * Tc;
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Compute the function defined in Eq. 19 of EH astro-ph/9709112,
+ * which will be used to compute the fit for CDM transfer function in
+ * Eq. 17.
+ *
+ * @param pba     Input: pointer to background structure
+ * @param ppm     Input: pointer to primordial structure
+ * @param pfo     Input: pointer to fourier structure
+ * @param k       Input: wavenumber in unit of 1/Mpc
+ * @param x1      Input: alpha_c
+ * @param x2      Input: beta_c
+ * @param Tt0     Output: the needed function
+ * @return the error status
+ */
+
+int fourier_eisenstein_hu_Tt0(
+                              struct background *pba,
+                              struct primordial *ppm,
+                              struct fourier *pfo,
+                              double k,
+                              double x1,
+                              double x2,
+                              double * Tt0) {
+
+  double ombh2,omch2,om0h2,theta,qq,C;
+
+  ombh2 = pow(pba->h,2.) * pba->Omega0_b;
+  omch2 = pow(pba->h,2.) * pba->Omega0_cdm;
+  om0h2 = ombh2 + omch2;
+  theta = pba->T_cmb/2.7;
+
+  qq  = k*pow(theta,2.)*pow(om0h2,-1.);
+  C   = 14.2/x1+386./(1.+69.9*pow(qq,1.08));
+
+  // Eq. 19 of EH astro-ph/9709112
+  *Tt0 = log(exp(1.)+1.8*x2*qq)/(log(exp(1.)+1.8*x2*qq)+C*pow(qq,2.));
 
   return _SUCCESS_;
 }
