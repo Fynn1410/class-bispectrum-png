@@ -27,9 +27,9 @@ classy_folder = os.path.join(root_folder, "python")
 heat_folder = os.path.join(os.path.join(root_folder, "external"),"heating")
 recfast_folder = os.path.join(os.path.join(root_folder, "external"),"RecfastCLASS")
 hyrec_folder = os.path.join(os.path.join(root_folder, "external"),"HyRec2020")
-oneloop_folder = os.path.join(os.path.join(root_folder, "external"),"oneloopeft")
+oneloop_folder = os.path.join(os.path.join(root_folder, "external"),"oneloop")
 
-# CUBAPATH = os.path.join(root_folder,"external/oneloopeft/library/Cuba-4.2.1")
+# CUBAPATH = os.path.join(root_folder,"external/oneloop/library/Cuba-4.2.1")
 # Recover the CLASS version
 with open(os.path.join(include_folder, 'common.h'), 'r') as v_file:
     for line in v_file:

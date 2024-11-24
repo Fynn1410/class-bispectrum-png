@@ -13,7 +13,7 @@
 
 #include "fourier.h"
 #include <time.h>
-#include "../external/oneloopeft/header.h"
+#include "../external/oneloop/header.h"
 #include "sys/time.h"
 
 /**
@@ -2223,11 +2223,11 @@ int fourier_init(
           memcpy(pfo->peft + index_eft, pfo->peft, sizeof(struct eft));
         }
 
-        class_call(eft_init(ppr, pba, pfo->peft + index_eft, &(pfo->eft_hp), pfo->eft_ip + index_eft, pext, eft_role, index_eft),
+        class_call(oneloop_init(ppr, pba, pfo->peft + index_eft, &(pfo->eft_hp), pfo->eft_ip + index_eft, pext, eft_role, index_eft),
                    pfo->peft[index_eft].error_message,
                    pfo->error_message);
 
-        class_call(eft_get_loop_matrices(pfo->peft + index_eft, pext, index_eft),
+        class_call(oneloop_get_loop_matrices(pfo->peft + index_eft, pext, index_eft),
                    pfo->peft[index_eft].error_message,
                    pfo->error_message);
       }
@@ -2371,23 +2371,23 @@ int fourier_init(
 
               //fprintf(stderr,"Call eft_job_powerspectrum_wedges() at z=%e\n",zvec[0]);
 
-              class_call(eft_job_powerspectrum_wedges(pfo->peft,
-                                                      pfo->eft_size,
-                                                      pba,
-                                                      pfo,
-                                                      ppm,
-                                                      ppr,
-                                                      Pdd_mm_real,
-                                                      &z,
-                                                      1.,
-                                                      &eft_ip_dummy,
-                                                      1,
-                                                      kvec,
-                                                      &k_size,
-                                                      muvec,
-                                                      &mu_size,
-                                                      out_pkmu,
-                                                      NULL),
+              class_call(oneloop_job_powerspectrum_wedges(pfo->peft,
+                                                          pfo->eft_size,
+                                                          pba,
+                                                          pfo,
+                                                          ppm,
+                                                          ppr,
+                                                          Pdd_mm_real,
+                                                          &z,
+                                                          1.,
+                                                          &eft_ip_dummy,
+                                                          1,
+                                                          kvec,
+                                                          &k_size,
+                                                          muvec,
+                                                          &mu_size,
+                                                          out_pkmu,
+                                                          NULL),
                           pfo->peft->error_message,
                           pfo->error_message);
             }
@@ -2589,7 +2589,7 @@ int fourier_init(
 
     // fprintf(stderr,"Calling eft_job_powerspectrum_wedges() with eft_size=%d\n",pfo->eft_size);
 
-    // class_call(eft_job_powerspectrum_wedges(pfo->peft,
+    // class_call(oneloop_job_powerspectrum_wedges(pfo->peft,
     //                                         pfo->eft_size,
     //                                         pba,
     //                                         pfo,
@@ -2618,7 +2618,7 @@ int fourier_init(
     // }
     // fclose(out);
 
-    // class_call(eft_job_powerspectrum_wedges(pfo->peft,
+    // class_call(oneloop_job_powerspectrum_wedges(pfo->peft,
     //                                         pfo->eft_size,
     //                                         pba,
     //                                         pfo,
@@ -2645,7 +2645,7 @@ int fourier_init(
     // }
     // fclose(out);
 
-    // class_call(eft_job_powerspectrum_wedges(pfo->peft,
+    // class_call(oneloop_job_powerspectrum_wedges(pfo->peft,
     //                                         pfo->eft_size,
     //                                         pba,
     //                                         pfo,
@@ -2770,7 +2770,9 @@ int fourier_free(
 
   if (pfo->method == nl_oneloopPT) {
     for (index_eft = pfo->eft_size-1; index_eft >= 0; index_eft--) {
-      eft_free(pfo->peft + index_eft);
+      class_call(oneloop_free(&(pfo->peft[index_eft])),
+                 pfo->peft[index_eft].error_message,
+                 pfo->error_message);
     }
     free(pfo->peft);
     free(pfo->z_pk_eft);

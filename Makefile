@@ -58,7 +58,7 @@ LIBRARIES = -lm
 HYREC = external/HyRec2020
 RECFAST = external/RecfastCLASS
 HEATING = external/heating
-ONELOOPEFT = external/oneloopeft
+ONELOOP = external/oneloop
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -97,16 +97,16 @@ EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o energy_injec
 HEADERFILES += $(wildcard ./$(HYREC)/*.h)
 endif
 
-# update flags for including oneloopeft
-vpath %.c $(ONELOOPEFT)
-INCLUDES += -I../$(ONELOOPEFT)
-EXTERNAL += eft_main.opp kernel_matrices.opp infrared_resummation.opp power_spectrum.opp utilities.opp
-HEADERFILES += $(wildcard ./$(ONELOOPEFT)/*.h)
+# update flags for including oneloop
+vpath %.c $(ONELOOP)
+INCLUDES += -I../$(ONELOOP)
+EXTERNAL += oneloop.opp kernel_matrices.opp infrared_resummation.opp power_spectrum.opp utilities.opp
+HEADERFILES += $(wildcard ./$(ONELOOP)/*.h)
 # import Cuba library if direct_integration is requested
 ifneq ($(DIRECT_INTEGRATION),)
-#INCLUDES += -I../$(ONELOOPEFT)/library/Cuba-4.2.2
+#INCLUDES += -I../$(ONELOOP)/library/Cuba-4.2.2
 EXTERNAL += direct_integration.opp
-#HEADERFILES += $(wildcard ./$(ONELOOPEFT)/library/Cuba-4.2.2/*.h)
+#HEADERFILES += $(wildcard ./$(ONELOOP)/library/Cuba-4.2.2/*.h)
 CCFLAG += -DDIRECT_INTEGRATION
 LIBRARIES += -lcuba
 endif

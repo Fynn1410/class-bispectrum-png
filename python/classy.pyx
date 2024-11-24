@@ -3172,14 +3172,14 @@ make        nonlinear_scale_cb(z, z_size)
         cdef double zout
 
         # find the nearest eft structure
-        eft_nearest_structure_in_time(self.fo.peft,
-                                      self.fo.eft_size,
-                                      &self.ba,
-                                      &self.fo,
-                                      z,
-                                      &index_eft,
-                                      peft,
-                                      self.fo.peft[0].error_message)
+        oneloop_nearest_structure_in_time(self.fo.peft,
+                                       self.fo.eft_size,
+                                          &self.ba,
+                                          &self.fo,
+                                          z,
+                                          &index_eft,
+                                          peft,
+                                          self.fo.peft[0].error_message)
         zout = peft.z0
 
         # get the output sampling grid
@@ -3325,7 +3325,7 @@ make        nonlinear_scale_cb(z, z_size)
             k_sizevec[index_z] = k_size
             out_pkmuz_pp[index_z] = &out_pkmuz_view[index_z, 0, 0]
 
-        eft_job_powerspectrum_wedges(self.fo.peft,
+        oneloop_job_powerspectrum_wedges(self.fo.peft,
                                      self.fo.eft_size,
                                      &self.ba,
                                      &self.fo,
@@ -3399,7 +3399,7 @@ make        nonlinear_scale_cb(z, z_size)
         cdef double** out_pkmuz = <double**>malloc(z_size * sizeof(double*))
         cdef double** ddout_pkmuz = <double**>malloc(z_size * sizeof(double*))
 
-        # initialize output arrays to NULL (will be allocated inside eft_job_powerspectrum_wedges)
+        # initialize output arrays to NULL (will be allocated inside oneloop_job_powerspectrum_wedges)
         for index_z in range(z_size):
           kvec_pp[index_z] = NULL
           out_pkmuz[index_z] = NULL
@@ -3447,7 +3447,7 @@ make        nonlinear_scale_cb(z, z_size)
             mu_sizevec[index_z] = mu_size
             k_sizevec[index_z] = 1  # will be overwritten
 
-        eft_job_powerspectrum_wedges(self.fo.peft,
+        oneloop_job_powerspectrum_wedges(self.fo.peft,
                                      self.fo.eft_size,
                                      &self.ba,
                                      &self.fo,
@@ -3518,7 +3518,7 @@ make        nonlinear_scale_cb(z, z_size)
                   pkmu_type,
                   As_correction = 1.):
         """
-        eft_job_powerspectrum_wedges_grid(mu, k, z, z_size, mu_size, k_size, pkmu_type, biases, counterterms)
+        oneloop_job_powerspectrum_wedges_grid(mu, k, z, z_size, mu_size, k_size, pkmu_type, biases, counterterms)
 
         Returns the oneloop power spectrum P_oneloop(k,mu,z) including stochastic terms
 
@@ -3606,7 +3606,7 @@ make        nonlinear_scale_cb(z, z_size)
             k_sizevec[index_z] = k_size
             out_pkmuz_pp[index_z] = &out_pkmuz_view[index_z, 0, 0]
 
-        eft_job_powerspectrum_wedges(self.fo.peft,
+        oneloop_job_powerspectrum_wedges(self.fo.peft,
                                      self.fo.eft_size,
                                      &self.ba,
                                      &self.fo,
@@ -3734,7 +3734,7 @@ make        nonlinear_scale_cb(z, z_size)
             k_sizevec[index_z] = k_size
             out_pklz_pp[index_z] = &out_pklz_view[index_z, 0, 0]
 
-        eft_job_powerspectrum_multipoles(self.fo.peft,
+        oneloop_job_powerspectrum_multipoles(self.fo.peft,
                                          self.fo.eft_size,
                                          &self.ba,
                                          &self.fo,
@@ -3808,7 +3808,7 @@ make        nonlinear_scale_cb(z, z_size)
             f_z = self.scale_independent_growth_factor_f(zz)
 
             # find the nearest eft structure
-            eft_nearest_structure_in_time(self.fo.peft,
+            oneloop_nearest_structure_in_time(self.fo.peft,
                                           self.fo.eft_size,
                                           &self.ba,
                                           &self.fo,
@@ -3823,19 +3823,19 @@ make        nonlinear_scale_cb(z, z_size)
                 for index_k in range(k_size):
                     ln_kvec[index_mu*k_size + index_k] = log( k[index_z, index_mu, index_k] )
 
-            eft_linear_spectrum_real(&self.ba,
-                                     &self.pm,
-                                     &self.fo,
-                                     peft,
-                                     linear,
-                                     ln_kvec,
-                                     k_size,
-                                     mu_size,
-                                     zz,
-                                     f_z,
-                                     D_z,
-                                     index_pk_type,
-                                     &out_pkmuz_view[index_z, 0, 0])   # out_pkmu_p
+            oneloop_linear_spectrum_real(&self.ba,
+                                         &self.pm,
+                                         &self.fo,
+                                         peft,
+                                         linear,
+                                         ln_kvec,
+                                         k_size,
+                                         mu_size,
+                                         zz,
+                                         f_z,
+                                         D_z,
+                                         index_pk_type,
+                                         &out_pkmuz_view[index_z, 0, 0])   # out_pkmu_p
 
         return out_pkmuz
 
@@ -3894,7 +3894,7 @@ make        nonlinear_scale_cb(z, z_size)
             f_z = self.scale_independent_growth_factor_f(zz)
 
             # find the nearest eft structure
-            eft_nearest_structure_in_time(self.fo.peft,
+            oneloop_nearest_structure_in_time(self.fo.peft,
                                           self.fo.eft_size,
                                           &self.ba,
                                           &self.fo,
@@ -3910,7 +3910,7 @@ make        nonlinear_scale_cb(z, z_size)
                 for index_k in range(k_size):
                     ln_kvec[index_k+index_mu*k_size] = log( k[index_z,index_mu, index_k] )
 
-            eft_linear_spectrum_rsd(&self.ba,
+            oneloop_linear_spectrum_rsd(&self.ba,
                                     &self.pm,
                                     &self.fo,
                                     peft,
@@ -4036,7 +4036,7 @@ make        nonlinear_scale_cb(z, z_size)
             k_sizevec[index_z] = k_size
             out_pkz_pp[index_z] = &out_pkz_view[index_z, 0]
 
-        eft_job_powerspectrum_wedges(self.fo.peft,
+        oneloop_job_powerspectrum_wedges(self.fo.peft,
                                      self.fo.eft_size,
                                      &self.ba,
                                      &self.fo,
@@ -4091,7 +4091,7 @@ make        nonlinear_scale_cb(z, z_size)
         cdef eft* peft = self.fo.peft
 
         # find the nearest eft structure
-        eft_nearest_structure_in_time(self.fo.peft,
+        oneloop_nearest_structure_in_time(self.fo.peft,
                                       self.fo.eft_size,
                                       &self.ba,
                                       &self.fo,
@@ -4137,7 +4137,7 @@ make        nonlinear_scale_cb(z, z_size)
         if peft.spectra_contributions_size[index_pk_type_loop*peft.index_num + index_moment] <= 0:
             raise CosmoComputationError("Contribution with index_pk_type = {0:d} and index_moment = {1:d} was not computed.".format(index_pk_type_loop, index_moment))
 
-        eft_spectra_contributions_output(peft,
+        oneloop_spectra_contributions_output(peft,
                                          index_pk_type_loop,
                                          index_moment,
                                          zout_p,
@@ -4162,7 +4162,7 @@ make        nonlinear_scale_cb(z, z_size)
             raise CosmoSevereError("%s was not recognized as a pk_type" % pk_type_loop)
 
         # find the nearest eft structure
-        eft_nearest_structure_in_time(self.fo.peft,
+        oneloop_nearest_structure_in_time(self.fo.peft,
                                       self.fo.eft_size,
                                       &self.ba,
                                       &self.fo,

@@ -860,7 +860,7 @@ cdef extern from "header.h":
         pole_divergence
         eft_spectra_contribution_num
 
-    int eft_nearest_structure_in_time(
+    int oneloop_nearest_structure_in_time(
         void * peft0,
         int peft_size,
         void * pba,
@@ -901,12 +901,12 @@ cdef extern from "header.h":
         )
 
     double sigma_sq(
-        void * peft, 
-        short n, 
+        void * peft,
+        short n,
         int index_pk_type
         )
 
-    int eft_linear_spectrum_real(
+    int oneloop_linear_spectrum_real(
         void * pba,
         void * ppm,
         void * pfo,
@@ -922,7 +922,7 @@ cdef extern from "header.h":
         double * out_pk
         )
 
-    int eft_linear_spectrum_rsd(
+    int oneloop_linear_spectrum_rsd(
         void * pba,
         void * ppm,
         void * pfo,
@@ -940,7 +940,7 @@ cdef extern from "header.h":
         double * out_pk
         )
 
-    int eft_job_powerspectrum_wedges_grid(
+    int oneloop_job_powerspectrum_wedges_grid(
         void * peft0,
         int peft_size,
         void * pba,
@@ -958,7 +958,7 @@ cdef extern from "header.h":
         double * out_pkmuz
         )
 
-    int eft_job_powerspectrum_wedges(
+    int oneloop_job_powerspectrum_wedges(
         void * peft0,
         int peft_size,
         void * pba,
@@ -978,7 +978,7 @@ cdef extern from "header.h":
         double ** ddout_pkmu
         )
 
-    int eft_job_powerspectrum_multipoles(
+    int oneloop_job_powerspectrum_multipoles(
         void * peft0,
         int peft_size,
         void * pba,
@@ -997,7 +997,7 @@ cdef extern from "header.h":
         double ** out_pkl
         )
 
-    int eft_spectra_contributions_output(
+    int oneloop_spectra_contributions_output(
         void * peft,
         int pk_type,
         int index_moment,
