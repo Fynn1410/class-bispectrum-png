@@ -790,6 +790,24 @@ cdef extern from "class.h":
 
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 
+    int fourier_bispectrum_treelevel_at_k_and_z(
+                                                void *pba,
+                                                void * ppm,
+                                                void * pfo,
+                                                double b1,
+                                                double b2,
+                                                double bG2,
+                                                double k1,
+                                                double k2,
+                                                double k3,
+                                                double cos12,
+                                                double mu1,
+                                                double mu2,
+                                                double z,
+                                                int index_pk,
+                                                double * ln_bispectrum_treelevel
+                                                )
+
     int harmonic_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[1024], FileName ic_suffix)
 
     int harmonic_fast_pk_at_kvec_and_zvec(

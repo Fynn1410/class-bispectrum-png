@@ -435,6 +435,24 @@ extern "C" {
                         double * k_nl_cb
                         );
 
+  int fourier_bispectrum_treelevel_at_k_and_z(
+                                              struct background *pba,
+                                              struct primordial * ppm,
+                                              struct fourier * pfo,
+                                              double b1,
+                                              double b2,
+                                              double bG2,
+                                              double k1,
+                                              double k2,
+                                              double k3,
+                                              double cos12,
+                                              double mu1,
+                                              double mu2,
+                                              double z,
+                                              int index_pk,
+                                              double * ln_bispectrum_treelevel
+                                              );
+
   /* internal functions */
 
   int fourier_init(
@@ -493,6 +511,43 @@ extern "C" {
                         double * lnpk,
                         double * lnpk_ic
                         );
+
+  int fourier_kernel_K1(
+                        double b1,
+                        double f,
+                        double k1,
+                        double k2,
+                        double k3,
+                        double mu1,
+                        double mu2,
+                        double * K1
+                        );
+
+  int fourier_kernel_K2(
+                        struct fourier * pfo,
+                        double f,
+                        double k1,
+                        double k2,
+                        double k3,
+                        double mu1,
+                        double mu2,
+                        double * K2
+                        );
+
+  int fourier_B_tree_SPT_contribution(
+                                      struct background *pba,
+                                      struct primordial * ppm,
+                                      struct fourier * pfo,
+                                      int index_pk,
+                                      double f,
+                                      double k1,
+                                      double k2,
+                                      double k3,
+                                      double mu1,
+                                      double mu2,
+                                      double z,
+                                      double * B_tree
+                                      );
 
   int fourier_wnw_split(
                         struct precision *ppr,

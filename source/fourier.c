@@ -1860,6 +1860,79 @@ int fourier_k_nl_at_z(
 }
 
 /**
+ * @param pba           Input: pointer to background structure
+ * @param ppm           Input: pointer to primordial structure
+ * @param pfo           Input: pointer to fourier structure
+ * @param b1            Input: b1 bias parameter
+ * @param b2            Input: b2 bias parameter
+ * @param bG2           Input: bG2 bias parameter
+ * @param k1            Input: wavenumber k1
+ * @param k2            Input: wavenumber k2
+ * @param k3            Input: wavenumber k3
+ * @param mu1           Input: cosine of redshift space angle between k1 and the line of sight
+ * @param mu2           Input: cosine of redshift space angle between k2 and the line of sight
+ * @param z             Input: redshift
+ * @param index_pk      Input: index of required P(k) type (_m, _cb)
+ * @param ln_bispectrum_treelevel Output: log of bispectrum for given type/time, for all wavenumbers and angles
+ * @return the error status
+*/
+
+int fourier_bispectrum_treelevel_at_k_and_z(
+                                            struct background *pba,
+                                            struct primordial * ppm,
+                                            struct fourier * pfo,
+                                            double b1,
+                                            double b2,
+                                            double bG2,
+                                            double k1,
+                                            double k2,
+                                            double k3,
+                                            double cos12,
+                                            double mu1,
+                                            double mu2,
+                                            double z,
+                                            int index_pk,
+                                            double * ln_bispectrum_treelevel
+                                            ) {
+
+  int last_index = 0,i;
+  double * pvecback;
+  double f,mu3,B_tree_temp,B_tree=0;
+
+  class_test(((k3 != 0) && (cos12 != 0)), pfo->error_message, "only provide the angle between k1 and k2 OR the value for k3, but not both");
+  if (cos12 != 0) {
+    k3 = sqrt(k1*k1 + k2*k2 - 2.*k1*k2);
+  }
+
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pfo->error_message);
+
+  class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
+             pba->error_message,
+             pfo->error_message);
+
+  f = pvecback[pba->index_bg_f];
+  free(pvecback);
+
+  mu3      = -(k1*mu1 + k2*mu2)/k3;
+  double k_arr[]  = {k1, k2, k3};
+  double mu_arr[] = {mu1, mu2, mu3};
+
+  // loop over permutations
+  for (i=0; i<3; i++){
+    class_call(fourier_B_tree_SPT_contribution(pba, ppm, pfo, index_pk, f, k_arr[i], k_arr[(i+1)%3], k_arr[(i+2)%3], mu_arr[i], mu_arr[(i+1)%3], z, &B_tree_temp),
+               pfo->error_message,
+               pfo->error_message);
+    B_tree += B_tree_temp;
+  }
+
+  class_test(B_tree < 0, pfo->error_message, "You have a negative B_tree=%e",B_tree);
+
+  * ln_bispectrum_treelevel = log(B_tree);
+
+  return _SUCCESS_;
+}
+
+/**
  * Initialize the fourier structure, and in particular the
  * nl_corr_density and k_nl interpolation tables.
  *
@@ -3380,6 +3453,142 @@ int fourier_pk_linear(
   return _SUCCESS_;
 
 }
+
+/** Helper function for the bispectrum: first order kernel of delta in redshift space
+ * @param pfo           Input: pointer to fourier structure
+ * @param f             Input: log derivative of the growth factor
+ * @param k1            Input: double of value for k1
+ * @param k2            Input: double of value for k2
+ * @param k3            Input: double of value for k3
+ * @param mu1           Input: angle between k1 and line of sight
+ * @param mu2           Input: angle between k2 and line of sight
+ * @param K1            Output: pointer to the value of K1
+ * @return the error status
+ */
+
+int fourier_kernel_K1(
+       struct fourier * pfo,
+       double f,
+       double k1,
+       double k2,
+       double k3,
+       double mu1,
+       double mu2,
+       double *K1
+       ) {
+
+  double mu;
+
+  class_test(k3 <=0,
+             pfo->error_message,
+             "you have k3=%e",k3);
+
+  mu = (mu1*k1+mu2*k2)/(k3);
+  // TODO: generalize this any redshift
+  *K1 =  pfo->eft_ip[0].b1 + f*mu*mu;
+
+  return _SUCCESS_;
+}
+
+/** Helper function for the bispectrum: second order kernel of delta in redshift space
+ * @param pfo           Input: pointer to fourier structure
+ * @param f             Input: log derivative of the growth factor
+ * @param k1           Input: double of value for k1
+ * @param k2           Input: double of value for k2
+ * @param k3           Input: double of value for k3
+ * @param mu1          Input: angle between k1 and line of sight
+ * @param mu2          Input: angle between k2 and line of sight
+ * @param K2           Output: pointer to the value of K2
+ * @return the error status
+ */
+
+int fourier_kernel_K2(
+                      struct fourier * pfo,
+                      double f,
+                      double k1,
+                      double k2,
+                      double k3,
+                      double mu1,
+                      double mu2,
+                      double *K2
+                      ) {
+
+  double cos12, F2, G2, mu,b1,b2,bG2;
+
+  class_test(k1 <=0,
+             pfo->error_message,
+             "you have k1=%e",k1);
+  class_test(k2 <=0,
+             pfo->error_message,
+             "you have k2=%e",k2);
+  class_test(k3 <=0,
+             pfo->error_message,
+             "you have k3=%e",k3);
+
+  cos12 = (k1*k1 + k2*k2 - k3*k3)/(2.*k1*k2);                        // angle between the vectors k1 and k2 if we assume that the vector
+  F2 = 5./7. - cos12/2. * (k2/k1 + k1/k2) + 2./7. * cos12*cos12;     // second order SPT real space kernel of delta
+  G2 = 3./7. - cos12/2. * (k2/k1 + k1/k2) + 4./7. * cos12*cos12;     // second order SPT real space kernel of theta
+  mu = (mu1*k1+mu2*k2)/k3;
+
+  // bias parameter up to O(2)
+  // TODO: pass them as arguments, pfo->eft will no longer appear anywhere
+  b1 = pfo->eft_ip[0].b1;
+  b2 = pfo->eft_ip[0].b2;
+  bG2 = pfo->eft_ip[0].bG2;
+
+  *K2 =   b1*F2 + b2/2. + bG2*(cos12*cos12 - 1.) + f*mu*mu*G2 +
+          f*mu*k3/2. * ( mu1/k1 * (b1 + f*mu2*mu2) + mu2/k2 * (b1 + f*mu1*mu1) );
+
+  return _SUCCESS_;
+}
+
+/** Helper function for the bispectrum: tree level Bispectrum without permutations
+ * @param pba           Input: pointer to background structure
+ * @param ppm           Input: pointer to primordial structure
+ * @param pfo           Input: pointer to fourier structure
+ * @param index_pk      Input: index of required P(k) type (_m, _cb)
+ * @param f             Input: log derivative of the growth factor
+ * @param k1            Input: double of value for k1
+ * @param k2            Input: double of value for k2
+ * @param k3            Input: double of value for k3
+ * @param mu1           Input: angle between k1 and line of sight
+ * @param mu2           Input: angle between k2 and line of sight
+ * @param z             Input: redshift
+ * @param B_tree        Output: pointer to the value of B_tree
+ * @return the error status
+ */
+
+int fourier_B_tree_SPT_contribution(
+                                    struct background *pba,
+                                    struct primordial * ppm,
+                                    struct fourier * pfo,
+                                    int index_pk,
+                                    double f,
+                                    double k1,
+                                    double k2,
+                                    double k3,
+                                    double mu1,
+                                    double mu2,
+                                    double z,
+                                    double * B_tree
+                                    ) {
+  double K1;
+  double K2;
+  double P_lin1;
+  double P_lin2;
+
+  class_call(fourier_kernel_K1(pfo, f, k1, k2, k3, mu1, mu2, &K1), pfo->error_message, pfo->error_message);
+  class_call(fourier_kernel_K2(pfo, f, k1, k2, k3, mu1, mu2, &K2), pfo->error_message, pfo->error_message);
+
+  class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P_lin1, NULL), pfo->error_message, pfo->error_message);
+  class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2, z, index_pk, &P_lin2, NULL), pfo->error_message, pfo->error_message);
+
+  *B_tree =  2 * K2 * K1 * P_lin1 * P_lin2;
+
+  return _SUCCESS_;
+}
+
+
 
 /**
  * Compute the decomposition of the linear power spectrum into a

@@ -1263,6 +1263,48 @@ cdef class Class:
         return pk, k, z
 
     #################################
+
+    def bk_lin(self, double b1, double b2, double bG2, double k1, double k2, double k3, double cos12, double mu1, double mu2, double z):
+
+        """
+        Gives the linear galaxy bispectrum pk (in Mpc**3) for a given k (in 1/Mpc) and z
+
+        note:
+
+            there is an additional check that output contains `mPk`,
+            because otherwise a segfault will occur
+        """
+
+        cdef double bk_lin
+
+        if (self.fo.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. You need it to get the galaxy bispectrum.")
+
+        if fourier_bispectrum_treelevel_at_k_and_z(&self.ba, &self.pm, &self.fo, b1, b2, bG2, k1, k2, k3, cos12, mu1, mu2, z, self.fo.index_pk_m, &bk_lin)==_FAILURE_:
+            raise CosmoSevereError(self.fo.error_message)
+
+        return bk_lin
+
+    def get_bk_lin(self, double b1, double b2, double bG2, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] cos, np.ndarray[DTYPE_t,ndim=1] mu, double z, int k_size, int cos_size, int mu_size, int z_size):
+
+        """
+        Fast function to get the linear Bispectrum on a k, z and mu array (preliminary evrsion)
+        """
+
+        cdef np.ndarray[DTYPE_t, ndim=5] bk = np.zeros((k_size, k_size, cos_size, mu_size, mu_size),'float64')
+        cdef int index_k1, index_k2, index_cos, index_mu1, index_mu2, index_z
+
+        for index_k1 in range(k_size):
+            for index_k2 in range(k_size):
+                for index_cos in range(cos_size):
+                    for index_mu1 in range(mu_size):
+                        for index_mu2 in range(mu_size):
+                            for index_z in range(z_size):
+                                bk[index_k1, index_k2, index_cos, index_mu1, index_mu2] = self.bk_lin(b1, b2, bG2, k[index_k1], k[index_k1], 0., cos[index_cos], mu[index_mu1], mu[index_mu2], z)
+
+        return bk
+
+    #################################
     # Gives a grid of each transfer functions arranged in a dictionary, together with the vectors of corresponding k and z values
     def get_transfer_and_k_and_z(self, output_format='class', h_units=False):
         """
