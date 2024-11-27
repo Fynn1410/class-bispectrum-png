@@ -442,6 +442,9 @@ extern "C" {
                                               double b1,
                                               double b2,
                                               double bG2,
+                                              double d1,
+                                              double d2,
+                                              double P_eps,
                                               double k1,
                                               double k2,
                                               double k3,
@@ -513,8 +516,9 @@ extern "C" {
                         );
 
   int fourier_kernel_K1(
-                        double b1,
+                        struct fourier *pfo,
                         double f,
+                        double b1,
                         double k1,
                         double k2,
                         double k3,
@@ -526,6 +530,9 @@ extern "C" {
   int fourier_kernel_K2(
                         struct fourier * pfo,
                         double f,
+                        double b1,
+                        double b2,
+                        double bG2,
                         double k1,
                         double k2,
                         double k3,
@@ -534,21 +541,43 @@ extern "C" {
                         double * K2
                         );
 
-  int fourier_B_tree_SPT_contribution(
-                                      struct background *pba,
-                                      struct primordial * ppm,
-                                      struct fourier * pfo,
-                                      int index_pk,
-                                      double f,
-                                      double k1,
-                                      double k2,
-                                      double k3,
-                                      double mu1,
-                                      double mu2,
-                                      double z,
-                                      double * B_tree
-                                      );
+  int fourier_bispectrum_tree_SPT_contribution(
+                                               struct background *pba,
+                                               struct primordial * ppm,
+                                               struct fourier * pfo,
+                                               int index_pk,
+                                               double f,
+                                               double b1,
+                                               double b2,
+                                               double bG2,
+                                               double k1,
+                                               double k2,
+                                               double k3,
+                                               double mu1,
+                                               double mu2,
+                                               double z,
+                                               double * B_tree
+                                               );
 
+    int fourier_bispectrum_tree_noise_contribution(
+                                                   struct background *pba,
+                                                   struct primordial * ppm,
+                                                   struct fourier * pfo,
+                                                   int index_pk,
+                                                   double f,
+                                                   double b1,
+                                                   double d1,
+                                                   double d2,
+                                                   double P_eps,
+                                                   double k1,
+                                                   double k2,
+                                                   double k3,
+                                                   double mu1,
+                                                   double mu2,
+                                                   double z,
+                                                   double * B_tree
+                                                   );
+                                                  
   int fourier_wnw_split(
                         struct precision *ppr,
                         struct background *pba,

@@ -1264,8 +1264,7 @@ cdef class Class:
 
     #################################
 
-    def bk_lin(self, double b1, double b2, double bG2, double k1, double k2, double k3, double cos12, double mu1, double mu2, double z):
-
+    def bk_lin(self, double b1, double b2, double bG2, double d1, double d2, double P_eps, double k1, double k2, double k3, double cos12, double mu1, double mu2, double z):
         """
         Gives the linear galaxy bispectrum pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
@@ -1280,18 +1279,18 @@ cdef class Class:
         if (self.fo.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You need it to get the galaxy bispectrum.")
 
-        if fourier_bispectrum_treelevel_at_k_and_z(&self.ba, &self.pm, &self.fo, b1, b2, bG2, k1, k2, k3, cos12, mu1, mu2, z, self.fo.index_pk_m, &bk_lin)==_FAILURE_:
+        if fourier_bispectrum_treelevel_at_k_and_z(&self.ba, &self.pm, &self.fo, b1, b2, bG2, d1, d2, P_eps, k1, k2, k3, cos12, mu1, mu2, z, self.fo.index_pk_m, &bk_lin)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return bk_lin
 
-    def get_bk_lin(self, double b1, double b2, double bG2, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] cos, np.ndarray[DTYPE_t,ndim=1] mu, double z, int k_size, int cos_size, int mu_size, int z_size):
-
+    def get_bk_lin_angle(self, double b1, double b2, double bG2, double d1, double d2, double P_eps, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] cos, np.ndarray[DTYPE_t,ndim=1] mu, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int cos_size, int mu_size, int z_size):
         """
-        Fast function to get the linear Bispectrum on a k, z and mu array (preliminary evrsion)
+        Fast function to get the linear Bispectrum on a k1, k2, cos12 (angle between k1 and k2),
+        mu1, mu2 and z array (preliminary evrsion)
         """
 
-        cdef np.ndarray[DTYPE_t, ndim=5] bk = np.zeros((k_size, k_size, cos_size, mu_size, mu_size),'float64')
+        cdef np.ndarray[DTYPE_t, ndim=6] bk = np.zeros((k_size, k_size, cos_size, mu_size, mu_size, z_size),'float64')
         cdef int index_k1, index_k2, index_cos, index_mu1, index_mu2, index_z
 
         for index_k1 in range(k_size):
@@ -1300,8 +1299,58 @@ cdef class Class:
                     for index_mu1 in range(mu_size):
                         for index_mu2 in range(mu_size):
                             for index_z in range(z_size):
-                                bk[index_k1, index_k2, index_cos, index_mu1, index_mu2] = self.bk_lin(b1, b2, bG2, k[index_k1], k[index_k1], 0., cos[index_cos], mu[index_mu1], mu[index_mu2], z)
+                                #bk[0, 0, 0, 0, 0, 0] = self.bk_lin(b1, b2, bG2, d1, d2, P_eps, k[index_k1], k[index_k2], 0., cos[index_cos], mu[index_mu1], mu[index_mu2], z[index_z])
+                                bk[index_k1, index_k2, index_cos, index_mu1, index_mu2, index_z] = self.bk_lin(b1, b2, bG2, d1, d2, P_eps, k[index_k1], k[index_k2], 0., cos[index_cos], mu[index_mu1], mu[index_mu2], z[index_z])
 
+        return bk
+
+    def get_bk_lin_k(self, double b1, double b2, double bG2, double d1, double d2, double P_eps, np.ndarray[DTYPE_t,ndim=1] k1, np.ndarray[DTYPE_t,ndim=1] k2, np.ndarray[DTYPE_t,ndim=1] k3, np.ndarray[DTYPE_t,ndim=1] mu, np.ndarray[DTYPE_t,ndim=1] z, int k1_size, int k2_size, int k3_size , int mu_size, int z_size):
+        """
+        Fast function to get the linear Bispectrum on a k1, k2, k3,
+        mu1, mu2 and z array (preliminary evrsion)
+        """
+
+        cdef np.ndarray[DTYPE_t, ndim=6] bk = np.zeros((k1_size, k2_size, k3_size, mu_size, mu_size, z_size),'float64')
+        cdef int index_k1, index_k2, index_k3, index_mu1, index_mu2, index_z
+
+        for index_k1 in range(k1_size):
+            for index_k2 in range(k2_size):
+                for index_k3 in range(k3_size):
+                    for index_mu1 in range(mu_size):
+                        for index_mu2 in range(mu_size):
+                            for index_z in range(z_size):
+                                bk[index_k1, index_k2, index_k3, index_mu1, index_mu2, index_z] = self.bk_lin(b1, b2, bG2, d1, d2, P_eps, k1[index_k1], k2[index_k2], k3[index_k3], 0., mu[index_mu1], mu[index_mu2], z[index_z])
+
+        return bk
+
+
+    def get_bk_lin_configs(self, double b1, double b2, double bG2, double d1, double d2, double P_eps, str type, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] mu, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int mu_size, int z_size):
+        """
+        Fast function to get the linear Bispectrum for specific configurations: equilateral, isosceles, squeezed
+        """
+        cdef np.ndarray[DTYPE_t, ndim=4] bk = np.zeros((k_size, mu_size, mu_size, z_size),'float64')
+        cdef int index_k, index_mu1, index_mu2, index_z
+        cdef double cos
+
+        # equilateral:
+        if type == "equi" or type == "equilateral":
+            cos = 0.5
+        # isosceles:
+        elif type == "iso" or type == "isosceles":
+            cos = 7. / 8.
+        # squeezed dk/k = 0.1
+        elif type == "squ" or type == "squeezed":
+            cos = 0.995
+        else:
+            raise CosmoSevereError(f"'{type}' is an invalid triangle type. Must be one of 'equi', 'equilateral', 'iso', 'isosceles', 'squ' or 'squeezed'.")
+
+
+        for index_k in range(k_size):
+            for index_mu1 in range(mu_size):
+                for index_mu2 in range(mu_size):
+                    for index_z in range(z_size):
+                        bk[index_k, index_mu1, index_mu2, index_z] = self.bk_lin(b1, b2, bG2, d1, d2, P_eps, k[index_k], k[index_k], 0., cos, mu[index_mu1], mu[index_mu2], z[index_z])
+        
         return bk
 
     #################################
