@@ -794,6 +794,9 @@ cdef extern from "class.h":
                                                 void *pba,
                                                 void * ppm,
                                                 void * pfo,
+                                                linear_or_logarithmic mode,
+                                                int use_IR_resum,
+                                                int index_pk,
                                                 double b1,
                                                 double b2,
                                                 double bG2,
@@ -807,9 +810,30 @@ cdef extern from "class.h":
                                                 double mu1,
                                                 double mu2,
                                                 double z,
-                                                int index_pk,
-                                                double * ln_bispectrum_treelevel
+                                                double * bispectrum_treelevel
                                                 )
+
+    int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
+                                                            void *pba,
+                                                            void * ppm,
+                                                            void * pfo,
+                                                            linear_or_logarithmic mode,
+                                                            int use_IR_resum,
+                                                            int index_pk,
+                                                            double b1,
+                                                            double b2,
+                                                            double bG2,
+                                                            double d1,
+                                                            double d2,
+                                                            double P_eps,
+                                                            double k1,
+                                                            double k2,
+                                                            double k3,
+                                                            double cos12,
+                                                            int l,
+                                                            double z,
+                                                            double * B_l
+                                                            )
 
     int harmonic_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[1024], FileName ic_suffix)
 

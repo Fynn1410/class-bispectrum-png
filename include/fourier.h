@@ -439,6 +439,9 @@ extern "C" {
                                               struct background *pba,
                                               struct primordial * ppm,
                                               struct fourier * pfo,
+                                              enum linear_or_logarithmic mode,
+                                              int use_IR_resum,
+                                              int index_pk,
                                               double b1,
                                               double b2,
                                               double bG2,
@@ -452,9 +455,30 @@ extern "C" {
                                               double mu1,
                                               double mu2,
                                               double z,
-                                              int index_pk,
-                                              double * ln_bispectrum_treelevel
+                                              double * bispectrum_treelevel
                                               );
+
+int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
+                                                        struct background *pba,
+                                                        struct primordial * ppm,
+                                                        struct fourier * pfo,
+                                                        enum linear_or_logarithmic mode,
+                                                        int use_IR_resum,
+                                                        int index_pk,
+                                                        double b1,
+                                                        double b2,
+                                                        double bG2,
+                                                        double d1,
+                                                        double d2,
+                                                        double P_eps,
+                                                        double k1,
+                                                        double k2,
+                                                        double k3,
+                                                        double cos12,
+                                                        int l,
+                                                        double z,
+                                                        double * B_l
+                                                        );
 
   /* internal functions */
 
@@ -519,11 +543,7 @@ extern "C" {
                         struct fourier *pfo,
                         double f,
                         double b1,
-                        double k1,
-                        double k2,
-                        double k3,
-                        double mu1,
-                        double mu2,
+                        double mu,
                         double * K1
                         );
 
@@ -545,6 +565,7 @@ extern "C" {
                                                struct background *pba,
                                                struct primordial * ppm,
                                                struct fourier * pfo,
+                                               int use_IR_resum,
                                                int index_pk,
                                                double f,
                                                double b1,
