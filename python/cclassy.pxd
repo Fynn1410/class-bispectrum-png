@@ -791,24 +791,24 @@ cdef extern from "class.h":
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 
     int fourier_bispectrum_treelevel_at_k_and_z(
-                                                void *pba,
-                                                void * ppm,
                                                 void * pfo,
                                                 linear_or_logarithmic mode,
-                                                int use_IR_resum,
-                                                int index_pk,
+                                                double f,
                                                 double b1,
                                                 double b2,
                                                 double bG2,
                                                 double d1,
                                                 double d2,
+                                                double d3,
                                                 double P_eps,
                                                 double k1,
                                                 double k2,
                                                 double k3,
-                                                double cos12,
                                                 double mu1,
                                                 double mu2,
+                                                double Pk1,
+                                                double Pk2,
+                                                double Pk3,
                                                 double z,
                                                 double * bispectrum_treelevel
                                                 )
@@ -825,15 +825,25 @@ cdef extern from "class.h":
                                                             double bG2,
                                                             double d1,
                                                             double d2,
+                                                            double d3,
                                                             double P_eps,
                                                             double k1,
                                                             double k2,
                                                             double k3,
-                                                            double cos12,
                                                             int l,
                                                             double z,
                                                             double * B_l
                                                             )
+
+    int fourier_pk_l_nw_extra_at_kvec_and_z(
+                                            void * pba,
+                                            void * ppm,
+                                            void * pfo,
+                                            linear_or_logarithmic mode,
+                                            double * ln_kvec,
+                                            int kvec_size,
+                                            double z,
+                                            double * out_pk)
 
     int harmonic_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[1024], FileName ic_suffix)
 

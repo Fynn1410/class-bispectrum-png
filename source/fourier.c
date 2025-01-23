@@ -450,6 +450,8 @@ int fourier_pks_at_z(
                                ),
                pfo->error_message,
                pfo->error_message);
+
+
   }
 
   return _SUCCESS_;
@@ -1860,62 +1862,54 @@ int fourier_k_nl_at_z(
 }
 
 /**
- * @param pba                   Input: pointer to background structure
- * @param ppm                   Input: pointer to primordial structure
  * @param pfo                   Input: pointer to fourier structure
  * @param mode                  Input: linear or logarithmic for the output
- * @param use_IR_resum          Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk              Input: index of required P(k) type (_m, _cb)
  * @param b1                    Input: first order bias parameter
  * @param b2                    Input: second order bias parameter
  * @param bG2                   Input: second order bias parameter
+ * @param d1                    Input: noise bias parameter
+ * @param d2                    Input: noise bias parameter
+ * @param d3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_eps                 Input: noise power spectrum
  * @param k1                    Input: wavenumber k1
  * @param k2                    Input: wavenumber k2
  * @param k3                    Input: wavenumber k3
  * @param mu1                   Input: cosine of redshift space angle between k1 and the line of sight
  * @param mu2                   Input: cosine of redshift space angle between k2 and the line of sight
+ * @param Pk1                   Input: powerspectrum for k1
+ * @param Pk2                   Input: powerspectrum for k2
+ * @param Pk3                   Input: powerspectrum for k3
  * @param z                     Input: redshift
  * @param bispectrum_treelevel  Output: bispectrum for given type/time, for all wavenumbers and angles
  * @return the error status
 */
 
 int fourier_bispectrum_treelevel_at_k_and_z(
-                                            struct background *pba,
-                                            struct primordial * ppm,
                                             struct fourier * pfo,
                                             enum linear_or_logarithmic mode,
-                                            int use_IR_resum,
-                                            int index_pk,
+                                            double f,
                                             double b1,
                                             double b2,
                                             double bG2,
                                             double d1,
                                             double d2,
+                                            double d3,
                                             double P_eps,
                                             double k1,
                                             double k2,
                                             double k3,
-                                            double cos12,
                                             double mu1,
                                             double mu2,
+                                            double Pk1,
+                                            double Pk2,
+                                            double Pk3,
                                             double z,
                                             double * bispectrum_treelevel
                                             ) {
+  int i;
+  double mu3, K1_k1, K1_k2, K1_k3, K2_k1, K2_k2, K2_k3, B_tree_SPT_temp, B_tree_noise_temp, B_tree=0;
 
-  int last_index = 0,i;
-  double * pvecback;
-  double f,mu3,B_tree_SPT_temp, B_tree_noise_temp,B_tree=0;
-
-
-  class_test(((k3 != 0.) && (cos12 != 0.)), pfo->error_message, "only provide the angle between k1 and k2 OR the value for k3, but not both");
-
-  // the function contains k3 and cos12 as arguments. if k3 is zero, then the angle between k1 and k2 is used (cos12)
-  // Note: cos12 is not the angle between the vectors k1 and k2, but the angle within the triangle
-  if (k3 == 0.) {
-    k3 = sqrt(k1*k1 + k2*k2 - 2.*k1*k2*cos12);
-  }
-
-  class_test(k1+k2<k3 && k3+k1<k2 && k2+k3<k1,
+  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
              pfo->error_message,
              "triangle inequalities are not satisfied");
 
@@ -1923,37 +1917,52 @@ int fourier_bispectrum_treelevel_at_k_and_z(
              pfo->error_message,
              "you have k3=%e",k3);
 
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pfo->error_message);
+  mu3 = -(k1*mu1 + k2*mu2)/k3;
 
-  class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
-             pba->error_message,
+  // calculate the SPT RSD kernels at this stage to minimize the number of class calls
+  class_call(fourier_kernel_K1(f, b1, mu1, &K1_k1),
+             pfo->error_message, 
+             pfo->error_message);
+  class_call(fourier_kernel_K1(f, b1, mu2, &K1_k2),
+             pfo->error_message, 
+             pfo->error_message);
+  class_call(fourier_kernel_K1(f, b1, mu3, &K1_k3),
+             pfo->error_message, 
              pfo->error_message);
 
-  f = pvecback[pba->index_bg_f];
-  free(pvecback);
+  class_call(fourier_kernel_K2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &K2_k1), 
+             pfo->error_message, 
+             pfo->error_message);
+  class_call(fourier_kernel_K2(pfo, f, b1, b2, bG2, k2, k3, k1, mu2, mu3, &K2_k2), 
+             pfo->error_message, 
+             pfo->error_message);
+  class_call(fourier_kernel_K2(pfo, f, b1, b2, bG2, k3, k1, k2, mu3, mu1, &K2_k3), 
+             pfo->error_message, 
+             pfo->error_message);
 
-  mu3 = -(k1*mu1 + k2*mu2)/k3;
-  double k_arr[]  = {k1, k2, k3};
   double mu_arr[] = {mu1, mu2, mu3};
+  double P_arr[]  = {Pk1, Pk2, Pk3};
+  double K1_arr[] = {K1_k1, K1_k2, K1_k3};
+  double K2_arr[] = {K2_k1, K2_k2, K2_k3};
 
-  class_test(abs(mu1)>1 || abs(mu2)>1 || abs(mu3)>1, pfo->error_message, "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1, mu2, mu3,k1,k2,k3);
+  class_test(abs(mu1)>1 || abs(mu2)>1 || abs(mu3)>1, 
+             pfo->error_message, 
+             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
 
   // loop over permutations
   for (i=0; i<3; i++){
-    class_call(fourier_bispectrum_tree_SPT_contribution(pba, ppm, pfo, use_IR_resum, index_pk, f, b1, b2, bG2, k_arr[i], k_arr[(i+1)%3], k_arr[(i+2)%3], mu_arr[i], mu_arr[(i+1)%3], z, &B_tree_SPT_temp),
+    class_call(fourier_bispectrum_tree_SPT_contribution(pfo, f, b1, b2, bG2, K1_arr[i], K1_arr[(i+1)%3], K2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
                pfo->error_message,
                pfo->error_message);
-    class_call(fourier_bispectrum_tree_noise_contribution(pba, ppm, pfo, index_pk, f, b1, d1, d2, P_eps, k_arr[i], k_arr[(i+1)%3], k_arr[(i+2)%3], mu_arr[i], mu_arr[(i+1)%3], z, &B_tree_noise_temp),
+    class_call(fourier_bispectrum_tree_noise_contribution(pfo, f, b1, d1, d2, P_eps, mu_arr[i], K1_arr[i], P_arr[i], z, &B_tree_noise_temp),
                pfo->error_message,
                pfo->error_message);
     B_tree += B_tree_SPT_temp + B_tree_noise_temp;
   }
-  B_tree += d1*d1*d1 * P_eps*P_eps;
+  B_tree += d3 * P_eps*P_eps;
 
-  // class_test(B_tree < 0, pfo->error_message, "You have a negative B_tree=%e",B_tree);
-
+  // If you want to use logarithmic output. Note: you lose information about the sign
   if (mode==logarithmic){
-    // you lose information about the sign if you use the logarithmic output
     * bispectrum_treelevel = log(abs(B_tree));
   } else {
     * bispectrum_treelevel = B_tree;
@@ -1973,12 +1982,16 @@ int fourier_bispectrum_treelevel_at_k_and_z(
  * @param b1            Input: first order bias parameter
  * @param b2            Input: second order bias parameter
  * @param bG2           Input: second order bias parameter
+ * @param d1            Input: noise bias parameter
+ * @param d2            Input: noise bias parameter
+ * @param d3            Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_eps         Input: noise power spectrum
  * @param k1            Input: wavenumber k1
  * @param k2            Input: wavenumber k2
  * @param k3            Input: wavenumber k3
  * @param l             Input: multipole l
  * @param z             Input: redshift
- * @param ln_bispectrum_l_treelevel Output: multipoles bispectrum for given type/time/, for all wavenumbers
+ * @param B_l           Output: multipoles bispectrum for given type/time/wavenumber
  * @return the error status
 */
 
@@ -1994,17 +2007,23 @@ int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
                                                         double bG2,
                                                         double d1,
                                                         double d2,
+                                                        double d3,
                                                         double P_eps,
                                                         double k1,
                                                         double k2,
                                                         double k3,
-                                                        double cos12,
                                                         int l,
                                                         double z,
                                                         double * B_l
                                                         ) {
-  int idx1, idx2, n_GT=5, n_GL=10;
-  double mu1, mu2, cos_phi_i, sin12, B_l_temp=0, P_l, bispectrum_treelevel;
+  int idx1, idx2, n_GC=5, n_GL=10;
+  double mu1, mu2, mu3, cos_phi_i, sin12, cos12, B_l_temp=0, P_l, bispectrum_treelevel, P1, P2, P3;
+  // variables relevant for IR resummation:
+  double f, f_sq, mu1_sq, mu2_sq, mu3_sq, k_split, k_bao, Sigma2_total_mu1, Sigma2_total_mu2, Sigma2_total_mu3, sigma2_ir_at_z, dsigma2_ir_at_z, P_nw_1, P_nw_2, P_nw_3, P_w_1, P_w_2, P_w_3, P_temp_1, P_temp_2, P_temp_3;
+  double * pvecback;
+  double ln_k1[1], ln_k2[1], ln_k3[1];
+  int last_index, vec_size=1, lnk_vec_size=1;
+  struct indexed_rsd_arg vec1[vec_size], vec2[vec_size], vec3[vec_size];
 
   // Gauss Legendre Quadrature: https://pomax.github.io/bezierinfo/legendre-gauss.html
   double x_GL_i[] = {-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472, -0.1488743389816312,
@@ -2012,27 +2031,113 @@ int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
   double w_GL_i[] = { 0.0666713443086881, 0.1494513491505806, 0.2190863625159820, 0.2692667193099963, 0.2955242247147529,
                       0.2955242247147529, 0.2692667193099963, 0.2190863625159820, 0.1494513491505806, 0.0666713443086881};
 
-  // the function contains k3 and cos12 as arguments. if k3 is zero, then the angle between k1 and k2 is used (cos12)
-  // Note: cos12 is not the angle between the vectors k1 and k2, but the angle within the triangle
-  if (k3 == 0.) {
-    k3 = sqrt(k1*k1 + k2*k2 - 2.*k1*k2*cos12);
-  } else {
-    cos12 = 0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);
-  }
-  sin12 = sqrt(1-cos12*cos12); // note that sin12 > 0 since the angle must be between 0 and pi
 
-  // Gauss Tschebyschow Quadrature:
-  // Note: Tschebyschow loop starts at idx1=1 because we calculate the points and weights in each step
-  for (idx1=1; idx1<=n_GT; idx1++){
-    cos_phi_i = cos((2.*idx1-1.)/(2.*n_GT)*_PI_);
+  // calculate the value of the growth factor f
+  class_alloc(pvecback,pba->bg_size*sizeof(double),
+              pfo->error_message);
+
+  class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
+             pba->error_message,
+             pfo->error_message);
+
+  f = pvecback[pba->index_bg_f];
+  free(pvecback);
+  // f = 0.868073; // This is Dennis' value for f, might be useful to have more accurate comparison
+
+
+  // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
+  if (use_IR_resum==0){
+    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
+    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
+    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message); 
+  } 
+  else if (use_IR_resum==1){
+    class_test(pfo->has_pk_nw == _FALSE_, 
+               pfo->error_message, 
+              "To use the IR resummed power spectrum you need 'mPknw' as an output");
+
+    vec1[0].index = 0; vec1[0].ln_k = log(k1);
+    vec2[0].index = 0; vec2[0].ln_k = log(k2);
+    vec3[0].index = 0; vec3[0].ln_k = log(k3);
+
+    // fill the ln_k vector which is used to calculate the no wiggle power spectrum
+    ln_k1[0] = log(k1); 
+    ln_k2[0] = log(k2); 
+    ln_k3[0] = log(k3);
+
+    k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
+    k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
+
+    // TODO: These two function calls are not yet in CLASS style
+    // TODO: Since these are just numbers, if has_pk_new = _TRUE_, it should be contained in the fourier structure
+
+    // Dennis values:
+    // double sigma2_ir_at_z_Dennis   = 11.3471/(pba->h*pba->h);
+    // double dsigma2_ir_at_z_Dennis  = 2.97763/(pba->h*pba->h);
+
+    sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
+    dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
+
+    // get the regular and the no wiggle power spectrum each k value of the triangle
+    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P_temp_1, NULL), pfo->error_message, pfo->error_message);
+    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2, z, index_pk, &P_temp_2, NULL), pfo->error_message, pfo->error_message);
+    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3, z, index_pk, &P_temp_3, NULL), pfo->error_message, pfo->error_message);
+
+    class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k1, lnk_vec_size, z, &P_nw_1), pfo->error_message, pfo->error_message);
+    class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k2, lnk_vec_size, z, &P_nw_2), pfo->error_message, pfo->error_message);
+    class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k3, lnk_vec_size, z, &P_nw_3), pfo->error_message, pfo->error_message);
+
+    // Calculate the wiggle power spetrum (P = P_w + P_nw)
+    P_w_1 = P_temp_1-P_nw_1;
+    P_w_2 = P_temp_2-P_nw_2;
+    P_w_3 = P_temp_3-P_nw_3;
+  } 
+  else {
+    class_test(use_IR_resum!=0 && use_IR_resum!=1, 
+               pfo->error_message, 
+               "use_IR_resum must be either 0 or 1, you entered use_IR_resum=%d", use_IR_resum);
+  }
+
+  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);   // cos12 = vec_k1*vec_k1/(k1*k2) -> angle between the vectors and not inside the triangle
+  sin12 = sqrt(1-cos12*cos12);                    // note that sin12 > 0 since the angle must be between 0 and pi
+
+  // Gauss Chebyshev Quadrature:
+  // Note: Chebyshev loop starts at idx1=1 because we calculate the points and weights in each step
+  for (idx1=1; idx1<=n_GC; idx1++){
+    cos_phi_i = cos((2.*idx1-1.)/(2.*n_GC)*_PI_);
 
     for (idx2=0; idx2<n_GL; idx2++){
       mu1 = x_GL_i[idx2];
-      mu2 = - mu1*cos12 + sqrt(1-mu1*mu1)*sin12*cos_phi_i; // TODO maybe sign mistake
+      mu2 = mu1*cos12 - sqrt(1-mu1*mu1)*sin12*cos_phi_i;
+      mu3 = -(k1*mu1 + k2*mu2)/k3;
+
+      if (use_IR_resum==1){
+        mu1_sq = mu1*mu1;
+        mu2_sq = mu2*mu2;
+        mu3_sq = mu3*mu3;
+        f_sq = f*f;
+        Sigma2_total_mu1 = (1. + f*(f+2.)*mu1_sq) * sigma2_ir_at_z + f_sq * mu1_sq * (mu1_sq-1.) * dsigma2_ir_at_z;
+        Sigma2_total_mu2 = (1. + f*(f+2.)*mu2_sq) * sigma2_ir_at_z + f_sq * mu2_sq * (mu2_sq-1.) * dsigma2_ir_at_z;
+        Sigma2_total_mu3 = (1. + f*(f+2.)*mu3_sq) * sigma2_ir_at_z + f_sq * mu3_sq * (mu3_sq-1.) * dsigma2_ir_at_z;
+
+        // calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
+        P1 = P_nw_1 + P_w_1 * exp(-k1*k1*Sigma2_total_mu1);
+        P2 = P_nw_2 + P_w_2 * exp(-k2*k2*Sigma2_total_mu2);
+        P3 = P_nw_3 + P_w_3 * exp(-k3*k3*Sigma2_total_mu3);
+
+        // vec1[0].mu = mu1;
+        // vec2[0].mu = mu2;
+        // vec3[0].mu = mu3;
+
+        // class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, linear, vec1, vec_size, z, f, pfo->index_pk_cluster, sigma2_ir_at_z, dsigma2_ir_at_z, &P1), pfo->error_message, pfo->error_message);
+        // class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, linear, vec2, vec_size, z, f, pfo->index_pk_cluster, sigma2_ir_at_z, dsigma2_ir_at_z, &P2), pfo->error_message, pfo->error_message);
+        // class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, linear, vec3, vec_size, z, f, pfo->index_pk_cluster, sigma2_ir_at_z, dsigma2_ir_at_z, &P3), pfo->error_message, pfo->error_message);
+      }
+
       if (l==0) {
         P_l = 1.;
       } else if (l==2) {
-        P_l = 0.5*(3.*mu1*mu1 - 1.);
+        P_l = 0.5*(3.*mu1*mu1-1.);
       } else if (l==4) {
         P_l = 0.125*(35.*mu1*mu1*mu1*mu1 - 30.*mu1*mu1 + 3.);
       } else if (l==6) {
@@ -2041,15 +2146,15 @@ int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
           class_test(l!=0 && l!=2 && l!=4 && l!=6, pfo->error_message, "invalid multipole, you have l=%d",l);
       }
 
-      class_call(fourier_bispectrum_treelevel_at_k_and_z(pba, ppm, pfo, linear, use_IR_resum, index_pk, b1, b2, bG2, d1, d2, P_eps, k1, k2, k3, 0., mu1, mu2, z, &bispectrum_treelevel), 
-                                                        pfo->error_message,
-                                                        pfo->error_message);
+      class_call(fourier_bispectrum_treelevel_at_k_and_z(pfo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, P1, P2, P3, z, &bispectrum_treelevel), 
+                                                         pfo->error_message,
+                                                         pfo->error_message);
                                                         
       B_l_temp += w_GL_i[idx2]*P_l*bispectrum_treelevel;
     }
   }
-  *B_l = B_l_temp*0.5*(2.*l+1.)/n_GT;     // recover proper normalization: (2l+1)/2 from are the Legendre polynomial normalization, 
-                                        // pi/n_GT normalization from GT quadrature and the pi cancels with the dphi/2pi
+  *B_l = B_l_temp*0.5*(2.*l+1.)/n_GC;     // recover proper normalization: (2l+1)/2 from are the Legendre polynomial normalization, 
+                                          // pi/n_GC normalization from GT quadrature and the pi cancels with the dphi/2pi
 
   if (mode==logarithmic){
     *B_l = log(abs(*B_l));
@@ -2303,6 +2408,7 @@ int fourier_init(
       fprintf(stdout," -> sigma8=%g for baryons+cdm  (computed till k = %g h/Mpc)\n",
               pfo->sigma8[pfo->index_pk_cb],
               pfo->k[pfo->k_size-1]/pba->h);
+        
   }
 
   /** - get the non-linear power spectrum at each time */
@@ -3584,22 +3690,17 @@ int fourier_pk_linear(
  * @param pfo           Input: pointer to fourier structure
  * @param f             Input: log derivative of the growth factor
  * @param b1            Input: first order bias parameter
- * @param k1            Input: double of value for k1
- * @param k2            Input: double of value for k2
- * @param k3            Input: double of value for k3
- * @param mu1           Input: angle between k1 and line of sight
- * @param mu2           Input: angle between k2 and line of sight
+ * @param mu            Input: angle between k and line of sight
  * @param K1            Output: pointer to the value of K1
  * @return the error status
  */
 
 int fourier_kernel_K1(
-       struct fourier * pfo,
-       double f,
-       double b1,
-       double mu,
-       double *K1
-       ) {
+                      double f,
+                      double b1,
+                      double mu,
+                      double *K1
+                      ) {
 
   *K1 = b1 + f*mu*mu;
 
@@ -3647,10 +3748,10 @@ int fourier_kernel_K2(
              pfo->error_message,
              "you have k3=%e",k3);
 
-  cos12 = 0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);                        // angle between the triangle sides k1 and k2
+  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);                        // angle between the triangle sides k1 and k2
                                                                       // Note: Ivanov uses the angle between the vectors k1 and k2 -> different sign!
-  F2 = 5./7. - 0.5*cos12 * (k2/k1 + k1/k2) + 2./7. * cos12*cos12;     // second order SPT real space kernel of delta
-  G2 = 3./7. - 0.5*cos12 * (k2/k1 + k1/k2) + 4./7. * cos12*cos12;     // second order SPT real space kernel of theta
+  F2 = 5./7. + 0.5*cos12 * (k2/k1 + k1/k2) + 2./7. * cos12*cos12;     // second order SPT real space kernel of delta
+  G2 = 3./7. + 0.5*cos12 * (k2/k1 + k1/k2) + 4./7. * cos12*cos12;     // second order SPT real space kernel of theta
   mu = (mu1*k1+mu2*k2)/k3;
 
   *K2 =   b1*F2 + 0.5*b2 + bG2*(cos12*cos12 - 1.) + f*mu*mu*G2 + 0.5*f*mu*k3 * ( mu1/k1 * (b1 + f*mu2*mu2) + mu2/k2 * (b1 + f*mu1*mu1) );
@@ -3659,129 +3760,71 @@ int fourier_kernel_K2(
 }
 
 /** Helper function for the bispectrum: tree level Bispectrum without permutations
- * @param pba           Input: pointer to background structure
- * @param ppm           Input: pointer to primordial structure
  * @param pfo           Input: pointer to fourier structure
- * @param index_pk      Input: index of required P(k) type (_m, _cb)
  * @param f             Input: log derivative of the growth factor
  * @param b1            Input: first order bias parameter
  * @param b2            Input: second order bias parameter
  * @param bG2           Input: second order bias parameter
- * @param k1            Input: double of value for k1
- * @param k2            Input: double of value for k2
- * @param k3            Input: double of value for k3
- * @param mu1           Input: angle between k1 and line of sight
- * @param mu2           Input: angle between k2 and line of sight
+ * @param K1_k1         Input: order 1 SPT RSD kernel at k1
+ * @param K1_k2         Input: order 1 SPT RSD kernel at k2
+ * @param K2            Input: order 2 SPT RSD kernel
+ * @param Pk1           Input: powerspectrum at k1
+ * @param Pk2           Input: powerspectrum at k2
  * @param z             Input: redshift
- * @param use_IR_resum  Input: 0 for no IR resummation, 1 for IR resummation
  * @param B_tree        Output: pointer to the value of B_tree
  * @return the error status
  */
 
 int fourier_bispectrum_tree_SPT_contribution(
-                                             struct background *pba,
-                                             struct primordial * ppm,
                                              struct fourier * pfo,
-                                             int use_IR_resum,
-                                             int index_pk,
                                              double f,
                                              double b1,
                                              double b2,
                                              double bG2,
-                                             double k1,
-                                             double k2,
-                                             double k3,
-                                             double mu1,
-                                             double mu2,
+                                             double K1_k1,
+                                             double K1_k2,
+                                             double K2,
+                                             double Pk1,
+                                             double Pk2,
                                              double z,
                                              double * B_tree
                                              ) {
-  double K1_k1, K1_k2, K2, P_lin1, P_lin2;
 
-  class_call(fourier_kernel_K1(pfo, f, b1, mu1, &K1_k1), pfo->error_message, pfo->error_message);
-  class_call(fourier_kernel_K1(pfo, f, b1, mu2, &K1_k2), pfo->error_message, pfo->error_message);
-  class_call(fourier_kernel_K2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &K2), pfo->error_message, pfo->error_message);
-
-  
-  if (use_IR_resum==0){
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P_lin1, NULL), pfo->error_message, pfo->error_message);
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2, z, index_pk, &P_lin2, NULL), pfo->error_message, pfo->error_message);
-  } else if (use_IR_resum==1){
-    // not sure about this section:
-    // all these function calls are from infrared_resummation.c, but I am not sure whether I am using them correlty.
-    // It is not completely clear documented
-    // int linear_spectrum_index = pfo->index_pk_cluster ?
-    int vec_size = 1;
-    struct indexed_rsd_arg vec1[vec_size];
-    struct indexed_rsd_arg vec2[vec_size];
-    vec1[0].index = 0; vec1[0].ln_k = log(k1); vec1[0].mu = mu1;
-    vec2[0].index = 0; vec2[0].ln_k = log(k2); vec2[0].mu = mu2;
-
-    double k_split = 0.05*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent then k_split=0.2h/Mpc
-    double k_bao   = pba->h/110.;     // he also states that the result is not very sensitive to variations in k_split 
-
-    double sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);        /** k_split = 0.2 h/Mpc, k_feature = 1/110 h/Mpc */
-    double dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);      /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
-
-    // not sure which error message to use since this is from an external module
-    class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, linear, vec1, vec_size, z, f, pfo->index_pk_cluster, sigma2_ir_at_z, dsigma2_ir_at_z, &P_lin1), pfo->error_message, pfo->error_message);
-    class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, linear, vec2, vec_size, z, f, pfo->index_pk_cluster, sigma2_ir_at_z, dsigma2_ir_at_z, &P_lin2), pfo->error_message, pfo->error_message);
-    // class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P_lin1, NULL), pfo->error_message, pfo->error_message);
-    // class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2, z, index_pk, &P_lin2, NULL), pfo->error_message, pfo->error_message);
-  } else {
-    class_test(use_IR_resum!=0 && use_IR_resum!=1, pfo->error_message, "use_IR_resum must be either 0 or 1, you entered use_IR_resum=%d", use_IR_resum);
-  }
-
-  *B_tree = 2. * K2 * K1_k1 * K1_k2 * P_lin1 * P_lin2;
+  *B_tree = 2. * K2 * K1_k1 * K1_k2 * Pk1 * Pk2;
 
   return _SUCCESS_;
 }
 
 /** Helper function for the bispectrum: tree level Bispectrum without permutations
- * @param pba           Input: pointer to background structure
- * @param ppm           Input: pointer to primordial structure
  * @param pfo           Input: pointer to fourier structure
- * @param index_pk      Input: index of required P(k) type (_m, _cb)
  * @param f             Input: log derivative of the growth factor
  * @param b1            Input: first order bias parameter
  * @param d1            Input: first order noise bias parameter
  * @param d2            Input: second order noise parameter
- * @param P_eps         Input: noiser power spectrum
- * @param k1            Input: double of value for k1
- * @param k2            Input: double of value for k2
- * @param k3            Input: double of value for k3
- * @param mu1           Input: angle between k1 and line of sight
- * @param mu2           Input: angle between k2 and line of sight
+ * @param P_eps         Input: noise power spectrum
+ * @param mu            Input: angle between k and line of sight
+ * @param K1            Input: order 1 SPT RSD kernel at k
+ * @param Pk            Input: power spectrum at k
  * @param z             Input: redshift
  * @param B_tree        Output: pointer to the value of B_tree
  * @return the error status
  */
 
 int fourier_bispectrum_tree_noise_contribution(
-                                             struct background *pba,
-                                             struct primordial * ppm,
-                                             struct fourier * pfo,
-                                             int index_pk,
-                                             double f,
-                                             double b1,
-                                             double d1,
-                                             double d2,
-                                             double P_eps,
-                                             double k1,
-                                             double k2,
-                                             double k3,
-                                             double mu1,
-                                             double mu2,
-                                             double z,
-                                             double * B_tree
-                                             ) {
-  double K1;
-  double P_lin;
+                                              struct fourier * pfo,
+                                              double f,
+                                              double b1,
+                                              double d1,
+                                              double d2,
+                                              double P_eps,
+                                              double mu,
+                                              double K1,
+                                              double Pk,
+                                              double z,
+                                              double * B_tree
+                                              ) {
 
-  class_call(fourier_kernel_K1(pfo, f, b1, mu1, &K1), pfo->error_message, pfo->error_message);
-  class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P_lin, NULL), pfo->error_message, pfo->error_message);
-
-  *B_tree =  d1*P_eps*P_lin*K1*(2.*d2 + d1*f*mu1*mu1);
+  *B_tree =  P_eps*Pk*K1*(2.*b1*d2 + d1*f*mu*mu); //*d1; TODO Fynn
 
   return _SUCCESS_;
 }
