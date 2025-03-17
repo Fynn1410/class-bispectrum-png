@@ -1283,7 +1283,7 @@ cdef class Class:
         Pk2 = self.pk(k2, z)
         Pk3 = self.pk(k3, z)
 
-        if fourier_bispectrum_treelevel_at_k_and_z(&self.fo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, Pk1, Pk2, Pk3, z, &bk_lin)==_FAILURE_:
+        if fourier_B_tree_at_k_and_z(&self.fo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, Pk1, Pk2, Pk3, z, &bk_lin)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return bk_lin
@@ -1303,7 +1303,7 @@ cdef class Class:
         if (self.fo.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You need it to get the galaxy bispectrum.")
 
-        if fourier_bispectrum_multipoles_treelevel_at_k_and_z(&self.ba, &self.pm, &self.fo, linear, use_IR_resum, self.fo.index_pk_m, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, l, z, &bk_lin_l)==_FAILURE_:
+        if fourier_B_ell_tree_at_k_and_z(&self.ba, &self.pm, &self.fo, linear, use_IR_resum, self.fo.index_pk_m, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, l, z, &bk_lin_l)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return bk_lin_l

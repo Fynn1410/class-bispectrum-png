@@ -1861,7 +1861,7 @@ int fourier_k_nl_at_z(
   return _SUCCESS_;
 }
 
-/**
+/** tree level galaxy bispectrum in redshift space at k and z
  * @param pfo                   Input: pointer to fourier structure
  * @param mode                  Input: linear or logarithmic for the output
  * @param b1                    Input: first order bias parameter
@@ -1884,30 +1884,30 @@ int fourier_k_nl_at_z(
  * @return the error status
 */
 
-int fourier_bispectrum_treelevel_at_k_and_z(
-                                            struct fourier * pfo,
-                                            enum linear_or_logarithmic mode,
-                                            double f,
-                                            double b1,
-                                            double b2,
-                                            double bG2,
-                                            double d1,
-                                            double d2,
-                                            double d3,
-                                            double P_eps,
-                                            double k1,
-                                            double k2,
-                                            double k3,
-                                            double mu1,
-                                            double mu2,
-                                            double Pk1,
-                                            double Pk2,
-                                            double Pk3,
-                                            double z,
-                                            double * bispectrum_treelevel
-                                            ) {
+int fourier_B_tree_at_k_and_z(
+                              struct fourier * pfo,
+                              enum linear_or_logarithmic mode,
+                              double f,
+                              double b1,
+                              double b2,
+                              double bG2,
+                              double d1,
+                              double d2,
+                              double d3,
+                              double P_eps,
+                              double k1,
+                              double k2,
+                              double k3,
+                              double mu1,
+                              double mu2,
+                              double Pk1,
+                              double Pk2,
+                              double Pk3,
+                              double z,
+                              double * bispectrum_treelevel
+                              ) {
   int i;
-  double mu3, K1_k1, K1_k2, K1_k3, K2_k1, K2_k2, K2_k3, B_tree_SPT_temp, B_tree_noise_temp, B_tree=0;
+  double mu3, Z1_k1, Z1_k2, Z1_k3, Z2_k1, Z2_k2, Z2_k3, B_tree_SPT_temp, B_tree_noise_temp, B_tree=0;
 
   class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
              pfo->error_message,
@@ -1920,30 +1920,30 @@ int fourier_bispectrum_treelevel_at_k_and_z(
   mu3 = -(k1*mu1 + k2*mu2)/k3;
 
   // calculate the SPT RSD kernels at this stage to minimize the number of class calls
-  class_call(fourier_kernel_K1(f, b1, mu1, &K1_k1),
+  class_call(fourier_kernel_Z1(f, b1, mu1, &Z1_k1),
              pfo->error_message, 
              pfo->error_message);
-  class_call(fourier_kernel_K1(f, b1, mu2, &K1_k2),
+  class_call(fourier_kernel_Z1(f, b1, mu2, &Z1_k2),
              pfo->error_message, 
              pfo->error_message);
-  class_call(fourier_kernel_K1(f, b1, mu3, &K1_k3),
+  class_call(fourier_kernel_Z1(f, b1, mu3, &Z1_k3),
              pfo->error_message, 
              pfo->error_message);
 
-  class_call(fourier_kernel_K2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &K2_k1), 
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &Z2_k1), 
              pfo->error_message, 
              pfo->error_message);
-  class_call(fourier_kernel_K2(pfo, f, b1, b2, bG2, k2, k3, k1, mu2, mu3, &K2_k2), 
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k2, k3, k1, mu2, mu3, &Z2_k2), 
              pfo->error_message, 
              pfo->error_message);
-  class_call(fourier_kernel_K2(pfo, f, b1, b2, bG2, k3, k1, k2, mu3, mu1, &K2_k3), 
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k3, k1, k2, mu3, mu1, &Z2_k3), 
              pfo->error_message, 
              pfo->error_message);
 
   double mu_arr[] = {mu1, mu2, mu3};
   double P_arr[]  = {Pk1, Pk2, Pk3};
-  double K1_arr[] = {K1_k1, K1_k2, K1_k3};
-  double K2_arr[] = {K2_k1, K2_k2, K2_k3};
+  double Z1_arr[] = {Z1_k1, Z1_k2, Z1_k3};
+  double Z2_arr[] = {Z2_k1, Z2_k2, Z2_k3};
 
   class_test(abs(mu1)>1 || abs(mu2)>1 || abs(mu3)>1, 
              pfo->error_message, 
@@ -1951,10 +1951,10 @@ int fourier_bispectrum_treelevel_at_k_and_z(
 
   // loop over permutations
   for (i=0; i<3; i++){
-    class_call(fourier_bispectrum_tree_SPT_contribution(pfo, f, b1, b2, bG2, K1_arr[i], K1_arr[(i+1)%3], K2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
+    class_call(fourier_B_tree_det(pfo, f, b1, b2, bG2, Z1_arr[i], Z1_arr[(i+1)%3], Z2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
                pfo->error_message,
                pfo->error_message);
-    class_call(fourier_bispectrum_tree_noise_contribution(pfo, f, b1, d1, d2, P_eps, mu_arr[i], K1_arr[i], P_arr[i], z, &B_tree_noise_temp),
+    class_call(fourier_B_tree_stoch(pfo, f, b1, d1, d2, P_eps, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp),
                pfo->error_message,
                pfo->error_message);
     B_tree += B_tree_SPT_temp + B_tree_noise_temp;
@@ -1972,7 +1972,7 @@ int fourier_bispectrum_treelevel_at_k_and_z(
 }
 
 
-/**
+/** tree level bispectrum multipoles
  * @param pba           Input: pointer to background structure
  * @param ppm           Input: pointer to primordial structure
  * @param pfo           Input: pointer to fourier structure
@@ -1995,29 +1995,29 @@ int fourier_bispectrum_treelevel_at_k_and_z(
  * @return the error status
 */
 
-int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
-                                                        struct background *pba,
-                                                        struct primordial * ppm,
-                                                        struct fourier * pfo,
-                                                        enum linear_or_logarithmic mode,
-                                                        int use_IR_resum,
-                                                        int index_pk,
-                                                        double b1,
-                                                        double b2,
-                                                        double bG2,
-                                                        double d1,
-                                                        double d2,
-                                                        double d3,
-                                                        double P_eps,
-                                                        double k1,
-                                                        double k2,
-                                                        double k3,
-                                                        int l,
-                                                        double z,
-                                                        double * B_l
-                                                        ) {
+int fourier_B_ell_tree_at_k_and_z(
+                                  struct background *pba,
+                                  struct primordial * ppm,
+                                  struct fourier * pfo,
+                                  enum linear_or_logarithmic mode,
+                                  int use_IR_resum,
+                                  int index_pk,
+                                  double b1,
+                                  double b2,
+                                  double bG2,
+                                  double d1,
+                                  double d2,
+                                  double d3,
+                                  double P_eps,
+                                  double k1,
+                                  double k2,
+                                  double k3,
+                                  int l,
+                                  double z,
+                                  double * B_l
+                                  ) {
   int idx1, idx2, n_GC=5, n_GL=10;
-  double mu1, mu2, mu3, cos_phi_i, sin12, cos12, B_l_temp=0, P_l, bispectrum_treelevel, P1, P2, P3;
+  double mu1, mu2, mu3, sin_phi_i, sin12, cos12, B_l_temp=0, P_l, bispectrum_treelevel, P1, P2, P3;
   // variables relevant for IR resummation:
   double f, f_sq, mu1_sq, mu2_sq, mu3_sq, k_split, k_bao, Sigma2_total_mu1, Sigma2_total_mu2, Sigma2_total_mu3, sigma2_ir_at_z, dsigma2_ir_at_z, P_nw_1, P_nw_2, P_nw_3, P_w_1, P_w_2, P_w_3, P_temp_1, P_temp_2, P_temp_3;
   double * pvecback;
@@ -2104,11 +2104,12 @@ int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
   // Gauss Chebyshev Quadrature:
   // Note: Chebyshev loop starts at idx1=1 because we calculate the points and weights in each step
   for (idx1=1; idx1<=n_GC; idx1++){
-    cos_phi_i = cos((2.*idx1-1.)/(2.*n_GC)*_PI_);
+    sin_phi_i = cos((2.*idx1-1.)/(2.*n_GC)*_PI_);
 
     for (idx2=0; idx2<n_GL; idx2++){
+      // Note: different parametrization than https://arxiv.org/pdf/2110.10161, look Master's thesis Fynn0
       mu1 = x_GL_i[idx2];
-      mu2 = mu1*cos12 - sqrt(1-mu1*mu1)*sin12*cos_phi_i;
+      mu2 = mu1*cos12 + sqrt(1-mu1*mu1)*sin12*sin_phi_i;
       mu3 = -(k1*mu1 + k2*mu2)/k3;
 
       if (use_IR_resum==1){
@@ -2146,7 +2147,7 @@ int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
           class_test(l!=0 && l!=2 && l!=4 && l!=6, pfo->error_message, "invalid multipole, you have l=%d",l);
       }
 
-      class_call(fourier_bispectrum_treelevel_at_k_and_z(pfo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, P1, P2, P3, z, &bispectrum_treelevel), 
+      class_call(fourier_B_tree_at_k_and_z(pfo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, P1, P2, P3, z, &bispectrum_treelevel), 
                                                          pfo->error_message,
                                                          pfo->error_message);
                                                         
@@ -3691,18 +3692,18 @@ int fourier_pk_linear(
  * @param f             Input: log derivative of the growth factor
  * @param b1            Input: first order bias parameter
  * @param mu            Input: angle between k and line of sight
- * @param K1            Output: pointer to the value of K1
+ * @param Z1            Output: pointer to the value of Z1
  * @return the error status
  */
 
-int fourier_kernel_K1(
+int fourier_kernel_Z1(
                       double f,
                       double b1,
                       double mu,
-                      double *K1
+                      double *Z1
                       ) {
 
-  *K1 = b1 + f*mu*mu;
+  *Z1 = b1 + f*mu*mu;
 
   return _SUCCESS_;
 }
@@ -3718,11 +3719,11 @@ int fourier_kernel_K1(
  * @param k3            Input: double of value for k3
  * @param mu1           Input: angle between k1 and line of sight
  * @param mu2           Input: angle between k2 and line of sight
- * @param K2            Output: pointer to the value of K2
+ * @param Z2            Output: pointer to the value of K2
  * @return the error status
  */
 
-int fourier_kernel_K2(
+int fourier_kernel_Z2(
                       struct fourier * pfo,
                       double f,
                       double b1,
@@ -3733,7 +3734,7 @@ int fourier_kernel_K2(
                       double k3,
                       double mu1,
                       double mu2,
-                      double *K2
+                      double *Z2
                       ) {
 
   double cos12, F2, G2, mu;
@@ -3754,20 +3755,20 @@ int fourier_kernel_K2(
   G2 = 3./7. + 0.5*cos12 * (k2/k1 + k1/k2) + 4./7. * cos12*cos12;     // second order SPT real space kernel of theta
   mu = (mu1*k1+mu2*k2)/k3;
 
-  *K2 =   b1*F2 + 0.5*b2 + bG2*(cos12*cos12 - 1.) + f*mu*mu*G2 + 0.5*f*mu*k3 * ( mu1/k1 * (b1 + f*mu2*mu2) + mu2/k2 * (b1 + f*mu1*mu1) );
+  *Z2 =   b1*F2 + 0.5*b2 + bG2*(cos12*cos12 - 1.) + f*mu*mu*G2 + 0.5*f*mu*k3 * ( mu1/k1 * (b1 + f*mu2*mu2) + mu2/k2 * (b1 + f*mu1*mu1) );
 
   return _SUCCESS_;
 }
 
-/** Helper function for the bispectrum: tree level Bispectrum without permutations
+/** Helper function for the bispectrum: tree level Bispectrum deterministic SPT contribution
  * @param pfo           Input: pointer to fourier structure
  * @param f             Input: log derivative of the growth factor
  * @param b1            Input: first order bias parameter
  * @param b2            Input: second order bias parameter
  * @param bG2           Input: second order bias parameter
- * @param K1_k1         Input: order 1 SPT RSD kernel at k1
- * @param K1_k2         Input: order 1 SPT RSD kernel at k2
- * @param K2            Input: order 2 SPT RSD kernel
+ * @param Z1_k1         Input: order 1 SPT RSD kernel at k1
+ * @param Z1_k2         Input: order 1 SPT RSD kernel at k2
+ * @param Z2            Input: order 2 SPT RSD kernel
  * @param Pk1           Input: powerspectrum at k1
  * @param Pk2           Input: powerspectrum at k2
  * @param z             Input: redshift
@@ -3775,27 +3776,27 @@ int fourier_kernel_K2(
  * @return the error status
  */
 
-int fourier_bispectrum_tree_SPT_contribution(
-                                             struct fourier * pfo,
-                                             double f,
-                                             double b1,
-                                             double b2,
-                                             double bG2,
-                                             double K1_k1,
-                                             double K1_k2,
-                                             double K2,
-                                             double Pk1,
-                                             double Pk2,
-                                             double z,
-                                             double * B_tree
-                                             ) {
+int fourier_B_tree_det(
+                      struct fourier * pfo,
+                      double f,
+                      double b1,
+                      double b2,
+                      double bG2,
+                      double Z1_k1,
+                      double Z1_k2,
+                      double Z2,
+                      double Pk1,
+                      double Pk2,
+                      double z,
+                      double * B_tree
+                      ) {
 
-  *B_tree = 2. * K2 * K1_k1 * K1_k2 * Pk1 * Pk2;
+  *B_tree = 2. * Z2 * Z1_k1 * Z1_k2 * Pk1 * Pk2;
 
   return _SUCCESS_;
 }
 
-/** Helper function for the bispectrum: tree level Bispectrum without permutations
+/** Helper function for the bispectrum: tree level Bispectrum noise/stochastic contribution
  * @param pfo           Input: pointer to fourier structure
  * @param f             Input: log derivative of the growth factor
  * @param b1            Input: first order bias parameter
@@ -3810,21 +3811,24 @@ int fourier_bispectrum_tree_SPT_contribution(
  * @return the error status
  */
 
-int fourier_bispectrum_tree_noise_contribution(
-                                              struct fourier * pfo,
-                                              double f,
-                                              double b1,
-                                              double d1,
-                                              double d2,
-                                              double P_eps,
-                                              double mu,
-                                              double K1,
-                                              double Pk,
-                                              double z,
-                                              double * B_tree
-                                              ) {
+int fourier_B_tree_stoch(
+                        struct fourier * pfo,
+                        double f,
+                        double b1,
+                        double d1,
+                        double d2,
+                        double P_eps,
+                        double mu,
+                        double Z1,
+                        double Pk,
+                        double z,
+                        double * B_tree
+                        ) {
 
-  *B_tree =  P_eps*Pk*K1*(2.*b1*d2 + d1*f*mu*mu); //*d1; TODO Fynn
+  // This is the Ivanov (https://arxiv.org/pdf/2110.10161) parametrization, which is different from Rizzo (https://arxiv.org/pdf/2204.13628)
+  // equivalent, except for the case where any alpha=-1 in the Rizzo parametrization,
+  // and they have one additional parameter: 1-alpha_2, which is given by d1**3 in our parametrization
+  *B_tree =  P_eps*Pk*Z1*d1*(2.*b1*d2 + d1*f*mu*mu);
 
   return _SUCCESS_;
 }

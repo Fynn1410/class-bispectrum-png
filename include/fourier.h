@@ -435,50 +435,50 @@ extern "C" {
                         double * k_nl_cb
                         );
 
-  int fourier_bispectrum_treelevel_at_k_and_z(
-                                              struct fourier * pfo,
-                                              enum linear_or_logarithmic mode,
-                                              double f,
-                                              double b1,
-                                              double b2,
-                                              double bG2,
-                                              double d1,
-                                              double d2,
-                                              double d3,
-                                              double P_eps,
-                                              double k1,
-                                              double k2,
-                                              double k3,
-                                              double mu1,
-                                              double mu2,
-                                              double Pk1,
-                                              double Pk2,
-                                              double Pk3,
-                                              double z,
-                                              double * bispectrum_treelevel
-                                              );
+  int fourier_B_tree_at_k_and_z(
+                                struct fourier * pfo,
+                                enum linear_or_logarithmic mode,
+                                double f,
+                                double b1,
+                                double b2,
+                                double bG2,
+                                double d1,
+                                double d2,
+                                double d3,
+                                double P_eps,
+                                double k1,
+                                double k2,
+                                double k3,
+                                double mu1,
+                                double mu2,
+                                double Pk1,
+                                double Pk2,
+                                double Pk3,
+                                double z,
+                                double * bispectrum_treelevel
+                                );
 
-int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
-                                                        struct background *pba,
-                                                        struct primordial * ppm,
-                                                        struct fourier * pfo,
-                                                        enum linear_or_logarithmic mode,
-                                                        int use_IR_resum,
-                                                        int index_pk,
-                                                        double b1,
-                                                        double b2,
-                                                        double bG2,
-                                                        double d1,
-                                                        double d2,
-                                                        double d3,
-                                                        double P_eps,
-                                                        double k1,
-                                                        double k2,
-                                                        double k3,
-                                                        int l,
-                                                        double z,
-                                                        double * B_l
-                                                        );
+int fourier_B_ell_tree_at_k_and_z(
+                                  struct background *pba,
+                                  struct primordial * ppm,
+                                  struct fourier * pfo,
+                                  enum linear_or_logarithmic mode,
+                                  int use_IR_resum,
+                                  int index_pk,
+                                  double b1,
+                                  double b2,
+                                  double bG2,
+                                  double d1,
+                                  double d2,
+                                  double d3,
+                                  double P_eps,
+                                  double k1,
+                                  double k2,
+                                  double k3,
+                                  int l,
+                                  double z,
+                                  double * B_l
+                                  );
 
   /* internal functions */
 
@@ -539,14 +539,14 @@ int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
                         double * lnpk_ic
                         );
 
-  int fourier_kernel_K1(
+  int fourier_kernel_Z1(
                         double f,
                         double b1,
                         double mu,
                         double * K1
                         );
 
-  int fourier_kernel_K2(
+  int fourier_kernel_Z2(
                         struct fourier * pfo,
                         double f,
                         double b1,
@@ -560,34 +560,34 @@ int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
                         double * K2
                         );
 
-  int fourier_bispectrum_tree_SPT_contribution(
-                                               struct fourier * pfo,
-                                               double f,
-                                               double b1,
-                                               double b2,
-                                               double bG2,
-                                               double K1_k1,
-                                               double K1_k2,
-                                               double K2,
-                                               double Pk1,
-                                               double Pk2,
-                                               double z,
-                                               double * B_tree
-                                               );
+  int fourier_B_tree_det(
+                        struct fourier * pfo,
+                        double f,
+                        double b1,
+                        double b2,
+                        double bG2,
+                        double K1_k1,
+                        double K1_k2,
+                        double K2,
+                        double Pk1,
+                        double Pk2,
+                        double z,
+                        double * B_tree
+                        );
 
-    int fourier_bispectrum_tree_noise_contribution(
-                                                   struct fourier * pfo,
-                                                   double f,
-                                                   double b1,
-                                                   double d1,
-                                                   double d2,
-                                                   double P_eps,
-                                                   double mu,
-                                                   double K1,
-                                                   double Pk,
-                                                   double z,
-                                                   double * B_tree
-                                                   );
+    int fourier_B_tree_stoch(
+                              struct fourier * pfo,
+                              double f,
+                              double b1,
+                              double d1,
+                              double d2,
+                              double P_eps,
+                              double mu,
+                              double K1,
+                              double Pk,
+                              double z,
+                              double * B_tree
+                              );
                                                   
   int fourier_wnw_split(
                         struct precision *ppr,

@@ -790,50 +790,50 @@ cdef extern from "class.h":
 
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 
-    int fourier_bispectrum_treelevel_at_k_and_z(
-                                                void * pfo,
-                                                linear_or_logarithmic mode,
-                                                double f,
-                                                double b1,
-                                                double b2,
-                                                double bG2,
-                                                double d1,
-                                                double d2,
-                                                double d3,
-                                                double P_eps,
-                                                double k1,
-                                                double k2,
-                                                double k3,
-                                                double mu1,
-                                                double mu2,
-                                                double Pk1,
-                                                double Pk2,
-                                                double Pk3,
-                                                double z,
-                                                double * bispectrum_treelevel
-                                                )
+    int fourier_B_tree_at_k_and_z(
+                                void * pfo,
+                                linear_or_logarithmic mode,
+                                double f,
+                                double b1,
+                                double b2,
+                                double bG2,
+                                double d1,
+                                double d2,
+                                double d3,
+                                double P_eps,
+                                double k1,
+                                double k2,
+                                double k3,
+                                double mu1,
+                                double mu2,
+                                double Pk1,
+                                double Pk2,
+                                double Pk3,
+                                double z,
+                                double * bispectrum_treelevel
+                                )
 
-    int fourier_bispectrum_multipoles_treelevel_at_k_and_z(
-                                                            void *pba,
-                                                            void * ppm,
-                                                            void * pfo,
-                                                            linear_or_logarithmic mode,
-                                                            int use_IR_resum,
-                                                            int index_pk,
-                                                            double b1,
-                                                            double b2,
-                                                            double bG2,
-                                                            double d1,
-                                                            double d2,
-                                                            double d3,
-                                                            double P_eps,
-                                                            double k1,
-                                                            double k2,
-                                                            double k3,
-                                                            int l,
-                                                            double z,
-                                                            double * B_l
-                                                            )
+    int fourier_B_ell_tree_at_k_and_z(
+                                    void *pba,
+                                    void * ppm,
+                                    void * pfo,
+                                    linear_or_logarithmic mode,
+                                    int use_IR_resum,
+                                    int index_pk,
+                                    double b1,
+                                    double b2,
+                                    double bG2,
+                                    double d1,
+                                    double d2,
+                                    double d3,
+                                    double P_eps,
+                                    double k1,
+                                    double k2,
+                                    double k3,
+                                    int l,
+                                    double z,
+                                    double * B_l
+                                    )
 
     int fourier_pk_l_nw_extra_at_kvec_and_z(
                                             void * pba,
