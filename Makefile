@@ -59,6 +59,7 @@ HYREC = external/HyRec2020
 RECFAST = external/RecfastCLASS
 HEATING = external/heating
 ONELOOP = external/oneloop
+ONELOOP_BISPECTRUM = external/oneloop_bispectrum
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -103,6 +104,13 @@ INCLUDES += -I../$(ONELOOP)
 EXTERNAL += oneloop.opp kernel_matrices.opp infrared_resummation.opp power_spectrum.opp utilities.opp
 HEADERFILES += $(wildcard ./$(ONELOOP)/*.h)
 # import Cuba library if direct_integration is requested
+
+# update flags for including oneloop_bispectrum
+vpath %.c $(ONELOOP_BISPECTRUM)
+INCLUDES += -I../$(ONELOOP_BISPECTRUM)
+EXTERNAL += generalized_triangle_integral.opp
+HEADERFILES += $(wildcard ./$(ONELOOP_BISPECTRUM)/*.h)
+
 ifneq ($(DIRECT_INTEGRATION),)
 #INCLUDES += -I../$(ONELOOP)/library/Cuba-4.2.2
 EXTERNAL += direct_integration.opp
@@ -110,6 +118,10 @@ EXTERNAL += direct_integration.opp
 CCFLAG += -DDIRECT_INTEGRATION
 LIBRARIES += -lcuba
 endif
+
+
+
+
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 

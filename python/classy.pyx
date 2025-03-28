@@ -1460,6 +1460,7 @@ cdef class Class:
         
         return B0, B2, B4, B0_Fynn, B2_Fynn, B4_Fynn, k1_arr, k2_arr, k3_arr
 
+    
     def powerspectrum_comparison_Dennis(self, str data_file_name, int limit_low, int limit_up, double z):
         cdef int alloc_mem_size=limit_up-limit_low, counter=0, idx=0, 
         cdef double k1, k2, k3
@@ -1503,6 +1504,46 @@ cdef class Class:
                 counter+=1
         
         return P1, P2, P3, P1_Fynn, P2_Fynn, P3_Fynn, k1_arr, k2_arr, k3_arr
+
+    def get_B_master(self, double k2, double complex M1, double complex M2):
+        cdef double complex B_out;
+
+        if B_master(k2, M1, M2, &B_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: B_master")
+
+        return B_out
+
+    def get_Tad_master(self, int n, int d, double complex M):
+        cdef double complex Tad_out;
+
+        if Tad_master(n, d, M, &Tad_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: Tad_master")
+
+        return Tad_out
+
+    def get_Tad_var(self, int n, int d, double k2, double complex M):
+        cdef double complex Tadvar_out;
+
+        if Tad_var(n, d, k2, M, &Tadvar_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: Tad_var")
+
+        return Tadvar_out
+
+    def get_massive_num(self, int n, int d, double k2, double complex M1, double complex M2):
+        cdef double complex massive_num_out;
+
+        if massive_num(n, d, k2, M1, M2, &massive_num_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: massive_num")
+
+        return massive_num_out
+
+    def get_B_recursion(self, int d1, int d2, double k2, double complex M1, double complex M2):
+        cdef double complex B_recursion_out;
+
+        if B_recursion(d1, d2, k2, M1, M2, &B_recursion_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: B_recursion")
+
+        return B_recursion_out
 
 
     def get_P_nw(self, float k, float z):

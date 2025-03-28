@@ -1096,3 +1096,36 @@ cdef extern from "ext_storage.h":
                   const int index_eft,
                   const int num_matrices,
                   ErrorMsg errmsg)
+
+cdef extern from "generalized_triangle_integral.h":
+    int B_master(double k2,
+                 double complex M1,
+                 double complex M2,
+                 double complex *B_out)
+
+    int Tad_master(int n,
+                  int d,
+                  double complex M,
+                  double complex *Tad_out)
+
+    int Tad_var(int n,
+                int d,
+                double k2,
+                double complex M,
+                double complex *I_out)
+
+    int massive_num(int n, 
+                    int d,
+                    double k2,
+                    double complex M1, 
+                    double complex M2, 
+                    double complex *I_out)
+
+    int B_recursion(int d1,
+                    int d2,
+                    double k2,
+                    double complex M1,
+                    double complex M2,
+                    double complex *B_out)
+
+
