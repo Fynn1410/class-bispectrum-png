@@ -1098,34 +1098,79 @@ cdef extern from "ext_storage.h":
                   ErrorMsg errmsg)
 
 cdef extern from "generalized_triangle_integral.h":
-    int B_master(double k2,
+    cdef struct gen_tri_integral:
+        ErrorMsg error_message
+
+    int B_master(void *pti,
+                 double k2,
                  double complex M1,
                  double complex M2,
                  double complex *B_out)
 
-    int Tad_master(int n,
+    int Tad_master(void *pti,
+                  int n,
                   int d,
                   double complex M,
                   double complex *Tad_out)
 
-    int Tad_var(int n,
+    int Tad_var(void *pti,
+                int n,
                 int d,
                 double k2,
                 double complex M,
                 double complex *I_out)
 
-    int massive_num(int n, 
+    int massive_num(void *pti,
+                    int n, 
                     int d,
                     double k2,
                     double complex M1, 
                     double complex M2, 
                     double complex *I_out)
 
-    int B_recursion(int d1,
+    int B_recursion(void *pti,
+                    int d1,
                     int d2,
                     double k2,
                     double complex M1,
                     double complex M2,
                     double complex *B_out)
+
+    int scalar_prod_one(void *pti,
+                        int m, 
+                        int n,
+                        int d1,
+                        int d2,
+                        double k22,
+                        double complex M1,
+                        double complex M2,
+                        double complex *I_out)
+
+    int tensor_red_one(void *pti,
+                       int m,
+                       int n,
+                       int d1,
+                       int d2,
+                       double k12,
+                       double k22,
+                       double cos12,
+                       double complex M1,
+                       double complex M2,
+                       double complex *I_out);
+
+    int tensor_red_two(void *pti,
+                       int n1,
+                       int n2,
+                       int d,
+                       double k12,
+                       double k22,
+                       double cos12,
+                       double complex M,
+                       double complex *I_out);
+
+    int util_binomial(void *pti,
+                      int n,
+                      int k,
+                      double *n_over_k)
 
 

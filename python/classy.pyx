@@ -104,6 +104,7 @@ cdef class Class:
     cdef distortions sd
     cdef file_content fc
     cdef ext_storage ex
+    cdef gen_tri_integral ti
 
     # Flag to see if classy has already computed with the given pars
     cdef int computed
@@ -1508,7 +1509,7 @@ cdef class Class:
     def get_B_master(self, double k2, double complex M1, double complex M2):
         cdef double complex B_out;
 
-        if B_master(k2, M1, M2, &B_out)==_FAILURE_:
+        if B_master(&self.ti, k2, M1, M2, &B_out)==_FAILURE_:
             raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: B_master")
 
         return B_out
@@ -1516,7 +1517,7 @@ cdef class Class:
     def get_Tad_master(self, int n, int d, double complex M):
         cdef double complex Tad_out;
 
-        if Tad_master(n, d, M, &Tad_out)==_FAILURE_:
+        if Tad_master(&self.ti, n, d, M, &Tad_out)==_FAILURE_:
             raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: Tad_master")
 
         return Tad_out
@@ -1524,7 +1525,7 @@ cdef class Class:
     def get_Tad_var(self, int n, int d, double k2, double complex M):
         cdef double complex Tadvar_out;
 
-        if Tad_var(n, d, k2, M, &Tadvar_out)==_FAILURE_:
+        if Tad_var(&self.ti, n, d, k2, M, &Tadvar_out)==_FAILURE_:
             raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: Tad_var")
 
         return Tadvar_out
@@ -1532,7 +1533,7 @@ cdef class Class:
     def get_massive_num(self, int n, int d, double k2, double complex M1, double complex M2):
         cdef double complex massive_num_out;
 
-        if massive_num(n, d, k2, M1, M2, &massive_num_out)==_FAILURE_:
+        if massive_num(&self.ti, n, d, k2, M1, M2, &massive_num_out)==_FAILURE_:
             raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: massive_num")
 
         return massive_num_out
@@ -1540,11 +1541,43 @@ cdef class Class:
     def get_B_recursion(self, int d1, int d2, double k2, double complex M1, double complex M2):
         cdef double complex B_recursion_out;
 
-        if B_recursion(d1, d2, k2, M1, M2, &B_recursion_out)==_FAILURE_:
+        if B_recursion(&self.ti, d1, d2, k2, M1, M2, &B_recursion_out)==_FAILURE_:
             raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: B_recursion")
 
         return B_recursion_out
 
+
+    def get_scalar_prod_one(self, int m, int n, int d1, int d2, double k2, double complex M1, double complex M2):
+        cdef double complex I_out;
+
+        if scalar_prod_one(&self.ti, m, n, d1, d2, k2, M1, M2, &I_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: scalar_prod_one")
+
+        return I_out
+
+    def get_tensor_red_one(self, int m, int n, int d1, int d2, double k12, double k22, double cos12, double complex M1, double complex M2):
+        cdef double complex I_out;
+
+        if tensor_red_one(&self.ti, m, n, d1, d2, k12, k22, cos12, M1, M2, &I_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: tensor_red_one")
+
+        return I_out
+
+    def get_tensor_red_two(self, int n1, int n2, int d, double k12, double k22, double cos12, double complex M):
+        cdef double complex I_out;
+
+        if tensor_red_two(&self.ti, n1, n2, d, k12, k22, cos12, M, &I_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: tensor_red_two")
+
+        return I_out
+
+    def get_util_binomial(self, int n, int k):
+        cdef double n_over_k
+
+        if util_binomial(&self.ti, n, k, &n_over_k)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: util_binomial")
+        
+        return n_over_k
 
     def get_P_nw(self, float k, float z):
         """

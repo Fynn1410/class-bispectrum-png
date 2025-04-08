@@ -94,3 +94,5 @@ def plot_compare(x, y11, y12, y21, y22, y31, y32, xlabel,ylabel, label1, label2,
     # Save and show the figure
     plt.savefig(f"Dennis_Fynn_Comparison/{save_name}.pdf", bbox_inches='tight')
     plt.show()
+
+

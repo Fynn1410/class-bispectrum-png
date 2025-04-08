@@ -8,11 +8,18 @@
 #ifndef __LOOP_INTEGRALS__
 #define __LOOP_INTEGRALS__
 
+struct gen_tri_integral
+{
+    ErrorMsg error_message;
+};
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    int T_master(double k12,
+    int T_master(struct gen_tri_integral *pti,
+                 double k12,
                  double k22,
                  double k32,
                  class_complex M1,
@@ -20,18 +27,21 @@ extern "C" {
                  class_complex M3,
                  class_complex *T_out);
 
-    int B_master(double k2,
+    int B_master(struct gen_tri_integral *pti,
+                 double k2,
                  class_complex M1,
                  class_complex M2,
                  class_complex *B_out);
 
-    int Tad_master(int n,
+    int Tad_master(struct gen_tri_integral *pti,
+                   int n,
                    int d,
                    class_complex M,
                    class_complex *Tad_out);
 
 
-    int L_recursion(int n1,
+    int L_recursion(struct gen_tri_integral *pti,
+                    int n1,
                     int d1,
                     int n2,
                     int d2,
@@ -45,7 +55,8 @@ extern "C" {
                     class_complex M3,
                     class_complex *L_out);
 
-    int T_recursion(int d1,
+    int T_recursion(struct gen_tri_integral *pti,
+                    int d1,
                     int d2,
                     int d3,
                     double k12,
@@ -56,48 +67,68 @@ extern "C" {
                     class_complex M3,
                     class_complex *T_out);
 
-    int B_recursion(int d1,
+    int B_recursion(struct gen_tri_integral *pti,
+                    int d1,
                     int d2,
                     double k2,
                     class_complex M1,
                     class_complex M2,
                     class_complex *B_out);
 
-    int tensor_red_one(int n,
+    int scalar_prod_one(struct gen_tri_integral *pti,
+                       int m, 
+                       int n,
                        int d1,
                        int d2,
-                       double k12,
                        double k22,
                        class_complex M1,
                        class_complex M2,
                        class_complex *I_out);
 
-    int tensor_red_two(int n1,
-                       int n2,
+    int tensor_red_one(struct gen_tri_integral *pti,
+                       int m,
+                       int n,
                        int d1,
+                       int d2,
                        double k12,
                        double k22,
+                       double cos12,
+                       class_complex M1,
+                       class_complex M2,
+                       class_complex *I_out);
+
+    int tensor_red_two(struct gen_tri_integral *pti,
+                       int n1,
+                       int n2,
+                       int d,
+                       double k12,
+                       double k22,
+                       double cos12,
                        class_complex M,
                        class_complex *I_out);
 
-    int Tad_var(int n,
+    int Tad_var(struct gen_tri_integral *pti,
+                int n,
                 int d,
                 double k2,
                 class_complex M,
                 class_complex *I_out);
 
-    int massive_num(int n, 
+    int massive_num(struct gen_tri_integral *pti,
+                    int n, 
                     int d,
                     double k2,
                     class_complex M1, 
                     class_complex M2, 
                     class_complex *I_out);
 
-    int util_binomial(int n,
+    int util_binomial(struct gen_tri_integral *pti,
+                      int n,
                       int k,
                       double *n_over_k);
 
-    int util_trinomial(int n,
+    int util_trinomial(struct gen_tri_integral *pti,
+                       int n,
                        int k,
                        int j,
                        double *out);

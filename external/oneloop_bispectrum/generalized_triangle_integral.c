@@ -20,7 +20,17 @@
  * @return the error status
  */
 
- int T_master(double k12, double k22, double k32, class_complex M1, class_complex M2, class_complex M3, class_complex *T_out){
+ int T_master(
+              struct gen_tri_integral *pti,
+              double k12,
+              double k22,
+              double k32,
+              class_complex M1,
+              class_complex M2,
+              class_complex M3,
+              class_complex *T_out
+              ){
+    
     // special case in which all masses are zero
     class_complex M0 = class_complex(0., 0.);
     if (M1==M0 and M2==M0 and M3==M0){
@@ -44,7 +54,14 @@
  * @return the error status
  */
 
-int B_master(double k2, class_complex M1, class_complex M2, class_complex *B_out){
+int B_master(
+             struct gen_tri_integral *pti,
+             double k2,
+             class_complex M1,
+             class_complex M2,
+             class_complex *B_out
+             ){
+    
 	class_complex m1 = M1/k2;
 	class_complex m2 = M2/k2;
     class_complex I = class_complex(0., 1.);
@@ -72,8 +89,24 @@ int B_master(double k2, class_complex M1, class_complex M2, class_complex *B_out
  * @return the error status
  */
 
-int Tad_master(int n, int d, class_complex M, class_complex *Tad_out){
+int Tad_master(
+               struct gen_tri_integral *pti,
+               int n,
+               int d,
+               class_complex M,
+               class_complex *Tad_out
+               ){
+    
     class_complex temp;
+
+
+    // class_test(n<-1 || d<1,
+    //     pti->error_message,
+    //     "Divergent integral: Cannot call Tad_master for n<-1 or d<1. You have n=%d, d=%d", n, d);
+
+    // class_test(d<n+1,
+    //     pti->error_message,
+    //    "Divergent integral: Cannot call Tad_master for d<n+1. You have n=%d, d=%d", n, d);
 
     if (M==class_complex(0., 0.)){
         *Tad_out = class_complex(0., 0.); // TODO: dont understand why zero -> dimensional argument?
@@ -107,7 +140,22 @@ int Tad_master(int n, int d, class_complex M, class_complex *Tad_out){
  * @return the error status
  */
 
-int L_recursion(int n1, int d1, int n2, int d2, int n3, int d3, double k12, double k22, double k32, class_complex M1, class_complex M2, class_complex M3, class_complex *L_out){
+int L_recursion(
+                struct gen_tri_integral *pti,
+                int n1,
+                int d1,
+                int n2,
+                int d2,
+                int n3,
+                int d3,
+                double k12,
+                double k22,
+                double k32,
+                class_complex M1,
+                class_complex M2,
+                class_complex M3,
+                class_complex *L_out
+                ){
 
     return _SUCCESS_;
 }
@@ -127,7 +175,19 @@ int L_recursion(int n1, int d1, int n2, int d2, int n3, int d3, double k12, doub
  * @return the error status
  */
 
-int T_recursion(int d1, int d2, int d3, double k12, double k22, double k32, class_complex M1, class_complex M2, class_complex M3, class_complex *T_out){
+int T_recursion(
+                struct gen_tri_integral *pti,
+                int d1,
+                int d2,
+                int d3,
+                double k12,
+                double k22,
+                double k32,
+                class_complex M1,
+                class_complex M2,
+                class_complex M3,
+                class_complex *T_out
+                ){
 
     return _SUCCESS_;
 }
@@ -143,42 +203,97 @@ int T_recursion(int d1, int d2, int d3, double k12, double k22, double k32, clas
  * @return the error status
  */
 
-int B_recursion(int d1, int d2, double k2, class_complex M1, class_complex M2, class_complex *B_out){
+int B_recursion(
+                struct gen_tri_integral *pti,
+                int d1,
+                int d2,
+                double k2,
+                class_complex M1,
+                class_complex M2,
+                class_complex *B_out
+                ){
+    
     // TODO: any special cases if the masses are zero?
     int nu1, nu2;
     class_complex B_temp1, B_temp2, B_temp3, c1, c2, c3, jac, k1s, Ndim, nu1_c, nu2_c;
     // terminate the recursion for the following cases:
     if (d1==1 && d2==1){
         // Bubble master integral
-        B_master(k2, M1, M2, B_out);
+        class_call(B_master(pti,
+                            k2,
+                            M1,
+                            M2,
+                            B_out),
+                    pti->error_message,
+                    pti->error_message);
+    
     } else if (d1==0){
         if (d2==1){
-            printf("Error in B_recursion: d1=0, d2=1, divergent integral");
+            printf("Error in B_recursion: d1=0, d2=1, divergent integral\n");
+            *B_out = class_complex(0., 0.);
+        } else {
+            // Tad pole master integral with numerator n=1
+            class_call(Tad_master(pti,
+                                  0,
+                                  d2,
+                                  M2,
+                                  B_out),
+                        pti->error_message,
+                        pti->error_message);
         }
-        // Tad pole master integral with numerator n=1
-        Tad_master(0, d2, M2, B_out);
+
     } else if (d2==0){
         if (d1==1){
-            printf("Error in B_recursion: d1=1, d2=0, divergent integral");
+            printf("Error in B_recursion: d1=1, d2=0, divergent integral\n");
+            *B_out = class_complex(0., 0.);
+        } else{
+            // Tad pole master integral with numerator n=1
+            class_call(Tad_master(pti,
+                                  0,
+                                  d1,
+                                  M1,
+                                  B_out),
+                        pti->error_message,
+                        pti->error_message);
         }
-        // Tad pole master integral with numerator n=1
-        Tad_master(0, d1, M1, B_out);
+
     } else if (d1<0 && d2<0){
         // TODO: this integral is divergent, why set it to zero? maybe because it cannot appear? If so -> class_test
         *B_out = class_complex(0., 0.);
     } else if (d1<0 && d2>0){
-        if (2-d1>d2){
-            printf("Error in B_recursion: d1=%d, d2=%d, divergent integral", d1, d2);
+        if (d1+d2<1){ 
+            printf("Error in B_recursion: d1=%d, d2=%d, divergent integral\n", d1, d2);
+            *B_out = class_complex(0., 0.);
+        } else{
+            // massive numerator integral
+            class_call(massive_num(pti, 
+                                   -d1,
+                                   d2,
+                                   k2,
+                                   M1,
+                                   M2,
+                                   B_out),
+                        pti->error_message,
+                        pti->error_message);
         }
-        // massive numerator integral
-        massive_num(-d1, d2, k2, M1, M2, B_out);
     } else if (d1>0 && d2<0){
-        if (2-d2>d1){
-            printf("Error in B_recursion: d1=%d, d2=%d, divergent integral", d1, d2);
+        if (d1+d2<1){
+            printf("Error in B_recursion: d1=%d, d2=%d, divergent integral\n", d1, d2);
+            *B_out = class_complex(0., 0.);
+        } else{
+            // TODO: what it 2+|d2|>d1 (2 coming from the jacobian) then the integral is divergent. return 0?
+            // massive numerator integral
+            class_call(massive_num(pti, 
+                                   -d2,
+                                   d1,
+                                   k2,
+                                   M2,
+                                   M1,
+                                   B_out),
+                        pti->error_message,
+                        pti->error_message);
         }
-        // TODO: what it 2+|d2|>d1 (2 coming from the jacobian) then the integral is divergent. return 0?
-        // massive numerator integral
-        massive_num(-d2, d1, k2, M2, M1, B_out);
+
     } else if (d1>=1 && d2>=1){
         // first apply the recursion to reduce d1 until d1=1, the do the same for d2
         // The order is arbitrary
@@ -202,9 +317,36 @@ int B_recursion(int d1, int d2, double k2, class_complex M1, class_complex M2, c
             c2 = (-2.*M1/nu2_c*nu1_c)/jac;
             c3 = k1s/jac;
         }
-        B_recursion(nu1, nu2, k2, M1, M2, &B_temp1);
-        B_recursion(nu1+1, nu2-1, k2, M1, M2, &B_temp2);
-        B_recursion(nu1-1, nu2+1, k2, M1, M2, &B_temp3);
+        class_call(B_recursion(pti,
+                               nu1,
+                               nu2,
+                               k2,
+                               M1,
+                               M2,
+                               &B_temp1),
+                    pti->error_message,
+                    pti->error_message);
+        
+        class_call(B_recursion(pti,
+                               nu1+1,
+                               nu2-1,
+                               k2,
+                               M1,
+                               M2,
+                               &B_temp2),
+                    pti->error_message,
+                    pti->error_message);
+
+        class_call(B_recursion(pti,
+                               nu1-1,
+                               nu2+1,
+                               k2,
+                               M1,
+                               M2,
+                               &B_temp3),
+                    pti->error_message,
+                    pti->error_message);
+
         *B_out = c1*B_temp1 + c2*B_temp2 + c3*B_temp3;
     } else {
         printf("Error in B_recursion: case not considered");
@@ -214,19 +356,294 @@ int B_recursion(int d1, int d2, double k2, class_complex M1, class_complex M2, c
 }
 
 
+/** Intermediate integral of tensor reduction case 1: solves integrals of the form (2*k_vec.q_vec)^m * q^2n / (q^2+M1)^d1 / (kpq^2+M2)^d2
+ * @param m                 Input: power of numerator scalar product k2_vec.q_vec
+ * @param n                 Input: power of numerator a^2
+ * @param d1                Input: power of denominator q^2+M1
+ * @param d2                Input: power of denominator (k2_vec+q_vec)^2 + M2
+ * @param k2                Input: wavenumber squared k^2
+ * @param M1                Input: complex mass of propagator
+ * @param M2                Input: complex mass of propagator
+ * @param I_out             Output: pointer to value for the scalar product integral (case 1)
+ * @return the error status
+ */
+
+ int scalar_prod_one(
+                     struct gen_tri_integral *pti,
+                     int m,
+                     int n,
+                     int d1,
+                     int d2,
+                     double k2,
+                     class_complex M1,
+                     class_complex M2,
+                     class_complex *I_out
+                    ) {
+    
+    class_complex M1_pow, result=class_complex(0., 0.), B_cache[m+n+1][m+1];
+    double binomial_k, binomial_i, binomial_j;
+    int k, i, j, d1_eff, d2_eff, d1_idx, d2_idx;
+    class_complex B_temp;
+
+    // Initially set all cache values to zero
+    for (i=0; i<=m+n; i++){
+        for (j=0; j<=m; j++){
+            B_cache[i][j] = class_complex(0., 0.);
+        }
+    }
+
+
+    for (k=0; k<=n; k++){
+        // binomial coefficient for the q^2n term
+        class_call(util_binomial(pti,
+                                 n,
+                                 k, 
+                                 &binomial_k),
+                    pti->error_message,
+                    pti->error_message);
+
+        M1_pow = pow(M1, n-k);
+        for (i=0; i<=m; i++){
+            // first binomial coefficient for the k.q^m term
+            class_call(util_binomial(pti,
+                                    m,
+                                    i,
+                                    &binomial_i),
+                        pti->error_message,
+                        pti->error_message);
+
+            for (j=0; j<=m-i; j++){
+                // second binomial coefficient for the k.q^m term
+                class_call(util_binomial(pti,
+                                         m-i,
+                                         j,
+                                         &binomial_j),
+                            pti->error_message,
+                            pti->error_message);
+                            
+                d1_idx = i+k;
+                d2_idx = j;
+                B_temp = B_cache[d1_idx][d2_idx];
+                // Check if this contribution of B_recurions has been computed already
+                if (B_temp == class_complex(0., 0.)){
+                    class_call(B_recursion(pti,
+                                           d2-d2_idx,
+                                           d1-d1_idx,
+                                           k2,
+                                           M2,
+                                           M1,
+                                           &B_temp),
+                               pti->error_message,
+                               pti->error_message);
+
+                    // Save this value in the cache
+                    B_cache[d1_idx][d2_idx] = B_temp;
+                }
+
+
+                result += binomial_k*binomial_i*binomial_j * pow(-1., n+i-k)*M1_pow * pow(M1-M2-k2, m-i-j)*B_temp;
+            }
+        }
+    }
+    *I_out = result;
+
+    return _SUCCESS_;
+}
+
+
 /** Tensor reduction case 1: solves integrals of the form k1mq^2n1 / (q^2+M1)^d1 / (k2pq^2+M2)^d2
  * @param n                 Input: power of numerator k1_vec-q_vec
  * @param d1                Input: power of denominator q^2+M1
- * @param d2                Input: power of denominator (q2_vec+q_vec)^2 + M2
+ * @param d2                Input: power of denominator (k2_vec+q_vec)^2 + M2
  * @param k12               Input: wavenumber squared k1^2
  * @param k22               Input: wavenumber squared k2^2
+ * @param cos12             Input: angle between k1_vec and k2_vec
  * @param M1                Input: complex mass of propagator
  * @param M2                Input: complex mass of propagator
  * @param I_out             Output: pointer to value for the tensor reduction integral (case 1)
  * @return the error status
  */
 
-int tensor_red_one(int n, int d1, int d2, double k12, double k22, class_complex M1, class_complex M2, class_complex *I_out){
+int tensor_red_one(
+                   struct gen_tri_integral *pti,
+                   int m,
+                   int n,
+                   int d1,
+                   int d2,
+                   double k12,
+                   double k22,
+                   double cos12,
+                   class_complex M1,
+                   class_complex M2,
+                   class_complex *I_out
+                   ){
+    
+    class_complex I_temp1, I_temp2, I_temp3, A1, A2, A3, result, result_int;
+    double k14, k24, cos12_sq, sin12_sq, binomial_i, binomial_j;
+    int i, j;
+
+    cos12_sq = cos12*cos12;
+    for (i=0; i<=n; i++){
+        class_call(util_binomial(pti,
+                                 n,
+                                 i,
+                                 &binomial_i),
+                   pti->error_message,
+                   pti->error_message);
+
+        for (j=0; j<=n-i; j++){
+            if (d1+d2<1+j+i) {
+                printf("Problem in tensor_red_one, d1=%d, d2=%d, j=%d, i=%d\n", d1, d2, j, i);
+            }
+            class_call(util_binomial(pti,
+                                     n-i,
+                                     j, 
+                                     &binomial_j),
+                       pti->error_message,
+                       pti->error_message);
+            
+            if (j==0){
+                class_call(scalar_prod_one(pti,
+                                           j,
+                                           i,
+                                           d1,
+                                           d2,
+                                           k22,
+                                           M1,
+                                           M2,
+                                           &I_temp1),
+                           pti->error_message,
+                           pti->error_message);
+                
+                result_int = I_temp1;
+
+            } else if (j==1){
+                class_call(scalar_prod_one(pti,
+                                           j,
+                                           i,
+                                           d1,
+                                           d2,
+                                           k22,
+                                           M1,
+                                           M2,
+                                           &I_temp1),
+                           pti->error_message,
+                           pti->error_message);
+
+                result_int = sqrt(k12/k22)*cos12 * I_temp1;
+
+            } else if (j==2) {
+                class_call(scalar_prod_one(pti,
+                                           j,
+                                           i,
+                                           d1,
+                                           d2,
+                                           k22,
+                                           M1,
+                                           M2,
+                                           &I_temp1),
+                           pti->error_message,
+                           pti->error_message);
+            
+                class_call(scalar_prod_one(pti,
+                                           j-2,
+                                           i+1,
+                                           d1,
+                                           d2,
+                                           k22,
+                                           M1,
+                                           M2,
+                                           &I_temp2),
+                           pti->error_message,
+                           pti->error_message);
+            
+                A1 = 0.5 * (3.*I_temp1/k22 - I_temp2);
+                A2 = 0.5 * (-I_temp1/k22 + I_temp2);
+
+                result_int = k12*(cos12_sq*A1 + A2);
+
+            } else if (j==3){
+                class_call(scalar_prod_one(pti,
+                                           j,
+                                           i,
+                                           d1,
+                                           d2,
+                                           k22,
+                                           M1,
+                                           M2,
+                                           &I_temp1),
+                           pti->error_message,
+                           pti->error_message);
+
+                class_call(scalar_prod_one(pti,
+                                            j-2,
+                                            i+1,
+                                            d1,
+                                            d2,
+                                            k22,
+                                            M1,
+                                            M2,
+                                            &I_temp2),
+                                pti->error_message,
+                                pti->error_message);
+                
+                A1 = 0.5 * (5.*I_temp1 - 3.*I_temp2*k22);
+                A2 = 0.5 * (-I_temp1 + I_temp2*k22);
+
+                result_int = sqrt(k12/k22)*k12/k22*cos12*(cos12_sq * A1 + 3.*A2);
+
+            } else if (j==4) {
+                class_call(scalar_prod_one(pti,
+                                           j,
+                                           i,
+                                           d1,
+                                           d2,
+                                           k22,
+                                           M1,
+                                           M2,
+                                           &I_temp1),
+                           pti->error_message,
+                           pti->error_message);
+
+                class_call(scalar_prod_one(pti,
+                                           j-2,
+                                           i+1,
+                                           d1,
+                                           d2,
+                                           k22,
+                                           M1,
+                                           M2,
+                                           &I_temp2),
+                           pti->error_message,
+                           pti->error_message);
+
+                class_call(scalar_prod_one(pti,
+                                           j-4,
+                                           i+2,
+                                           d1,
+                                           d2,
+                                           k22,
+                                           M1,
+                                           M2,
+                                           &I_temp3),
+                           pti->error_message,
+                           pti->error_message);
+                
+                k24 = k22*k22;
+                k14 = k12*k12;
+                A1 = 0.125 * (35.*I_temp1 - 30.*I_temp2*k22   + 3.*I_temp3*k24);
+                A2 = 0.125 * (-5.*I_temp1 + 6.*I_temp2*k22    - I_temp3*k24);
+                A3 = 0.125 * (I_temp1     - 2.*I_temp2*k22    + I_temp3*k24);
+
+                result_int = k14/k24 * (cos12_sq*cos12_sq*A1 + 6.*cos12_sq*A2 + 3.*A3);
+            }
+
+
+            result += binomial_i*binomial_j*pow(k12, n-i-j)*pow(-1., j)*result_int;
+            result_int = class_complex(0., 0.);
+        }
+    }
+    *I_out = result;
 
     return _SUCCESS_;
 }
@@ -238,12 +655,148 @@ int tensor_red_one(int n, int d1, int d2, double k12, double k22, class_complex 
  * @param d1                Input: power of denominator
  * @param k12               Input: wavenumber squared k1^2
  * @param k22               Input: wavenumber squared k2^2
+ * @param cos12             Input: cos alpha12, alpha12 is the angle between k1 and k2
  * @param M                 Input: complex mass of propagator
  * @param I_out             Output: pointer to value for the tensor reduction integral (case 2)
  * @return the error status
  */
 
-int tensor_red_two(int n1, int n2, int d1, double k12, double k22, class_complex M, class_complex *I_out){
+int tensor_red_two(
+                   struct gen_tri_integral *pti,
+                   int n1,
+                   int n2,
+                   int d,
+                   double k12,
+                   double k22,
+                   double cos12,
+                   class_complex M,
+                   class_complex *I_out
+                   ){
+
+    class_complex tad_master_precompute[n1+n2+1], result_temp, result;
+    double binomial_i1, binomial_i2, binomial_j1, binomial_j2, k1, k2, k13, k23, k14, k24, cos12_sq, cos12_sqsq;
+    int i1, i2, i, j1, j2, j, n;
+
+    // initialize some double that are used multiple times
+    k1 = sqrt(k12);
+    k2 = sqrt(k22);
+    k13 = k1*k12;
+    k23 = k2*k22;
+    k14 = k12*k12;
+    k24 = k22*k22;
+    cos12_sq = cos12*cos12;
+    cos12_sqsq = cos12_sq*cos12_sq;
+
+    result = class_complex(0., 0.);
+
+    // check for illegal cases, TODO: Make these class calls
+    if (n1>4 || n2>4){
+        printf("Problem in tensor_red_two. Only values n1<=4, n2<=4 are allowed. You have n1=%d, n2=%d", n1, n2);
+    }
+    if (d<=1+n1+n2){
+        printf("Problem in tensor_red_two: Integral is divergent. Requirement for convergence is d1>1+n1+n2. You have n1=%d, n2=%d, d=%d", n1, n2, d);
+    }
+
+    // Precompute all relevant Tad_master integrals
+    for (j=0; j<=n1+n2; j++){
+        class_call(Tad_master(pti,
+                              j,
+                              d,
+                              M,
+                              &tad_master_precompute[j]),
+                   pti->error_message,
+                   pti->error_message);
+    }
+
+    // this is the main loop
+    for (i1=0; i1<=n1; i1++){
+        class_call(util_binomial(pti,
+                                 n1,
+                                 i1,
+                                 &binomial_i1),
+                   pti->error_message,
+                   pti->error_message);
+
+        for (i2=0; i2<=n2; i2++){
+            class_call(util_binomial(pti,
+                                     n2,
+                                     i2,
+                                     &binomial_i2),
+                       pti->error_message,
+                       pti->error_message);
+
+            for (j1=0; j1<=n1-i1; j1++){
+                class_call(util_binomial(pti,
+                                         n1-i1,
+                                         j1,
+                                         &binomial_j1),
+                           pti->error_message,
+                           pti->error_message);
+
+                for (j2=0; j2<=n2-i2; j2++){
+                    class_call(util_binomial(pti,
+                                             n2-i2,
+                                             j2,
+                                             &binomial_j2),
+                               pti->error_message,
+                               pti->error_message);
+                    
+                    // i is the power of q^2
+                    // j is the number of the q_vec in the integral
+                    i = i1+i2;
+                    j = j1+j2;
+
+                    if (j==0){                    
+                        result_temp = tad_master_precompute[i];
+
+                    } else if (j==2){
+                        if (j1==0) {
+                            result_temp = k22/3. * tad_master_precompute[i+1];
+                        } else if (j1==1) {
+                            result_temp = k1*k2*cos12/3. * tad_master_precompute[i+1];
+                        } else if (j1==2) {
+                            result_temp = k12/3. * tad_master_precompute[i+1];
+                        }
+
+                    } else if (j==4) {
+                        if (j1==0) {
+                            result_temp = k24/5. * tad_master_precompute[i+2];
+                        } else if (j1==1) {
+                            result_temp = k1*k23*cos12/5. * tad_master_precompute[i+2];
+                        } else if (j1==2) {
+                            result_temp = k12*k22/15. * (2.*cos12_sq + 1.) * tad_master_precompute[i+2];
+                        } else if (j1==3) {
+                            result_temp = k13*k2*cos12/5. * tad_master_precompute[i+2];
+                        } else if (j1==4) {
+                            result_temp = k14/5. * tad_master_precompute[i+2];
+                        }
+
+                    } else if (j==6) {
+                        // since j1, j2 <= 4, the lowest contribution is j1=2, j2=4
+                        if (j1==2) {
+                            result_temp = k12*k24/35. * (1. + 4.*cos12_sq) * tad_master_precompute[i+3];
+                        } else if (j1==3) {
+                            result_temp = k13*k23*cos12/35. * (3. + 2.*cos12_sq) * tad_master_precompute[i+3];
+                        } else if (j1==4) {
+                            result_temp = k14*k22/35. * (1. + 4.*cos12_sq) * tad_master_precompute[i+3];
+                        }
+                    
+                    } else if (j==8) {
+                        // since j1, j2 <= 4, the only contribution is j1=j2=4
+                        if (j1==4) {
+                            result_temp = k14*k14/315. * (3. + 24.*cos12_sq + 8.*cos12_sqsq) * tad_master_precompute[i+4];
+                        }
+                    } else {
+                        // the integral vanishes if j is odd because the integrant is odd in q
+                        result_temp = class_complex(0., 0.);
+                    }
+
+                    result += binomial_i1*binomial_i2*binomial_j1*binomial_j2 * pow(k12, n1-i1-j1)*pow(k22, n2-i2-j2) * pow(-2., j1) * pow(2., j2) * result_temp;
+                }
+            }
+        }
+    }
+    *I_out = result;
 
     return _SUCCESS_;
 }
@@ -258,7 +811,15 @@ int tensor_red_two(int n1, int n2, int d1, double k12, double k22, class_complex
  * @return the error status
  */
 
- int Tad_var(int n, int d, double k2, class_complex M, class_complex *I_out){
+ int Tad_var(
+             struct gen_tri_integral *pti,
+             int n,
+             int d,
+             double k2,
+             class_complex M,
+             class_complex *I_out
+             ){
+    
     class_complex Tad_master_precompute[n+1], result=0;  // in this array we will compute all the relevant Tad_master calls
     double binomial_i, binomial_j;
     int i, j, temp_idx, check_precompute[n+1];
@@ -272,10 +833,22 @@ int tensor_red_two(int n1, int n2, int d1, double k12, double k22, class_complex
     
     // use the binomial theorem twice to rewrite (k2 - 2k.q + q2)^n as a double sum over k2^j*(-2)^(n-i-j)*q2^i
     for (i=0; i<=n; i++){
-        util_binomial(n, i, &binomial_i);
+        class_call(util_binomial(pti,
+                                 n,
+                                 i,
+                                 &binomial_i),
+                    pti->error_message,
+                    pti->error_message);
+
         for (j=0; j<=n-i; j++){
             if ((n-i-j)%2==0){
-                util_binomial(n-i, j, &binomial_j);
+                class_call(util_binomial(pti,
+                                         n-i,
+                                         j,
+                                         &binomial_j),
+                            pti->error_message,
+                            pti->error_message);
+
                 temp_idx = (n+i-j)/2;
                 // only compute Tad_master if it hasn't been already computed
                 // check_precompute[idx]==1: already has been computed
@@ -285,7 +858,13 @@ int tensor_red_two(int n1, int n2, int d1, double k12, double k22, class_complex
                     printf("Error: temp_idx out of bounds (%d)\n", temp_idx);
                 }
                 if (check_precompute[temp_idx]==0){
-                    Tad_master(temp_idx, d, M, &Tad_master_precompute[temp_idx]); 
+                    class_call(Tad_master(pti,
+                                          temp_idx,
+                                          d,
+                                          M,
+                                          &Tad_master_precompute[temp_idx]),
+                                pti->error_message,
+                                pti->error_message);
                 }
                 check_precompute[temp_idx]=1;
                 
@@ -310,13 +889,39 @@ int tensor_red_two(int n1, int n2, int d1, double k12, double k22, class_complex
  * @return the error status
  */
 
- int massive_num(int n, int d, double k2, class_complex M1, class_complex M2, class_complex *I_out){
-    int i;
+ int massive_num(
+                 struct gen_tri_integral *pti,
+                 int n,
+                 int d,
+                 double k2,
+                 class_complex M1,
+                 class_complex M2,
+                 class_complex *I_out
+                 ){
+    
+                    class_complex Tad_var_temp, result = class_complex(0., 0.);
     double binomial;
-    class_complex Tad_var_temp, result = class_complex(0., 0.);
+    int i;
+    class_test(n<0 || d<0,
+        pti->error_message,
+        "Cannot call massive_num for negative values of n or d. You have n=%d, d=%d", n, d);
     for (i=0; i<=n; i++){
-        util_binomial(n, i, &binomial);
-        Tad_var(i, d, k2, M2, &Tad_var_temp);
+        class_call(util_binomial(pti,
+                                 n,
+                                 i,
+                                 &binomial),
+                    pti->error_message,
+                    pti->error_message);
+
+        class_call(Tad_var(pti,
+                           i,
+                           d,
+                           k2,
+                           M2,
+                           &Tad_var_temp),
+                    pti->error_message,
+                    pti->error_message);
+        
         result += binomial*pow(M1, n-i)*Tad_var_temp;
     }
     *I_out = result;
@@ -335,9 +940,23 @@ int tensor_red_two(int n1, int n2, int d1, double k12, double k22, class_complex
  * @return the error status
  */
 
-int util_binomial(int n, int k, double *n_over_k){
+int util_binomial(
+                  struct gen_tri_integral *pti,
+                  int n,
+                  int k,
+                  double *n_over_k
+                  ){
+    
     int i, j;
     int C[n + 1][k + 1];
+
+    class_test(n<0 || k<0,
+               pti->error_message,
+               "Cannot call util_binomial for negative values. You have n=%d, k=%d", n, k);
+
+    class_test(k>n,
+               pti->error_message,
+               "Cannot call util_binomial for k>n. You have n=%d, k=%d", n, k);
 
     for (i = 0; i <= n; i++) {
         for (j = 0; j <= k && j <= i; j++) {
@@ -361,7 +980,13 @@ int util_binomial(int n, int k, double *n_over_k){
  * @return the error status
  */
 
-int util_trinomial(int n, int k, int j, double *out){
+int util_trinomial(
+                   struct gen_tri_integral *pti,
+                   int n,
+                   int k,
+                   int j,
+                   double *out
+                   ){
 
     return _SUCCESS_;
 }
