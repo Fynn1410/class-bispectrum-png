@@ -1101,6 +1101,15 @@ cdef extern from "generalized_triangle_integral.h":
     cdef struct gen_tri_integral:
         ErrorMsg error_message
 
+    int T_master(void *pti,
+                 double k12,
+                 double k22,
+                 double k32,
+                 double complex M1,
+                 double complex M2,
+                 double complex M3,
+                 double complex *T_out)
+
     int B_master(void *pti,
                  double k2,
                  double complex M1,
@@ -1172,5 +1181,35 @@ cdef extern from "generalized_triangle_integral.h":
                       int n,
                       int k,
                       double *n_over_k)
+
+    int util_antideriv(void *pti,
+                       double x,
+                       double complex y1,
+                       double complex y2,
+                       double complex x0,
+                       double complex *out)
+
+    int util_prefactor(void *pti,
+                       double a,
+                       double complex y1,
+                       double complex y2,
+                       double complex *out)
+
+    int util_F_int(void *pti,
+                   double R2,
+                   double complex y1,
+                   double complex y2,
+                   double complex x0,
+                   double complex *out)
+
+    int util_Tmaster_contr(void *pti,
+                           double y,
+                           double k12,
+                           double k22,
+                           double k32,
+                           double complex M1,
+                           double complex M2,
+                           double complex M3,
+                           double complex *out)
 
 

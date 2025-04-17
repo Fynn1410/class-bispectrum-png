@@ -1506,6 +1506,14 @@ cdef class Class:
         
         return P1, P2, P3, P1_Fynn, P2_Fynn, P3_Fynn, k1_arr, k2_arr, k3_arr
 
+    def get_T_master(self, double k12, double k22, double k32, double complex M1, double complex M2, double complex M3):
+        cdef double complex T_out;
+
+        if T_master(&self.ti, k12, k22, k32, M1, M2, M3, &T_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: T_master")
+
+        return T_out
+
     def get_B_master(self, double k2, double complex M1, double complex M2):
         cdef double complex B_out;
 
@@ -1578,6 +1586,39 @@ cdef class Class:
             raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: util_binomial")
         
         return n_over_k
+
+    def get_util_antideriv(self, double x, double complex y1, double complex y2, double complex x0):
+        cdef double complex out
+
+        if util_antideriv(&self.ti, x, y1, y2, x0, &out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: util_antideriv")
+
+        return out
+    
+    def get_util_prefactor(self, double a, double complex y1, double complex y2):
+        cdef double complex out
+
+        if util_prefactor(&self.ti, a, y1, y2, &out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: util_prefactor")
+
+        return out
+
+    def get_util_F_int(self, double R2, double complex y1, double complex y2, double complex x0):
+        cdef double complex out
+
+        if util_F_int(&self.ti, R2, y1, y2, x0, &out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: util_F_int")
+
+        return out
+    
+    def util_Tmaster_contr(self, double y, double k12, double k22, double k32, double complex M1, double complex M2, double complex M3):
+        cdef double complex out
+
+        if util_Tmaster_contr(&self.ti, y, k12, k22, k32, M1, M2, M3, &out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: util_Tmaster_contr")
+
+        return out
+
 
     def get_P_nw(self, float k, float z):
         """

@@ -133,6 +133,36 @@ extern "C" {
                        int j,
                        double *out);
 
+    int util_antideriv(struct gen_tri_integral *pti,
+                       double x,
+                       class_complex y1,
+                       class_complex y2,
+                       class_complex x0,
+                       class_complex *out);
+
+    int util_prefactor(struct gen_tri_integral *pti,
+                       double a,
+                       class_complex y1,
+                       class_complex y2,
+                       class_complex *out);
+
+    int util_F_int(struct gen_tri_integral *pti,
+                   double R2,
+                   class_complex y1,
+                   class_complex y2,
+                   class_complex x0,
+                   class_complex *out);
+
+    int util_Tmaster_contr(struct gen_tri_integral *pti,
+                           double y,
+                           double k12,
+                           double k22,
+                           double k32,
+                           class_complex M1,
+                           class_complex M2,
+                           class_complex M3,
+                           class_complex *out);
+
 //     int util_tri_master(double y,
 //                         double k12,
 //                         double k22,
