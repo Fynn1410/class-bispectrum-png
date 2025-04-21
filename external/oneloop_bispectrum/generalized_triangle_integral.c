@@ -44,7 +44,7 @@
     } else {
         class_complex T_master_contr0, T_master_contr1;
         class_call(util_Tmaster_contr(pti,
-                                      0., 
+                                      0, 
                                       k12,
                                       k22,
                                       k32,
@@ -56,7 +56,7 @@
                     pti->error_message);
 
         class_call(util_Tmaster_contr(pti,
-                                      1.,
+                                      1,
                                       k12,
                                       k22,
                                       k32,
@@ -185,6 +185,56 @@ int L_recursion(
                 class_complex *L_out
                 ){
 
+    class_complex M0, Ms[3];
+    doublets_L idxs[3];
+    int doublet_idx;
+
+    idxs[0].n = n1; idxs[1].n = n2; idxs[2].n = n3;
+    idxs[0].d = d1; idxs[1].d = d2; idxs[2].d = d3; 
+    Ms[0] = M1;     Ms[1] = M2;     Ms[2] = M3;
+
+    
+    // recursion terminates when n1=n2=n3=0 -> move on with T recursion
+    if (n1==0 and n2==0 and n3==0){
+        class_call(T_recursion(pti,
+                               d1, 
+                               d2,
+                               d3,
+                               k12,
+                               k22,
+                               k32,
+                               M1,
+                               M2,
+                               M3,
+                               L_out),
+                    pti->error_message,
+                    pti->error_message);
+        // printf("\nd1=%d, d2=%d, d3=%d", d1, d2, d3);
+        
+        return _SUCCESS_;
+    }
+
+    // This function can be split in 3 doublet (n_i, d_i) which are saved in idxs
+    // The procedure is the same for each doublet -> util_L_step, and has to be done until each n_i=0
+    if (n1!=0){
+        doublet_idx = 0;
+    } else if (n2!=0){
+        doublet_idx = 1;
+    } else if (n3!=0){
+        doublet_idx = 2;
+    }
+
+    class_call(util_L_step(pti,
+                           idxs,
+                           doublet_idx,
+                           k12,
+                           k22,
+                           k32,
+                           Ms,
+                           L_out),
+                pti->error_message,
+                pti->error_message);
+
     return _SUCCESS_;
 }
 
@@ -216,6 +266,320 @@ int T_recursion(
                 class_complex M3,
                 class_complex *T_out
                 ){
+    double cos12, cos23, cos31;
+
+    cos12 = (k32-k12-k22)/(2.*sqrt(k12*k22));
+    cos23 = (k12-k22-k32)/(2.*sqrt(k22*k32));
+    cos31 = (k22-k32-k12)/(2.*sqrt(k32*k12));
+
+    if (d1+d2+d3<1){
+        printf("Error: T_recursion is divergent. d1+d2+d3=%d", d1+d2+d3);
+    }
+    if (d1<-4){
+        printf("Warning: not allowed exponent in T_recursion: d1=%d", d1);
+    }
+    if (d2<-4){
+        printf("Warning: not allowed exponent in T_recursion: d2=%d", d2);
+    }
+    if (d2<-4){
+        printf("Warning: not allowed exponent in T_recursion: d2=%d", d2);
+    }
+
+    // Consider call conditions that could terminate the recursion:
+    
+    // d1=d2=d3=1:
+    if (d1==1 && d2==1 && d3==1){
+        class_call(T_master(pti,
+                            k12,
+                            k22,
+                            k32,
+                            M1,
+                            M2,
+                            M3,
+                            T_out),
+                    pti->error_message,
+                    pti->error_message);
+        return _SUCCESS_;
+    }
+
+    // cases where one of the exponents is zero: redefine the integration variable and identify the B_recursion integral
+    if (d1==0){
+        class_call(B_recursion(pti,
+                               d2,
+                               d3,
+                               k22,
+                               M2,
+                               M3,
+                               T_out),
+                    pti->error_message,
+                    pti->error_message);
+        return _SUCCESS_;
+    }
+    if (d2==0){
+        class_call(B_recursion(pti,
+                               d3,
+                               d1,
+                               k32,
+                               M3,
+                               M1,
+                               T_out),
+                    pti->error_message,
+                    pti->error_message);
+        return _SUCCESS_;
+    }
+    if (d3==0){
+        class_call(B_recursion(pti,
+                               d1,
+                               d2,
+                               k12,
+                               M1,
+                               M2,
+                               T_out),
+                    pti->error_message,
+                    pti->error_message);
+        return _SUCCESS_;
+    }
+
+    // cases with negative exponents -> tensor reduction
+    // two cases: one exponent is less than 0 -> tensor_red_one, two exponents are less than 0 -> tensor_red_two
+    if (d1<0){
+        if (d2>0 && d3>0){
+            class_call(tensor_red_one(pti,
+                                      -d1,
+                                      d2,
+                                      d3,
+                                      k12,
+                                      k22,
+                                      cos12,
+                                      M2,
+                                      M3,
+                                      T_out),
+                        pti->error_message,
+                        pti->error_message);
+            return _SUCCESS_;
+
+        } else if (d2>0 && d3<0){
+            class_call(tensor_red_two(pti,
+                                      -d1,
+                                      -d3,
+                                      d2,
+                                      k12,
+                                      k22,
+                                      cos12,
+                                      M2,
+                                      T_out),
+                        pti->error_message,
+                        pti->error_message);
+            return _SUCCESS_;
+
+        } else if (d2<0 && d3>0){
+            class_call(tensor_red_two(pti,
+                                      -d2,
+                                      -d1,
+                                      d3,
+                                      k22,
+                                      k32,
+                                      cos23,
+                                      M3,
+                                      T_out),
+                        pti->error_message,
+                        pti->error_message);
+            return _SUCCESS_;
+
+        } else {
+            // last case is d2<0, d3<0 which automatically violates d1+d2+d3>1
+            printf("Undefined case in T_recursion: d1, d2, d3 = %d, %d, %d < 0", d1, d2, d3);
+            return _FAILURE_;
+        }
+    } else if (d2<0){
+        if (d1>0 && d3>0){
+            class_call(tensor_red_one(pti,
+                                      -d2,
+                                      d1,
+                                      d3,
+                                      k12,
+                                      k32,
+                                      cos31,
+                                      M1,
+                                      M3,
+                                      T_out),
+                        pti->error_message,
+                        pti->error_message);
+            return _SUCCESS_;
+
+        } else if (d1>0 && d3<0){
+            class_call(tensor_red_two(pti,
+                                      -d3,
+                                      -d2,
+                                      d1,
+                                      k32,
+                                      k12,
+                                      cos31,
+                                      M1,
+                                      T_out),
+                        pti->error_message,
+                        pti->error_message);
+            return _SUCCESS_;
+
+        }
+    } else if (d3<0){
+        // only case that is left: d1, d2 > 0
+        class_call(tensor_red_one(pti,
+                                  -d3,
+                                  d1,
+                                  d2,
+                                  k32,
+                                  k12,
+                                  cos12,
+                                  M1,
+                                  M2,
+                                  T_out),
+                    pti->error_message,
+                    pti->error_message);
+        return _SUCCESS_;
+
+    }
+
+    // define utility variables
+    class_complex cpm0, cmp0, cm0p, cp0m, c0pm, c0mp, c000, k1s, k2s, k3s, jac, ks11, ks12, ks22, ks23, ks31, ks33, k1s2, k2s2, k3s2, nu1_c, nu2_c, nu3_c, Ndim, T_recursion_temp[7];
+    int i, idx1, idx2, idx3, nu1, nu2, nu3;
+    
+    k1s = k12 + M1 + M2;
+    k2s = k22 + M2 + M3;
+    k3s = k32 + M3 + M1;
+
+    k1s2 = k1s*k1s;
+    k2s2 = k2s*k2s;
+    k3s2 = k3s*k3s;
+
+    jac = -8.*M1*M2*M3 + 2.*k1s2*M3 + 2.*k2s2*M1 + 2.*k3s2*M2 - 2.*k1s*k2s*k3s;
+    
+    ks11 = (-4.*M1*M2 + k1s2)/jac;
+    ks12 = (-2.*k3s*M2 + k1s*k2s)/jac;
+    ks22 = (-4.*M2*M3 + k2s2)/jac;
+    ks23 = (-2.*k1s*M3 + k2s*k3s)/jac;
+    ks31 = (-2.*k2s*M1+k1s*k3s)/jac;
+    ks33 = (-4.*M1*M3+k3s2)/jac;
+
+
+    // TODO: maybe this is not the most efficient way to handle this
+    // especially this complex devision
+    if (d1>1){
+        nu1 = d1 - 1;
+        nu2 = d2;
+        nu3 = d3;
+
+        nu1_c = class_complex(nu1, 0.);
+        nu2_c = class_complex(nu2, 0.);
+        nu3_c = class_complex(nu3, 0.);
+
+        Ndim = class_complex(3. - nu1 - nu2 - nu3, 0.);
+
+        cpm0 = -ks23;
+        cmp0 = (ks22*nu2_c)/nu1_c;
+        cm0p = (ks22*nu3_c)/nu1_c;
+        cp0m = -ks12;
+        c0pm = -(ks12*nu2_c)/nu1_c;
+        c0mp = -(ks23*nu3_c)/nu1_c;
+        c000 = (-nu3_c+Ndim)*ks12/nu1_c - (-nu1_c+Ndim)*ks22/nu1_c + (-nu2_c+Ndim)*ks23/nu1_c;
+
+    } else if (d2>1){
+        nu1 = d1;
+        nu2 = d2 - 1;
+        nu3 = d3;
+
+        nu1_c = class_complex(nu1, 0.);
+        nu2_c = class_complex(nu2, 0.);
+        nu3_c = class_complex(nu3, 0.);
+
+        Ndim = class_complex(3. - nu1 - nu2 - nu3, 0.);
+
+        cpm0 = (ks33*nu1_c)/nu2_c;
+        cmp0 = -ks23;
+        cm0p = -(ks23*nu3_c)/nu2_c;
+        cp0m = -(ks31*nu1_c)/nu2_c;
+        c0pm = -ks31;
+        c0mp = (ks33*nu3_c)/nu2_c;
+        c000 = (-nu1_c + Ndim)*ks23/nu2_c + (-nu3_c + Ndim)*ks31/nu2_c - (-nu2_c + Ndim)*ks33/nu2_c;
+
+    } else if (d3>1){
+        nu1 = d1;
+        nu2 = d2;
+        nu3 = d3 - 1;
+
+        nu1_c = class_complex(nu1, 0.);
+        nu2_c = class_complex(nu2, 0.);
+        nu3_c = class_complex(nu3, 0.);
+
+        Ndim = class_complex(3. - nu1 - nu2 - nu3, 0.);
+
+        cpm0 = -(ks31*nu1_c)/nu3_c;
+        cmp0 = -(ks12*nu2_c)/nu3_c;
+        cm0p = -ks12;
+        cp0m = (ks11*nu1_c)/nu3_c;
+        c0pm = (ks11*nu2_c)/nu3_c;
+        c0mp = -ks31;
+        c000 = -(-nu3_c + Ndim)*ks11/nu3_c + (-nu1_c + Ndim)*ks12/nu3_c + (-nu2_c + Ndim)*ks31/nu3_c;
+    }
+
+    // iterate through all relevant class_calls to avoid clutter
+    // TODO: maybe create global cache
+    for (i=0; i<7; i++){
+        if (i==0){
+            idx1 = nu1;
+            idx2 = nu2;
+            idx3 = nu3;
+        } else if(i==1){
+            idx1 = nu1;
+            idx2 = nu2-1;
+            idx3 = nu3+1;
+        } else if(i==2){
+            idx1 = nu1;
+            idx2 = nu2+1;
+            idx3 = nu3-1;
+        } else if(i==3){
+            idx1 = nu1-1;
+            idx2 = nu2;
+            idx3 = nu3+1;
+        } else if(i==4){
+            idx1 = nu1+1;
+            idx2 = nu2;
+            idx3 = nu3-1;
+        } else if(i==5){
+            idx1 = nu1-1;
+            idx2 = nu2+1;
+            idx3 = nu3;
+        } else if(i==6){
+            idx1 = nu1+1;
+            idx2 = nu2-1;
+            idx3 = nu3;
+        }
+
+        class_call(T_recursion(pti,
+                               idx1, 
+                               idx2,
+                               idx3,
+                               k12,
+                               k22,
+                               k32,
+                               M1,
+                               M2,
+                               M3,
+                               &T_recursion_temp[i]),
+                    pti->error_message,
+                    pti->error_message);
+    }
+
+
+
+    *T_out = (c000*T_recursion_temp[0]
+            + c0mp*T_recursion_temp[1]
+            + c0pm*T_recursion_temp[2]
+            + cm0p*T_recursion_temp[3]
+            + cp0m*T_recursion_temp[4]
+            + cmp0*T_recursion_temp[5]
+            + cpm0*T_recursion_temp[6]);
+
 
     return _SUCCESS_;
 }
@@ -331,16 +695,16 @@ int B_recursion(
         if (d1>1){
             nu1 = d1-1;
             nu2 = d2;
-            nu1_c = class_complex(d1-1, 0.);
-            nu2_c = class_complex(d2, 0.);
+            nu1_c = class_complex(nu1, 0.);
+            nu2_c = class_complex(nu2, 0.);
             c1 = ((2.*M2-k1s)/nu1_c*Ndim - 2.*M2 + (k1s*nu2_c)/nu1_c)/jac;
             c2 = k1s/jac;
             c3 = (-2.*M2/nu1_c*nu2_c)/jac;
         } else if (d2>1){
             nu1 = d1;
             nu2 = d2-1;
-            nu1_c = class_complex(d1, 0.);
-            nu2_c = class_complex(d2-1, 0.);
+            nu1_c = class_complex(nu1, 0.);
+            nu2_c = class_complex(nu2, 0.);
             c1 = ((2.*M1 - k1s)/nu2_c*Ndim + (k1s*nu1_c)/nu2_c - 2.*M1)/jac;
             c2 = (-2.*M1/nu2_c*nu1_c)/jac;
             c3 = k1s/jac;
@@ -494,7 +858,6 @@ int B_recursion(
 
 int tensor_red_one(
                    struct gen_tri_integral *pti,
-                   int m,
                    int n,
                    int d1,
                    int d2,
@@ -1211,7 +1574,7 @@ int util_F_int(
     double xcross_temp, xsol[2], xbranch[2]; // at most two branch cuts, so length of list is two
     int idx, signx0, sign, n_branchpoints;
 
-    CHOP_TOL = 1.e-8;
+    CHOP_TOL = 1.e-10;
 
     // contribution of a branch cut crossing at the boundary <=> B=0 (only pi/2 gap)
     cutx0   = class_complex(0., 0.);
@@ -1247,13 +1610,13 @@ int util_F_int(
 
 
     // create special cases if the imaginary part is close to zero
-    if (abs(cimag(y1)) < CHOP_TOL){
+    if (abs(cimag(y1)) < CHOP_TOL*fmax(1.0, cabs(y1))){
         y1 = class_complex(creal(y1), 0.);
     }
-    if (abs(cimag(y2)) < CHOP_TOL){
+    if (abs(cimag(y2)) < CHOP_TOL*fmax(1.0, cabs(y2))){
         y2 = class_complex(creal(y2), 0.);
     }
-    if (abs(cimag(x0)) < CHOP_TOL){
+    if (abs(cimag(x0)) < CHOP_TOL*fmax(1.0, cabs(x0))){
         x0 = class_complex(creal(x0), 0.);
     }
 
@@ -1264,7 +1627,7 @@ int util_F_int(
     // case B=0 <=> 0 < x0_re < 1 and x0_im=0 <=> branch cut crossing at the boundary of the branch cut
     // determine the sign of the extra contribution by taking the derivative of the argument of arctan
     // w.r.t. x
-    if (0. < x0_re && x0_re < 1. && abs(x0_im)<CHOP_TOL){
+    if (0. < x0_re && x0_re < 1. && abs(x0_im)<CHOP_TOL*fmax(1.0, cabs(x0))){
         // printf("\nBranch cut crossing at B=0!!!");
         x0_re_c = class_complex(x0_re, 0.);
         if (cabs(y1-x0_re_c)<CHOP_TOL || cabs(x0_re_c-y2)<CHOP_TOL){
@@ -1404,7 +1767,7 @@ int util_F_int(
  */
 int util_Tmaster_contr(
                        struct gen_tri_integral *pti,
-                       double y,
+                       int y,
                        double k12,
                        double k22,
                        double k32,
@@ -1413,35 +1776,89 @@ int util_Tmaster_contr(
                        class_complex M3,
                        class_complex *out
                        ){
-    class_complex Num0, R1, R0, S1, S0, DiscS_sqrt, DiscR_sqrt, solS1, solS2, solR1, solR2, c1, c2, Fint_temp1, Fint_temp2;
-    double Num1, R2, S2, k14, k24, k34, CHOP_TOL;
+    class_complex Num0, R1, R0, S1, S1_overk22, S0, DiscS_sqrt, DiscR_sqrt, solS1, solS2, solR1, solR2, c1, c2, Fint_temp1, Fint_temp2;
+    double Num1, R2, S2, k1, k2, k3, k14, k24, k34, CHOP_TOL;
+
+    class_complex R1_overk32, R1_overk12, tmp_disc1, tmp_disc1_overk22, DiscR_sqrt_overk32, DiscR_sqrt_overk12, DiscS_sqrt_overk22, Num0_overk22;
+    double S2_overk22, Num1_overk22;
+
+
     // antiderivative of the master integral integrand in y 
     
-    CHOP_TOL = 1.e-20;
+    CHOP_TOL = 1.e-14;
 
+
+    k1 = sqrt(k12);
+    k2 = sqrt(k22);
+    k3 = sqrt(k32);
     k14 = k12*k12;
     k24 = k22*k22;
     k34 = k32*k32;
 
     // ---------------- Eq. 5.79 ----------------
     // N_1, N_0
-    Num1 = 4.*k22*y+2.*k12-2.*k22-2.*k32;
-    Num0 = -4.*k22*y+2.*M2-2.*M3+2.*k22;
+    // Num1 = 4.*k22*y+2.*k12-2.*k22-2.*k32;
+    // Num0 = -4.*k22*y+2.*M2-2.*M3+2.*k22;
 
     // R_2, R_1, R_0
-    R2 = -k12*y+k32*y-k32;
-    R1 = -M2*y+M3*y+k12*y-k32*y+M1-M3+k32;
-    R0 = M2*y-M3*y+M3;
+    // R2 = -k12*y+k32*y-k32;
+    // R1 = -M2*y+M3*y+k12*y-k32*y+M1-M3+k32;
+    // R0 = M2*y-M3*y+M3;
+
+    // implement these formulas separately to avoid minimize erros
+    if (y==0){
+        R2 = -k32;
+        R1 = M1-M3+k32;
+        R0 = M3;
+
+        DiscR_sqrt_overk32 = sqrt((1. + (M1 - M3)/k32)*(1. + (M1 - M3)/k32) + 4.*M3/k32);
+        R1_overk32 = (M1-M3)/k32 + 1.;
+        solR1 = -0.5*(-R1_overk32 + DiscR_sqrt_overk32);                 // z_+
+        solR2 = -0.5*(-R1_overk32 - DiscR_sqrt_overk32);                 // z_-
+
+        Num1 = 2.*(k12-k22-k32);
+        Num0 = 2.*(M2-M3+k22);
+
+        Num1_overk22 = 2.*(k12/k22 - 1. - k32/k22);
+        Num0_overk22 = 2.*((M2-M3)/k22 + 1.);
+    } else if (y==1){
+        R2 = -k12;
+        R1 = M1-M2+k12;
+        R0 = M2;
+        DiscR_sqrt_overk12 = sqrt((1. + (M1 - M2)/k12)*(1. + (M1 - M2)/k12) + 4.*M2/k12);
+        R1_overk12 = (M1-M2)/k12 + 1.;
+        solR1 = -0.5*(-R1_overk12 + DiscR_sqrt_overk12);                 // z_+
+        solR2 = -0.5*(-R1_overk12 - DiscR_sqrt_overk12);                 // z_-
+
+        Num1 = 2.*(k12+k22-k32);
+        Num0 = 2.*(M2-M3-k22);
+
+        Num1_overk22 = 2.*(k12/k22 + 1. - k32/k22);
+        Num0_overk22 = 2.*((M2-M3)/k22 - 1.);
+    } else {
+        printf("Error in util_Tmaster_contr. Case not considered. y=%d",y);
+    }
+
 
     // S_2, S_1, S_0
     S2 = -k14+2.*k12*k22+2.*k12*k32-k24+2.*k22*k32-k34;
-    S1 =-4.*M1*k22-2.*M2*k12+2.*M2*k22+2.*M2*k32+2.*M3*k12+2.*M3*k22-2.*M3*k32-2.*k12*k22+2.*k24-2.*k22*k32;
-    S0 =-M2*M2+2.*M2*M3-2.*M2*k22-M3*M3-2.*M3*k22-k24;
+    S1 = -4.*M1*k22-2.*M2*k12+2.*M2*k22+2.*M2*k32+2.*M3*k12+2.*M3*k22-2.*M3*k32-2.*k12*k22+2.*k24-2.*k22*k32;
+    S0 = -M2*M2+2.*M2*M3-2.*M2*k22-M3*M3-2.*M3*k22-k24;
+
+    S2_overk22 = -k12/k22 *k12+2.*k12+2.*k12/k22*k32-k22+2.*k32-k32/k22 *k32;
+    S1_overk22 = -4.*M1-2.*M2*k12/k22+2.*M2+2.*M2*k32/k22+2.*M3*k12/k22+2.*M3-2.*M3*k32/k22-2.*k12+2.*k22-2.*k32;
 
     // Diakr(a,b,c)= b^2 - 4*a*c -> defined after ---------------- Eq. 5.94 ----------------
     // Sqrt of Diakr
 
-    DiscS_sqrt = sqrt(S1*S1 - 4.*S2*S0);
+    // DiscS_sqrt = sqrt(S1*S1 - 4.*S2*S0); // Old implementation 
+
+    // New implementation -> does the same thing, hoping that is has better numerical precision
+    tmp_disc1 = -k24 + k22*(k32 + 2.*M1 - M2 - M3) + k12*(k22 + M2 - M3) + k32*(-M2 + M3);
+    tmp_disc1_overk22 = -k22 + k32 + k12 + 2.*M1 - M2 - M3 + k12/k22*(M2 - M3) + k32/k22*(-M2 + M3);
+    DiscS_sqrt = 2.*sqrt(tmp_disc1*tmp_disc1 - (k1 - k2 - k3)*(k1 + k2 - k3)*(k1 - k2 + k3)*(k1 + k2 + k3)*(k24 + (M2 - M3)*(M2 - M3) + 2.*k22*(M2 + M3)));
+    DiscS_sqrt_overk22 = 2.*sqrt(tmp_disc1_overk22*tmp_disc1_overk22 - (k1/k2 - 1. - k3/k2) * (k1/k2 + 1. - k3/k2) * (k1/k2 - 1. + k3/k2) * (k1/k2 + 1. + k3/k2)*(k24 + (M2 - M3)*(M2 - M3) + 2.*k22*(M2 + M3)));
+
 
     if (cabs(DiscS_sqrt)<CHOP_TOL){
         printf("\nERROR in util_Tmaster_contr: DiscS_sqrt=%.10f + %.10fj\n", creal(DiscS_sqrt), cimag(DiscS_sqrt));
@@ -1457,13 +1874,13 @@ int util_Tmaster_contr(
     // ---------------- Eq. 5.80 ----------------
     // solS1 and solS2 are the solution of 
     // DeltaS2*x^2 + DeltaS1*x + DeltaS0 = 0
-    solS1 = (-S1+DiscS_sqrt)/2./S2;				// x_+
-    solS2 = (-S1-DiscS_sqrt)/2./S2;  				// x_-
+    solS1 = 0.5*(-S1_overk22+DiscS_sqrt_overk22)/S2_overk22;                // x_+
+    solS2 = 0.5*(-S1_overk22-DiscS_sqrt_overk22)/S2_overk22;                  // x_-
 
-    c2 = -(Num1*solS2+Num0)/DiscS_sqrt;					// c1
-    c1 = (Num1*solS1+Num0)/DiscS_sqrt;						// c2
+    c2 = -(Num1_overk22*solS2 + Num0_overk22)/DiscS_sqrt_overk22;                    // c1
+    c1 =  (Num1_overk22*solS1 + Num0_overk22)/DiscS_sqrt_overk22;                        // c2
         
-    DiscR_sqrt = sqrt(R1*R1 - 4.*R2*R0);	// sqrt( DeltaR1^2 - 4*DeltaR2*DeltaR0 )
+    DiscR_sqrt = sqrt(R1*R1 - 4.*R2*R0);    // sqrt( DeltaR1^2 - 4*DeltaR2*DeltaR0 )
 
     if (cabs(DiscR_sqrt)<CHOP_TOL){
         printf("\nERROR in util_Tmaster_contr: DiscR_sqrt=0\n");
@@ -1473,8 +1890,8 @@ int util_Tmaster_contr(
     }
 
 
-    solR1 = ((-R1+DiscR_sqrt)/2.)/R2;     			// z_+
-    solR2 = ((-R1-DiscR_sqrt)/2.)/R2; 				// z_-
+    // solR1 = 0.5*(-R1+DiscR_sqrt)/R2;                 // z_+
+    // solR2 = 0.5*(-R1-DiscR_sqrt)/R2;                 // z_-
 
     // ---------------- Eq. 5.82 ----------------
     if (cabs(c1) < CHOP_TOL){
@@ -1526,5 +1943,159 @@ int util_Tmaster_contr(
         *out = c1*Fint_temp1 + c2*Fint_temp2;
         return _SUCCESS_;
 
+    }
+}
+
+/** Solves general trianlge integral: L(n1, d1, n2, d2, n3, d3) = int k1mq^2n1 q^2n2 k2pq^2n3 / (k1mq^2+M1)^d1 / (q^2+M2)^d2 / (k2pq^2+M3)^d3
+ * @param n1                Input: power of numerator (k1_vec-q_vec)^2
+ * @param d1                Input: power of denominator (k1_vec-q_vec)^2 + M1
+ * @param n2                Input: power of numerator q^2
+ * @param d2                Input: power of denominator q^2 + M2
+ * @param n3                Input: power of numerator (k2_vec+q_vec)^2
+ * @param d3                Input: power of denominator (k2_vec+q_vec)^2 + M3
+ * @param k12               Input: wavenumber squared k1^2
+ * @param k22               Input: wavenumber squared k2^2
+ * @param k32               Input: wavenumber squared k3^2
+ * @param M1                Input: complex mass of propagator
+ * @param M2                Input: complex mass of propagator
+ * @param M3                Input: complex mass of propagator
+ * @param L_out             Output: pointer to value for the generalized triangle integral
+ * @return the error status
+ */
+
+int util_L_step(
+                struct gen_tri_integral *pti,
+                doublets_L idxs[],
+                int idx,
+                double k12,
+                double k22,
+                double k32,
+                class_complex Ms[],
+                class_complex *L_out
+                ){
+
+    class_complex M0, tmp_Ms[3], L_temp1, L_temp2;
+    doublets_L tmp_idxs[3];
+    int i, op_idx[3];
+
+    M0 = class_complex(0., 0.);
+
+    // tmp_idxs are modified indices that are used if one of the d_i==0 while n_i!=0. Here they are initialized to the default values.
+    // op_idxs are operations of the indices, which are used in the recursion relations. Here they are initialized to zero
+    for (i=0; i<3; i++){
+        tmp_idxs[i].n = idxs[i].n;
+        tmp_idxs[i].d = idxs[i].d;
+        tmp_Ms[i] = Ms[i];
+        op_idx[i] = 0;
+    }
+
+    // if one of the denominator exponents is zero, redefine the numerator exponent (n_i -> -d_i) and set the corresponding mass to zero (M0)
+    if (idxs[idx].d==0 && idxs[idx].n!=0){
+        tmp_idxs[idx].n = 0;
+        tmp_idxs[idx].d = -idxs[idx].n;
+        tmp_Ms[idx] = M0;
+
+        class_call(L_recursion(pti,
+                               tmp_idxs[0].n,
+                               tmp_idxs[0].d,
+                               tmp_idxs[1].n,
+                               tmp_idxs[1].d,
+                               tmp_idxs[2].n,
+                               tmp_idxs[2].d,
+                               k12,
+                               k22,
+                               k32,
+                               tmp_Ms[0],
+                               tmp_Ms[1],
+                               tmp_Ms[2],
+                               L_out),
+                    pti->error_message,
+                    pti->error_message);
+        return _SUCCESS_;
+
+    } else if (idxs[idx].n>0){
+        op_idx[idx] = 1;
+
+        // recursion relation of n_i>0
+        class_call(L_recursion(pti,
+                               tmp_idxs[0].n - op_idx[0],
+                               tmp_idxs[0].d - op_idx[0],
+                               tmp_idxs[1].n - op_idx[1],
+                               tmp_idxs[1].d - op_idx[1],
+                               tmp_idxs[2].n - op_idx[2],
+                               tmp_idxs[2].d - op_idx[2],
+                               k12,
+                               k22,
+                               k32,
+                               Ms[0],
+                               Ms[1],
+                               Ms[2],
+                               &L_temp1),
+                    pti->error_message,
+                    pti->error_message);
+
+        class_call(L_recursion(pti,
+                               tmp_idxs[0].n - op_idx[0],
+                               tmp_idxs[0].d,
+                               tmp_idxs[1].n - op_idx[1],
+                               tmp_idxs[1].d,
+                               tmp_idxs[2].n - op_idx[2],
+                               tmp_idxs[2].d,
+                               k12,
+                               k22,
+                               k32,
+                               Ms[0],
+                               Ms[1],
+                               Ms[2],
+                               &L_temp2),
+                    pti->error_message,
+                    pti->error_message);
+
+        *L_out = L_temp1 - Ms[idx]*L_temp2;
+        return _SUCCESS_;
+
+    } else if (idxs[idx].n<0){
+        op_idx[idx] = 1;
+
+        // recursion relation of n_i<0
+        class_call(L_recursion(pti,
+                               tmp_idxs[0].n,
+                               tmp_idxs[0].d - op_idx[0],
+                               tmp_idxs[1].n,
+                               tmp_idxs[1].d - op_idx[1],
+                               tmp_idxs[2].n,
+                               tmp_idxs[2].d - op_idx[2],
+                               k12,
+                               k22,
+                               k32,
+                               Ms[0],
+                               Ms[1],
+                               Ms[2],
+                               &L_temp1),
+                    pti->error_message,
+                    pti->error_message);
+
+        class_call(L_recursion(pti,
+                               tmp_idxs[0].n + op_idx[0],
+                               tmp_idxs[0].d,
+                               tmp_idxs[1].n + op_idx[1],
+                               tmp_idxs[1].d,
+                               tmp_idxs[2].n + op_idx[2],
+                               tmp_idxs[2].d,
+                               k12,
+                               k22,
+                               k32,
+                               Ms[0],
+                               Ms[1],
+                               Ms[2],
+                               &L_temp2),
+                    pti->error_message,
+                    pti->error_message);
+
+        *L_out = (L_temp1 - L_temp2)/Ms[idx];
+        return _SUCCESS_;
+    } else {
+        printf("Error in util_L_step: case not considered, n1=%d, n2=%d, n3=%d, d1=%d, d2=%d, d3=%d", tmp_idxs[0].n, tmp_idxs[1].n, tmp_idxs[2].n, tmp_idxs[0].d, tmp_idxs[1].d, tmp_idxs[2].d);
+        return _FAILURE_;
     }
 }

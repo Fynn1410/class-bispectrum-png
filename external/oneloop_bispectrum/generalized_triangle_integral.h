@@ -13,6 +13,12 @@ struct gen_tri_integral
     ErrorMsg error_message;
 };
 
+struct doublets_L
+{
+    int n;
+    int d;
+};
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,7 +92,6 @@ extern "C" {
                        class_complex *I_out);
 
     int tensor_red_one(struct gen_tri_integral *pti,
-                       int m,
                        int n,
                        int d1,
                        int d2,
@@ -154,7 +159,7 @@ extern "C" {
                    class_complex *out);
 
     int util_Tmaster_contr(struct gen_tri_integral *pti,
-                           double y,
+                           int y,
                            double k12,
                            double k22,
                            double k32,
@@ -162,6 +167,15 @@ extern "C" {
                            class_complex M2,
                            class_complex M3,
                            class_complex *out);
+
+    int util_L_step(struct gen_tri_integral *pti,
+                    doublets_L idxs[],
+                    int idx,
+                    double k12,
+                    double k22,
+                    double k32,
+                    class_complex Ms[],
+                    class_complex *L_out);
 
 //     int util_tri_master(double y,
 //                         double k12,

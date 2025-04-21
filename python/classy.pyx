@@ -1546,6 +1546,22 @@ cdef class Class:
 
         return massive_num_out
 
+    def get_L_recursion(self, int n1, int d1, int n2, int d2, int n3, int d3, double k12, double k22, double k32, double complex M1, double complex M2, double complex M3):
+        cdef double complex L_recursion_out;
+
+        if L_recursion(&self.ti, n1, d1, n2, d2, n3, d3, k12, k22, k32, M1, M2, M3, &L_recursion_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: L_recursion")
+
+        return L_recursion_out
+
+    def get_T_recursion(self, int d1, int d2, int d3, double k12, double k22, double k32, double complex M1, double complex M2, double complex M3):
+        cdef double complex T_recursion_out;
+
+        if T_recursion(&self.ti, d1, d2, d3, k12, k22, k32, M1, M2, M3, &T_recursion_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: T_recursion")
+
+        return T_recursion_out
+
     def get_B_recursion(self, int d1, int d2, double k2, double complex M1, double complex M2):
         cdef double complex B_recursion_out;
 
@@ -1563,10 +1579,10 @@ cdef class Class:
 
         return I_out
 
-    def get_tensor_red_one(self, int m, int n, int d1, int d2, double k12, double k22, double cos12, double complex M1, double complex M2):
+    def get_tensor_red_one(self, int n, int d1, int d2, double k12, double k22, double cos12, double complex M1, double complex M2):
         cdef double complex I_out;
 
-        if tensor_red_one(&self.ti, m, n, d1, d2, k12, k22, cos12, M1, M2, &I_out)==_FAILURE_:
+        if tensor_red_one(&self.ti, n, d1, d2, k12, k22, cos12, M1, M2, &I_out)==_FAILURE_:
             raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: tensor_red_one")
 
         return I_out

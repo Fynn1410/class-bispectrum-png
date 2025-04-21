@@ -1137,6 +1137,33 @@ cdef extern from "generalized_triangle_integral.h":
                     double complex M2, 
                     double complex *I_out)
 
+    int L_recursion(void *pti,
+                    int n1,
+                    int d1,
+                    int n2,
+                    int d2,
+                    int n3,
+                    int d3,
+                    double k12,
+                    double k22,
+                    double k32,
+                    double complex M1,
+                    double complex M2,
+                    double complex M3,
+                    double complex *L_out)
+
+    int T_recursion(void *pti,
+                    int d1,
+                    int d2,
+                    int d3,
+                    double k12,
+                    double k22,
+                    double k32,
+                    double complex M1,
+                    double complex M2,
+                    double complex M3,
+                    double complex *T_out)
+
     int B_recursion(void *pti,
                     int d1,
                     int d2,
@@ -1156,7 +1183,6 @@ cdef extern from "generalized_triangle_integral.h":
                         double complex *I_out)
 
     int tensor_red_one(void *pti,
-                       int m,
                        int n,
                        int d1,
                        int d2,
