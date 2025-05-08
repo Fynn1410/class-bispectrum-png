@@ -105,6 +105,7 @@ cdef class Class:
     cdef file_content fc
     cdef ext_storage ex
     cdef gen_tri_integral ti
+    cdef ps_fit pf
 
     # Flag to see if classy has already computed with the given pars
     cdef int computed
@@ -1634,6 +1635,40 @@ cdef class Class:
             raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: util_Tmaster_contr")
 
         return out
+
+    def get_pfit_coeffs(self, int N_fit, double kmin, double kmax, double z):
+
+        cdef np.ndarray[DTYPE_t, ndim=1] alpha_out = np.zeros(16,'float64')
+        alpha = <double*> calloc(16, sizeof(double))
+
+        for i in range(16):
+            alpha[i] = 0.
+
+        if pfit_coeffs(&self.pf, &self.ba, &self.pm, &self.fo, N_fit, kmin, kmax, z, alpha)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: pfit_coeffs")
+
+        for i in range(16):
+            alpha_out[i] = alpha[i]
+        
+        free(alpha)
+
+        return alpha_out
+
+
+    def get_pfit_massive_propagator(self, int N_fit, double kmin, double kmax, double z):
+
+        cdef np.ndarray[np.complex128_t, ndim=1] Cd_out = np.zeros(17, dtype=np.complex128)
+        Cd = <double complex*> calloc(17, sizeof(double complex))
+
+        if pfit_massive_propagator(&self.pf, &self.ti, &self.ba, &self.pm, &self.fo, N_fit, kmin, kmax, z, Cd)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: pfit_massive_propagator")
+
+        for i in range(17):
+            Cd_out[i] = Cd[i]
+        
+        free(Cd)
+
+        return Cd_out
 
 
     def get_P_nw(self, float k, float z):

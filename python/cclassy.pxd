@@ -1100,7 +1100,7 @@ cdef extern from "ext_storage.h":
 cdef extern from "generalized_triangle_integral.h":
     cdef struct gen_tri_integral:
         ErrorMsg error_message
-
+    
     int T_master(void *pti,
                  double k12,
                  double k22,
@@ -1237,5 +1237,32 @@ cdef extern from "generalized_triangle_integral.h":
                            double complex M2,
                            double complex M3,
                            double complex *out)
+
+cdef extern from "power_spectrum_fit.h":
+    cdef struct ps_fit:
+        ErrorMsg error_message
+
+    int pfit_coeffs(void *ppf,
+                    void *pba,
+                    void *ppm,
+                    void *pfo,
+                    int N_fit,
+                    double kmin,
+                    double kmax,
+                    double z,
+                    double *alpha)
+
+    int pfit_massive_propagator(void *ppf,
+                                void *pti,
+                                void *pba,
+                                void * ppm,
+                                void *pfo,
+                                int N_fit,
+                                double k_min,
+                                double k_max,
+                                double z,
+                                double complex *C_out)
+
+
 
 

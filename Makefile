@@ -108,7 +108,7 @@ HEADERFILES += $(wildcard ./$(ONELOOP)/*.h)
 # update flags for including oneloop_bispectrum
 vpath %.c $(ONELOOP_BISPECTRUM)
 INCLUDES += -I../$(ONELOOP_BISPECTRUM)
-EXTERNAL += generalized_triangle_integral.opp
+EXTERNAL += power_spectrum_fit.opp generalized_triangle_integral.opp 
 HEADERFILES += $(wildcard ./$(ONELOOP_BISPECTRUM)/*.h)
 
 ifneq ($(DIRECT_INTEGRATION),)

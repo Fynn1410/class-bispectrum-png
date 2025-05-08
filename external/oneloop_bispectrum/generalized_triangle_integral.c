@@ -1,10 +1,14 @@
-/** @file oneloop.c
+/** @file generalized_triangle_integral.c
  *
  * author: Fynn Janssen, 2025
  * strongly based on https://arxiv.org/abs/2212.07421, https://github.com/dbraganca/python-integer-powers
 */
 
 #include "generalized_triangle_integral.h"
+
+
+// temporary to handle the precision in T_master
+#define PRECISION 256
 
 
 
@@ -209,8 +213,7 @@ int L_recursion(
                                L_out),
                     pti->error_message,
                     pti->error_message);
-        // printf("\nd1=%d, d2=%d, d3=%d", d1, d2, d3);
-        
+
         return _SUCCESS_;
     }
 
@@ -325,6 +328,7 @@ int T_recursion(
                                T_out),
                     pti->error_message,
                     pti->error_message);
+
         return _SUCCESS_;
     }
     if (d3==0){
@@ -370,6 +374,7 @@ int T_recursion(
                                       T_out),
                         pti->error_message,
                         pti->error_message);
+
             return _SUCCESS_;
 
         } else if (d2<0 && d3>0){
@@ -430,12 +435,13 @@ int T_recursion(
                                   d2,
                                   k32,
                                   k12,
-                                  cos12,
+                                  cos31,
                                   M1,
                                   M2,
                                   T_out),
                     pti->error_message,
                     pti->error_message);
+
         return _SUCCESS_;
 
     }
@@ -770,15 +776,10 @@ int B_recursion(
                      class_complex M1,
                      class_complex M2,
                      class_complex *I_out
-                    ) {
-    // printf("\n\nscalar_prod_one call:");
-    // printf("\nm = %d, n = %d, d1 = %d, d2 = %d", m, n, d1, d2);
-
-    
-    class_complex M1_pow, result=class_complex(0., 0.), B_cache[m+n+1][m+1];
+                    ) {    
+    class_complex M1_pow, B_temp, result=class_complex(0., 0.), B_cache[m+n+1][m+1];
     double binomial_k, binomial_i, binomial_j;
     int k, i, j, d1_eff, d2_eff, d1_idx, d2_idx;
-    class_complex B_temp;
 
     // Initially set all cache values to zero
     for (i=0; i<=m+n; i++){
@@ -835,11 +836,6 @@ int B_recursion(
                     B_cache[d1_idx][d2_idx] = B_temp;
                 }
 
-                // printf("\nB_rec(%d, %d)", d2-d2_idx, d1-d1_idx);
-                // printf("\npow(M1-M2-k2, %d)", m-i-j);
-                // printf("\npow(M1, %d)", n-k);
-                // printf("\nfactor = %f", binomial_k*binomial_i*binomial_j);
-                // printf("\nsign = %d", n+i-k);
                 result += binomial_k*binomial_i*binomial_j * pow(-1., n+i-k) * M1_pow * pow(M1-M2-k2, m-i-j)*B_temp;
             }
         }
@@ -1046,7 +1042,6 @@ int tensor_red_one(
                 result_int = k14/k24 * (cos12_sq*cos12_sq*A1 + 6.*cos12_sq*A2 + 3.*A3);
             }
 
-            // printf("\ni=%d, j=%d: result_int = %f + %fj", i, j, creal(result_int), cimag(result_int));
             result += binomial_i*binomial_j*pow(k12, n-i-j)*pow(-1., j)*result_int;
             result_int = class_complex(0., 0.);
         }
@@ -1160,10 +1155,10 @@ int tensor_red_two(
                     i = i1+i2;
                     j = j1+j2;
 
-                    if (j==0){                    
+                    if (j==0){
                         result_temp = tad_master_precompute[i];
 
-                    } else if (j==2){
+                    } else if (j==2){ 
                         if (j1==0) {
                             result_temp = k22/3. * tad_master_precompute[i+1];
                         } else if (j1==1) {
@@ -1171,7 +1166,6 @@ int tensor_red_two(
                         } else if (j1==2) {
                             result_temp = k12/3. * tad_master_precompute[i+1];
                         }
-
                     } else if (j==4) {
                         if (j1==0) {
                             result_temp = k24/5. * tad_master_precompute[i+2];
@@ -1206,6 +1200,7 @@ int tensor_red_two(
                     }
 
                     result += binomial_i1*binomial_i2*binomial_j1*binomial_j2 * pow(k12, n1-i1-j1)*pow(k22, n2-i2-j2) * pow(-2., j1) * pow(2., j2) * result_temp;
+
                 }
             }
         }
@@ -1312,21 +1307,16 @@ int tensor_red_two(
                  class_complex M2,
                  class_complex *I_out
                  ){
-    
-                    class_complex Tad_var_temp, result = class_complex(0., 0.);
+    class_complex Tad_var_temp, result = class_complex(0., 0.);
     double binomial;
     int i;
+
     class_test(n<0 || d<0,
         pti->error_message,
         "Cannot call massive_num for negative values of n or d. You have n=%d, d=%d", n, d);
-    for (i=0; i<=n; i++){
-        class_call(util_binomial(pti,
-                                 n,
-                                 i,
-                                 &binomial),
-                    pti->error_message,
-                    pti->error_message);
 
+    // special case for M1=0 (mass in the numerator) -> directly call Tad_var
+    if (M1 == class_complex(0., 0.)){
         class_call(Tad_var(pti,
                            i,
                            d,
@@ -1335,9 +1325,32 @@ int tensor_red_two(
                            &Tad_var_temp),
                     pti->error_message,
                     pti->error_message);
-        
-        result += binomial*pow(M1, n-i)*Tad_var_temp;
+
+        result += Tad_var_temp;
+    
+    } else {
+        // expand the numerator using the binomial theorem
+        for (i=0; i<=n; i++){
+            class_call(util_binomial(pti,
+                                     n,
+                                     i,
+                                     &binomial),
+                        pti->error_message,
+                        pti->error_message);
+    
+            class_call(Tad_var(pti,
+                               i,
+                               d,
+                               k2,
+                               M2,
+                               &Tad_var_temp),
+                        pti->error_message,
+                        pti->error_message);
+    
+            result += binomial*pow(M1, n-i)*Tad_var_temp;
+        }
     }
+
     *I_out = result;
     return _SUCCESS_;
 }
@@ -1481,10 +1494,6 @@ int util_antideriv(
     }
 
     class_complex arg_atan = temp/sqrt(x-y2);
-    // if (abs(creal(arg_atan)) < 0.001){
-    //     arg_atan = class_complex(abs(creal(arg_atan)), cimag(arg_atan));
-    // }
-
     class_complex atan_ = atan(arg_atan);
     *out = prefac * atan_;
 
@@ -1500,7 +1509,6 @@ int util_antideriv(
     // printf("\natan_ = %f + %fj", creal(atan_), cimag(atan_));
     // printf("\narg atan_ = %f + %fj", creal(temp/sqrt(x-y2)), cimag(temp/sqrt(x-y2)));
     // printf("\nout = %f + %fj\n\n", creal(*out), cimag(*out));
-
 
     return _SUCCESS_;
 }
@@ -1539,7 +1547,6 @@ int util_prefactor(
     // sqrt(-real + I*0.) = + I*sqrt(real)          -> correct
     m_y1_re = class_complex(-creal(y1),    0.);
     m_y2_re = class_complex(-creal(y2),    0.);
-
 
 
     // compute s(y1, y2) = sqrt(-y1)*sqrt(-y2)/sqrt(a*y1*y2)
@@ -1583,19 +1590,6 @@ int util_prefactor(
         result = sqrt(-y1)*sqrt(-y2)/sqrt(a*y1*y2);
     }
 
-    // check if real or imag part of the precator is close to zero (potential problem -0.0000)
-    // if (creal(result)<CHOP_TOL*fmax(1., cabs(result))){
-    //     if (cimag(result)<CHOP_TOL*fmax(1., cabs(result))){
-    //         result = class_complex(0., 0.);
-    //     } else if (cimag(result)>=CHOP_TOL*fmax(1., cabs(result))){
-    //         result = class_complex(0., cimag(result));
-    //     }
-    // } else if (creal(result)>=CHOP_TOL*fmax(1., cabs(result))){
-    //     if (cimag(result)<CHOP_TOL*fmax(1., cabs(result))){
-    //         result = class_complex(creal(result), 0.);
-    //     }
-    // }
-
     *out = result;
 
     return _SUCCESS_;
@@ -1627,14 +1621,6 @@ int util_F_int(
     // just for debugging
     double xsol_temp[2], scale=1.;
 
-    // new method with Alex
-    int n_branchpoints_new;
-    double mx, my, angle_y2, angle_x0, angle_xsol;
-    class_complex m, x0_new, y1_new, y2_new, arg_y1, rot_y1, xsol_new[2]; // _new refers to the new coordinate sytem which lies in the center of the circle and z_+ (y1_new lies on the branch cut of the log which is on the negative real axis)
-
-
-    xsol_temp[0] = 0;
-    xsol_temp[1] = 0;
 
     CHOP_TOL = 1.e-10;
 
@@ -1649,14 +1635,13 @@ int util_F_int(
     // initialize values for the lists that information on the branch cuts.
     // branch cut crossings can only occur between 0 and 1, so the value -1 indicates no branch cut crossing
     for (idx = 0; idx<2; idx++){
+        xsol_temp[idx] = 0;
         xsol[idx] = -1.;
         xbranch[idx] = -1.;
-        xsol_new[idx] = class_complex(0., 0.);
     }
 
     // initialize number of branch cut crossings
     n_branchpoints = 0;
-    n_branchpoints_new = 0;
 
     // split y1, y2, and x0 into real and imag parts
     y1_re = creal(y1);
@@ -1690,26 +1675,6 @@ int util_F_int(
     b = -x0_im2*y1_im + x0_im*y1_im2+x0_im2*y2_im-y1_im2*y2_im-x0_im*y2_im2+y1_im*y2_im2-y1_im*x0_re2+y2_im*x0_re2+x0_im*y1_re2-y2_im*y1_re2-x0_im*y2_re2+y1_im*y2_re2;
     c = y1_im2*y2_im*x0_re - y1_im*y2_im2*x0_re-x0_im2*y2_im*y1_re + x0_im*y2_im2*y1_re-y2_im*x0_re2*y1_re + y2_im*x0_re*y1_re2 + x0_im2*y1_im*y2_re-x0_im*y1_im2*y2_re+y1_im*x0_re2*y2_re-x0_im*y1_re2*y2_re-y1_im*x0_re*y2_re2+x0_im*y1_re*y2_re2;
 
-    mx = -0.5*b/a;
-    my = -0.5*c/a;
-    m = class_complex(mx, my);
-
-    x0_new = x0 - m;
-    y1_new = y1 - m;
-    y2_new = y2 - m;
-
-    rot_y1 = cabs(y1_new)/y1_new;
-    
-    // arg_y1 = log(y1/cabs(y1));
-
-
-    x0_new = - x0_new * rot_y1; // exp(-arg_y1);
-    y1_new = - y1_new * rot_y1; // exp(-arg_y1);
-    //printf("\ntest y1_new = %f + %fj", creal(y1_new), cimag(y1_new));
-    y2_new = - y2_new * rot_y1; // exp(-arg_y1);
-
-    angle_y2 = cimag(log(y2_new/cabs(y2_new)));
-    angle_x0 = cimag(log(x0_new/cabs(x0_new)));
 
     // case B=0 <=> 0 < x0_re < 1 and x0_im=0 <=> branch cut crossing at the boundary of the branch cut
     // determine the sign of the extra contribution by taking the derivative of the argument of arctan
@@ -1767,14 +1732,6 @@ int util_F_int(
             scale = fmax(1., cabs(y1)*cabs(y1));
             scale = fmax(scale, cabs(y2)*cabs(y2));
             scale = fmax(scale, cabs(x0)*cabs(x0));
-            // if (cabs(atan_arg)>1. && abs(creal(atan_arg))<scale*CHOP_TOL){
-
-            // ----------------------------------- NEW METHOD -----------------------------------
-            xsol_new[idx] = -(class_complex(xsol[idx], 0.) - m)*rot_y1;
-            angle_xsol = cimag(log(xsol_new[idx]/cabs(xsol_new[idx])));
-            if (fmin(angle_x0, angle_y2) < angle_xsol && angle_xsol < fmax(angle_x0, angle_y2)){
-                 n_branchpoints_new +=1; 
-            }
             if (cabs(atan_arg)>1. && abs(creal(atan_arg))<scale*CHOP_TOL){
                 n_branchpoints += 1;
             } else {
@@ -1919,14 +1876,9 @@ int util_Tmaster_contr(
     class_complex Num0, R1, R0, S1, S1_overk22, S0, DiscS_sqrt, DiscR_sqrt, solS1, solS2, solR1, solR2, c1, c2, Fint_temp1, Fint_temp2;
     double Num1, R2, S2, k1, k2, k3, k14, k24, k34, CHOP_TOL;
 
-    class_complex R1_overk32, R1_overk12, tmp_disc1, tmp_disc1_overk22, DiscR_sqrt_overk32, DiscR_sqrt_overk12, DiscS_sqrt_overk22, Num0_overk22;
-    double S2_overk22, Num1_overk22;
-
-
     // antiderivative of the master integral integrand in y 
     
     CHOP_TOL = 1.e-14;
-
 
     k1 = sqrt(k12);
     k2 = sqrt(k22);
@@ -1936,45 +1888,21 @@ int util_Tmaster_contr(
     k34 = k32*k32;
 
     // ---------------- Eq. 5.79 ----------------
-    // N_1, N_0
-    // Num1 = 4.*k22*y+2.*k12-2.*k22-2.*k32;
-    // Num0 = -4.*k22*y+2.*M2-2.*M3+2.*k22;
-
-    // R_2, R_1, R_0
-    // R2 = -k12*y+k32*y-k32;
-    // R1 = -M2*y+M3*y+k12*y-k32*y+M1-M3+k32;
-    // R0 = M2*y-M3*y+M3;
-
     // implement these formulas separately to avoid minimize erros
     if (y==0){
         R2 = -k32;
         R1 = M1-M3+k32;
         R0 = M3;
 
-        DiscR_sqrt_overk32 = sqrt((1. + (M1 - M3)/k32)*(1. + (M1 - M3)/k32) + 4.*M3/k32);
-        R1_overk32 = (M1-M3)/k32 + 1.;
-        solR1 = -0.5*(-R1_overk32 + DiscR_sqrt_overk32);                 // z_+
-        solR2 = -0.5*(-R1_overk32 - DiscR_sqrt_overk32);                 // z_-
-
         Num1 = 2.*(k12-k22-k32);
         Num0 = 2.*(M2-M3+k22);
-
-        Num1_overk22 = 2.*(k12/k22 - 1. - k32/k22);
-        Num0_overk22 = 2.*((M2-M3)/k22 + 1.);
     } else if (y==1){
         R2 = -k12;
         R1 = M1-M2+k12;
         R0 = M2;
-        DiscR_sqrt_overk12 = sqrt((1. + (M1 - M2)/k12)*(1. + (M1 - M2)/k12) + 4.*M2/k12);
-        R1_overk12 = (M1-M2)/k12 + 1.;
-        solR1 = -0.5*(-R1_overk12 + DiscR_sqrt_overk12);                 // z_+
-        solR2 = -0.5*(-R1_overk12 - DiscR_sqrt_overk12);                 // z_-
 
         Num1 = 2.*(k12+k22-k32);
         Num0 = 2.*(M2-M3-k22);
-
-        Num1_overk22 = 2.*(k12/k22 + 1. - k32/k22);
-        Num0_overk22 = 2.*((M2-M3)/k22 - 1.);
     } else {
         printf("Error in util_Tmaster_contr. Case not considered. y=%d",y);
     }
@@ -1985,20 +1913,9 @@ int util_Tmaster_contr(
     S1 = -4.*M1*k22-2.*M2*k12+2.*M2*k22+2.*M2*k32+2.*M3*k12+2.*M3*k22-2.*M3*k32-2.*k12*k22+2.*k24-2.*k22*k32;
     S0 = -M2*M2+2.*M2*M3-2.*M2*k22-M3*M3-2.*M3*k22-k24;
 
-    S2_overk22 = -k12/k22 *k12+2.*k12+2.*k12/k22*k32-k22+2.*k32-k32/k22 *k32;
-    S1_overk22 = -4.*M1-2.*M2*k12/k22+2.*M2+2.*M2*k32/k22+2.*M3*k12/k22+2.*M3-2.*M3*k32/k22-2.*k12+2.*k22-2.*k32;
-
     // Diakr(a,b,c)= b^2 - 4*a*c -> defined after ---------------- Eq. 5.94 ----------------
     // Sqrt of Diakr
-
-    // DiscS_sqrt = sqrt(S1*S1 - 4.*S2*S0); // Old implementation 
-
-    // New implementation -> does the same thing, hoping that is has better numerical precision
-    tmp_disc1 = -k24 + k22*(k32 + 2.*M1 - M2 - M3) + k12*(k22 + M2 - M3) + k32*(-M2 + M3);
-    tmp_disc1_overk22 = -k22 + k32 + k12 + 2.*M1 - M2 - M3 + k12/k22*(M2 - M3) + k32/k22*(-M2 + M3);
-    DiscS_sqrt = 2.*sqrt(tmp_disc1*tmp_disc1 - (k1 - k2 - k3)*(k1 + k2 - k3)*(k1 - k2 + k3)*(k1 + k2 + k3)*(k24 + (M2 - M3)*(M2 - M3) + 2.*k22*(M2 + M3)));
-    DiscS_sqrt_overk22 = 2.*sqrt(tmp_disc1_overk22*tmp_disc1_overk22 - (k1/k2 - 1. - k3/k2) * (k1/k2 + 1. - k3/k2) * (k1/k2 - 1. + k3/k2) * (k1/k2 + 1. + k3/k2)*(k24 + (M2 - M3)*(M2 - M3) + 2.*k22*(M2 + M3)));
-
+    DiscS_sqrt = sqrt(S1*S1 - 4.*S2*S0);
 
     if (cabs(DiscS_sqrt)<CHOP_TOL){
         printf("\nERROR in util_Tmaster_contr: DiscS_sqrt=%.10f + %.10fj\n", creal(DiscS_sqrt), cimag(DiscS_sqrt));
@@ -2014,13 +1931,16 @@ int util_Tmaster_contr(
     // ---------------- Eq. 5.80 ----------------
     // solS1 and solS2 are the solution of 
     // DeltaS2*x^2 + DeltaS1*x + DeltaS0 = 0
-    solS1 = 0.5*(-S1_overk22+DiscS_sqrt_overk22)/S2_overk22;                // x_+
-    solS2 = 0.5*(-S1_overk22-DiscS_sqrt_overk22)/S2_overk22;                  // x_-
+    solS1 = 0.5*(-S1 + DiscS_sqrt)/S2;              // x_+
+    solS2 = 0.5*(-S1 - DiscS_sqrt)/S2;              // x_-
 
-    c2 = -(Num1_overk22*solS2 + Num0_overk22)/DiscS_sqrt_overk22;                    // c1
-    c1 =  (Num1_overk22*solS1 + Num0_overk22)/DiscS_sqrt_overk22;                        // c2
+    c2 = -(Num1*solS2 + Num0)/DiscS_sqrt;           // c1
+    c1 =  (Num1*solS1 + Num0)/DiscS_sqrt;           // c2
         
-    DiscR_sqrt = sqrt(R1*R1 - 4.*R2*R0);    // sqrt( DeltaR1^2 - 4*DeltaR2*DeltaR0 )
+    DiscR_sqrt = sqrt(R1*R1 - 4.*R2*R0);            // sqrt( DeltaR1^2 - 4*DeltaR2*DeltaR0 )
+
+    solR1 = 0.5*(-R1+DiscR_sqrt)/R2;                // z_+
+    solR2 = 0.5*(-R1-DiscR_sqrt)/R2;                // z_-
 
     if (cabs(DiscR_sqrt)<CHOP_TOL){
         printf("\nERROR in util_Tmaster_contr: DiscR_sqrt=0\n");
@@ -2030,12 +1950,9 @@ int util_Tmaster_contr(
     }
 
 
-    // solR1 = 0.5*(-R1+DiscR_sqrt)/R2;                 // z_+
-    // solR2 = 0.5*(-R1-DiscR_sqrt)/R2;                 // z_-
 
     // ---------------- Eq. 5.82 ----------------
     if (cabs(c1) < CHOP_TOL){
-        //printf("\nClass call util_F_int for the case cabs(c1) < CHOP_TOL, cabs(c1) = %f", cabs(c1));
         class_call(util_F_int(pti,
                               R2,
                               solR1,
@@ -2049,7 +1966,6 @@ int util_Tmaster_contr(
         return _SUCCESS_;
 
     } else if (cabs(c2) < CHOP_TOL){
-        //printf("\nClass call util_F_int for the case cabs(c2) < CHOP_TOL, cabs(c2) = %f", cabs(c2));
         class_call(util_F_int(pti,
                               R2,
                               solR1,
@@ -2063,7 +1979,6 @@ int util_Tmaster_contr(
         return _SUCCESS_;
 
     } else {
-        //printf("\n\nRegaular Class call util_F_int");
         class_call(util_F_int(pti,
                               R2,
                               solR1,
@@ -2073,7 +1988,6 @@ int util_Tmaster_contr(
                     pti->error_message,
                     pti->error_message);
 
-        //printf("\n\nRegaular Class call util_F_int");
         class_call(util_F_int(pti,
                               R2,
                               solR1,

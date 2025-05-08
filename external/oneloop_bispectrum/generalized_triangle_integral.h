@@ -1,4 +1,3 @@
-// TODO: maybe remove
 #include <stdio.h>
 #include <math.h>
 
