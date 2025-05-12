@@ -2049,7 +2049,7 @@ int fourier_B_ell_tree_at_k_and_z(
   if (use_IR_resum==0){
     class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
     class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message); 
+    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message);
   } 
   else if (use_IR_resum==1){
     class_test(pfo->has_pk_nw == _FALSE_, 
@@ -2125,14 +2125,6 @@ int fourier_B_ell_tree_at_k_and_z(
         P1 = P_nw_1 + P_w_1 * exp(-k1*k1*Sigma2_total_mu1);
         P2 = P_nw_2 + P_w_2 * exp(-k2*k2*Sigma2_total_mu2);
         P3 = P_nw_3 + P_w_3 * exp(-k3*k3*Sigma2_total_mu3);
-
-        // vec1[0].mu = mu1;
-        // vec2[0].mu = mu2;
-        // vec3[0].mu = mu3;
-
-        // class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, linear, vec1, vec_size, z, f, pfo->index_pk_cluster, sigma2_ir_at_z, dsigma2_ir_at_z, &P1), pfo->error_message, pfo->error_message);
-        // class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, linear, vec2, vec_size, z, f, pfo->index_pk_cluster, sigma2_ir_at_z, dsigma2_ir_at_z, &P2), pfo->error_message, pfo->error_message);
-        // class_call(eft_ir_pk_rsd_lo(pba, ppm, pfo, linear, vec3, vec_size, z, f, pfo->index_pk_cluster, sigma2_ir_at_z, dsigma2_ir_at_z, &P3), pfo->error_message, pfo->error_message);
       }
 
       if (l==0) {

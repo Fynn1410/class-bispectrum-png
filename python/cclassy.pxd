@@ -1242,6 +1242,22 @@ cdef extern from "power_spectrum_fit.h":
     cdef struct ps_fit:
         ErrorMsg error_message
 
+    int B321_real(
+                void *ppf,
+                void *pti,
+                void *pba,
+                void * ppm,
+                void *pfo,
+                int N_fit,
+                double kmin_fit,
+                double kmax_fit,
+                double k1,
+                double k2,
+                double k3,
+                double z,
+                double *B_out
+                )
+
     int pfit_coeffs(void *ppf,
                     void *pba,
                     void *ppm,

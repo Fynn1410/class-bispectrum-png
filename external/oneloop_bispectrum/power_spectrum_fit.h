@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 #include "../../include/carray.h"
 #include "../../include/common.h"
@@ -21,6 +22,20 @@ struct ps_fit
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    int B321_real(struct ps_fit *ppf,
+                  struct gen_tri_integral *pti,
+                  struct background *pba,
+                  struct primordial * ppm,
+                  struct fourier *pfo,
+                  int N_fit,
+                  double kmin_fit,
+                  double kmax_fit,
+                  double k1,
+                  double k2,
+                  double k3,
+                  double z,
+                  double *B_out);
 
     int pfit_massive_propagator(struct ps_fit *ppf,
                                 struct gen_tri_integral *pti,
@@ -54,12 +69,8 @@ extern "C" {
                                 int N,
                                 double *alpha);
     
-    int util_compute_K(struct ps_fit *ppf);
-
-    int util_binomial_tmp(struct ps_fit *ppf,
-                          int n,
-                          int k,
-                          double *n_over_k);
+    int util_compute_K(struct ps_fit *ppf,
+                       struct gen_tri_integral *pti);
 
 #ifdef __cplusplus
 }

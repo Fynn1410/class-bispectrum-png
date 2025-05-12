@@ -1670,6 +1670,13 @@ cdef class Class:
 
         return Cd_out
 
+    def get_B321_real(self, int N_fit, double kmin, double kmax, double k1, double k2, double k3, double z):
+        cdef double B_out
+
+        if B321_real(&self.pf, &self.ti, &self.ba, &self.pm, &self.fo, N_fit, kmin, kmax, k1, k2, k3, z, &B_out)==_FAILURE_:
+            raise CosmoSevereError("error while calling external module OneLoop_Bispectrum: B321_real")
+
+        return B_out
 
     def get_P_nw(self, float k, float z):
         """

@@ -20,19 +20,135 @@ static const double k2_peak[5] = {0., -3.4e-2, -1e-3, -7.6e-5, -1.56e-5};       
 static const int D = 17;
 static const int K_size = 5;
 
-static const int index_UV[D] = {0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4};
-static const int index_Kj[D] = {1, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 4, 5, 1, 2, 3, 4};
-static const int index_alpha[D] = {0, 0, 0, 0, 4, 4, 4, 4, 8, 8, 8, 8, 8, 12, 12, 12, 12};
-static const int index_exp_k[D] = {1, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 4, 5, 1, 2, 3, 4};
-static const int index_Ki[D] = {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1};
-static const int index_loop_lower[D] = {0, 1, 2, 3, 0, 1, 2, 3, 0, 0, 1, 2, 3, 0, 1, 2, 3};
+static const int index_UV[D]        = {0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4};
+static const int index_alpha[D]     = {0, 0, 0, 0, 4, 4, 4, 4, 8, 8, 8, 8, 8, 12, 12, 12, 12};
+static const int index_exp_prop[D]  = {1, 1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 4, 5, 1, 2, 3, 4};
+static const int index_exp_k2[D]    = {0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static const int index_Ki[D]        = {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1};
+static const int index_loop_low[D]  = {0, 1, 2, 3, 0, 1, 2, 3, 0, 0, 1, 2, 3, 0, 1, 2, 3};
 
 // Indices that are used to compute the power spectrum expansion in fitting functions f_n
 static const int N = 16; // number of terms in the fitting function of the power spectrum
 
-static const int index_exp_num[N] = {0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
-static const int index_exp_den[N] = {1, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 1, 2, 3, 4};
-static const int group_idx[N]   = {0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4};
+static const int index_exp_num[N]   = {0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+static const int index_exp_den[N]   = {1, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 1, 2, 3, 4};
+static const int group_idx[N]       = {0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4};
+
+
+
+// ************************************************************************************************
+// Testing for bispectrum loops -> will be removed later or moved to the bispectrum.c file
+// ************************************************************************************************
+
+
+/** B_321 = 6*P_lin(k3) * int_q F3(q_vec, -q_vec-k2_vec, -k1_vec) * F2(-q_vec, k2_vec+q_vec) * P_fit(q) * P_fit(|q_vec + k2_vec|) + perm
+ * @param ppf           Input: pointer to ps_fit structure
+ * @param pti           Input: pointer to gen_tri_integral structure
+ * @param pba           Input: pointer to background structure
+ * @param ppm           Input: pointer to primordial structure
+ * @param pfo           Input: pointer to fourier structure
+ * @param N_fit         Input: number of fitting points
+ * @param k_min         Input: lower limit of fitting region
+ * @param k_max         Input: upper limit of fitting region
+ * @param z             Input: redshift z
+ * @param C_out         Output: double pointer (matrix) which contains all the 
+ *                            information for the linear matter power spectrum fit
+ * @return the error status
+*/
+
+int B321_real(
+              struct ps_fit *ppf,
+              struct gen_tri_integral *pti,
+              struct background *pba,
+              struct primordial * ppm,
+              struct fourier *pfo,
+              int N_fit,
+              double kmin_fit,
+              double kmax_fit,
+              double k1,
+              double k2,
+              double k3,
+              double z,
+              double *B_out
+              ){
+    class_complex *C_d, C_dj, term, Mi, Mj, k12c, k22c;
+    double res, h, h2;
+    int i, j, m, idx_exp, idx_M, idx_k2, idx_j;
+    
+    h = pba->h;
+    h2 = h*h;
+
+    class_alloc(C_d, D*sizeof(class_complex),
+                ppf->error_message);
+
+    class_call(pfit_massive_propagator(ppf,
+                                       pti,
+                                       pba,
+                                       ppm,
+                                       pfo,
+                                       N_fit,
+                                       kmin_fit,
+                                       kmax_fit,
+                                       z,
+                                       C_d),
+                ppf->error_message,
+                ppf->error_message);
+    
+
+    k12c = class_complex(k1*k1, 0.);
+    k22c = class_complex(k2*k2, 0.);
+    term = class_complex(0., 0.);
+    //for (i=0; i<2*D-1; i++){
+    //    for (j=0; j<D; j++){
+    //        if (i>=17){
+    //            term += C_d[j]*conj(C_d[i]) * ;
+    //        } else {
+    //            term += C_d[j]*C_d[i];
+    //        }
+    //    }
+    //}
+
+
+    for (i=0; i<D; i++){
+        if (i==0){
+            Mi = class_complex(k2_UV[index_UV[i]]*h2, 0.);
+        } else {
+            Mi = class_complex(-k2_peak[index_UV[i]]*h2, k2_UV[index_UV[i]]*h2);
+        }
+        
+        for (j=0; j<2*D; j++){
+            if (j<D){
+                idx_j = j;
+                C_dj = C_d[j];
+
+                if (idx_j==0){
+                    Mj = class_complex(k2_UV[index_UV[j]]*h2, 0.);
+                } else {
+                    Mj = class_complex(-k2_peak[index_UV[j]]*h2, k2_UV[index_UV[j]]*h2);
+                }
+            } else {
+                idx_j = j-D;
+                C_dj = conj(C_d[idx_j]);
+                
+                if (idx_j==0){
+                    Mj = class_complex(k2_UV[index_UV[idx_j]]*h2, 0.);
+                } else {
+                    Mj = class_complex(-k2_peak[index_UV[idx_j]]*h2, -k2_UV[index_UV[idx_j]]*h2);
+                }
+            }  
+            term += C_d[i] * C_dj * pow(k12c, index_exp_k2[i]) * pow(k22c, index_exp_k2[idx_j]) / pow( k12c +  Mi, index_exp_prop[i]) / pow( k22c +  Mj, index_exp_prop[idx_j]);
+        }
+
+    }
+
+
+
+    res = 2.*creal(term);
+
+
+    *B_out = res;
+    return _SUCCESS_;
+}
 
 
 // ************************************************************************************************
@@ -97,25 +213,26 @@ int pfit_massive_propagator(
                 ppf->error_message);
 
     // procompute the coeffs K[n][l]
-    class_call(util_compute_K(ppf),
+    class_call(util_compute_K(ppf, pti),
                 pti->error_message,
                 ppf->error_message);
 
 
     // special case
-    C_out[0] = alpha[0] * k2_UV[0]*h2;
+    // 0.5 since we take 2 Re() in the end, but the first term is completely real
+    C_out[0] = 0.5 * alpha[0] * k2_UV[0]*h2;
 
     // compute C_d coeffs for all other cases
     for (i=1; i<D; i++){
         term = class_complex(0., 0.);
         idx_UV = index_UV[i];
-        idx_exp = index_exp_k[i];
-        idx_ll = index_loop_lower[i];
+        idx_exp = index_exp_prop[i] - index_exp_k2[i];
+        idx_ll = index_loop_low[i];
 
         for (j=idx_ll; j<=3; j++){
             idx_alpha = index_alpha[i] + j;
             idx_Ki = j + index_Ki[i] - 1;
-            idx_Kj = index_Kj[i] - 1;
+            idx_Kj = index_exp_prop[i] - 1;
             term += alpha[idx_alpha] * ppf->K_coeff[idx_Ki][idx_Kj] * pow(k2_UV[idx_UV]*h2, idx_exp);
         }
         C_out[i] = term;
@@ -394,7 +511,7 @@ int util_matrix_vector_prod(
  * @return the error status
  */
 
- int util_compute_K(struct ps_fit *ppf) {
+ int util_compute_K(struct ps_fit *ppf, struct gen_tri_integral *pti) {
     class_complex K0;
     double sign, tmp_bin;
     int i, j;
@@ -417,10 +534,9 @@ int util_matrix_vector_prod(
     for (i = 1; i <= K_size; i++) {
         for (j = 1; j <= i; j++) {
             // get binomial coeff
-            // TODO: this should be a class_call using util_binomial from the generalized_triangle_integral.c file
-            class_call(util_binomial_tmp(ppf, 2*i - j - 1, i - j, &tmp_bin),
-                       ppf->error_message,
-                       ppf->error_message);
+            class_call(util_binomial(pti, 2*i - j - 1, i - j, &tmp_bin),
+                        pti->error_message,
+                        ppf->error_message);
             
             sign = ((i - j) % 2 == 0) ? 1. : -1.;
 
@@ -428,39 +544,5 @@ int util_matrix_vector_prod(
         }
     }
 
-    return _SUCCESS_;
-}
-
-
-
-// TODO: remove this
-
-/** Calculate binomial coefficients n over k
- * @param n                     Input: integer
- * @param k                     Input: integer
- * @param n_over_k              Output: pointer to output value
- * @return the error status
- */
-
-int util_binomial_tmp(
-                    struct ps_fit *ppf,
-                    int n,
-                    int k,
-                    double *n_over_k
-                    ){
-
-    int i, j;
-    int C[n + 1][k + 1];
-
-    for (i = 0; i <= n; i++) {
-        for (j = 0; j <= k && j <= i; j++) {
-            if (j == 0 || j == i)
-                C[i][j] = 1;
-            else
-                C[i][j] = C[i - 1][j - 1] + C[i - 1][j];
-        }
-    }
-
-    *n_over_k = C[n][k]; 
     return _SUCCESS_;
 }
