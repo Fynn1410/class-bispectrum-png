@@ -480,6 +480,30 @@ int fourier_B_ell_tree_at_k_and_z(
                                   double * B_l
                                   );
 
+int fourier_B_ell_tree_AP_at_karray_and_zarray(
+                                               struct background *pba,
+                                               struct primordial * ppm,
+                                               struct fourier * pfo,
+                                               enum linear_or_logarithmic mode,
+                                               int use_IR_resum,
+                                               int index_pk,
+                                               double * b1,
+                                               double * b2,
+                                               double * bG2,
+                                               double * d1,
+                                               double * d2,
+                                               double * d3,
+                                               double * P_eps,
+                                               double * karray,
+                                               int n_triangles,
+                                               double * zarray,
+                                               int z_size,
+                                               int l,
+                                               double * q_perp_array, 
+                                               double * q_parr_array,
+                                               double * B_l 
+                                               );
+
   /* internal functions */
 
   int fourier_init(
@@ -828,6 +852,30 @@ int fourier_B_ell_tree_at_k_and_z(
                                 double x2,
                                 double * Tt0
                                 );
+
+  int fourier_B_ell_tree_AP_at_k_and_z(
+                                       struct background *pba,
+                                       struct primordial * ppm,
+                                       struct fourier * pfo,
+                                       enum linear_or_logarithmic mode,
+                                       int use_IR_resum,
+                                       int index_pk,
+                                       double b1,
+                                       double b2,
+                                       double bG2,
+                                       double d1,
+                                       double d2,
+                                       double d3,
+                                       double P_eps,
+                                       double k1,
+                                       double k2,
+                                       double k3,
+                                       int l,
+                                       double z,
+                                       double q_perp,
+                                       double q_parr,
+                                       double * B_l
+                                       );
 
 #ifdef __cplusplus
 }

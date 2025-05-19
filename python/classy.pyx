@@ -1462,6 +1462,74 @@ cdef class Class:
         
         return B0, B2, B4, B0_Fynn, B2_Fynn, B4_Fynn, k1_arr, k2_arr, k3_arr
 
+    def bispectrum_treelevel_multipoles_AP(self, 
+                                           int use_IR_resum, 
+                                           np.ndarray[DTYPE_t,ndim=1] b1, 
+                                           np.ndarray[DTYPE_t,ndim=1] b2, 
+                                           np.ndarray[DTYPE_t,ndim=1] bG2, 
+                                           np.ndarray[DTYPE_t,ndim=1] d1, 
+                                           np.ndarray[DTYPE_t,ndim=1] d2, 
+                                           np.ndarray[DTYPE_t,ndim=1] d3, 
+                                           np.ndarray[DTYPE_t,ndim=1] P_eps, 
+                                           np.ndarray[DTYPE_t,ndim=2] karray, 
+                                           np.ndarray[DTYPE_t,ndim=1] zarray, 
+                                           int l_max, 
+                                           np.ndarray[DTYPE_t,ndim=1] q_perp, 
+                                           np.ndarray[DTYPE_t,ndim=1] q_parr):
+
+        # get n_triangles and z_size                                    
+        cdef int n_triangles = karray.shape[0], z_size = zarray.shape[0]
+
+        # get raw pointers to the first elements of the arrays:
+        cdef double *b1_vals = &b1[0]
+        cdef double *b2_vals = &b2[0]
+        cdef double *bG2_vals = &bG2[0]
+        cdef double *d1_vals = &d1[0]
+        cdef double *d2_vals = &d2[0]
+        cdef double *d3_vals = &d3[0]
+        cdef double *P_eps_vals = &P_eps[0]
+        cdef double *k_vals = &karray[0,0]
+        cdef double *z_vals = &zarray[0]
+        cdef double *q_perp_vals = &q_perp[0]
+        cdef double *q_parr_vals = &q_parr[0]
+
+        # allocate output buffer
+        B_l = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
+        cdef np.ndarray[DTYPE_t, ndim=2] B_ell = np.empty((z_size, n_triangles), dtype=np.double, order="C")
+        cdef double *B_ell_vals = &B_ell[0, 0]
+
+        cdef int il, ell
+        for il in range(l_max//2+1):
+            ell = 2*il
+            if fourier_B_ell_tree_AP_at_karray_and_zarray(
+                                                          &self.ba,
+                                                          &self.pm,
+                                                          &self.fo,
+                                                          linear,
+                                                          use_IR_resum,
+                                                          self.fo.index_pk_m,
+                                                          b1_vals,
+                                                          b2_vals,
+                                                          bG2_vals,
+                                                          d1_vals,
+                                                          d2_vals,
+                                                          d3_vals,
+                                                          P_eps_vals,
+                                                          k_vals,
+                                                          n_triangles,
+                                                          z_vals,
+                                                          z_size,
+                                                          ell,
+                                                          q_perp_vals, 
+                                                          q_parr_vals,
+                                                          B_ell_vals 
+                                                          )==_FAILURE_:
+                raise CosmoSevereError(self.fo.error_message)
+
+            B_l[:, il, :] = B_ell
+
+        return B_l
+
     
     def powerspectrum_comparison_Dennis(self, str data_file_name, int limit_low, int limit_up, double z):
         cdef int alloc_mem_size=limit_up-limit_low, counter=0, idx=0, 
