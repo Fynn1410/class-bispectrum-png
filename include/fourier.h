@@ -446,6 +446,7 @@ extern "C" {
                                 double d2,
                                 double d3,
                                 double P_eps,
+                                double c1_FoG,
                                 double k1,
                                 double k2,
                                 double k3,
@@ -472,6 +473,7 @@ int fourier_B_ell_tree_at_k_and_z(
                                   double d2,
                                   double d3,
                                   double P_eps,
+                                  double c1_FoG,
                                   double k1,
                                   double k2,
                                   double k3,
@@ -494,6 +496,7 @@ int fourier_B_ell_tree_AP_at_karray_and_zarray(
                                                double * d2,
                                                double * d3,
                                                double * P_eps,
+                                               double * c1_FoG,
                                                double * karray,
                                                int n_triangles,
                                                double * zarray,
@@ -566,8 +569,10 @@ int fourier_B_ell_tree_AP_at_karray_and_zarray(
   int fourier_kernel_Z1(
                         double f,
                         double b1,
+                        double k,
                         double mu,
-                        double * K1
+                        double c1_FoG,
+                        double * Z1
                         );
 
   int fourier_kernel_Z2(
@@ -581,7 +586,7 @@ int fourier_B_ell_tree_AP_at_karray_and_zarray(
                         double k3,
                         double mu1,
                         double mu2,
-                        double * K2
+                        double * Z2
                         );
 
   int fourier_B_tree_det(
@@ -867,6 +872,7 @@ int fourier_B_ell_tree_AP_at_karray_and_zarray(
                                        double d2,
                                        double d3,
                                        double P_eps,
+                                       double c1_FoG,
                                        double k1,
                                        double k2,
                                        double k3,

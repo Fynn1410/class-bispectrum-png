@@ -1266,7 +1266,7 @@ cdef class Class:
 
     #################################
 
-    def bk_lin(self, use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, double k1, double k2, double k3, double mu1, double mu2, double z):
+    def bk_lin(self, use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, double c1_FoG, double k1, double k2, double k3, double mu1, double mu2, double z):
         """
         Gives the linear galaxy bispectrum pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
@@ -1285,12 +1285,12 @@ cdef class Class:
         Pk2 = self.pk(k2, z)
         Pk3 = self.pk(k3, z)
 
-        if fourier_B_tree_at_k_and_z(&self.fo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, Pk1, Pk2, Pk3, z, &bk_lin)==_FAILURE_:
+        if fourier_B_tree_at_k_and_z(&self.fo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, c1_FoG, k1, k2, k3, mu1, mu2, Pk1, Pk2, Pk3, z, &bk_lin)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return bk_lin
 
-    def bk_lin_multipoles(self, use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, double k1, double k2, double k3, int l, double z):
+    def bk_lin_multipoles(self, use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, double c1_FoG, double k1, double k2, double k3, int l, double z):
         """
         Gives the multipoles for m=0 and variable l of the linear galaxy bispectrum pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
@@ -1305,177 +1305,28 @@ cdef class Class:
         if (self.fo.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You need it to get the galaxy bispectrum.")
 
-        if fourier_B_ell_tree_at_k_and_z(&self.ba, &self.pm, &self.fo, linear, use_IR_resum, self.fo.index_pk_m, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, l, z, &bk_lin_l)==_FAILURE_:
+        if fourier_B_ell_tree_at_k_and_z(&self.ba, &self.pm, &self.fo, linear, use_IR_resum, self.fo.index_pk_m, b1, b2, bG2, d1, d2, d3, P_eps, c1_FoG, k1, k2, k3, l, z, &bk_lin_l)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return bk_lin_l
 
-    def get_bk_lin_k_fast(self, use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, double k_min, double k_max, double mu_min, double mu_max, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int mu_size, int z_size):
-        """
-        This function might be useful for the Montepython implementation, if not, it can be deleted
-        Fast function to get the linear Bispectrum on a k1, k2, k3,
-        mu1, mu2 and z array
+    def bispectrum_treelevel_multipoles_AP_FoG(self, 
+                                               int use_IR_resum, 
+                                               np.ndarray[DTYPE_t,ndim=1] b1, 
+                                               np.ndarray[DTYPE_t,ndim=1] b2, 
+                                               np.ndarray[DTYPE_t,ndim=1] bG2, 
+                                               np.ndarray[DTYPE_t,ndim=1] d1, 
+                                               np.ndarray[DTYPE_t,ndim=1] d2, 
+                                               np.ndarray[DTYPE_t,ndim=1] d3, 
+                                               np.ndarray[DTYPE_t,ndim=1] P_eps, 
+                                               np.ndarray[DTYPE_t,ndim=1] c1_FoG,
+                                               np.ndarray[DTYPE_t,ndim=2] karray, 
+                                               np.ndarray[DTYPE_t,ndim=1] zarray, 
+                                               int l_max, 
+                                               np.ndarray[DTYPE_t,ndim=1] q_perp, 
+                                               np.ndarray[DTYPE_t,ndim=1] q_parr):
 
-        use symmetries and triangle ineq. to reduce samples points (preliminary version)
-        """
-        cdef int k_volume= k_size*(k_size+1)*(k_size+2)//6
-        cdef int mu_area= mu_size*(mu_size+1)//2
-
-        cdef np.ndarray[DTYPE_t, ndim=2] bk = np.zeros((k_volume*mu_area, z_size),'float64')
-        cdef int index_k1, index_k2, index_k3, index_mu1, index_mu2, index_z, counter
-        cdef double k1, k2, k3, dlog_k, mu1, mu2, dlog_mu
-
-        dlog_k = np.log10(k_max/k_min) / k_size
-        dmu = (mu_max-mu_min) / mu_size
-
-        counter = 0
-        for index_k1 in range(k_size):
-            k1 = k_min*10**(dlog_k * index_k1)
-            for index_k2 in range(index_k1+1):
-                k2 = k_min*10**(dlog_k * index_k2)
-                for index_k3 in range(index_k2+1):
-                    k3 = k_min*10**(dlog_k * index_k3)
-                    # note: k1>=k2>=k3 -> check only one triangle inequality
-                    if k2+k3>k1:
-                        for index_mu1 in range(mu_size):
-                            mu1 = mu_min + mu_area * index_mu1
-                            for index_mu2 in range(index_mu1+1):
-                                mu2 = mu_min + mu_area * index_mu2
-                                for index_z in range(z_size):
-                                    bk[counter, index_z] = self.bk_lin(use_IR_resum, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, z[index_z])
-                                    counter += 1
-        print(f"counter/volume = {counter/(k_volume*mu_area)}")
-
-        return bk
-
-    def get_bk_lin_configs(self, use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, str type, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] mu, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int mu_size, int z_size):
-        """
-        Fast function to get the linear Bispectrum for specific configurations: equilateral, isosceles, squeezed
-        """
-        cdef np.ndarray[DTYPE_t, ndim=4] bk = np.zeros((k_size, mu_size, mu_size, z_size),'float64')
-        cdef int index_k, index_mu1, index_mu2, index_z
-        cdef double k3
-
-        for index_k in range(k_size):
-            # equilateral:
-            if type == "equi" or type == "equilateral":
-                k3 = k[index_k]
-            # isosceles:
-            elif type == "iso" or type == "isosceles":
-                k3 = k[index_k]/2.
-            # squeezed dk/k = 0.1
-            elif type == "squ" or type == "squeezed":
-                k3 = 0.1*k[index_k]
-            else:
-                raise CosmoSevereError(f"'{type}' is an invalid triangle type. Must be one of 'equi', 'equilateral', 'iso', 'isosceles', 'squ' or 'squeezed'.")
-
-            for index_mu1 in range(mu_size):
-                for index_mu2 in range(mu_size):
-                    for index_z in range(z_size):
-                        bk[index_k, index_mu1, index_mu2, index_z] = self.bk_lin(use_IR_resum, b1, b2, bG2, d1, d2, d3, P_eps, k[index_k], k[index_k], k3, mu[index_mu1], mu[index_mu2], z[index_z])
-        
-        return bk
-
-    def get_bk_lin_multipoles_configs(self, int use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, str type, np.ndarray[DTYPE_t,ndim=1] k, int l, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size):
-        """
-        Fast function to get the multipoles for m=0 and variable l of the linear Bispectrum for specific configurations: equilateral, isosceles, squeezed
-        """
-        cdef np.ndarray[DTYPE_t, ndim=2] bk_l = np.zeros((k_size, z_size),'float64')
-        cdef int index_k, index_z
-        cdef double k3
-
-        for index_k in range(k_size):
-            # equilateral B(k, k, k):
-            if type == "equi" or type == "equilateral":
-                k3 = k[index_k]
-            # isosceles B(k, k, k/2):
-            elif type == "iso" or type == "isosceles":
-                k3 = k[index_k]/2.
-            # squeezed dk/k = 0.1 B(k, k, dk)
-            elif type == "squ" or type == "squeezed":
-                k3 = 0.1*k[index_k]
-            else:
-                raise CosmoSevereError(f"'{type}' is an invalid triangle type. Must be one of 'equi', 'equilateral', 'iso', 'isosceles', 'squ' or 'squeezed'.")
-
-            for index_z in range(z_size):
-                bk_l[index_k, index_z] = self.bk_lin_multipoles(use_IR_resum, b1, b2, bG2, d1, d2, d3, P_eps, k[index_k], k[index_k], k3, l, z[index_z])
-        
-        return bk_l
-
-    def bispectrum_comparison_Dennis(self, str data_file_name, int limit_low, int limit_up, int use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, double z, str mode):
-        cdef int alloc_mem_size=limit_up-limit_low, counter=0, idx=0, 
-        cdef double k1, k2, k3
-
-        cdef np.ndarray[DTYPE_t, ndim=1] B0 = np.zeros(alloc_mem_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] B2 = np.zeros(alloc_mem_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] B4 = np.zeros(alloc_mem_size,'float64')
-
-        cdef np.ndarray[DTYPE_t, ndim=1] B0_Fynn = np.zeros(alloc_mem_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] B2_Fynn = np.zeros(alloc_mem_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] B4_Fynn = np.zeros(alloc_mem_size,'float64')
-
-        cdef np.ndarray[DTYPE_t, ndim=1] k1_arr = np.zeros(alloc_mem_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] k2_arr = np.zeros(alloc_mem_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] k3_arr = np.zeros(alloc_mem_size,'float64')
-        
-        cdef bint bool_mode = True
-
-        with open(data_file_name, 'r') as file:
-            for line in file:
-                if counter<=limit_low or counter>limit_up:
-                    counter+=1
-                    continue
-                
-                cols = line.strip().split()
-                
-                if mode=="equi":
-                    # equi k1=k2=k3
-                    bool_mode = int(cols[0]) == int(cols[1]) and int(cols[1]) == int(cols[2])
-                elif mode=="iso":
-                    # iso k1=k2=2*k3
-                    bool_mode = (int(cols[0]) == int(cols[1]) and int(cols[1]) == 2 *int(cols[2])) or (int(cols[2]) == int(cols[0]) and int(cols[0]) == 2 *int(cols[1])) or (int(cols[1]) == int(cols[2]) and int(cols[2]) == 2 *int(cols[0]))
-                elif mode == "squeezed":
-                    #squeezd k1=k2=5*k3
-                    bool_mode = (int(cols[0]) == int(cols[1]) and int(cols[1]) == 5 *int(cols[2])) or (int(cols[2]) == int(cols[0]) and int(cols[0]) == 5 *int(cols[1])) or (int(cols[1]) == int(cols[2]) and int(cols[2]) == 5 *int(cols[0]))
-                elif mode == "squeezed_2":
-                    # Squeezed different version: k1=k2, k3=k_f <=> nk1=nk2, nk3=1
-                    bool_mode = (int(cols[0]) == int(cols[1]) and int(cols[2]) == 1) or (int(cols[1]) == int(cols[2]) and int(cols[0]) == 1) or (int(cols[2]) == int(cols[0]) and int(cols[1]) == 1)
-                if bool_mode:
-                    k1 = float(cols[3])*self.ba.h
-                    k2 = float(cols[4])*self.ba.h
-                    k3 = float(cols[5])*self.ba.h
-
-                    k1_arr[idx] = k1
-                    k2_arr[idx] = k2
-                    k3_arr[idx] = k3
-
-                    B0[idx] = float(cols[9])/self.ba.h**6
-                    B2[idx] = float(cols[10])/self.ba.h**6
-                    B4[idx] = float(cols[11])/self.ba.h**6
-
-                    B0_Fynn[idx] = self.bk_lin_multipoles(use_IR_resum, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, 0, z)
-                    B2_Fynn[idx] = self.bk_lin_multipoles(use_IR_resum, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, 2, z)
-                    B4_Fynn[idx] = self.bk_lin_multipoles(use_IR_resum, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, 4, z)
-
-                idx+=1
-                counter+=1
-        
-        return B0, B2, B4, B0_Fynn, B2_Fynn, B4_Fynn, k1_arr, k2_arr, k3_arr
-
-    def bispectrum_treelevel_multipoles_AP(self, 
-                                           int use_IR_resum, 
-                                           np.ndarray[DTYPE_t,ndim=1] b1, 
-                                           np.ndarray[DTYPE_t,ndim=1] b2, 
-                                           np.ndarray[DTYPE_t,ndim=1] bG2, 
-                                           np.ndarray[DTYPE_t,ndim=1] d1, 
-                                           np.ndarray[DTYPE_t,ndim=1] d2, 
-                                           np.ndarray[DTYPE_t,ndim=1] d3, 
-                                           np.ndarray[DTYPE_t,ndim=1] P_eps, 
-                                           np.ndarray[DTYPE_t,ndim=2] karray, 
-                                           np.ndarray[DTYPE_t,ndim=1] zarray, 
-                                           int l_max, 
-                                           np.ndarray[DTYPE_t,ndim=1] q_perp, 
-                                           np.ndarray[DTYPE_t,ndim=1] q_parr):
+        self.compute(["fourier"])
 
         # get n_triangles and z_size                                    
         cdef int n_triangles = karray.shape[0], z_size = zarray.shape[0]
@@ -1488,15 +1339,16 @@ cdef class Class:
         cdef double *d2_vals = &d2[0]
         cdef double *d3_vals = &d3[0]
         cdef double *P_eps_vals = &P_eps[0]
+        cdef double *c1_FoG_vals = &c1_FoG[0]
         cdef double *k_vals = &karray[0,0]
         cdef double *z_vals = &zarray[0]
         cdef double *q_perp_vals = &q_perp[0]
         cdef double *q_parr_vals = &q_parr[0]
 
         # allocate output buffer
-        B_l = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
-        cdef np.ndarray[DTYPE_t, ndim=2] B_ell = np.empty((z_size, n_triangles), dtype=np.double, order="C")
-        cdef double *B_ell_vals = &B_ell[0, 0]
+        B_l_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
+        cdef np.ndarray[DTYPE_t, ndim=2] B_l = np.empty((z_size, n_triangles), dtype=np.double, order="C")
+        cdef double *B_l_vals = &B_l[0, 0]
 
         cdef int il, ell
         for il in range(l_max//2+1):
@@ -1515,6 +1367,7 @@ cdef class Class:
                                                           d2_vals,
                                                           d3_vals,
                                                           P_eps_vals,
+                                                          c1_FoG_vals,
                                                           k_vals,
                                                           n_triangles,
                                                           z_vals,
@@ -1522,13 +1375,13 @@ cdef class Class:
                                                           ell,
                                                           q_perp_vals, 
                                                           q_parr_vals,
-                                                          B_ell_vals 
+                                                          B_l_vals 
                                                           )==_FAILURE_:
                 raise CosmoSevereError(self.fo.error_message)
 
-            B_l[:, il, :] = B_ell
+            B_l_array[:, il, :] = B_l
 
-        return B_l
+        return B_l_array
 
     
     def powerspectrum_comparison_Dennis(self, str data_file_name, int limit_low, int limit_up, double z):

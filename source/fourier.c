@@ -1871,6 +1871,7 @@ int fourier_k_nl_at_z(
  * @param d2                    Input: noise bias parameter
  * @param d3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
  * @param P_eps                 Input: noise power spectrum
+ * @param c1_FoG                Input: 1st counter term parameter value for the FOG effect
  * @param k1                    Input: wavenumber k1
  * @param k2                    Input: wavenumber k2
  * @param k3                    Input: wavenumber k3
@@ -1895,6 +1896,7 @@ int fourier_B_tree_at_k_and_z(
                               double d2,
                               double d3,
                               double P_eps,
+                              double c1_FoG,
                               double k1,
                               double k2,
                               double k3,
@@ -1920,15 +1922,15 @@ int fourier_B_tree_at_k_and_z(
   mu3 = -(k1*mu1 + k2*mu2)/k3;
 
   // calculate the SPT RSD kernels at this stage to minimize the number of class calls
-  class_call(fourier_kernel_Z1(f, b1, mu1, &Z1_k1),
-             pfo->error_message, 
-             pfo->error_message);
-  class_call(fourier_kernel_Z1(f, b1, mu2, &Z1_k2),
-             pfo->error_message, 
-             pfo->error_message);
-  class_call(fourier_kernel_Z1(f, b1, mu3, &Z1_k3),
-             pfo->error_message, 
-             pfo->error_message);
+  class_call(fourier_kernel_Z1(f, b1, k1, mu1, c1_FoG, &Z1_k1),
+              pfo->error_message, 
+              pfo->error_message);
+  class_call(fourier_kernel_Z1(f, b1, k2, mu2, c1_FoG, &Z1_k2),
+              pfo->error_message, 
+              pfo->error_message);
+  class_call(fourier_kernel_Z1(f, b1, k3, mu3, c1_FoG, &Z1_k3),
+              pfo->error_message, 
+              pfo->error_message);
 
   class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &Z2_k1), 
              pfo->error_message, 
@@ -1959,6 +1961,8 @@ int fourier_B_tree_at_k_and_z(
                pfo->error_message);
     B_tree += B_tree_SPT_temp + B_tree_noise_temp;
   }
+
+  // add the isotropic stochastic contribution, where we do not need to sum over permutations
   B_tree += d3 * P_eps*P_eps;
 
   // If you want to use logarithmic output. Note: you lose information about the sign
@@ -1986,6 +1990,7 @@ int fourier_B_tree_at_k_and_z(
  * @param d2            Input: noise bias parameter
  * @param d3            Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
  * @param P_eps         Input: noise power spectrum
+ * @param c1_FoG        Input: 1st counter term parameter value for the FOG effect
  * @param k1            Input: wavenumber k1
  * @param k2            Input: wavenumber k2
  * @param k3            Input: wavenumber k3
@@ -2009,6 +2014,7 @@ int fourier_B_ell_tree_at_k_and_z(
                                   double d2,
                                   double d3,
                                   double P_eps,
+                                  double c1_FoG,
                                   double k1,
                                   double k2,
                                   double k3,
@@ -2138,9 +2144,29 @@ int fourier_B_ell_tree_at_k_and_z(
           class_test(l!=0 && l!=2 && l!=4 && l!=6, pfo->error_message, "invalid multipole, you have l=%d",l);
       }
 
-      class_call(fourier_B_tree_at_k_and_z(pfo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, P1, P2, P3, z, &bispectrum_treelevel), 
-                                                         pfo->error_message,
-                                                         pfo->error_message);
+      class_call(fourier_B_tree_at_k_and_z(pfo, 
+                                           linear, 
+                                           f, 
+                                           b1, 
+                                           b2, 
+                                           bG2, 
+                                           d1, 
+                                           d2, 
+                                           d3, 
+                                           P_eps,
+                                           c1_FoG,
+                                           k1, 
+                                           k2, 
+                                           k3, 
+                                           mu1, 
+                                           mu2, 
+                                           P1, 
+                                           P2, 
+                                           P3, 
+                                           z, 
+                                           &bispectrum_treelevel), 
+                                           pfo->error_message,
+                                           pfo->error_message);
                                                         
       B_l_temp += w_GL_i[idx2]*P_l*bispectrum_treelevel;
     }
@@ -2169,6 +2195,7 @@ int fourier_B_ell_tree_at_k_and_z(
  * @param d2            Input: noise bias parameter
  * @param d3            Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
  * @param P_eps         Input: noise power spectrum
+ * @param c1_FoG        Input: 1st counter term parameter value for the FOG effect
  * @param k1            Input: wavenumber k1
  * @param k2            Input: wavenumber k2
  * @param k3            Input: wavenumber k3
@@ -2194,6 +2221,7 @@ int fourier_B_ell_tree_AP_at_k_and_z(
                                      double d2,
                                      double d3,
                                      double P_eps,
+                                     double c1_FoG,
                                      double k1,
                                      double k2,
                                      double k3,
@@ -2231,10 +2259,27 @@ int fourier_B_ell_tree_AP_at_k_and_z(
   free(pvecback);
   // f = 0.868073; // This is Dennis' value for f, might be useful to have more accurate comparison
 
+  // test whether the triangle configuration is senseful (triangle inequality)
+  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
+             pfo->error_message,
+             "triangle inequalities are not satisfied");
+
+  class_test(k3<=0,
+             pfo->error_message,
+             "you have k3=%e",k3);
+
   // define angles in parametrization, note that these are calculated from the undistorted k's:
   // they are needed in the undistorted coordinates as an input for the distorted coordinates 
   cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);   // cos12 = vec_k1*vec_k1/(k1*k2) -> angle between the vectors and not inside the triangle
   sin12 = sqrt(1-cos12*cos12);                    // note that sin12 > 0 since the angle must be between 0 and pi
+  
+  if (use_IR_resum==1){ 
+    // define sigma and dsigma for IR resummation
+    k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
+    k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
+    sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
+    dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
+  }
 
   // Gauss Chebyshev Quadrature:
   // Note: Chebyshev loop starts at idx1=1 because we calculate the points and weights in each step
@@ -2246,6 +2291,10 @@ int fourier_B_ell_tree_AP_at_k_and_z(
       mu1 = x_GL_i[idx2];
       mu2 = mu1*cos12 + sqrt(1-mu1*mu1)*sin12*sin_phi_i;
       mu3 = -(k1*mu1 + k2*mu2)/k3;
+
+      class_test(abs(mu1)>1 || abs(mu2)>1 || abs(mu3)>1, 
+             pfo->error_message, 
+             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
 
       // Coordinate distortion according to the AP effect
       k1_true = k1*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp));
@@ -2270,19 +2319,6 @@ int fourier_B_ell_tree_AP_at_k_and_z(
         ln_k1_true[0] = log(k1_true); 
         ln_k2_true[0] = log(k2_true); 
         ln_k3_true[0] = log(k3_true);
-
-        k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
-        k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
-
-        // TODO: These two function calls are not yet in CLASS style
-        // TODO: Since these are just numbers, if has_pk_new = _TRUE_, it should be contained in the fourier structure
-
-        // Dennis values:
-        // double sigma2_ir_at_z_Dennis   = 11.3471/(pba->h*pba->h);
-        // double dsigma2_ir_at_z_Dennis  = 2.97763/(pba->h*pba->h);
-
-        sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
-        dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
 
         // get the regular and the no wiggle power spectrum each k value of the triangle
         class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, index_pk, &P_temp_1, NULL), pfo->error_message, pfo->error_message);
@@ -2329,10 +2365,30 @@ int fourier_B_ell_tree_AP_at_k_and_z(
       } else {
         class_test(l!=0 && l!=2 && l!=4 && l!=6, pfo->error_message, "invalid multipole, you have l=%d",l);
       }
-
-      class_call(fourier_B_tree_at_k_and_z(pfo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1_true, k2_true, k3_true, mu1_true, mu2_true, P1, P2, P3, z, &bispectrum_treelevel), 
-      pfo->error_message,
-      pfo->error_message);
+      
+      class_call(fourier_B_tree_at_k_and_z(pfo, 
+                                           linear, 
+                                           f, 
+                                           b1, 
+                                           b2, 
+                                           bG2, 
+                                           d1, 
+                                           d2, 
+                                           d3, 
+                                           P_eps,
+                                           c1_FoG,
+                                           k1_true, 
+                                           k2_true, 
+                                           k3_true, 
+                                           mu1_true, 
+                                           mu2_true, 
+                                           P1, 
+                                           P2, 
+                                           P3, 
+                                           z, 
+                                           &bispectrum_treelevel), 
+                                           pfo->error_message,
+                                           pfo->error_message);
                               
       B_l_temp += w_GL_i[idx2]*P_l*bispectrum_treelevel;
     }
@@ -2363,6 +2419,7 @@ int fourier_B_ell_tree_AP_at_k_and_z(
  * @param d1            Input: noise bias parameter array
  * @param d2            Input: noise bias parameter array
  * @param d3            Input: noise bias parameter array (TODO: Ivanov and Rizzo have different parametrization)
+ * @param c1_FoG        Input: 1st counter term parameter value for the FOG effect
  * @param P_eps         Input: noise power spectrum array
  * @param karray        Input: points at the first of 3·n_triangles doubles for the triangle wavenumber values
  * @param n_triangles   Input: number of triangles
@@ -2389,6 +2446,7 @@ int fourier_B_ell_tree_AP_at_karray_and_zarray(
                                                double * d2,
                                                double * d3,
                                                double * P_eps,
+                                               double * c1_FoG,
                                                double * karray,
                                                int n_triangles,
                                                double * zarray,
@@ -2399,13 +2457,13 @@ int fourier_B_ell_tree_AP_at_karray_and_zarray(
                                                double * B_l 
                                                ) {
   int iz, it;
-  double B_l_at_z_and_k_tmp;
+  double B_l_at_z_and_k_tmp;                                              
 
   for (iz=0; iz<z_size; iz++){  
     for (it=0; it<n_triangles; it++){
-      double k0 = karray[3*it + 0];
-      double k1 = karray[3*it + 1];
-      double k2 = karray[3*it + 2];
+      double k1 = karray[3*it + 0];
+      double k2 = karray[3*it + 1];
+      double k3 = karray[3*it + 2];
 
       class_call(fourier_B_ell_tree_AP_at_k_and_z(pba,
                                                   ppm,
@@ -2420,9 +2478,10 @@ int fourier_B_ell_tree_AP_at_karray_and_zarray(
                                                   d2[iz],
                                                   d3[iz],
                                                   P_eps[iz],
-                                                  k0,
+                                                  c1_FoG[iz],
                                                   k1,
                                                   k2,
+                                                  k3,
                                                   l,
                                                   zarray[iz],
                                                   q_perp_array[iz],
@@ -3974,11 +4033,13 @@ int fourier_pk_linear(
 int fourier_kernel_Z1(
                       double f,
                       double b1,
+                      double k,
                       double mu,
+                      double c1_FoG,
                       double *Z1
                       ) {
 
-  *Z1 = b1 + f*mu*mu;
+  *Z1 = b1 + f*mu*mu - c1_FoG*mu*mu*k*k;
 
   return _SUCCESS_;
 }
