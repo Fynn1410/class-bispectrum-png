@@ -1328,10 +1328,10 @@ cdef class Class:
 
         self.compute(["fourier"])
 
-        # get n_triangles and z_size                                    
+        # Get n_triangles and z_size                                    
         cdef int n_triangles = karray.shape[0], z_size = zarray.shape[0]
 
-        # get raw pointers to the first elements of the arrays:
+        # Get raw pointers to the first elements of the arrays:
         cdef double *b1_vals = &b1[0]
         cdef double *b2_vals = &b2[0]
         cdef double *bG2_vals = &bG2[0]
@@ -1345,38 +1345,37 @@ cdef class Class:
         cdef double *q_perp_vals = &q_perp[0]
         cdef double *q_parr_vals = &q_parr[0]
 
-        # allocate output buffer
+        # Allocate output buffer
         B_l_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
         cdef np.ndarray[DTYPE_t, ndim=2] B_l = np.empty((z_size, n_triangles), dtype=np.double, order="C")
         cdef double *B_l_vals = &B_l[0, 0]
 
+        # Fill output buffer and write to array
         cdef int il, ell
         for il in range(l_max//2+1):
             ell = 2*il
-            if fourier_B_ell_tree_AP_at_karray_and_zarray(
-                                                          &self.ba,
-                                                          &self.pm,
-                                                          &self.fo,
-                                                          linear,
-                                                          use_IR_resum,
-                                                          self.fo.index_pk_m,
-                                                          b1_vals,
-                                                          b2_vals,
-                                                          bG2_vals,
-                                                          d1_vals,
-                                                          d2_vals,
-                                                          d3_vals,
-                                                          P_eps_vals,
-                                                          c1_FoG_vals,
-                                                          k_vals,
-                                                          n_triangles,
-                                                          z_vals,
-                                                          z_size,
-                                                          ell,
-                                                          q_perp_vals, 
-                                                          q_parr_vals,
-                                                          B_l_vals 
-                                                          )==_FAILURE_:
+            if fourier_B_ell_tree_AP_at_kvec_and_zvec(&self.ba,
+                                                      &self.pm,
+                                                      &self.fo,
+                                                      linear,
+                                                      use_IR_resum,
+                                                      b1_vals,
+                                                      b2_vals,
+                                                      bG2_vals,
+                                                      d1_vals,
+                                                      d2_vals,
+                                                      d3_vals,
+                                                      P_eps_vals,
+                                                      c1_FoG_vals,
+                                                      k_vals,
+                                                      n_triangles,
+                                                      z_vals,
+                                                      z_size,
+                                                      ell,
+                                                      q_perp_vals, 
+                                                      q_parr_vals,
+                                                      B_l_vals 
+                                                      )==_FAILURE_:
                 raise CosmoSevereError(self.fo.error_message)
 
             B_l_array[:, il, :] = B_l

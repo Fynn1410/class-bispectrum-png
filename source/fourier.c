@@ -2181,39 +2181,46 @@ int fourier_B_ell_tree_at_k_and_z(
   return _SUCCESS_;
 }
 
-/** tree level bispectrum multipoles with AP effect for one specific combination of k1, k2, k3, l and z
- * @param pba           Input: pointer to background structure
- * @param ppm           Input: pointer to primordial structure
- * @param pfo           Input: pointer to fourier structure
- * @param mode          Input: linear or logarithmic for the output
- * @param use_IR_resum  Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk      Input: index of required P(k) type (_m, _cb)
- * @param b1            Input: first order bias parameter
- * @param b2            Input: second order bias parameter
- * @param bG2           Input: second order bias parameter
- * @param d1            Input: noise bias parameter
- * @param d2            Input: noise bias parameter
- * @param d3            Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_eps         Input: noise power spectrum
- * @param c1_FoG        Input: 1st counter term parameter value for the FOG effect
- * @param k1            Input: wavenumber k1
- * @param k2            Input: wavenumber k2
- * @param k3            Input: wavenumber k3
- * @param l             Input: multipole l
- * @param z             Input: redshift
- * @param q_perp        Input: Alcock Pacinsky factor in the orthogonal direction
- * @param q_parr        Input: Alcock Pacinsky factor in the radial direction
- * @param B_l           Output: multipoles bispectrum for given type/time/wavenumber
+/** Tree level bispectrum multipoles with AP effect for one specific combination of k1, k2, k3, l and z, implemented by Louis Christoph.
+ *  Returns bispectrum for clustering only, not for the full matter. 
+ *  Is equivalent to the full matter bispec in the case of 0 non-cold-dark-matter species.
+ * @param pba                            Input: pointer to background structure
+ * @param ppm                            Input: pointer to primordial structure
+ * @param pfo                            Input: pointer to fourier structure
+ * @param mode                           Input: linear or logarithmic for the output
+ * @param use_IR_resum                   Input: 0 for no IR resummation, 1 for IR resummation
+ * @param lnpk_l_cb_full_and_nw_at_z     Input: log linear CDM+baryons power spectrum, full and nowiggle, at the input z and at pfo->k, 
+ *                                              indexed as p[index_k*pk_type_size+index_pk_type], with pk_type_size=2 and index_pk_type = 0 (full) and =1 (nw)
+ * @param lnddpk_l_cb_full_and_nw_at_z   Input: second derivative of the quantity above, indexed the same
+ * @param b1                             Input: first order bias parameter
+ * @param b2                             Input: second order bias parameter
+ * @param bG2                            Input: second order bias parameter
+ * @param d1                             Input: noise bias parameter
+ * @param d2                             Input: noise bias parameter
+ * @param d3                             Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_eps                          Input: noise power spectrum
+ * @param c1_FoG                         Input: 1st counter term parameter value for the FOG effect
+ * @param k1                             Input: wavenumber k1
+ * @param k2                             Input: wavenumber k2
+ * @param k3                             Input: wavenumber k3
+ * @param l                              Input: multipole l
+ * @param z                              Input: redshift
+ * @param q_perp                         Input: Alcock Pacinsky factor in the orthogonal direction
+ * @param q_parr                         Input: Alcock Pacinsky factor in the radial direction
+ * @param last_indices_interpolation     Input: Pointer to array of 3 last indices for the interpolation, 
+ *                                              needs to be initialized once (to e.g. [0,0,0]), then the first call will set the indices
+ * @param B_l                            Output: multipoles bispectrum for given type/time/wavenumber
  * @return the error status
 */
 
 int fourier_B_ell_tree_AP_at_k_and_z(
-                                     struct background *pba,
+                                     struct background * pba,
                                      struct primordial * ppm,
                                      struct fourier * pfo,
                                      enum linear_or_logarithmic mode,
                                      int use_IR_resum,
-                                     int index_pk,
+                                     double * lnpk_l_cb_full_and_nw_at_z,
+                                     double * lnddpk_l_cb_full_and_nw_at_z,
                                      double b1,
                                      double b2,
                                      double bG2,
@@ -2229,31 +2236,41 @@ int fourier_B_ell_tree_AP_at_k_and_z(
                                      double z,
                                      double q_perp,
                                      double q_parr,
+                                     int * last_indices_interpolation,
                                      double * B_l
                                      ) {
   int idx1, idx2, n_GC=5, n_GL=10;
   double mu1, mu2, mu3, sin_phi_i, sin12, cos12, B_l_temp=0, P_l, bispectrum_treelevel, P1, P2, P3;
   // variables relevant for IR resummation:
-  double f, f_sq, mu1_true_sq, mu2_true_sq, mu3_true_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z, P_nw_1, P_nw_2, P_nw_3, P_w_1, P_w_2, P_w_3, P_temp_1, P_temp_2, P_temp_3;
+  double f, f_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z;
+  double P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3, P_f_1, P_f_2, P_f_3;
   double * pvecback;
   double ln_k1_true[1], ln_k2_true[1], ln_k3_true[1];
   int last_index, vec_size=1, lnk_vec_size=1;
   // variables relevant for the AP effect:
-  double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true;
-
-  // Gauss Legendre Quadrature: https://pomax.github.io/bezierinfo/legendre-gauss.html
+  double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true, mu1_true_sq, mu2_true_sq, mu3_true_sq;
+                  
+  // Gauss Legendre quadrature: https://pomax.github.io/bezierinfo/legendre-gauss.html
   double x_GL_i[] = {-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472, -0.1488743389816312,
   0.1488743389816312, 0.4333953941292472,  0.6794095682990244,  0.8650633666889845,  0.9739065285171717};
   double w_GL_i[] = { 0.0666713443086881, 0.1494513491505806, 0.2190863625159820, 0.2692667193099963, 0.2955242247147529,
   0.2955242247147529, 0.2692667193099963, 0.2190863625159820, 0.1494513491505806, 0.0666713443086881};
 
+  // allocate space for power spectra
+  class_alloc(P_full_and_nw_1, 2*sizeof(double),
+              pfo->error_message)
+  class_alloc(P_full_and_nw_2, 2*sizeof(double),
+              pfo->error_message)
+  class_alloc(P_full_and_nw_3, 2*sizeof(double),
+              pfo->error_message)
+
   // calculate the value of the growth factor f
   class_alloc(pvecback,pba->bg_size*sizeof(double),
-  pfo->error_message);
+              pfo->error_message);
 
   class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
-  pba->error_message,
-  pfo->error_message);
+             pba->error_message,
+             pfo->error_message);
 
   f = pvecback[pba->index_bg_f];
   free(pvecback);
@@ -2306,9 +2323,9 @@ int fourier_B_ell_tree_AP_at_k_and_z(
 
       // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
       if (use_IR_resum==0){
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2_true, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3_true, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message);
+        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, pfo->index_pk_cluster, &P1, NULL), pfo->error_message, pfo->error_message);
+        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2_true, z, pfo->index_pk_cluster, &P2, NULL), pfo->error_message, pfo->error_message);
+        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3_true, z, pfo->index_pk_cluster, &P3, NULL), pfo->error_message, pfo->error_message);
       } 
       else if (use_IR_resum==1){
         class_test(pfo->has_pk_nw == _FALSE_, 
@@ -2320,19 +2337,55 @@ int fourier_B_ell_tree_AP_at_k_and_z(
         ln_k2_true[0] = log(k2_true); 
         ln_k3_true[0] = log(k3_true);
 
-        // get the regular and the no wiggle power spectrum each k value of the triangle
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, index_pk, &P_temp_1, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2_true, z, index_pk, &P_temp_2, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3_true, z, index_pk, &P_temp_3, NULL), pfo->error_message, pfo->error_message);
+        // get the regular and the no wiggle power spectrum each k value of the triangle by interpolation of the logarithmic splines
+        class_call(array_interpolate_spline(pfo->k,
+                                            pfo->k_size,
+                                            lnpk_l_cb_full_and_nw_at_z,
+                                            lnddpk_l_cb_full_and_nw_at_z,
+                                            2,
+                                            k1_true,
+                                            &last_indices_interpolation[0],
+                                            P_full_and_nw_1,
+                                            2,
+                                            pfo->error_message),
+                   pfo->error_message,
+                   pfo->error_message);
 
-        class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k1_true, lnk_vec_size, z, &P_nw_1), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k2_true, lnk_vec_size, z, &P_nw_2), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k3_true, lnk_vec_size, z, &P_nw_3), pfo->error_message, pfo->error_message);
+        class_call(array_interpolate_spline(pfo->k,
+                                            pfo->k_size,
+                                            lnpk_l_cb_full_and_nw_at_z,
+                                            lnddpk_l_cb_full_and_nw_at_z,
+                                            2,
+                                            k2_true,
+                                            &last_indices_interpolation[1],
+                                            P_full_and_nw_2,
+                                            2,
+                                            pfo->error_message),
+                   pfo->error_message,
+                   pfo->error_message);
+
+        class_call(array_interpolate_spline(pfo->k,
+                                            pfo->k_size,
+                                            lnpk_l_cb_full_and_nw_at_z,
+                                            lnddpk_l_cb_full_and_nw_at_z,
+                                            2,
+                                            k3_true,
+                                            &last_indices_interpolation[2],
+                                            P_full_and_nw_3,
+                                            2,
+                                            pfo->error_message),
+                   pfo->error_message,
+                   pfo->error_message);
+
+        // exponentiate the logarithmic interpolations
+        *P_full_and_nw_1 = exp(*P_full_and_nw_1);
+        *P_full_and_nw_2 = exp(*P_full_and_nw_2);
+        *P_full_and_nw_3 = exp(*P_full_and_nw_3);
 
         // Calculate the wiggle power spetrum (P = P_w + P_nw)
-        P_w_1 = P_temp_1-P_nw_1;
-        P_w_2 = P_temp_2-P_nw_2;
-        P_w_3 = P_temp_3-P_nw_3;
+        P_w_1 = P_full_and_nw_1[0]-P_full_and_nw_1[1];
+        P_w_2 = P_full_and_nw_2[0]-P_full_and_nw_2[1];
+        P_w_3 = P_full_and_nw_3[0]-P_full_and_nw_3[1];
 
         mu1_true_sq = mu1_true*mu1_true;
         mu2_true_sq = mu2_true*mu2_true;
@@ -2343,9 +2396,9 @@ int fourier_B_ell_tree_AP_at_k_and_z(
         Sigma2_total_mu3_true = (1. + f*(f+2.)*mu3_true_sq) * sigma2_ir_at_z + f_sq * mu3_true_sq * (mu3_true_sq-1.) * dsigma2_ir_at_z;
 
         // calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
-        P1 = P_nw_1 + P_w_1 * exp(-k1_true*k1_true*Sigma2_total_mu1_true);
-        P2 = P_nw_2 + P_w_2 * exp(-k2_true*k2_true*Sigma2_total_mu2_true);
-        P3 = P_nw_3 + P_w_3 * exp(-k3_true*k3_true*Sigma2_total_mu3_true);
+        P1 = P_full_and_nw_1[1] + P_w_1 * exp(-k1_true*k1_true*Sigma2_total_mu1_true);
+        P2 = P_full_and_nw_2[1] + P_w_2 * exp(-k2_true*k2_true*Sigma2_total_mu2_true);
+        P3 = P_full_and_nw_3[1] + P_w_3 * exp(-k3_true*k3_true*Sigma2_total_mu3_true);
       } 
       else {
         class_test(use_IR_resum!=0 && use_IR_resum!=1, 
@@ -2387,8 +2440,8 @@ int fourier_B_ell_tree_AP_at_k_and_z(
                                            P3, 
                                            z, 
                                            &bispectrum_treelevel), 
-                                           pfo->error_message,
-                                           pfo->error_message);
+                 pfo->error_message,
+                 pfo->error_message);
                               
       B_l_temp += w_GL_i[idx2]*P_l*bispectrum_treelevel;
     }
@@ -2406,20 +2459,21 @@ int fourier_B_ell_tree_AP_at_k_and_z(
   return _SUCCESS_;
 }
 
-/** the treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z]
+/** The treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
+ *  Returns bispectrum for clustering only, not for the full matter. 
+ *  Is equivalent to the full matter bispec in the case of 0 non-cold-dark-matter species.
  * @param pba           Input: pointer to background structure
  * @param ppm           Input: pointer to primordial structure
  * @param pfo           Input: pointer to fourier structure
  * @param mode          Input: linear or logarithmic for the output
  * @param use_IR_resum  Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk      Input: index of required P(k) type (_m, _cb)
  * @param b1            Input: first order bias parameter array
  * @param b2            Input: second order bias parameter array
  * @param bG2           Input: second order bias parameter array
  * @param d1            Input: noise bias parameter array
  * @param d2            Input: noise bias parameter array
  * @param d3            Input: noise bias parameter array (TODO: Ivanov and Rizzo have different parametrization)
- * @param c1_FoG        Input: 1st counter term parameter value for the FOG effect
+ * @param c1_FoG        Input: 1st counter term parameter values for the FOG effect
  * @param P_eps         Input: noise power spectrum array
  * @param karray        Input: points at the first of 3·n_triangles doubles for the triangle wavenumber values
  * @param n_triangles   Input: number of triangles
@@ -2432,67 +2486,127 @@ int fourier_B_ell_tree_AP_at_k_and_z(
  * @return the error status
 */
 
-int fourier_B_ell_tree_AP_at_karray_and_zarray(
-                                               struct background *pba,
-                                               struct primordial * ppm,
-                                               struct fourier * pfo,
-                                               enum linear_or_logarithmic mode,
-                                               int use_IR_resum,
-                                               int index_pk,
-                                               double * b1,
-                                               double * b2,
-                                               double * bG2,
-                                               double * d1,
-                                               double * d2,
-                                               double * d3,
-                                               double * P_eps,
-                                               double * c1_FoG,
-                                               double * karray,
-                                               int n_triangles,
-                                               double * zarray,
-                                               int z_size,
-                                               int l,
-                                               double * q_perp_array, 
-                                               double * q_parr_array,
-                                               double * B_l 
-                                               ) {
-  int iz, it;
-  double B_l_at_z_and_k_tmp;                                              
+int fourier_B_ell_tree_AP_at_kvec_and_zvec(
+                                           struct background *pba,
+                                           struct primordial * ppm,
+                                           struct fourier * pfo,
+                                           enum linear_or_logarithmic mode,
+                                           int use_IR_resum,
+                                           double * b1,
+                                           double * b2,
+                                           double * bG2,
+                                           double * d1,
+                                           double * d2,
+                                           double * d3,
+                                           double * P_eps,
+                                           double * c1_FoG,
+                                           double * karray,
+                                           int n_triangles,
+                                           double * zarray,
+                                           int z_size,
+                                           int l,
+                                           double * q_perp_array, 
+                                           double * q_parr_array,
+                                           double * B_l 
+                                           ) {
+  // Define variables
+  int index_z, index_t, index_k, index_pk_cb, index_pk_cb_nw, index_pk_type=0, last_indices_interpolation[3]={0,0,0};
+  double B_l_at_z_and_k_tmp;
+  double *pk_cb_both, *ddpk_cb_both, *pk_cb, *pk_cb_nw;     
+  // Define class indices
+  class_define_index(index_pk_cb, _TRUE_, index_pk_type,1);
+  class_define_index(index_pk_cb_nw, _TRUE_, index_pk_type,1);
+  int pk_type_size = index_pk_type;
 
-  for (iz=0; iz<z_size; iz++){  
-    for (it=0; it<n_triangles; it++){
-      double k1 = karray[3*it + 0];
-      double k2 = karray[3*it + 1];
-      double k3 = karray[3*it + 2];
+  for (index_z=0; index_z<z_size; index_z++){          
+    // Array alloc
+    class_alloc(pk_cb, pfo->k_size*sizeof(double), 
+                pfo->error_message);
+    class_alloc(pk_cb_nw, pfo->k_size*sizeof(double), 
+                pfo->error_message);
+    class_alloc(pk_cb_both, pk_type_size*pfo->k_size*sizeof(double), 
+                pfo->error_message);
+    class_alloc(ddpk_cb_both, pk_type_size*pfo->k_size*sizeof(double), 
+                pfo->error_message);
+    
+    // Get the linear power spectrum for CDM and baryons combined (index_pk_cluster)
+    class_call(fourier_pk_at_z(pba,
+                               pfo,
+                               logarithmic,
+                               pk_linear,
+                               zarray[index_z],
+                               pfo->index_pk_cluster,
+                               pk_cb,
+                               NULL),
+               pfo->error_message,
+               pfo->error_message);
+    
+    // Get the dewiggled linear power spectrum, for this to be also for CDM and baryons combined, need to set "nowiggle_pk_species" to clustering in .ini
+    class_call(fourier_pk_l_nw_extra_at_z(pba,
+                                          pfo,
+                                          logarithmic,
+                                          zarray[index_z],
+                                          pk_cb_nw),
+               pfo->error_message,
+               pfo->error_message);
+
+    // Fill pk_cb_both[index_k*pk_type_size+index_pk_type]
+    for (index_k=0; index_k<pfo->k_size; index_k++){
+      pk_cb_both[index_k*pk_type_size+index_pk_cb] = pk_cb[index_k];
+      pk_cb_both[index_k*pk_type_size+index_pk_cb_nw] = pk_cb_nw[index_k];
+    }
+
+    class_call(array_spline_table_lines(pfo->k,
+                                        pfo->k_size,
+                                        pk_cb_both,
+                                        pk_type_size,
+                                        ddpk_cb_both,
+                                        _SPLINE_NATURAL_,
+                                        pfo->error_message),
+               pfo->error_message,
+               pfo->error_message);
+    
+    
+    for (index_t=0; index_t<n_triangles; index_t++){
+      double k1 = karray[3*index_t + 0];
+      double k2 = karray[3*index_t + 1];
+      double k3 = karray[3*index_t + 2];
 
       class_call(fourier_B_ell_tree_AP_at_k_and_z(pba,
                                                   ppm,
                                                   pfo,
                                                   mode,
                                                   use_IR_resum,
-                                                  index_pk,
-                                                  b1[iz],
-                                                  b2[iz],
-                                                  bG2[iz],
-                                                  d1[iz],
-                                                  d2[iz],
-                                                  d3[iz],
-                                                  P_eps[iz],
-                                                  c1_FoG[iz],
+                                                  pk_cb_both,
+                                                  ddpk_cb_both,
+                                                  b1[index_z],
+                                                  b2[index_z],
+                                                  bG2[index_z],
+                                                  d1[index_z],
+                                                  d2[index_z],
+                                                  d3[index_z],
+                                                  P_eps[index_z],
+                                                  c1_FoG[index_z],
                                                   k1,
                                                   k2,
                                                   k3,
                                                   l,
-                                                  zarray[iz],
-                                                  q_perp_array[iz],
-                                                  q_parr_array[iz],
+                                                  zarray[index_z],
+                                                  q_perp_array[index_z],
+                                                  q_parr_array[index_z],
+                                                  last_indices_interpolation,
                                                   &B_l_at_z_and_k_tmp),
-                                                  pfo->error_message,
-                                                  pfo->error_message);
+                 pfo->error_message,
+                 pfo->error_message);
                                                                   
-      B_l[iz*n_triangles+it] = B_l_at_z_and_k_tmp;
+      B_l[index_z*n_triangles+index_t] = B_l_at_z_and_k_tmp;
 
     }
+
+    free(pk_cb);
+    free(pk_cb_nw);
+    free(pk_cb_both);
+    free(ddpk_cb_both);
   }  
 
   return _SUCCESS_;

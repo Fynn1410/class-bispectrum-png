@@ -837,30 +837,29 @@ cdef extern from "class.h":
                                     double * B_l
                                     )
 
-    int fourier_B_ell_tree_AP_at_karray_and_zarray(
-                                                   void *pba,
-                                                   void * ppm,
-                                                   void * pfo,
-                                                   linear_or_logarithmic mode,
-                                                   int use_IR_resum,
-                                                   int index_pk,
-                                                   double * b1,
-                                                   double * b2,
-                                                   double * bG2,
-                                                   double * d1,
-                                                   double * d2,
-                                                   double * d3,
-                                                   double * P_eps,
-                                                   double c1_FoG,
-                                                   double * karray,
-                                                   int n_triangles,
-                                                   double * zarray,
-                                                   int z_size,
-                                                   int l,
-                                                   double * q_perp_array, 
-                                                   double * q_parr_array,
-                                                   double * B_l 
-                                                   )
+    int fourier_B_ell_tree_AP_at_kvec_and_zvec(
+                                               void *pba,
+                                               void * ppm,
+                                               void * pfo,
+                                               linear_or_logarithmic mode,
+                                               int use_IR_resum,
+                                               double * b1,
+                                               double * b2,
+                                               double * bG2,
+                                               double * d1,
+                                               double * d2,
+                                               double * d3,
+                                               double * P_eps,
+                                               double * c1_FoG,
+                                               double * karray,
+                                               int n_triangles,
+                                               double * zarray,
+                                               int z_size,
+                                               int l,
+                                               double * q_perp_array, 
+                                               double * q_parr_array,
+                                               double * B_l 
+                                               )
 
     int fourier_pk_l_nw_extra_at_kvec_and_z(
                                             void * pba,
