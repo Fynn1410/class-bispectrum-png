@@ -843,6 +843,7 @@ cdef extern from "class.h":
                                                void * pfo,
                                                linear_or_logarithmic mode,
                                                int use_IR_resum,
+                                               int index_pk,
                                                double * b1,
                                                double * b2,
                                                double * bG2,

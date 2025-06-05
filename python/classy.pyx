@@ -1324,12 +1324,20 @@ cdef class Class:
                                                np.ndarray[DTYPE_t,ndim=1] zarray, 
                                                int l_max, 
                                                np.ndarray[DTYPE_t,ndim=1] q_perp, 
-                                               np.ndarray[DTYPE_t,ndim=1] q_parr):
+                                               np.ndarray[DTYPE_t,ndim=1] q_parr,
+                                               only_clustering_species=False):
 
-        self.compute(["fourier"])
+        if self.fo.has_pk_matter == False:
+            raise CosmoSevereError("the input parameters sent to CLASS did not require any P(k,z) calculations, which are needed for the bispectrum treelevel; add 'mPk' in 'output'")
 
-        # Get n_triangles and z_size                                    
-        cdef int n_triangles = karray.shape[0], z_size = zarray.shape[0]
+        # Get n_triangles, z_size and define int for type of power spectrum (clustering or total matter)                                    
+        cdef int n_triangles = karray.shape[0], z_size = zarray.shape[0], index_pk
+
+        # check wich type of P(k) to return (total or clustering only, i.e. without massive neutrino contribution)
+        if (only_clustering_species == True):
+            index_pk = self.fo.index_pk_cluster
+        else:
+            index_pk = self.fo.index_pk_total
 
         # Get raw pointers to the first elements of the arrays:
         cdef double *b1_vals = &b1[0]
@@ -1359,6 +1367,7 @@ cdef class Class:
                                                       &self.fo,
                                                       linear,
                                                       use_IR_resum,
+                                                      index_pk,
                                                       b1_vals,
                                                       b2_vals,
                                                       bG2_vals,
