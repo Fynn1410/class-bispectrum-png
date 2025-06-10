@@ -1867,10 +1867,10 @@ int fourier_k_nl_at_z(
  * @param b1                    Input: first order bias parameter
  * @param b2                    Input: second order bias parameter
  * @param bG2                   Input: second order bias parameter
- * @param d1                    Input: noise bias parameter
- * @param d2                    Input: noise bias parameter
- * @param d3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_eps                 Input: noise power spectrum
+ * @param s1                    Input: noise bias parameter
+ * @param s2                    Input: noise bias parameter
+ * @param s3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_shot                Input: noise power spectrum
  * @param c1_FoG                Input: 1st counter term parameter value for the FOG effect
  * @param k1                    Input: wavenumber k1
  * @param k2                    Input: wavenumber k2
@@ -1892,10 +1892,10 @@ int fourier_B_tree_at_k_and_z(
                               double b1,
                               double b2,
                               double bG2,
-                              double d1,
-                              double d2,
-                              double d3,
-                              double P_eps,
+                              double s1,
+                              double s2,
+                              double s3,
+                              double P_shot,
                               double c1_FoG,
                               double k1,
                               double k2,
@@ -1956,20 +1956,145 @@ int fourier_B_tree_at_k_and_z(
     class_call(fourier_B_tree_det(pfo, f, b1, b2, bG2, Z1_arr[i], Z1_arr[(i+1)%3], Z2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
                pfo->error_message,
                pfo->error_message);
-    class_call(fourier_B_tree_stoch(pfo, f, b1, d1, d2, P_eps, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp),
+    class_call(fourier_B_tree_stoch(pfo, f, b1, s1, s3, P_shot, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp),
                pfo->error_message,
                pfo->error_message);
     B_tree += B_tree_SPT_temp + B_tree_noise_temp;
   }
 
   // add the isotropic stochastic contribution, where we do not need to sum over permutations
-  B_tree += d3 * P_eps*P_eps;
+  B_tree += (1.+s2) * P_shot*P_shot;
 
   // If you want to use logarithmic output. Note: you lose information about the sign
   if (mode==logarithmic){
     * bispectrum_treelevel = log(abs(B_tree));
   } else {
     * bispectrum_treelevel = B_tree;
+  }
+
+  return _SUCCESS_;
+}
+
+/** tree level galaxy bispectrum in redshift space at k and z and derivatives after the linear nuisance parameters s1, s2 and s3
+ * @param pfo                   Input: pointer to fourier structure
+ * @param mode                  Input: linear or logarithmic for the output
+ * @param b1                    Input: first order bias parameter
+ * @param b2                    Input: second order bias parameter
+ * @param bG2                   Input: second order bias parameter
+ * @param s1                    Input: noise bias parameter
+ * @param s2                    Input: noise bias parameter
+ * @param s3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_shot                Input: noise power spectrum
+ * @param c1_FoG                Input: 1st counter term parameter value for the FOG effect
+ * @param k1                    Input: wavenumber k1
+ * @param k2                    Input: wavenumber k2
+ * @param k3                    Input: wavenumber k3
+ * @param mu1                   Input: cosine of redshift space angle between k1 and the line of sight
+ * @param mu2                   Input: cosine of redshift space angle between k2 and the line of sight
+ * @param Pk1                   Input: powerspectrum for k1
+ * @param Pk2                   Input: powerspectrum for k2
+ * @param Pk3                   Input: powerspectrum for k3
+ * @param z                     Input: redshift
+ * @param bispectrum_treelevel  Output: bispectrum for given type/time, for all wavenumbers and angles
+ * @param deriv_s1              Output: derivative of B after the noise bias parameter s1, for indices z, k1, k2 and k3
+ * @param deriv_s3              Output: same as above for s3
+ * @return the error status
+*/
+
+int fourier_B_tree_and_derivs_at_k_and_z(
+                                         struct fourier * pfo,
+                                         enum linear_or_logarithmic mode,
+                                         double f,
+                                         double b1,
+                                         double b2,
+                                         double bG2,
+                                         double s1,
+                                         double s2,
+                                         double s3,
+                                         double P_shot,
+                                         double c1_FoG,
+                                         double k1,
+                                         double k2,
+                                         double k3,
+                                         double mu1,
+                                         double mu2,
+                                         double Pk1,
+                                         double Pk2,
+                                         double Pk3,
+                                         double z,
+                                         double *bispectrum_treelevel,
+                                         double *deriv_s1,
+                                         double *deriv_s3
+                                         ) {
+  int i;
+  double mu3, Z1_k1, Z1_k2, Z1_k3, Z2_k1, Z2_k2, Z2_k3, B_tree_SPT_temp, B_tree_noise_temp, B_tree=0, 
+         deriv_s1_temp, deriv_s3_temp, deriv_s1_val=0, deriv_s3_val=0;
+
+  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
+             pfo->error_message,
+             "triangle inequalities are not satisfied");
+
+  class_test(k3<=0,
+             pfo->error_message,
+             "you have k3=%e",k3);
+
+  mu3 = -(k1*mu1 + k2*mu2)/k3;
+
+  // calculate the SPT RSD kernels at this stage to minimize the number of class calls
+  class_call(fourier_kernel_Z1(f, b1, k1, mu1, c1_FoG, &Z1_k1),
+              pfo->error_message, 
+              pfo->error_message);
+  class_call(fourier_kernel_Z1(f, b1, k2, mu2, c1_FoG, &Z1_k2),
+              pfo->error_message, 
+              pfo->error_message);
+  class_call(fourier_kernel_Z1(f, b1, k3, mu3, c1_FoG, &Z1_k3),
+              pfo->error_message, 
+              pfo->error_message);
+
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &Z2_k1), 
+             pfo->error_message, 
+             pfo->error_message);
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k2, k3, k1, mu2, mu3, &Z2_k2), 
+             pfo->error_message, 
+             pfo->error_message);
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k3, k1, k2, mu3, mu1, &Z2_k3), 
+             pfo->error_message, 
+             pfo->error_message);
+
+  double mu_arr[] = {mu1, mu2, mu3};
+  double P_arr[]  = {Pk1, Pk2, Pk3};
+  double Z1_arr[] = {Z1_k1, Z1_k2, Z1_k3};
+  double Z2_arr[] = {Z2_k1, Z2_k2, Z2_k3};
+
+  class_test(abs(mu1)>1 || abs(mu2)>1 || abs(mu3)>1, 
+             pfo->error_message, 
+             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
+
+  // loop over permutations
+  for (i=0; i<3; i++){
+    class_call(fourier_B_tree_det(pfo, f, b1, b2, bG2, Z1_arr[i], Z1_arr[(i+1)%3], Z2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
+               pfo->error_message,
+               pfo->error_message);
+    class_call(fourier_B_tree_stoch_and_derivs(pfo, f, b1, s1, s3, P_shot, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp, &deriv_s1_temp, &deriv_s3_temp),
+               pfo->error_message,
+               pfo->error_message);
+    B_tree += B_tree_SPT_temp + B_tree_noise_temp;
+    deriv_s1_val += deriv_s1_temp;
+    deriv_s3_val += deriv_s3_temp;
+  }
+
+  // add the isotropic stochastic contribution, where we do not need to sum over permutations
+  B_tree += (1.+s2) * P_shot*P_shot;
+
+  // If you want to use logarithmic output. Note: you lose information about the sign
+  if (mode==logarithmic){
+    *bispectrum_treelevel = log(abs(B_tree));
+    *deriv_s1 = log(abs(deriv_s1_val)); 
+    *deriv_s3 = log(abs(deriv_s3_val));
+  } else {
+    *bispectrum_treelevel = B_tree;
+    *deriv_s1 = deriv_s1_val; 
+    *deriv_s3 = deriv_s3_val;
   }
 
   return _SUCCESS_;
@@ -1986,10 +2111,10 @@ int fourier_B_tree_at_k_and_z(
  * @param b1            Input: first order bias parameter
  * @param b2            Input: second order bias parameter
  * @param bG2           Input: second order bias parameter
- * @param d1            Input: noise bias parameter
- * @param d2            Input: noise bias parameter
- * @param d3            Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_eps         Input: noise power spectrum
+ * @param s1            Input: noise bias parameter
+ * @param s2            Input: noise bias parameter
+ * @param s3            Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_shot        Input: noise power spectrum
  * @param c1_FoG        Input: 1st counter term parameter value for the FOG effect
  * @param k1            Input: wavenumber k1
  * @param k2            Input: wavenumber k2
@@ -2010,10 +2135,10 @@ int fourier_B_ell_tree_at_k_and_z(
                                   double b1,
                                   double b2,
                                   double bG2,
-                                  double d1,
-                                  double d2,
-                                  double d3,
-                                  double P_eps,
+                                  double s1,
+                                  double s2,
+                                  double s3,
+                                  double P_shot,
                                   double c1_FoG,
                                   double k1,
                                   double k2,
@@ -2150,10 +2275,10 @@ int fourier_B_ell_tree_at_k_and_z(
                                            b1, 
                                            b2, 
                                            bG2, 
-                                           d1, 
-                                           d2, 
-                                           d3, 
-                                           P_eps,
+                                           s1, 
+                                           s2, 
+                                           s3, 
+                                           P_shot,
                                            c1_FoG,
                                            k1, 
                                            k2, 
@@ -2199,10 +2324,10 @@ int fourier_B_ell_tree_at_k_and_z(
  * @param b1                             Input: first order bias parameter
  * @param b2                             Input: second order bias parameter
  * @param bG2                            Input: second order bias parameter
- * @param d1                             Input: noise bias parameter
- * @param d2                             Input: noise bias parameter
- * @param d3                             Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_eps                          Input: noise power spectrum
+ * @param s1                             Input: noise bias parameter
+ * @param s2                             Input: noise bias parameter
+ * @param s3                             Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_shot                         Input: noise power spectrum
  * @param c1_FoG                         Input: 1st counter term parameter value for the FOG effect
  * @param k1                             Input: wavenumber k1
  * @param k2                             Input: wavenumber k2
@@ -2214,48 +2339,53 @@ int fourier_B_ell_tree_at_k_and_z(
  * @param last_indices_interpolation     Input: Pointer to array of 3 last indices for the interpolation, 
  *                                              needs to be initialized once (to e.g. [0,0,0]), then the first call will set the indices
  * @param B_l                            Output: multipoles bispectrum for given type/time/wavenumber
+ * @param deriv_s1                       Output: derivative of B after the noise bias parameter s1, for indices z, k1, k2 and k3
+ * @param deriv_s3                       Output: same as above for s3
  * @return the error status
 */
 
-int fourier_B_ell_tree_AP_at_k_and_z(
-                                     struct background * pba,
-                                     struct primordial * ppm,
-                                     struct fourier * pfo,
-                                     enum linear_or_logarithmic mode,
-                                     int use_IR_resum,
-                                     int index_pk,
-                                     int pk_type_size,
-                                     int index_pk_full,
-                                     int index_pk_nw,
-                                     double * x_GL_i,
-                                     double * w_GL_i,
-                                     double * P_l,
-                                     double * lnpk_l_full_and_nw_at_z,
-                                     double * lnddpk_l_full_and_nw_at_z,
-                                     double b1,
-                                     double b2,
-                                     double bG2,
-                                     double d1,
-                                     double d2,
-                                     double d3,
-                                     double P_eps,
-                                     double c1_FoG,
-                                     double k1,
-                                     double k2,
-                                     double k3,
-                                     int l,
-                                     double z,
-                                     double q_perp,
-                                     double q_parr,
-                                     int * last_indices_interpolation,
-                                     double * B_l
-                                     ) {
+int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
+                                                struct background * pba,
+                                                struct primordial * ppm,
+                                                struct fourier * pfo,
+                                                enum linear_or_logarithmic mode,
+                                                int use_IR_resum,
+                                                int index_pk,
+                                                int pk_type_size,
+                                                int index_pk_full,
+                                                int index_pk_nw,
+                                                double * x_GL_i,
+                                                double * w_GL_i,
+                                                double * P_l,
+                                                double * lnpk_l_full_and_nw_at_z,
+                                                double * lnddpk_l_full_and_nw_at_z,
+                                                double b1,
+                                                double b2,
+                                                double bG2,
+                                                double s1,
+                                                double s2,
+                                                double s3,
+                                                double P_shot,
+                                                double c1_FoG,
+                                                double k1,
+                                                double k2,
+                                                double k3,
+                                                int l,
+                                                double z,
+                                                double q_perp,
+                                                double q_parr,
+                                                int * last_indices_interpolation,
+                                                double * B_l,
+                                                double * deriv_s1,
+                                                double * deriv_s3
+                                                ) {
   // declare variables
   int index_phi, index_mu, n_GC=5, n_GL=10, last_index;
-  double mu1, mu2, mu3, sin_phi_i, sin12, cos12, B_l_temp=0, bispectrum_treelevel, P1, P2, P3;
+  double mu1, mu2, mu3, sin_phi_i, sin12, cos12, B_l_temp=0, bispectrum_treelevel, P1, P2, P3, 
+         deriv_s1_wedges, deriv_s2_wedges, deriv_s3_wedges, deriv_s1_temp=0, deriv_s2_temp=0, deriv_s3_temp=0;
   // variables relevant for IR resummation:
-  double f, f_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z;
-  double P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3;
+  double f, f_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z, 
+         P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3;
   double * pvecback;
   // variables relevant for the AP effect:
   double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true, mu1_true_sq, mu2_true_sq, mu3_true_sq, ln_k1_true, ln_k2_true, ln_k3_true;
@@ -2412,48 +2542,56 @@ int fourier_B_ell_tree_AP_at_k_and_z(
         "use_IR_resum must be either 0 or 1, you entered use_IR_resum=%d", use_IR_resum);
       }
       
-      class_call(fourier_B_tree_at_k_and_z(pfo, 
-                                           linear, 
-                                           f, 
-                                           b1, 
-                                           b2, 
-                                           bG2, 
-                                           d1, 
-                                           d2, 
-                                           d3, 
-                                           P_eps,
-                                           c1_FoG,
-                                           k1_true, 
-                                           k2_true, 
-                                           k3_true, 
-                                           mu1_true, 
-                                           mu2_true, 
-                                           P1, 
-                                           P2, 
-                                           P3, 
-                                           z, 
-                                           &bispectrum_treelevel), 
+      class_call(fourier_B_tree_and_derivs_at_k_and_z(pfo, 
+                                                      linear, 
+                                                      f, 
+                                                      b1, 
+                                                      b2, 
+                                                      bG2, 
+                                                      s1, 
+                                                      s2, 
+                                                      s3, 
+                                                      P_shot,
+                                                      c1_FoG,
+                                                      k1_true, 
+                                                      k2_true, 
+                                                      k3_true, 
+                                                      mu1_true, 
+                                                      mu2_true, 
+                                                      P1, 
+                                                      P2, 
+                                                      P3, 
+                                                      z, 
+                                                      &bispectrum_treelevel,
+                                                      &deriv_s1_wedges,
+                                                      &deriv_s3_wedges), 
                  pfo->error_message,
                  pfo->error_message);
                               
-      B_l_temp += w_GL_i[index_mu]*P_l[index_mu]*bispectrum_treelevel;
+      B_l_temp += w_GL_i[index_mu] * P_l[index_mu] * bispectrum_treelevel;
+      deriv_s1_temp += w_GL_i[index_mu] * P_l[index_mu] * deriv_s1_wedges;
+      deriv_s3_temp += w_GL_i[index_mu] * P_l[index_mu] * deriv_s3_wedges;
     }
   } 
-
   // recover proper normalization: (2l+1)/2 from are the Legendre polynomial normalization
   // pi/n_GC normalization from GT quadrature and the pi cancels with the dphi/2pi
   // apply AP factors for bispec
-  *B_l = B_l_temp*0.5*(2.*l+1.)/(n_GC*q_parr*q_parr*q_perp*q_perp*q_perp*q_perp);    
+  *B_l = B_l_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp); 
+  *deriv_s1 = deriv_s1_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp); 
+  *deriv_s3 = deriv_s3_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp);
 
   if (mode==logarithmic){
     *B_l = log(abs(*B_l));
+    *deriv_s1 = log(abs(*deriv_s1));
+    *deriv_s3 = log(abs(*deriv_s3));
   }
 
   return _SUCCESS_;
 }
 
-/** The treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
- *  Returns bispectrum for clustering or for the full matter, depending on index_pk AND the 'nowiggle_pk_species' setting (total or clustering)
+/** the treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
+ *  returns bispectrum for clustering or for the full matter, depending on index_pk AND the 'nowiggle_pk_species' setting (total or clustering)
+ *  also returns the derivatives of B after the linear nuisance parameters s1, s2 and s3
  * @param pba           Input: pointer to background structure
  * @param ppm           Input: pointer to primordial structure
  * @param pfo           Input: pointer to fourier structure
@@ -2463,11 +2601,11 @@ int fourier_B_ell_tree_AP_at_k_and_z(
  * @param b1            Input: first order bias parameter array
  * @param b2            Input: second order bias parameter array
  * @param bG2           Input: second order bias parameter array
- * @param d1            Input: noise bias parameter array
- * @param d2            Input: noise bias parameter array
- * @param d3            Input: noise bias parameter array (TODO: Ivanov and Rizzo have different parametrization)
+ * @param s1            Input: noise bias parameter array
+ * @param s2            Input: noise bias parameter array
+ * @param s3            Input: noise bias parameter array (TODO: Ivanov and Rizzo have different parametrization)
  * @param c1_FoG        Input: 1st counter term parameter values for the FOG effect
- * @param P_eps         Input: noise power spectrum array
+ * @param P_shot        Input: noise power spectrum array
  * @param karray        Input: points at the first of 3·n_triangles doubles for the triangle wavenumber values
  * @param n_triangles   Input: number of triangles
  * @param zarray        Input: z array
@@ -2476,33 +2614,39 @@ int fourier_B_ell_tree_AP_at_k_and_z(
  * @param q_perp_array  Input: array of Alcock Pacinsky factor in the orthogonal direction
  * @param q_parr_array  Input: array of Alcock Pacinsky factor in the radial direction
  * @param B_l           Output: multipoles bispectrum, indexed as [index_z*n_triangles+index_triangle]
+ * @param deriv_s1      Output: derivative of B after the noise bias parameter s1, indexed as [index_z*n_triangles+index_triangle]
+ * @param deriv_s2      Output: same as above for s2
+ * @param deriv_s3      Output: same as above for s3
  * @return the error status
 */
 
-int fourier_B_ell_tree_AP_at_kvec_and_zvec(
-                                           struct background *pba,
-                                           struct primordial * ppm,
-                                           struct fourier * pfo,
-                                           enum linear_or_logarithmic mode,
-                                           int use_IR_resum,
-                                           int index_pk,
-                                           double * b1,
-                                           double * b2,
-                                           double * bG2,
-                                           double * d1,
-                                           double * d2,
-                                           double * d3,
-                                           double * P_eps,
-                                           double * c1_FoG,
-                                           double * karray,
-                                           int n_triangles,
-                                           double * zarray,
-                                           int z_size,
-                                           int l,
-                                           double * q_perp_array, 
-                                           double * q_parr_array,
-                                           double * B_l 
-                                           ) {
+int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
+                                                      struct background *pba,
+                                                      struct primordial * ppm,
+                                                      struct fourier * pfo,
+                                                      enum linear_or_logarithmic mode,
+                                                      int use_IR_resum,
+                                                      int index_pk,
+                                                      double * b1,
+                                                      double * b2,
+                                                      double * bG2,
+                                                      double * s1,
+                                                      double * s2,
+                                                      double * s3,
+                                                      double * P_shot,
+                                                      double * c1_FoG,
+                                                      double * karray,
+                                                      int n_triangles,
+                                                      double * zarray,
+                                                      int z_size,
+                                                      int l,
+                                                      double * q_perp_array, 
+                                                      double * q_parr_array,
+                                                      double * B_l,
+                                                      double * deriv_s1,
+                                                      double * deriv_s2,
+                                                      double * deriv_s3 
+                                                      ) {
   // declare variables
   int index_z, index_t, index_k, index_mu, index_l=l/2, index_pk_full, index_pk_nw, index_pk_wiggliness=0, n_GaussLegendre=10, *last_indices_interpolation;
   double *pk_both, *ddpk_both, *pk, *pk_nw, *x_GL_i, *w_GL_i;   
@@ -2515,9 +2659,9 @@ int fourier_B_ell_tree_AP_at_kvec_and_zvec(
   // define Gauss Legendre quadrature sample points, weights
   // https://pomax.github.io/bezierinfo/legendre-gauss.html
   double x_GL_i_vals[] = {-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472, -0.1488743389816312,
-  0.1488743389816312, 0.4333953941292472,  0.6794095682990244,  0.8650633666889845,  0.9739065285171717};
-  double w_GL_i_vals[] = { 0.0666713443086881, 0.1494513491505806, 0.2190863625159820, 0.2692667193099963, 0.2955242247147529,
-  0.2955242247147529, 0.2692667193099963, 0.2190863625159820, 0.1494513491505806, 0.0666713443086881};
+                           0.1488743389816312,  0.4333953941292472,  0.6794095682990244,  0.8650633666889845,  0.9739065285171717};
+  double w_GL_i_vals[] = { 0.0666713443086881,  0.1494513491505806,  0.2190863625159820,  0.2692667193099963,  0.2955242247147529,
+                           0.2955242247147529,  0.2692667193099963,  0.2190863625159820,  0.1494513491505806,  0.0666713443086881};
   class_alloc(x_GL_i, n_GaussLegendre*sizeof(double),
               pfo->error_message);
   class_alloc(w_GL_i, n_GaussLegendre*sizeof(double),
@@ -2575,6 +2719,11 @@ int fourier_B_ell_tree_AP_at_kvec_and_zvec(
                                           pk_nw),
                pfo->error_message,
                pfo->error_message);
+    
+    // get the derivative after the s2 parameter for index_z
+    double deriv_s2_at_z_and_k_tmp = P_shot[index_z]*P_shot[index_z] / 
+                                     (q_parr_array[index_z]*q_parr_array[index_z] * 
+                                      q_perp_array[index_z]*q_perp_array[index_z]*q_perp_array[index_z]*q_perp_array[index_z]);
 
     // fill pk_both[index_k*pk_type_size+index_pk_wiggliness]
     for (index_k=0; index_k<pfo->k_size; index_k++){
@@ -2600,42 +2749,49 @@ int fourier_B_ell_tree_AP_at_kvec_and_zvec(
       double k3 = karray[3*index_t + 2];
 
       double B_l_at_z_and_k_tmp;
+      double deriv_s1_at_z_and_k_tmp;
+      double deriv_s3_at_z_and_k_tmp;
 
-      class_call(fourier_B_ell_tree_AP_at_k_and_z(pba,
-                                                  ppm,
-                                                  pfo,
-                                                  mode,
-                                                  use_IR_resum,
-                                                  index_pk,
-                                                  pk_type_size,
-                                                  index_pk_full,
-                                                  index_pk_nw,
-                                                  x_GL_i,
-                                                  w_GL_i,
-                                                  P_l[index_l],
-                                                  pk_both,
-                                                  ddpk_both,
-                                                  b1[index_z],
-                                                  b2[index_z],
-                                                  bG2[index_z],
-                                                  d1[index_z],
-                                                  d2[index_z],
-                                                  d3[index_z],
-                                                  P_eps[index_z],
-                                                  c1_FoG[index_z],
-                                                  k1,
-                                                  k2,
-                                                  k3,
-                                                  l,
-                                                  zarray[index_z],
-                                                  q_perp_array[index_z],
-                                                  q_parr_array[index_z],
-                                                  last_indices_interpolation,
-                                                  &B_l_at_z_and_k_tmp),
+      class_call(fourier_B_ell_tree_AP_and_derivs_at_k_and_z(pba,
+                                                             ppm,
+                                                             pfo,
+                                                             mode,
+                                                             use_IR_resum,
+                                                             index_pk,
+                                                             pk_type_size,
+                                                             index_pk_full,
+                                                             index_pk_nw,
+                                                             x_GL_i,
+                                                             w_GL_i,
+                                                             P_l[index_l],
+                                                             pk_both,
+                                                             ddpk_both,
+                                                             b1[index_z],
+                                                             b2[index_z],
+                                                             bG2[index_z],
+                                                             s1[index_z],
+                                                             s2[index_z],
+                                                             s3[index_z],
+                                                             P_shot[index_z],
+                                                             c1_FoG[index_z],
+                                                             k1,
+                                                             k2,
+                                                             k3,
+                                                             l,
+                                                             zarray[index_z],
+                                                             q_perp_array[index_z],
+                                                             q_parr_array[index_z],
+                                                             last_indices_interpolation,
+                                                             &B_l_at_z_and_k_tmp,
+                                                             &deriv_s1_at_z_and_k_tmp,
+                                                             &deriv_s3_at_z_and_k_tmp),
                  pfo->error_message,
                  pfo->error_message);
                                                                   
       B_l[index_z*n_triangles+index_t] = B_l_at_z_and_k_tmp;
+      deriv_s1[index_z*n_triangles+index_t] = deriv_s1_at_z_and_k_tmp;
+      deriv_s2[index_z*n_triangles+index_t] = deriv_s2_at_z_and_k_tmp;
+      deriv_s3[index_z*n_triangles+index_t] = deriv_s3_at_z_and_k_tmp;
       return _SUCCESS_;
       )
     }
@@ -4285,16 +4441,17 @@ int fourier_B_tree_det(
   return _SUCCESS_;
 }
 
-/** Helper function for the bispectrum: tree level Bispectrum noise/stochastic contribution
+/** Helper function for the bispectrum: tree level Bispectrum noise/stochastic contribution 
+ * (only the part, of which permutations need to be considered)
  * @param pfo           Input: pointer to fourier structure
  * @param f             Input: log derivative of the growth factor
  * @param b1            Input: first order bias parameter
- * @param d1            Input: first order noise bias parameter
- * @param d2            Input: second order noise parameter
- * @param P_eps         Input: noise power spectrum
+ * @param s1            Input: first order noise bias parameter
+ * @param s3            Input: second order noise parameter
+ * @param P_shot        Input: noise power spectrum
  * @param mu            Input: angle between k and line of sight
- * @param K1            Input: order 1 SPT RSD kernel at k
- * @param Pk            Input: power spectrum at k
+ * @param Z1            Input: order 1 SPT RSD kernel at k
+ * @param Pk            Input: linear power spectrum at k
  * @param z             Input: redshift
  * @param B_tree        Output: pointer to the value of B_tree
  * @return the error status
@@ -4304,9 +4461,9 @@ int fourier_B_tree_stoch(
                         struct fourier * pfo,
                         double f,
                         double b1,
-                        double d1,
-                        double d2,
-                        double P_eps,
+                        double s1,
+                        double s3,
+                        double P_shot,
                         double mu,
                         double Z1,
                         double Pk,
@@ -4314,10 +4471,54 @@ int fourier_B_tree_stoch(
                         double * B_tree
                         ) {
 
-  // This is the Ivanov (https://arxiv.org/pdf/2110.10161) parametrization, which is different from Rizzo (https://arxiv.org/pdf/2204.13628)
+  // This is the Rizzo (https://arxiv.org/pdf/2204.13628) parametrization, which is different from Ivanov (https://arxiv.org/pdf/2110.10161)
   // equivalent, except for the case where any alpha=-1 in the Rizzo parametrization,
-  // and they have one additional parameter: 1-alpha_2, which is given by d1**3 in our parametrization
-  *B_tree =  P_eps*Pk*Z1*d1*(2.*b1*d2 + d1*f*mu*mu);
+  // and Rizzo has one additional parameter: 1-alpha_2, which is given by d1**3 in Ivanov's parametrization
+  *B_tree =  P_shot * ((1.+s1) * b1 + (1.+s3) * f *mu*mu) * Z1 * Pk;
+
+  return _SUCCESS_;
+}
+
+/** Helper function for the bispectrum: tree level Bispectrum noise/stochastic contribution and derivatives after the two linear nuisance parameters s1 and s3
+ * (only the part, of which permutations need to be considered)
+ * @param pfo           Input: pointer to fourier structure
+ * @param f             Input: log derivative of the growth factor
+ * @param b1            Input: first order bias parameter
+ * @param s1            Input: first order noise bias parameter
+ * @param s3            Input: second order noise parameter
+ * @param P_shot        Input: noise power spectrum
+ * @param mu            Input: angle between k and line of sight
+ * @param Z1            Input: order 1 SPT RSD kernel at k
+ * @param Pk            Input: linear power spectrum at k
+ * @param z             Input: redshift
+ * @param B_tree        Output: pointer to the value of B_tree
+ * @param deriv_s1      Output: derivative of B after the noise bias parameter s1 for indices z and k
+ * @param deriv_s3      Output: same as above for s3
+ * @return the error status
+ */
+
+int fourier_B_tree_stoch_and_derivs(
+                                    struct fourier * pfo,
+                                    double f,
+                                    double b1,
+                                    double s1,
+                                    double s3,
+                                    double P_shot,
+                                    double mu,
+                                    double Z1,
+                                    double Pk,
+                                    double z,
+                                    double *B_tree,
+                                    double *deriv_s1,
+                                    double *deriv_s3
+                                    ) {
+
+  // This is the Rizzo (https://arxiv.org/pdf/2204.13628) parametrization, which is different from Ivanov (https://arxiv.org/pdf/2110.10161)
+  // equivalent, except for the case where any alpha=-1 in the Rizzo parametrization,
+  // and Rizzo has one additional parameter: 1-alpha_2, which is given by d1**3 in Ivanov's parametrization
+  *B_tree =  P_shot * ((1.+s1) * b1 + (1.+s3) * f *mu*mu) * Z1 * Pk;
+  *deriv_s1 = P_shot * b1 * Z1 * Pk;
+  *deriv_s3 = P_shot * f * mu*mu * Z1 * Pk;
 
   return _SUCCESS_;
 }
