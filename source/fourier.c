@@ -2379,18 +2379,18 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
                                                 double * deriv_s1,
                                                 double * deriv_s3
                                                 ) {
-  // declare variables
+  // Declare variables
   int index_phi, index_mu, n_GC=5, n_GL=10, last_index;
   double mu1, mu2, mu3, sin_phi_i, sin12, cos12, B_l_temp=0, bispectrum_treelevel, P1, P2, P3, 
          deriv_s1_wedges, deriv_s2_wedges, deriv_s3_wedges, deriv_s1_temp=0, deriv_s2_temp=0, deriv_s3_temp=0;
-  // variables relevant for IR resummation:
+  // Variables relevant for IR resummation:
   double f, f_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z, 
          P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3;
   double * pvecback;
-  // variables relevant for the AP effect:
+  // Variables relevant for the AP effect:
   double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true, mu1_true_sq, mu2_true_sq, mu3_true_sq, ln_k1_true, ln_k2_true, ln_k3_true;
 
-  // allocate space for power spectra
+  // Allocate space for power spectra
   class_alloc(P_full_and_nw_1, pk_type_size*sizeof(double),
               pfo->error_message)
   class_alloc(P_full_and_nw_2, pk_type_size*sizeof(double),
@@ -2398,7 +2398,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
   class_alloc(P_full_and_nw_3, pk_type_size*sizeof(double),
               pfo->error_message)
 
-  // calculate the value of the growth factor f
+  // Calculate the value of the growth factor f
   class_alloc(pvecback,pba->bg_size*sizeof(double),
               pfo->error_message);
 
@@ -2409,7 +2409,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
   f = pvecback[pba->index_bg_f];
   free(pvecback);
 
-  // test whether the triangle configuration is senseful (triangle inequality)
+  // Test whether the triangle configuration is senseful (triangle inequality)
   class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
              pfo->error_message,
              "triangle inequalities are not satisfied");
@@ -2418,13 +2418,13 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
              pfo->error_message,
              "you have k3=%e",k3);
 
-  // define angles in parametrization, note that these are calculated from the undistorted k's:
-  // they are needed in the undistorted coordinates as an input for the distorted coordinates 
+  // Define angles in parametrization, note that these are calculated from the undistorted k's:
+  // They are needed in the undistorted coordinates as an input for the distorted coordinates 
   cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);   // cos12 = vec_k1*vec_k1/(k1*k2) -> angle between the vectors and not inside the triangle
   sin12 = sqrt(1-cos12*cos12);                    // note that sin12 > 0 since the angle must be between 0 and pi
   
   if (use_IR_resum==1){ 
-    // define sigma and dsigma for IR resummation
+    // Define sigma and dsigma for IR resummation
     k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
     k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
     sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
@@ -2465,12 +2465,12 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
         pfo->error_message, 
         "To use the IR resummed power spectrum you need 'mPknw' as an output");
 
-        // fill the ln_k vector to which we interpolate the splines
+        // Fill the ln_k vector to which we interpolate the splines
         ln_k1_true = log(k1_true); 
         ln_k2_true = log(k2_true); 
         ln_k3_true = log(k3_true);
 
-        // get the regular and the no wiggle power spectrum for the ln_k's by interpolation of the logarithmic splines
+        // Get the regular and the no wiggle power spectrum for the ln_k's by interpolation of the logarithmic splines
         class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
                                                          pfo->k_size,
                                                          lnpk_l_full_and_nw_at_z,
@@ -2510,7 +2510,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
                    pfo->error_message,
                    pfo->error_message);
 
-        // exponentiate the logarithmic interpolations
+        // Exponentiate the logarithmic interpolations
         P_full_and_nw_1[index_pk_full] = exp(P_full_and_nw_1[index_pk_full]);
         P_full_and_nw_2[index_pk_full] = exp(P_full_and_nw_2[index_pk_full]);
         P_full_and_nw_3[index_pk_full] = exp(P_full_and_nw_3[index_pk_full]);
@@ -2523,7 +2523,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
         P_w_2 = P_full_and_nw_2[index_pk_full]-P_full_and_nw_2[index_pk_nw];
         P_w_3 = P_full_and_nw_3[index_pk_full]-P_full_and_nw_3[index_pk_nw];
         
-        // calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
+        // Calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
         mu1_true_sq = mu1_true*mu1_true;
         mu2_true_sq = mu2_true*mu2_true;
         mu3_true_sq = mu3_true*mu3_true;
@@ -2573,9 +2573,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
       deriv_s3_temp += w_GL_i[index_mu] * P_l[index_mu] * deriv_s3_wedges;
     }
   } 
-  // recover proper normalization: (2l+1)/2 from are the Legendre polynomial normalization
+  // Recover proper normalization: (2l+1)/2 from are the Legendre polynomial normalization
   // pi/n_GC normalization from GT quadrature and the pi cancels with the dphi/2pi
-  // apply AP factors for bispec
+  // Apply AP factors for bispec
   *B_l = B_l_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp); 
   *deriv_s1 = deriv_s1_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp); 
   *deriv_s3 = deriv_s3_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp);
@@ -2586,12 +2586,16 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
     *deriv_s3 = log(abs(*deriv_s3));
   }
 
+  free(P_full_and_nw_1);
+  free(P_full_and_nw_2);
+  free(P_full_and_nw_3);
+
   return _SUCCESS_;
 }
 
-/** the treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
- *  returns bispectrum for clustering or for the full matter, depending on index_pk AND the 'nowiggle_pk_species' setting (total or clustering)
- *  also returns the derivatives of B after the linear nuisance parameters s1, s2 and s3
+/** The treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
+ *  Returns bispectrum for clustering or for the full matter, depending on index_pk AND the 'nowiggle_pk_species' setting (total or clustering)
+ *  Also returns the derivatives of B after the linear nuisance parameters s1, s2 and s3
  * @param pba           Input: pointer to background structure
  * @param ppm           Input: pointer to primordial structure
  * @param pfo           Input: pointer to fourier structure
@@ -2647,16 +2651,16 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                       double * deriv_s2,
                                                       double * deriv_s3 
                                                       ) {
-  // declare variables
+  // Declare variables
   int index_z, index_t, index_k, index_mu, index_l=l/2, index_pk_full, index_pk_nw, index_pk_wiggliness=0, n_GaussLegendre=10, *last_indices_interpolation;
   double *pk_both, *ddpk_both, *pk, *pk_nw, *x_GL_i, *w_GL_i;   
 
-  // define class indices
+  // Define class indices
   class_define_index(index_pk_full, _TRUE_, index_pk_wiggliness,1);
   class_define_index(index_pk_nw, _TRUE_, index_pk_wiggliness,1);
   int pk_type_size = index_pk_wiggliness;
 
-  // define Gauss Legendre quadrature sample points, weights
+  // Define Gauss Legendre quadrature sample points, weights
   // https://pomax.github.io/bezierinfo/legendre-gauss.html
   double x_GL_i_vals[] = {-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472, -0.1488743389816312,
                            0.1488743389816312,  0.4333953941292472,  0.6794095682990244,  0.8650633666889845,  0.9739065285171717};
@@ -2669,7 +2673,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
   memcpy(x_GL_i, x_GL_i_vals, n_GaussLegendre*sizeof(double));
   memcpy(w_GL_i, w_GL_i_vals, n_GaussLegendre*sizeof(double));
 
-  // define Legendre polynomials
+  // Define Legendre polynomials
   double P_0[10], P_2[10], P_4[10];
   for (index_mu=0; index_mu<10; index_mu++){
     P_0[index_mu] = 1.;
@@ -2682,7 +2686,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
              "only multipoles l=0, l=2 or l=4 are valid, you have l=%d",l);
 
   for (index_z=0; index_z<z_size; index_z++){          
-    // array alloc
+    // Array alloc
     class_alloc(pk, pfo->k_size*sizeof(double), 
                 pfo->error_message);
     class_alloc(pk_nw, pfo->k_size_extra*sizeof(double), 
@@ -2698,7 +2702,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
     last_indices_interpolation[1] = 0;
     last_indices_interpolation[2] = 0;
     
-    // get the linear power spectrum for index_pk type
+    // Get the linear power spectrum for index_pk type
     class_call(fourier_pk_at_z(pba,
                                pfo,
                                logarithmic,
@@ -2710,8 +2714,8 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                pfo->error_message,
                pfo->error_message);
     
-    // get the dewiggled linear power spectrum, 
-    // for CDM and baryons combined set "nowiggle_pk_species":"clustering", for total matter set "nowiggle_pk_species":"total"
+    // Get the dewiggled linear power spectrum, 
+    // For CDM and baryons combined set "nowiggle_pk_species":"clustering", for total matter set "nowiggle_pk_species":"total"
     class_call(fourier_pk_l_nw_extra_at_z(pba,
                                           pfo,
                                           logarithmic,
@@ -2720,12 +2724,12 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                pfo->error_message,
                pfo->error_message);
     
-    // get the derivative after the s2 parameter for index_z
+    // Get the derivative after the s2 parameter for index_z
     double deriv_s2_at_z_and_k_tmp = P_shot[index_z]*P_shot[index_z] / 
                                      (q_parr_array[index_z]*q_parr_array[index_z] * 
                                       q_perp_array[index_z]*q_perp_array[index_z]*q_perp_array[index_z]*q_perp_array[index_z]);
 
-    // fill pk_both[index_k*pk_type_size+index_pk_wiggliness]
+    // Fill pk_both[index_k*pk_type_size+index_pk_wiggliness]
     for (index_k=0; index_k<pfo->k_size; index_k++){
       pk_both[index_k*pk_type_size+index_pk_full] = pk[index_k];
       pk_both[index_k*pk_type_size+index_pk_nw] = pk_nw[index_k];
@@ -2803,6 +2807,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
     free(ddpk_both);
     free(last_indices_interpolation);
   }  
+
+  free(x_GL_i);
+  free(w_GL_i);
 
   return _SUCCESS_;
 }
