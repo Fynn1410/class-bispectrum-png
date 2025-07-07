@@ -1872,6 +1872,7 @@ int fourier_k_nl_at_z(
  * @param s3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
  * @param P_shot                Input: noise power spectrum
  * @param c1_FoG                Input: 1st counter term parameter value for the FOG effect
+ * @param k_nonlinear           Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
  * @param k1                    Input: wavenumber k1
  * @param k2                    Input: wavenumber k2
  * @param k3                    Input: wavenumber k3
@@ -1897,6 +1898,7 @@ int fourier_B_tree_at_k_and_z(
                               double s3,
                               double P_shot,
                               double c1_FoG,
+                              double k_nonlinear,
                               double k1,
                               double k2,
                               double k3,
@@ -1922,13 +1924,13 @@ int fourier_B_tree_at_k_and_z(
   mu3 = -(k1*mu1 + k2*mu2)/k3;
 
   // calculate the SPT RSD kernels at this stage to minimize the number of class calls
-  class_call(fourier_kernel_Z1(f, b1, k1, mu1, c1_FoG, &Z1_k1),
+  class_call(fourier_kernel_Z1(f, b1, k1, mu1, c1_FoG, k_nonlinear, &Z1_k1),
               pfo->error_message, 
               pfo->error_message);
-  class_call(fourier_kernel_Z1(f, b1, k2, mu2, c1_FoG, &Z1_k2),
+  class_call(fourier_kernel_Z1(f, b1, k2, mu2, c1_FoG, k_nonlinear, &Z1_k2),
               pfo->error_message, 
               pfo->error_message);
-  class_call(fourier_kernel_Z1(f, b1, k3, mu3, c1_FoG, &Z1_k3),
+  class_call(fourier_kernel_Z1(f, b1, k3, mu3, c1_FoG, k_nonlinear, &Z1_k3),
               pfo->error_message, 
               pfo->error_message);
 
@@ -1986,6 +1988,7 @@ int fourier_B_tree_at_k_and_z(
  * @param s3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
  * @param P_shot                Input: noise power spectrum
  * @param c1_FoG                Input: 1st counter term parameter value for the FOG effect
+ * @param k_nonlinear           Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
  * @param k1                    Input: wavenumber k1
  * @param k2                    Input: wavenumber k2
  * @param k3                    Input: wavenumber k3
@@ -2013,6 +2016,7 @@ int fourier_B_tree_and_derivs_at_k_and_z(
                                          double s3,
                                          double P_shot,
                                          double c1_FoG,
+                                         double k_nonlinear,
                                          double k1,
                                          double k2,
                                          double k3,
@@ -2041,13 +2045,13 @@ int fourier_B_tree_and_derivs_at_k_and_z(
   mu3 = -(k1*mu1 + k2*mu2)/k3;
 
   // calculate the SPT RSD kernels at this stage to minimize the number of class calls
-  class_call(fourier_kernel_Z1(f, b1, k1, mu1, c1_FoG, &Z1_k1),
+  class_call(fourier_kernel_Z1(f, b1, k1, mu1, c1_FoG, k_nonlinear, &Z1_k1),
               pfo->error_message, 
               pfo->error_message);
-  class_call(fourier_kernel_Z1(f, b1, k2, mu2, c1_FoG, &Z1_k2),
+  class_call(fourier_kernel_Z1(f, b1, k2, mu2, c1_FoG, k_nonlinear, &Z1_k2),
               pfo->error_message, 
               pfo->error_message);
-  class_call(fourier_kernel_Z1(f, b1, k3, mu3, c1_FoG, &Z1_k3),
+  class_call(fourier_kernel_Z1(f, b1, k3, mu3, c1_FoG, k_nonlinear, &Z1_k3),
               pfo->error_message, 
               pfo->error_message);
 
@@ -2116,6 +2120,7 @@ int fourier_B_tree_and_derivs_at_k_and_z(
  * @param s3            Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
  * @param P_shot        Input: noise power spectrum
  * @param c1_FoG        Input: 1st counter term parameter value for the FOG effect
+ * @param k_nonlinear                    Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
  * @param k1            Input: wavenumber k1
  * @param k2            Input: wavenumber k2
  * @param k3            Input: wavenumber k3
@@ -2140,6 +2145,7 @@ int fourier_B_ell_tree_at_k_and_z(
                                   double s3,
                                   double P_shot,
                                   double c1_FoG,
+                                  double k_nonlinear,
                                   double k1,
                                   double k2,
                                   double k3,
@@ -2280,6 +2286,7 @@ int fourier_B_ell_tree_at_k_and_z(
                                            s3, 
                                            P_shot,
                                            c1_FoG,
+                                           k_nonlinear,
                                            k1, 
                                            k2, 
                                            k3, 
@@ -2329,6 +2336,7 @@ int fourier_B_ell_tree_at_k_and_z(
  * @param s3                             Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
  * @param P_shot                         Input: noise power spectrum
  * @param c1_FoG                         Input: 1st counter term parameter value for the FOG effect
+ * @param k_nonlinear                    Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
  * @param k1                             Input: wavenumber k1
  * @param k2                             Input: wavenumber k2
  * @param k3                             Input: wavenumber k3
@@ -2368,6 +2376,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
                                                 double s3,
                                                 double P_shot,
                                                 double c1_FoG,
+                                                double k_nonlinear,
                                                 double k1,
                                                 double k2,
                                                 double k3,
@@ -2555,6 +2564,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
                                                       s3, 
                                                       P_shot,
                                                       c1_FoG,
+                                                      k_nonlinear,
                                                       k1_true, 
                                                       k2_true, 
                                                       k3_true, 
@@ -2611,6 +2621,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
  * @param s2            Input: noise bias parameter array in z
  * @param s3            Input: noise bias parameter array in z (TODO: Ivanov and Rizzo have different parametrization)
  * @param c1_FoG        Input: 1st counter term parameter values for the FOG effect
+ * @param k_nonlinear  Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
  * @param P_shot        Input: noise power spectrum array in z
  * @param k             Input: points at the first of 3·n_triangles doubles for the triangle wavenumber values
  * @param n_triangles   Input: number of triangles
@@ -2642,6 +2653,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                       double * s3,
                                                       double * P_shot,
                                                       double * c1_FoG,
+                                                      double k_nonlinear,
                                                       double * k,
                                                       int n_triangles,
                                                       double * z,
@@ -2780,6 +2792,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                              s3[index_z],
                                                              P_shot[index_z],
                                                              c1_FoG[index_z],
+                                                             k_nonlinear,
                                                              k1,
                                                              k2,
                                                              k3,
@@ -4345,6 +4358,8 @@ int fourier_pk_linear(
  * @param f             Input: log derivative of the growth factor
  * @param b1            Input: first order bias parameter
  * @param mu            Input: angle between k and line of sight
+ * @param c1_FoG        Input: 1st counter term parameter values for the FOG effect
+ * @param k_nonlinear   Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
  * @param Z1            Output: pointer to the value of Z1
  * @return the error status
  */
@@ -4355,10 +4370,11 @@ int fourier_kernel_Z1(
                       double k,
                       double mu,
                       double c1_FoG,
+                      double k_nonlinear,
                       double *Z1
                       ) {
 
-  *Z1 = b1 + f*mu*mu - c1_FoG*mu*mu*k*k;
+  *Z1 = b1 + f*mu*mu - c1_FoG*mu*mu*k*k/(k_nonlinear*k_nonlinear);
 
   return _SUCCESS_;
 }

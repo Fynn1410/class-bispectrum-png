@@ -1266,7 +1266,7 @@ cdef class Class:
 
     #################################
 
-    def bk_lin(self, use_IR_resum, double b1, double b2, double bG2, double s1, double s2, double s3, double P_shot, double c1_FoG, double k1, double k2, double k3, double mu1, double mu2, double z):
+    def bk_lin(self, use_IR_resum, double b1, double b2, double bG2, double s1, double s2, double s3, double P_shot, double c1_FoG, double k_nonlinear, double k1, double k2, double k3, double mu1, double mu2, double z):
         """
         Gives the linear galaxy bispectrum pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
@@ -1285,12 +1285,12 @@ cdef class Class:
         Pk2 = self.pk(k2, z)
         Pk3 = self.pk(k3, z)
 
-        if fourier_B_tree_at_k_and_z(&self.fo, linear, f, b1, b2, bG2, s1, s2, s3, P_shot, c1_FoG, k1, k2, k3, mu1, mu2, Pk1, Pk2, Pk3, z, &bk_lin)==_FAILURE_:
+        if fourier_B_tree_at_k_and_z(&self.fo, linear, f, b1, b2, bG2, s1, s2, s3, P_shot, c1_FoG, k_nonlinear, k1, k2, k3, mu1, mu2, Pk1, Pk2, Pk3, z, &bk_lin)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return bk_lin
 
-    def bk_lin_multipoles(self, use_IR_resum, double b1, double b2, double bG2, double s1, double s2, double s3, double P_shot, double c1_FoG, double k1, double k2, double k3, int l, double z):
+    def bk_lin_multipoles(self, use_IR_resum, double b1, double b2, double bG2, double s1, double s2, double s3, double P_shot, double c1_FoG, double k_nonlinear, double k1, double k2, double k3, int l, double z):
         """
         Gives the multipoles for m=0 and variable l of the linear galaxy bispectrum pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
@@ -1305,7 +1305,7 @@ cdef class Class:
         if (self.fo.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You need it to get the galaxy bispectrum.")
 
-        if fourier_B_ell_tree_at_k_and_z(&self.ba, &self.pm, &self.fo, linear, use_IR_resum, self.fo.index_pk_m, b1, b2, bG2, s1, s2, s3, P_shot, c1_FoG, k1, k2, k3, l, z, &bk_lin_l)==_FAILURE_:
+        if fourier_B_ell_tree_at_k_and_z(&self.ba, &self.pm, &self.fo, linear, use_IR_resum, self.fo.index_pk_m, b1, b2, bG2, s1, s2, s3, P_shot, c1_FoG, k_nonlinear, k1, k2, k3, l, z, &bk_lin_l)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return bk_lin_l
@@ -1319,6 +1319,7 @@ cdef class Class:
                                                           np.ndarray[DTYPE_t,ndim=1] s3, 
                                                           np.ndarray[DTYPE_t,ndim=1] P_shot, 
                                                           np.ndarray[DTYPE_t,ndim=1] c1_FoG,
+                                                          double k_nonlinear,
                                                           np.ndarray[DTYPE_t,ndim=2] karray, 
                                                           np.ndarray[DTYPE_t,ndim=1] zarray, 
                                                           int l_max, 
@@ -1393,6 +1394,7 @@ cdef class Class:
                                                                  s3_vals,
                                                                  P_shot_vals,
                                                                  c1_FoG_vals,
+                                                                 k_nonlinear,
                                                                  k_vals,
                                                                  n_triangles,
                                                                  z_vals,

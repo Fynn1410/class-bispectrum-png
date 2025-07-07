@@ -447,6 +447,7 @@ extern "C" {
                                 double s3,
                                 double P_shot,
                                 double c1_FoG,
+                                double k_nonlinear,
                                 double k1,
                                 double k2,
                                 double k3,
@@ -474,6 +475,7 @@ int fourier_B_ell_tree_at_k_and_z(
                                   double s3,
                                   double P_shot,
                                   double c1_FoG,
+                                  double k_nonlinear,
                                   double k1,
                                   double k2,
                                   double k3,
@@ -497,6 +499,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                       double * s3,
                                                       double * P_shot,
                                                       double * c1_FoG,
+                                                      double k_nonlinear,
                                                       double * k,
                                                       int n_triangles,
                                                       double * z,
@@ -576,6 +579,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                         double k,
                         double mu,
                         double c1_FoG,
+                        double k_nonlinear,
                         double * Z1
                         );
 
@@ -901,6 +905,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                   double s3,
                                                   double P_shot,
                                                   double c1_FoG,
+                                                  double k_nonlinear,
                                                   double k1,
                                                   double k2,
                                                   double k3,
@@ -927,6 +932,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                            double s3,
                                            double P_shot,
                                            double c1_FoG,
+                                           double k_nonlinear,
                                            double k1,
                                            double k2,
                                            double k3,
