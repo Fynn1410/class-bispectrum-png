@@ -1324,6 +1324,7 @@ cdef class Class:
                                                           int l_max, 
                                                           np.ndarray[DTYPE_t,ndim=1] q_perp, 
                                                           np.ndarray[DTYPE_t,ndim=1] q_parr,
+                                                          np.ndarray[DTYPE_t,ndim=1] AP,
                                                           only_clustering_species=False,
                                                           use_ir_resummation=True):
 
@@ -1358,6 +1359,7 @@ cdef class Class:
         cdef double *z_vals = &zarray[0]
         cdef double *q_perp_vals = &q_perp[0]
         cdef double *q_parr_vals = &q_parr[0]
+        cdef double *AP_vals = &AP[0]
 
         # Allocate output buffers
         B_l_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
@@ -1398,6 +1400,7 @@ cdef class Class:
                                                                  ell,
                                                                  q_perp_vals, 
                                                                  q_parr_vals,
+                                                                 AP_vals,
                                                                  B_l_vals,
                                                                  deriv_s1_vals,
                                                                  deriv_s2_vals,

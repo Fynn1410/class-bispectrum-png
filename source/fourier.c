@@ -2334,8 +2334,9 @@ int fourier_B_ell_tree_at_k_and_z(
  * @param k3                             Input: wavenumber k3
  * @param l                              Input: multipole l
  * @param z                              Input: redshift
- * @param q_perp                         Input: Alcock Pacinsky factor in the orthogonal direction
- * @param q_parr                         Input: Alcock Pacinsky factor in the radial direction
+ * @param q_perp                         Input: Alcock Pacinsky factor at z in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
+ * @param q_parr                         Input: Alcock Pacinsky factor at z in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
+ * @param AP                             Input: AP factor at z multiplies the bispecrum 
  * @param last_indices_interpolation     Input: Pointer to array of 3 last indices for the interpolation, 
  *                                              needs to be initialized once (to e.g. [0,0,0]), then the first call will set the indices
  * @param B_l                            Output: multipoles bispectrum for given type/time/wavenumber
@@ -2374,6 +2375,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
                                                 double z,
                                                 double q_perp,
                                                 double q_parr,
+                                                double AP,
                                                 int * last_indices_interpolation,
                                                 double * B_l,
                                                 double * deriv_s1,
@@ -2419,8 +2421,8 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
              "you have k3=%e",k3);
 
   // Define angles in parametrization, note that these are calculated from the undistorted k's:
-  // They are needed in the undistorted coordinates as an input for the distorted coordinates 
-  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);   // cos12 = vec_k1*vec_k1/(k1*k2) -> angle between the vectors and not inside the triangle
+  // They are needed in undistorted coordinates as an input for the distorted coordinates 
+  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);   // cos12 = vec_k1*vec_k2/(k1*k2) -> angle between the vectors and not inside the triangle
   sin12 = sqrt(1-cos12*cos12);                    // note that sin12 > 0 since the angle must be between 0 and pi
   
   if (use_IR_resum==1){ 
@@ -2450,9 +2452,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
       k1_true = k1*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp));
       k2_true = k2*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp));
       k3_true = k3*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp));
-      mu1_true = mu1/q_parr/sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp));
-      mu2_true = mu2/q_parr/sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp));
-      mu3_true = mu3/q_parr/sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp));
+      mu1_true = mu1/(q_parr*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp)));
+      mu2_true = mu2/(q_parr*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp)));
+      mu3_true = mu3/(q_parr*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp)));
 
       // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
       if (use_IR_resum==0){
@@ -2532,9 +2534,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
         Sigma2_total_mu2_true = (1. + f*(f+2.)*mu2_true_sq) * sigma2_ir_at_z + f_sq * mu2_true_sq * (mu2_true_sq-1.) * dsigma2_ir_at_z;
         Sigma2_total_mu3_true = (1. + f*(f+2.)*mu3_true_sq) * sigma2_ir_at_z + f_sq * mu3_true_sq * (mu3_true_sq-1.) * dsigma2_ir_at_z;
         
-        P1 = P_full_and_nw_1[1] + P_w_1 * exp(-k1_true*k1_true*Sigma2_total_mu1_true);
-        P2 = P_full_and_nw_2[1] + P_w_2 * exp(-k2_true*k2_true*Sigma2_total_mu2_true);
-        P3 = P_full_and_nw_3[1] + P_w_3 * exp(-k3_true*k3_true*Sigma2_total_mu3_true);
+        P1 = P_full_and_nw_1[index_pk_nw] + P_w_1 * exp(-k1_true*k1_true*Sigma2_total_mu1_true);
+        P2 = P_full_and_nw_2[index_pk_nw] + P_w_2 * exp(-k2_true*k2_true*Sigma2_total_mu2_true);
+        P3 = P_full_and_nw_3[index_pk_nw] + P_w_3 * exp(-k3_true*k3_true*Sigma2_total_mu3_true);
       } 
       else {
         class_test(use_IR_resum!=0 && use_IR_resum!=1, 
@@ -2576,9 +2578,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
   // Recover proper normalization: (2l+1)/2 from are the Legendre polynomial normalization
   // pi/n_GC normalization from GT quadrature and the pi cancels with the dphi/2pi
   // Apply AP factors for bispec
-  *B_l = B_l_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp); 
-  *deriv_s1 = deriv_s1_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp); 
-  *deriv_s3 = deriv_s3_temp * 0.5 * (2.*l+1.) / (n_GC * q_parr*q_parr * q_perp*q_perp*q_perp*q_perp);
+  *B_l = B_l_temp * 0.5 * (2.*l+1.) / n_GC * AP*AP; 
+  *deriv_s1 = deriv_s1_temp * 0.5 * (2.*l+1.) / n_GC * AP*AP; 
+  *deriv_s3 = deriv_s3_temp * 0.5 * (2.*l+1.) / n_GC * AP*AP;
 
   if (mode==logarithmic){
     *B_l = log(abs(*B_l));
@@ -2602,21 +2604,22 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
  * @param mode          Input: linear or logarithmic for the output
  * @param use_IR_resum  Input: 0 for no IR resummation, 1 for IR resummation
  * @param index_pk      Input: index of required P(k) type (_m, _cb)
- * @param b1            Input: first order bias parameter array
- * @param b2            Input: second order bias parameter array
- * @param bG2           Input: second order bias parameter array
- * @param s1            Input: noise bias parameter array
- * @param s2            Input: noise bias parameter array
- * @param s3            Input: noise bias parameter array (TODO: Ivanov and Rizzo have different parametrization)
+ * @param b1            Input: first order bias parameter array in z
+ * @param b2            Input: second order bias parameter array in z
+ * @param bG2           Input: second order bias parameter array in z
+ * @param s1            Input: noise bias parameter array in z
+ * @param s2            Input: noise bias parameter array in z
+ * @param s3            Input: noise bias parameter array in z (TODO: Ivanov and Rizzo have different parametrization)
  * @param c1_FoG        Input: 1st counter term parameter values for the FOG effect
- * @param P_shot        Input: noise power spectrum array
- * @param karray        Input: points at the first of 3·n_triangles doubles for the triangle wavenumber values
+ * @param P_shot        Input: noise power spectrum array in z
+ * @param k             Input: points at the first of 3·n_triangles doubles for the triangle wavenumber values
  * @param n_triangles   Input: number of triangles
- * @param zarray        Input: z array
+ * @param z             Input: z array
  * @param z_size        Input: size of the z array
  * @param l             Input: ell of corresponding multipole
- * @param q_perp_array  Input: array of Alcock Pacinsky factor in the orthogonal direction
- * @param q_parr_array  Input: array of Alcock Pacinsky factor in the radial direction
+ * @param q_perp        Input: array in z of Alcock Pacinsky factor in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
+ * @param q_parr        Input: array in z of Alcock Pacinsky factor in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
+ * @param AP            Input: array in z of AP factors that multiply the bispecrum
  * @param B_l           Output: multipoles bispectrum, indexed as [index_z*n_triangles+index_triangle]
  * @param deriv_s1      Output: derivative of B after the noise bias parameter s1, indexed as [index_z*n_triangles+index_triangle]
  * @param deriv_s2      Output: same as above for s2
@@ -2639,13 +2642,14 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                       double * s3,
                                                       double * P_shot,
                                                       double * c1_FoG,
-                                                      double * karray,
+                                                      double * k,
                                                       int n_triangles,
-                                                      double * zarray,
+                                                      double * z,
                                                       int z_size,
                                                       int l,
-                                                      double * q_perp_array, 
-                                                      double * q_parr_array,
+                                                      double * q_perp, 
+                                                      double * q_parr,
+                                                      double * AP,
                                                       double * B_l,
                                                       double * deriv_s1,
                                                       double * deriv_s2,
@@ -2677,7 +2681,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
   double P_0[10], P_2[10], P_4[10];
   for (index_mu=0; index_mu<10; index_mu++){
     P_0[index_mu] = 1.;
-    P_2[index_mu] = 0.5*(3.*x_GL_i[index_mu]*x_GL_i[index_mu]-1.);
+    P_2[index_mu] = 0.5*(3.*x_GL_i[index_mu]*x_GL_i[index_mu] - 1.);
     P_4[index_mu] = 0.125*(35.*x_GL_i[index_mu]*x_GL_i[index_mu]*x_GL_i[index_mu]*x_GL_i[index_mu] - 30.*x_GL_i[index_mu]*x_GL_i[index_mu] + 3.);
   }
   double *P_l[3] = {P_0, P_2, P_4};
@@ -2707,7 +2711,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                pfo,
                                logarithmic,
                                pk_linear,
-                               zarray[index_z],
+                               z[index_z],
                                index_pk,
                                pk,
                                NULL),
@@ -2719,15 +2723,13 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
     class_call(fourier_pk_l_nw_extra_at_z(pba,
                                           pfo,
                                           logarithmic,
-                                          zarray[index_z],
+                                          z[index_z],
                                           pk_nw),
                pfo->error_message,
                pfo->error_message);
     
     // Get the derivative after the s2 parameter for index_z
-    double deriv_s2_at_z_and_k_tmp = P_shot[index_z]*P_shot[index_z] / 
-                                     (q_parr_array[index_z]*q_parr_array[index_z] * 
-                                      q_perp_array[index_z]*q_perp_array[index_z]*q_perp_array[index_z]*q_perp_array[index_z]);
+    double deriv_s2_at_z_and_k_tmp = P_shot[index_z]*P_shot[index_z] * AP[index_z]*AP[index_z];
 
     // Fill pk_both[index_k*pk_type_size+index_pk_wiggliness]
     for (index_k=0; index_k<pfo->k_size; index_k++){
@@ -2748,9 +2750,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
     class_setup_parallel();
     for (index_t=0; index_t<n_triangles; index_t++){
       class_run_parallel(=,
-      double k1 = karray[3*index_t + 0];
-      double k2 = karray[3*index_t + 1];
-      double k3 = karray[3*index_t + 2];
+      double k1 = k[3*index_t + 0];
+      double k2 = k[3*index_t + 1];
+      double k3 = k[3*index_t + 2];
 
       double B_l_at_z_and_k_tmp;
       double deriv_s1_at_z_and_k_tmp;
@@ -2782,9 +2784,10 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                              k2,
                                                              k3,
                                                              l,
-                                                             zarray[index_z],
-                                                             q_perp_array[index_z],
-                                                             q_parr_array[index_z],
+                                                             z[index_z],
+                                                             q_perp[index_z],
+                                                             q_parr[index_z],
+                                                             AP[index_z],
                                                              last_indices_interpolation,
                                                              &B_l_at_z_and_k_tmp,
                                                              &deriv_s1_at_z_and_k_tmp,
