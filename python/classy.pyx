@@ -1266,31 +1266,7 @@ cdef class Class:
 
     #################################
 
-    def bk_lin(self, use_IR_resum, double b1, double b2, double bG2, double s1, double s2, double s3, double P_shot, double c1_FoG, double k_nonlinear, double k1, double k2, double k3, double mu1, double mu2, double z):
-        """
-        Gives the linear galaxy bispectrum pk (in Mpc**3) for a given k (in 1/Mpc) and z
-
-        note:
-
-            there is an additional check that output contains `mPk`,
-            because otherwise a segfault will occur
-        """
-        cdef double bk_lin, f
-        f = self.scale_independent_growth_factor_f(z)
-
-        if (self.fo.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You need it to get the galaxy bispectrum.")
-        cdef double Pk1, Pk2, Pk3
-        Pk1 = self.pk(k1, z)
-        Pk2 = self.pk(k2, z)
-        Pk3 = self.pk(k3, z)
-
-        if fourier_B_tree_at_k_and_z(&self.fo, linear, f, b1, b2, bG2, s1, s2, s3, P_shot, c1_FoG, k_nonlinear, k1, k2, k3, mu1, mu2, Pk1, Pk2, Pk3, z, &bk_lin)==_FAILURE_:
-            raise CosmoSevereError(self.fo.error_message)
-
-        return bk_lin
-
-    def bk_lin_multipoles(self, use_IR_resum, double b1, double b2, double bG2, double s1, double s2, double s3, double P_shot, double c1_FoG, double k_nonlinear, double k1, double k2, double k3, int l, double z):
+    def bk_lin_multipoles(self, use_IR_resum, double b1, double b2, double bG2, double d1, double d2, double d3, double P_eps, double k1, double k2, double k3, int l, double z):
         """
         Gives the multipoles for m=0 and variable l of the linear galaxy bispectrum pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
@@ -1305,47 +1281,44 @@ cdef class Class:
         if (self.fo.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You need it to get the galaxy bispectrum.")
 
-        if fourier_B_ell_tree_at_k_and_z(&self.ba, &self.pm, &self.fo, linear, use_IR_resum, self.fo.index_pk_m, b1, b2, bG2, s1, s2, s3, P_shot, c1_FoG, k_nonlinear, k1, k2, k3, l, z, &bk_lin_l)==_FAILURE_:
+        if fourier_B_ell_tree_at_k_and_z(&self.ba, &self.pm, &self.fo, linear, use_IR_resum, self.fo.index_pk_m, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, l, z, &bk_lin_l)==_FAILURE_:
             raise CosmoSevereError(self.fo.error_message)
 
         return bk_lin_l
 
     def bispectrum_and_derivs_treelevel_multipoles_AP_FoG(self,  
-                                                          np.ndarray[DTYPE_t,ndim=1] b1, 
-                                                          np.ndarray[DTYPE_t,ndim=1] b2, 
-                                                          np.ndarray[DTYPE_t,ndim=1] bG2, 
-                                                          np.ndarray[DTYPE_t,ndim=1] s1, 
-                                                          np.ndarray[DTYPE_t,ndim=1] s2, 
-                                                          np.ndarray[DTYPE_t,ndim=1] s3, 
-                                                          np.ndarray[DTYPE_t,ndim=1] P_shot, 
-                                                          np.ndarray[DTYPE_t,ndim=1] c1_FoG,
+                                                          double[::1] b1, 
+                                                          double[::1] b2, 
+                                                          double[::1] bG2, 
+                                                          double[::1] s1, 
+                                                          double[::1] s2, 
+                                                          double[::1] s3, 
+                                                          double[::1] P_shot, 
+                                                          double[::1] c1_FoG,
                                                           double k_nonlinear,
-                                                          np.ndarray[DTYPE_t,ndim=2] karray, 
-                                                          np.ndarray[DTYPE_t,ndim=1] zarray, 
+                                                          double[:, ::1] karray, 
+                                                          double[::1] zarray, 
                                                           int l_max, 
-                                                          np.ndarray[DTYPE_t,ndim=1] q_perp, 
-                                                          np.ndarray[DTYPE_t,ndim=1] q_parr,
-                                                          np.ndarray[DTYPE_t,ndim=1] AP,
-                                                          only_clustering_species=False,
-                                                          use_ir_resummation=True):
+                                                          double[::1] q_perp, 
+                                                          double[::1] q_parr,
+                                                          double[::1] AP,
+                                                          bint only_clustering_species=False,
+                                                          bint use_ir_resummation=True):
 
         if self.fo.has_pk_matter == False:
             raise CosmoSevereError("the input parameters sent to CLASS did not require any P(k,z) calculations, which are needed for the bispectrum treelevel; add 'mPk' in 'output'")
 
         # Get n_triangles, z_size and define int for type of power spectrum (clustering or total matter) and for choice between with and without IR resummation                                  
-        cdef int n_triangles = karray.shape[0], z_size = zarray.shape[0], index_pk, use_IR_resum
+        cdef int n_triangles = karray.shape[0], z_size = zarray.shape[0], index_pk
 
-        # check wich type of P(k) to return (total or clustering only, i.e. without massive neutrino contribution)
+        if karray.shape[1] != 3:
+            raise ValueError("karray must have shape (n_triangles, 3)")
+
+        # Check wich type of P(k) to return (total or clustering only, i.e. without massive neutrino contribution)
         if (only_clustering_species == True):
             index_pk = self.fo.index_pk_cluster
         else:
             index_pk = self.fo.index_pk_total
-
-        # translate the option use_ir_resummation into the corresponding integer, used as an input in the C functions
-        if (use_ir_resummation == True):
-            use_IR_resum = 1
-        else:
-            use_IR_resum = 0
 
         # Get raw pointers to the first elements of the arrays:
         cdef double *b1_vals = &b1[0]
@@ -1384,7 +1357,7 @@ cdef class Class:
                                                                  &self.pm,
                                                                  &self.fo,
                                                                  linear,
-                                                                 use_IR_resum,
+                                                                 use_ir_resummation,
                                                                  index_pk,
                                                                  b1_vals,
                                                                  b2_vals,
@@ -1408,6 +1381,115 @@ cdef class Class:
                                                                  deriv_s2_vals,
                                                                  deriv_s3_vals 
                                                                  )==_FAILURE_:
+                raise CosmoSevereError(self.fo.error_message)
+
+            B_l_array[:, il, :] = B_l
+            deriv_s1_array[:, il, :] = deriv_s1
+            deriv_s2_array[:, il, :] = deriv_s2
+            deriv_s3_array[:, il, :] = deriv_s3
+        
+        deriv_dict = {"s1_B": deriv_s1_array,
+                      "s2_B": deriv_s2_array,
+                      "s3_B": deriv_s3_array}
+
+        return B_l_array, deriv_dict
+
+    def bispectrum_and_derivs_treelevel_multipoles_AP_FoG_standard_param(self,  
+                                                                         double[::1] b1, 
+                                                                         double[::1] b2, 
+                                                                         double[::1] bG2, 
+                                                                         double[::1] s1, 
+                                                                         double[::1] s2, 
+                                                                         double[::1] s3, 
+                                                                         double[::1] P_shot, 
+                                                                         double[::1] c1_FoG,
+                                                                         double k_nonlinear,
+                                                                         double[:, ::1] karray, 
+                                                                         double[::1] zarray, 
+                                                                         int l_max, 
+                                                                         double[::1] q_perp, 
+                                                                         double[::1] q_parr,
+                                                                         double[::1] AP,
+                                                                         bint only_clustering_species=False,
+                                                                         bint use_ir_resummation=True):
+
+
+        if self.fo.has_pk_matter == False:
+            raise CosmoSevereError("the input parameters sent to CLASS did not require any P(k,z) calculations, which are needed for the bispectrum treelevel; add 'mPk' in 'output'")
+
+        # Get n_triangles, z_size and define int for type of power spectrum (clustering or total matter) and for choice between with and without IR resummation                                  
+        cdef int n_triangles = karray.shape[0], z_size = zarray.shape[0], index_pk
+
+        if karray.shape[1] != 3:
+            raise ValueError("karray must have shape (n_triangles, 3)")
+
+        # Check wich type of P(k) to return (total or clustering only, i.e. without massive neutrino contribution)
+        if (only_clustering_species == True):
+            index_pk = self.fo.index_pk_cluster
+        else:
+            index_pk = self.fo.index_pk_total
+
+        # Get raw pointers to the first elements of the arrays:
+        cdef double *b1_vals = &b1[0]
+        cdef double *b2_vals = &b2[0]
+        cdef double *bG2_vals = &bG2[0]
+        cdef double *s1_vals = &s1[0]
+        cdef double *s2_vals = &s2[0]
+        cdef double *s3_vals = &s3[0]
+        cdef double *P_shot_vals = &P_shot[0]
+        cdef double *c1_FoG_vals = &c1_FoG[0]
+        cdef double *k_vals = &karray[0,0]
+        cdef double *z_vals = &zarray[0]
+        cdef double *q_perp_vals = &q_perp[0]
+        cdef double *q_parr_vals = &q_parr[0]
+        cdef double *AP_vals = &AP[0]
+
+        # Allocate output buffers
+        B_l_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
+        deriv_s1_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
+        deriv_s2_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
+        deriv_s3_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
+        cdef np.ndarray[DTYPE_t, ndim=2] B_l = np.empty((z_size, n_triangles), dtype=np.double, order="C")
+        cdef np.ndarray[DTYPE_t, ndim=2] deriv_s1 = np.empty((z_size, n_triangles), dtype=np.double, order="C")
+        cdef np.ndarray[DTYPE_t, ndim=2] deriv_s2 = np.empty((z_size, n_triangles), dtype=np.double, order="C")
+        cdef np.ndarray[DTYPE_t, ndim=2] deriv_s3 = np.empty((z_size, n_triangles), dtype=np.double, order="C")
+        cdef double *B_l_vals = &B_l[0, 0]
+        cdef double *deriv_s1_vals = &deriv_s1[0, 0]
+        cdef double *deriv_s2_vals = &deriv_s2[0, 0]
+        cdef double *deriv_s3_vals = &deriv_s3[0, 0]
+
+        # Fill output buffer and write to array
+        cdef int il, ell
+        for il in range(l_max//2+1):
+            ell = 2*il
+            if fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec_standard_param(&self.ba,
+                                                                                &self.pm,
+                                                                                &self.fo,
+                                                                                linear,
+                                                                                use_ir_resummation,
+                                                                                index_pk,
+                                                                                b1_vals,
+                                                                                b2_vals,
+                                                                                bG2_vals,
+                                                                                s1_vals,
+                                                                                s2_vals,
+                                                                                s3_vals,
+                                                                                P_shot_vals,
+                                                                                c1_FoG_vals,
+                                                                                k_nonlinear,
+                                                                                k_vals,
+                                                                                n_triangles,
+                                                                                z_vals,
+                                                                                z_size,
+                                                                                ell,
+                                                                                q_perp_vals, 
+                                                                                q_parr_vals,
+                                                                                AP_vals,
+                                                                                B_l_vals,
+                                                                                deriv_s1_vals,
+                                                                                deriv_s2_vals,
+                                                                                deriv_s3_vals 
+                                                                                )==_FAILURE_:
                 raise CosmoSevereError(self.fo.error_message)
 
             B_l_array[:, il, :] = B_l

@@ -829,8 +829,6 @@ cdef extern from "class.h":
                                     double s2,
                                     double s3,
                                     double P_shot,
-                                    double c1_FoG,
-                                    double k_nonlinear,
                                     double k1,
                                     double k2,
                                     double k3,
@@ -868,6 +866,36 @@ cdef extern from "class.h":
                                                           double * deriv_s2,
                                                           double * deriv_s3
                                                           )
+
+    int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec_standard_param(
+                                                                         void *pba,
+                                                                         void * ppm,
+                                                                         void * pfo,
+                                                                         linear_or_logarithmic mode,
+                                                                         int use_IR_resum,
+                                                                         int index_pk,
+                                                                         double * b1,
+                                                                         double * b2,
+                                                                         double * bG2,
+                                                                         double * s1,
+                                                                         double * s2,
+                                                                         double * s3,
+                                                                         double * P_shot,
+                                                                         double * c1_FoG,
+                                                                         double k_nonlinear,
+                                                                         double * k,
+                                                                         int n_triangles,
+                                                                         double * z,
+                                                                         int z_size,
+                                                                         int l,
+                                                                         double * q_perp, 
+                                                                         double * q_parr,
+                                                                         double * AP,
+                                                                         double * B_l, 
+                                                                         double * deriv_s1,
+                                                                         double * deriv_s2,
+                                                                         double * deriv_s3
+                                                                         )
 
     int fourier_pk_l_nw_extra_at_kvec_and_z(
                                             void * pba,

@@ -446,8 +446,6 @@ extern "C" {
                                 double s2,
                                 double s3,
                                 double P_shot,
-                                double c1_FoG,
-                                double k_nonlinear,
                                 double k1,
                                 double k2,
                                 double k3,
@@ -474,8 +472,6 @@ int fourier_B_ell_tree_at_k_and_z(
                                   double s2,
                                   double s3,
                                   double P_shot,
-                                  double c1_FoG,
-                                  double k_nonlinear,
                                   double k1,
                                   double k2,
                                   double k3,
@@ -513,6 +509,36 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                       double * deriv_s2,
                                                       double * deriv_s3
                                                       );
+
+int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec_standard_param(
+                                                                     struct background * pba,
+                                                                     struct primordial * ppm,
+                                                                     struct fourier * pfo,
+                                                                     enum linear_or_logarithmic mode,
+                                                                     int use_IR_resum,
+                                                                     int index_pk,
+                                                                     double * b1,
+                                                                     double * b2,
+                                                                     double * bG2,
+                                                                     double * s1,
+                                                                     double * s2,
+                                                                     double * s3,
+                                                                     double * P_shot,
+                                                                     double * c1_FoG,
+                                                                     double k_nonlinear,
+                                                                     double * k,
+                                                                     int n_triangles,
+                                                                     double * z,
+                                                                     int z_size,
+                                                                     int l,
+                                                                     double * q_perp, 
+                                                                     double * q_parr,
+                                                                     double * AP,
+                                                                     double * B_l, 
+                                                                     double * deriv_s1,
+                                                                     double * deriv_s2,
+                                                                     double * deriv_s3
+                                                                     );
 
   /* internal functions */
 
@@ -573,13 +599,20 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                         double * lnpk_ic
                         );
 
+  int fourier_kernel_Z1_w_FoG(
+                              double f,
+                              double b1,
+                              double k,
+                              double mu,
+                              double c1_FoG,
+                              double k_nonlinear,
+                              double * Z1
+                              );
+
   int fourier_kernel_Z1(
                         double f,
                         double b1,
-                        double k,
                         double mu,
-                        double c1_FoG,
-                        double k_nonlinear,
                         double * Z1
                         );
 
@@ -920,6 +953,46 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                   double * deriv_s3
                                                   );
 
+  int fourier_B_ell_tree_AP_and_derivs_at_k_and_z_standard_param(
+                                                                 struct background * pba,
+                                                                 struct primordial * ppm,
+                                                                 struct fourier * pfo,
+                                                                 enum linear_or_logarithmic mode,
+                                                                 int use_IR_resum,
+                                                                 int index_pk,
+                                                                 int pk_type_size,
+                                                                 int index_pk_full,
+                                                                 int index_pk_nw,
+                                                                 double * mu_GL_i,
+                                                                 double * w_mu_GL_i,
+                                                                 double * phi_GL_i,
+                                                                 double * w_phi_GL_i,
+                                                                 double * P_l,
+                                                                 double * pk_l_cb_full_and_nw_at_z,
+                                                                 double * ddpk_l_cb_full_and_nw_at_z,
+                                                                 double b1,
+                                                                 double b2,
+                                                                 double bG2,
+                                                                 double s1,
+                                                                 double s2,
+                                                                 double s3,
+                                                                 double P_shot,
+                                                                 double c1_FoG,
+                                                                 double k_nonlinear,
+                                                                 double k1,
+                                                                 double k2,
+                                                                 double k3,
+                                                                 int l,
+                                                                 double z,
+                                                                 double q_perp,
+                                                                 double q_parr,
+                                                                 double AP,
+                                                                 int * last_indices_interpolation,
+                                                                 double * B_l,
+                                                                 double * deriv_s1,
+                                                                 double * deriv_s3
+                                                                 );
+
   int fourier_B_tree_and_derivs_at_k_and_z(
                                            struct fourier * pfo,
                                            enum linear_or_logarithmic mode,
@@ -938,6 +1011,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                            double k3,
                                            double mu1,
                                            double mu2,
+                                           double mu3,
                                            double Pk1,
                                            double Pk2,
                                            double Pk3,
