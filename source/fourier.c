@@ -1861,1350 +1861,11 @@ int fourier_k_nl_at_z(
   return _SUCCESS_;
 }
 
-/** tree level galaxy bispectrum in redshift space at k and z
- * @param pfo                   Input: pointer to fourier structure
- * @param mode                  Input: linear or logarithmic for the output
- * @param b1                    Input: first order bias parameter
- * @param b2                    Input: second order bias parameter
- * @param bG2                   Input: second order bias parameter
- * @param d1                    Input: noise bias parameter
- * @param d2                    Input: noise bias parameter
- * @param d3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_eps                 Input: noise power spectrum
- * @param k1                    Input: wavenumber k1
- * @param k2                    Input: wavenumber k2
- * @param k3                    Input: wavenumber k3
- * @param mu1                   Input: cosine of redshift space angle between k1 and the line of sight
- * @param mu2                   Input: cosine of redshift space angle between k2 and the line of sight
- * @param Pk1                   Input: powerspectrum for k1
- * @param Pk2                   Input: powerspectrum for k2
- * @param Pk3                   Input: powerspectrum for k3
- * @param z                     Input: redshift
- * @param bispectrum_treelevel  Output: bispectrum for given type/time, for all wavenumbers and angles
- * @return the error status
-*/
-
-int fourier_B_tree_at_k_and_z(
-                              struct fourier * pfo,
-                              enum linear_or_logarithmic mode,
-                              double f,
-                              double b1,
-                              double b2,
-                              double bG2,
-                              double d1,
-                              double d2,
-                              double d3,
-                              double P_eps,
-                              double k1,
-                              double k2,
-                              double k3,
-                              double mu1,
-                              double mu2,
-                              double Pk1,
-                              double Pk2,
-                              double Pk3,
-                              double z,
-                              double * bispectrum_treelevel
-                              ) {
-  int i;
-  double mu3, Z1_k1, Z1_k2, Z1_k3, Z2_k1, Z2_k2, Z2_k3, B_tree_SPT_temp, B_tree_noise_temp, B_tree=0;
-
-  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
-             pfo->error_message,
-             "triangle inequalities are not satisfied");
-
-  class_test(k3<=0,
-             pfo->error_message,
-             "you have k3=%e",k3);
-
-  mu3 = -(k1*mu1 + k2*mu2)/k3;
-
-  // calculate the SPT RSD kernels at this stage to minimize the number of class calls
-  class_call(fourier_kernel_Z1(f, b1, mu1, &Z1_k1),
-             pfo->error_message, 
-             pfo->error_message);
-  class_call(fourier_kernel_Z1(f, b1, mu2, &Z1_k2),
-             pfo->error_message, 
-             pfo->error_message);
-  class_call(fourier_kernel_Z1(f, b1, mu3, &Z1_k3),
-             pfo->error_message, 
-             pfo->error_message);
-
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &Z2_k1), 
-             pfo->error_message, 
-             pfo->error_message);
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k2, k3, k1, mu2, mu3, &Z2_k2), 
-             pfo->error_message, 
-             pfo->error_message);
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k3, k1, k2, mu3, mu1, &Z2_k3), 
-             pfo->error_message, 
-             pfo->error_message);
-
-  double mu_arr[] = {mu1, mu2, mu3};
-  double P_arr[]  = {Pk1, Pk2, Pk3};
-  double Z1_arr[] = {Z1_k1, Z1_k2, Z1_k3};
-  double Z2_arr[] = {Z2_k1, Z2_k2, Z2_k3};
-
-  class_test(fabs(mu1)>1 || fabs(mu2)>1 || fabs(mu3)>1, 
-             pfo->error_message, 
-             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
-
-  // loop over permutations
-  for (i=0; i<3; i++){
-    class_call(fourier_B_tree_det(pfo, f, b1, b2, bG2, Z1_arr[i], Z1_arr[(i+1)%3], Z2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
-               pfo->error_message,
-               pfo->error_message);
-    class_call(fourier_B_tree_stoch(pfo, f, b1, d1, d2, P_eps, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp),
-               pfo->error_message,
-               pfo->error_message);
-    B_tree += B_tree_SPT_temp + B_tree_noise_temp;
-  }
-  B_tree += d3 * P_eps*P_eps;
-
-  // If you want to use logarithmic output. Note: you lose information about the sign
-  if (mode==logarithmic){
-    * bispectrum_treelevel = log(abs(B_tree));
-  } else {
-    * bispectrum_treelevel = B_tree;
-  }
-
-  return _SUCCESS_;
-}
-
-/** tree level galaxy bispectrum in redshift space at k and z and derivatives after the linear nuisance parameters s1, s2 and s3 with FoG counterterm
- * @param pfo                   Input: pointer to fourier structure
- * @param mode                  Input: linear or logarithmic for the output
- * @param b1                    Input: first order bias parameter
- * @param b2                    Input: second order bias parameter
- * @param bG2                   Input: second order bias parameter
- * @param s1                    Input: noise bias parameter
- * @param s2                    Input: noise bias parameter
- * @param s3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_shot                Input: noise power spectrum
- * @param c1_FoG                Input: 1st counter term parameter value for the FOG effect
- * @param k_nonlinear           Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
- * @param k1                    Input: wavenumber k1
- * @param k2                    Input: wavenumber k2
- * @param k3                    Input: wavenumber k3
- * @param mu1                   Input: cosine of redshift space angle between k1 and the line of sight
- * @param mu2                   Input: cosine of redshift space angle between k2 and the line of sight
- * @param mu3                   Input: cosine of redshift space angle between k3 and the line of sight
- * @param Pk1                   Input: powerspectrum for k1
- * @param Pk2                   Input: powerspectrum for k2
- * @param Pk3                   Input: powerspectrum for k3
- * @param z                     Input: redshift
- * @param bispectrum_treelevel  Output: bispectrum for given type/time, for all wavenumbers and angles
- * @param deriv_s1              Output: derivative of B after the noise bias parameter s1, for indices z, k1, k2 and k3
- * @param deriv_s3              Output: same as above for s3
- * @return the error status
-*/
-
-int fourier_B_tree_and_derivs_at_k_and_z(
-                                         struct fourier * pfo,
-                                         enum linear_or_logarithmic mode,
-                                         double f,
-                                         double b1,
-                                         double b2,
-                                         double bG2,
-                                         double s1,
-                                         double s2,
-                                         double s3,
-                                         double P_shot,
-                                         double c1_FoG,
-                                         double k_nonlinear,
-                                         double k1,
-                                         double k2,
-                                         double k3,
-                                         double mu1,
-                                         double mu2,
-                                         double mu3,
-                                         double Pk1,
-                                         double Pk2,
-                                         double Pk3,
-                                         double z,
-                                         double *bispectrum_treelevel,
-                                         double *deriv_s1,
-                                         double *deriv_s3
-                                         ) {
-  int i;
-  double Z1_k1, Z1_k2, Z1_k3, Z2_k1, Z2_k2, Z2_k3, B_tree_SPT_temp, B_tree_noise_temp, B_tree=0, 
-         deriv_s1_temp, deriv_s3_temp, deriv_s1_val=0, deriv_s3_val=0;
-
-  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
-             pfo->error_message,
-             "triangle inequalities are not satisfied");
-
-  class_test(k3<=0,
-             pfo->error_message,
-             "you have k3=%e",k3);
-
-  // calculate the SPT RSD kernels at this stage to minimize the number of class calls
-  class_call(fourier_kernel_Z1_w_FoG(f, b1, k1, mu1, c1_FoG, k_nonlinear, &Z1_k1),
-              pfo->error_message, 
-              pfo->error_message);
-  class_call(fourier_kernel_Z1_w_FoG(f, b1, k2, mu2, c1_FoG, k_nonlinear, &Z1_k2),
-              pfo->error_message, 
-              pfo->error_message);
-  class_call(fourier_kernel_Z1_w_FoG(f, b1, k3, mu3, c1_FoG, k_nonlinear, &Z1_k3),
-              pfo->error_message, 
-              pfo->error_message);
-
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &Z2_k1), 
-             pfo->error_message, 
-             pfo->error_message);
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k2, k3, k1, mu2, mu3, &Z2_k2), 
-             pfo->error_message, 
-             pfo->error_message);
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k3, k1, k2, mu3, mu1, &Z2_k3), 
-             pfo->error_message, 
-             pfo->error_message);
-
-  double mu_arr[] = {mu1, mu2, mu3};
-  double P_arr[]  = {Pk1, Pk2, Pk3};
-  double Z1_arr[] = {Z1_k1, Z1_k2, Z1_k3};
-  double Z2_arr[] = {Z2_k1, Z2_k2, Z2_k3};
-
-  class_test(fabs(mu1)>1 || fabs(mu2)>1 || fabs(mu3)>1, 
-             pfo->error_message, 
-             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
-
-  // loop over permutations
-  for (i=0; i<3; i++){
-    class_call(fourier_B_tree_det(pfo, f, b1, b2, bG2, Z1_arr[i], Z1_arr[(i+1)%3], Z2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
-               pfo->error_message,
-               pfo->error_message);
-    class_call(fourier_B_tree_stoch_and_derivs(pfo, f, b1, s1, s3, P_shot, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp, &deriv_s1_temp, &deriv_s3_temp),
-               pfo->error_message,
-               pfo->error_message);
-    B_tree += B_tree_SPT_temp + B_tree_noise_temp;
-    deriv_s1_val += deriv_s1_temp;
-    deriv_s3_val += deriv_s3_temp;
-  }
-
-  // add the isotropic stochastic contribution, where we do not need to sum over permutations
-  B_tree += (1.+s2) * P_shot*P_shot;
-
-  // If you want to use logarithmic output. Note: you lose information about the sign
-  if (mode==logarithmic){
-    *bispectrum_treelevel = log(abs(B_tree));
-    *deriv_s1 = log(abs(deriv_s1_val)); 
-    *deriv_s3 = log(abs(deriv_s3_val));
-  } else {
-    *bispectrum_treelevel = B_tree;
-    *deriv_s1 = deriv_s1_val; 
-    *deriv_s3 = deriv_s3_val;
-  }
-
-  return _SUCCESS_;
-}
-
-
-/** tree level bispectrum multipoles (no AP, no derivs)
- * @param pba           Input: pointer to background structure
- * @param ppm           Input: pointer to primordial structure
- * @param pfo           Input: pointer to fourier structure
- * @param mode          Input: linear or logarithmic for the output
- * @param use_IR_resum  Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk      Input: index of required P(k) type (_m, _cb)
- * @param b1            Input: first order bias parameter
- * @param b2            Input: second order bias parameter
- * @param bG2           Input: second order bias parameter
- * @param d1            Input: noise bias parameter
- * @param d2            Input: noise bias parameter
- * @param d3            Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_eps         Input: noise power spectrum
- * @param k1            Input: wavenumber k1
- * @param k2            Input: wavenumber k2
- * @param k3            Input: wavenumber k3
- * @param l             Input: multipole l
- * @param z             Input: redshift
- * @param B_l           Output: multipoles bispectrum for given type/time/wavenumber
- * @return the error status
-*/
-
-int fourier_B_ell_tree_at_k_and_z(
-                                  struct background *pba,
-                                  struct primordial * ppm,
-                                  struct fourier * pfo,
-                                  enum linear_or_logarithmic mode,
-                                  int use_IR_resum,
-                                  int index_pk,
-                                  double b1,
-                                  double b2,
-                                  double bG2,
-                                  double d1,
-                                  double d2,
-                                  double d3,
-                                  double P_eps,
-                                  double k1,
-                                  double k2,
-                                  double k3,
-                                  int l,
-                                  double z,
-                                  double * B_l
-                                  ) {
-  int idx1, idx2, n_GC=5, n_GL=10;
-  double mu1, mu2, mu3, sin_phi_i, sin12, cos12, B_l_temp=0, P_l, bispectrum_treelevel, P1, P2, P3;
-  // variables relevant for IR resummation:
-  double f, f_sq, mu1_sq, mu2_sq, mu3_sq, k_split, k_bao, Sigma2_total_mu1, Sigma2_total_mu2, Sigma2_total_mu3, sigma2_ir_at_z, dsigma2_ir_at_z, P_nw_1, P_nw_2, P_nw_3, P_w_1, P_w_2, P_w_3, P_temp_1, P_temp_2, P_temp_3;
-  double * pvecback;
-  double ln_k1[1], ln_k2[1], ln_k3[1];
-  int last_index, vec_size=1, lnk_vec_size=1;
-
-  // Gauss Legendre Quadrature: https://pomax.github.io/bezierinfo/legendre-gauss.html
-  double x_GL_i[] = {-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472, -0.1488743389816312,
-                       0.1488743389816312, 0.4333953941292472,  0.6794095682990244,  0.8650633666889845,  0.9739065285171717};
-  double w_GL_i[] = { 0.0666713443086881, 0.1494513491505806, 0.2190863625159820, 0.2692667193099963, 0.2955242247147529,
-                     0.2955242247147529, 0.2692667193099963, 0.2190863625159820, 0.1494513491505806, 0.0666713443086881};
-
-
-  // calculate the value of the growth factor f
-  class_alloc(pvecback,pba->bg_size*sizeof(double),
-              pfo->error_message);
-
-  class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
-             pba->error_message,
-             pfo->error_message);
-
-  f = pvecback[pba->index_bg_f];
-  free(pvecback);
-  // f = 0.868073; // This is Dennis' value for f, might be useful to have more accurate comparison
-
-
-  // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
-  if (use_IR_resum==0){
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message);
-  } 
-  else if (use_IR_resum==1){
-    class_test(pfo->has_pk_nw == _FALSE_, 
-               pfo->error_message, 
-              "To use the IR resummed power spectrum you need 'mPknw' as an output");
-
-    // fill the ln_k vector which is used to calculate the no wiggle power spectrum
-    ln_k1[0] = log(k1); 
-    ln_k2[0] = log(k2); 
-    ln_k3[0] = log(k3);
-
-    k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
-    k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
-
-    // TODO: These two function calls are not yet in CLASS style
-    // TODO: Since these are just numbers, if has_pk_new = _TRUE_, it should be contained in the fourier structure
-
-    // Dennis values:
-    // double sigma2_ir_at_z_Dennis   = 11.3471/(pba->h*pba->h);
-    // double dsigma2_ir_at_z_Dennis  = 2.97763/(pba->h*pba->h);
-
-    sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
-    dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
-
-    // get the regular and the no wiggle power spectrum each k value of the triangle
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1, z, index_pk, &P_temp_1, NULL), pfo->error_message, pfo->error_message);
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2, z, index_pk, &P_temp_2, NULL), pfo->error_message, pfo->error_message);
-    class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3, z, index_pk, &P_temp_3, NULL), pfo->error_message, pfo->error_message);
-
-    class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k1, lnk_vec_size, z, &P_nw_1), pfo->error_message, pfo->error_message);
-    class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k2, lnk_vec_size, z, &P_nw_2), pfo->error_message, pfo->error_message);
-    class_call(fourier_pk_l_nw_extra_at_kvec_and_z(pba, ppm, pfo, linear, ln_k3, lnk_vec_size, z, &P_nw_3), pfo->error_message, pfo->error_message);
-
-    // Calculate the wiggle power spetrum (P = P_w + P_nw)
-    P_w_1 = P_temp_1-P_nw_1;
-    P_w_2 = P_temp_2-P_nw_2;
-    P_w_3 = P_temp_3-P_nw_3;
-  } 
-  else {
-    class_test(use_IR_resum!=0 && use_IR_resum!=1, 
-               pfo->error_message, 
-               "use_IR_resum must be either 0 or 1, you entered use_IR_resum=%d", use_IR_resum);
-  }
-
-  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2);   // cos12 = vec_k1*vec_k1/(k1*k2) -> angle between the vectors and not inside the triangle
-  sin12 = sqrt(1-cos12*cos12);                    // note that sin12 > 0 since the angle must be between 0 and pi
-
-  // Gauss Chebyshev Quadrature:
-  // Note: Chebyshev loop starts at idx1=1 because we calculate the points and weights in each step
-  for (idx1=1; idx1<=n_GC; idx1++){
-    sin_phi_i = cos((2.*idx1-1.)/(2.*n_GC)*_PI_);
-
-    for (idx2=0; idx2<n_GL; idx2++){
-      // Note: different parametrization than https://arxiv.org/pdf/2110.10161, look Master's thesis Fynn0
-      mu1 = x_GL_i[idx2];
-      mu2 = mu1*cos12 + sqrt(1-mu1*mu1)*sin12*sin_phi_i;
-      mu3 = -(k1*mu1 + k2*mu2)/k3;
-
-      if (use_IR_resum==1){
-        mu1_sq = mu1*mu1;
-        mu2_sq = mu2*mu2;
-        mu3_sq = mu3*mu3;
-        f_sq = f*f;
-        Sigma2_total_mu1 = (1. + f*(f+2.)*mu1_sq) * sigma2_ir_at_z + f_sq * mu1_sq * (mu1_sq-1.) * dsigma2_ir_at_z;
-        Sigma2_total_mu2 = (1. + f*(f+2.)*mu2_sq) * sigma2_ir_at_z + f_sq * mu2_sq * (mu2_sq-1.) * dsigma2_ir_at_z;
-        Sigma2_total_mu3 = (1. + f*(f+2.)*mu3_sq) * sigma2_ir_at_z + f_sq * mu3_sq * (mu3_sq-1.) * dsigma2_ir_at_z;
-
-        // calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
-        P1 = P_nw_1 + P_w_1 * exp(-k1*k1*Sigma2_total_mu1);
-        P2 = P_nw_2 + P_w_2 * exp(-k2*k2*Sigma2_total_mu2);
-        P3 = P_nw_3 + P_w_3 * exp(-k3*k3*Sigma2_total_mu3);
-      }
-
-      if (l==0) {
-        P_l = 1.;
-      } else if (l==2) {
-        P_l = 0.5*(3.*mu1*mu1-1.);
-      } else if (l==4) {
-        P_l = 0.125*(35.*mu1*mu1*mu1*mu1 - 30.*mu1*mu1 + 3.);
-      } else if (l==6) {
-        P_l = 1./16.*(231.*mu1*mu1*mu1*mu1*mu1*mu1 - 315.*mu1*mu1*mu1*mu1 + 105.*mu1*mu1 - 5.);
-      } else {
-          class_test(l!=0 && l!=2 && l!=4 && l!=6, pfo->error_message, "invalid multipole, you have l=%d",l);
-      }
-
-      class_call(fourier_B_tree_at_k_and_z(pfo, linear, f, b1, b2, bG2, d1, d2, d3, P_eps, k1, k2, k3, mu1, mu2, P1, P2, P3, z, &bispectrum_treelevel), 
-                                                         pfo->error_message,
-                                                         pfo->error_message);
-      
-      
-
-      B_l_temp += w_GL_i[idx2]*P_l*bispectrum_treelevel;
-    }
-  }
-  *B_l = B_l_temp*0.5*(2.*l+1.)/n_GC;     // recover proper normalization: (2l+1)/2 from are the Legendre polynomial normalization, 
-                                          // pi/n_GC normalization from GT quadrature and the pi cancels with the dphi/2pi
-
-  if (mode==logarithmic){
-    *B_l = log(abs(*B_l));
-  }
-
-  return _SUCCESS_;
-}
-
-/** Tree level bispectrum multipoles with AP effect for one specific combination of k1, k2, k3, l and z, implemented by Louis Christoph.
- *  Uses the standard parametrization of the angles according to https://arxiv.org/abs/2110.10161
- *  Returns bispectrum for clustering only, not for the full matter. 
- *  Is equivalent to the full matter bispec in the case of 0 non-cold-dark-matter species.
- * @param pba                            Input: pointer to background structure
- * @param ppm                            Input: pointer to primordial structure
- * @param pfo                            Input: pointer to fourier structure
- * @param mode                           Input: linear or logarithmic for the output
- * @param use_IR_resum                   Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk                       Input: index of required P(k) type (_m, _cb)
- * @param pk_type_size                   Input: size of the types of power spectra which are being interpolated (i.e. 2: full and nw)
- * @param index_pk_full                  Input: index in the interpolation routine, at which the full power spectrum is stored
- * @param index_pk_nw                    Input: same for the nw power spectrum
- * @param mu_GL_i                        Input: Array of Gauss-Legendre quadrature sample points for mu
- * @param w_mu_GL_i                      Input: Array of Gauss-Legendre quadrature sample weights for mu
- * @param phi_GL_i                        Input: Array of Gauss-Legendre quadrature sample points for phi
- * @param w_phi_GL_i                      Input: Array of Gauss-Legendre quadrature sample weights for phi
- * @param lnpk_l_full_and_nw_at_z        Input: log linear power spectrum of type index_pk, full and nowiggle, at the input z and at pfo->k, 
- *                                              indexed as p[index_k*pk_type_size+index_pk_wiggliness], with pk_type_size=2 and index_pk_wiggliness = 0 (full) and =1 (nw)
- * @param lnddpk_l_full_and_nw_at_z      Input: second derivative of the quantity above, indexed the same
- * @param b1                             Input: first order bias parameter
- * @param b2                             Input: second order bias parameter
- * @param bG2                            Input: second order bias parameter
- * @param s1                             Input: noise bias parameter
- * @param s2                             Input: noise bias parameter
- * @param s3                             Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_shot                         Input: noise power spectrum with AP applied
- * @param c1_FoG                         Input: 1st counter term parameter value for the FOG effect
- * @param k_nonlinear                    Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
- * @param k1                             Input: wavenumber k1
- * @param k2                             Input: wavenumber k2
- * @param k3                             Input: wavenumber k3
- * @param l                              Input: multipole l
- * @param z                              Input: redshift
- * @param q_perp                         Input: Alcock Pacinsky factor at z in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param q_parr                         Input: Alcock Pacinsky factor at z in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param AP                             Input: AP factor at z that multiplies the bispecrum 
- * @param last_indices_interpolation     Input: Pointer to array of 3 last indices for the interpolation, 
- *                                              needs to be initialized once (to e.g. [0,0,0]), then the first call will set the indices
- * @param B_l                            Output: multipoles bispectrum for given type/time/wavenumber
- * @param deriv_s1                       Output: derivative of B after the noise bias parameter s1, for indices z, k1, k2 and k3
- * @param deriv_s3                       Output: same as above for s3
- * @return the error status
-*/
-
-int fourier_B_ell_tree_AP_and_derivs_at_k_and_z_standard_param(
-                                                               struct background * pba,
-                                                               struct primordial * ppm,
-                                                               struct fourier * pfo,
-                                                               enum linear_or_logarithmic mode,
-                                                               int use_IR_resum,
-                                                               int index_pk,
-                                                               int pk_type_size,
-                                                               int index_pk_full,
-                                                               int index_pk_nw,
-                                                               double * mu_GL_i,
-                                                               double * w_mu_GL_i,
-                                                               double * phi_GL_i,
-                                                               double * w_phi_GL_i,
-                                                               double * P_l,
-                                                               double * lnpk_l_full_and_nw_at_z,
-                                                               double * lnddpk_l_full_and_nw_at_z,
-                                                               double b1,
-                                                               double b2,
-                                                               double bG2,
-                                                               double s1,
-                                                               double s2,
-                                                               double s3,
-                                                               double P_shot,
-                                                               double c1_FoG,
-                                                               double k_nonlinear,
-                                                               double k1,
-                                                               double k2,
-                                                               double k3,
-                                                               int l,
-                                                               double z,
-                                                               double q_perp,
-                                                               double q_parr,
-                                                               double AP,
-                                                               int * last_indices_interpolation,
-                                                               double * B_l,
-                                                               double * deriv_s1,
-                                                               double * deriv_s3
-                                                               ) {
-  // Declare variables
-  int index_phi, index_mu, n_mu_GL=10, n_phi_GL=8, last_index;
-  double mu1, mu2, mu3, sin12, cos12, sin_phi, B_l_temp=0, bispectrum_treelevel, P1, P2, P3, 
-         deriv_s1_wedges, deriv_s2_wedges, deriv_s3_wedges, deriv_s1_temp=0, deriv_s2_temp=0, deriv_s3_temp=0;
-  // Variables relevant for IR resummation:
-  double f, f_sq, k_split, k_bao, Sigma2_total_mu1_input, Sigma2_total_mu2_input, Sigma2_total_mu3_input, sigma2_ir_at_z, dsigma2_ir_at_z, 
-         P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3;
-  double * pvecback;
-  // Variables relevant for the AP effect:
-  double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true, cos12_true, sin_phi_true, 
-         vk1_x, vk1_y, vk1_z, vk2_x, vk2_y, vk2_z, vk3_x, vk3_y, vk3_z, n_x, n_y, n_z, k1_input, k2_input, k3_input, mu1_input, mu2_input, mu3_input,
-         mu1_input_sq, mu2_input_sq, mu3_input_sq, ln_k1_input, ln_k2_input, ln_k3_input;
-
-  // Allocate space for power spectra
-  class_alloc(P_full_and_nw_1, pk_type_size*sizeof(double),
-              pfo->error_message)
-  class_alloc(P_full_and_nw_2, pk_type_size*sizeof(double),
-              pfo->error_message)
-  class_alloc(P_full_and_nw_3, pk_type_size*sizeof(double),
-              pfo->error_message)
-
-  // Calculate the value of the growth factor f
-  class_alloc(pvecback,pba->bg_size*sizeof(double),
-              pfo->error_message);
-
-  class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
-             pba->error_message,
-             pfo->error_message);
-
-  f = pvecback[pba->index_bg_f];
-  free(pvecback);
-
-  // Test whether the triangle configuration is senseful (triangle inequality)
-  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
-             pfo->error_message,
-             "triangle inequalities are not satisfied");
-
-  class_test(k3<=0,
-             pfo->error_message,
-             "you have k3=%e",k3);
-  
-  if (use_IR_resum==1){ 
-    // Define sigma and dsigma for IR resummation
-    k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
-    k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
-    sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
-    dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
-  }
-
-  // Define angles in parametrization
-  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2); // cos12 = vec_k1*vec_k2/(k1*k2) -> angle between the vectors and not inside the triangle
-  sin12 = sqrt(1-cos12*cos12);                  // note that sin12 > 0 since the angle must be between 0 and pi
-
-  // Gauss Legendre Quadrature over phi:
-  for (index_phi=0; index_phi<n_phi_GL; index_phi++){
-    sin_phi = sin(phi_GL_i[index_phi]);
-
-    for (index_mu=0; index_mu<n_mu_GL; index_mu++){
-      // Define observed angles
-      mu1 = mu_GL_i[index_mu];
-      mu2 = mu1*cos12 + sqrt(1-mu1*mu1)*sin12*sin_phi;
-      mu3 = -(k2*mu2+k1*mu1)/k3;
-
-      // Coordinate distortion according to the AP effect for the wavenumbers
-      k1_true = k1*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp));
-      k2_true = k2*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp));
-      k3_true = k3*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp));
-      mu1_true = mu1/(q_parr*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp)));
-      mu2_true = mu2/(q_parr*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp)));
-      mu3_true = mu3/(q_parr*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp)));
-
-      cos12_true = (k3_true*k3_true - k2_true*k2_true - k1_true*k1_true)/(2*k1_true*k2_true);
-      sin_phi_true = (mu2_true - mu1_true*cos12_true)/(sqrt(1. - mu1_true*mu1_true)*sqrt(1. - cos12_true*cos12_true));
-
-      vk1_x = 0.;
-      vk1_y = 0.;
-      vk1_z = k1;
-
-      vk2_x = 0.;
-      vk2_y = k2*sqrt(1. - cos12_true*cos12_true);
-      vk2_z = k2*cos12_true;
-
-      vk3_x = 0.;
-      vk3_y = -vk2_y;
-      vk3_z = -vk1_z - vk2_z;
-
-      n_x = sqrt(1. - mu1_true*mu1_true)*sqrt(1. - sin_phi_true*sin_phi_true);
-      n_y = sqrt(1. - mu1_true*mu1_true)*sin_phi_true;
-      n_z = mu1_true;
-
-      k1_input = sqrt(vk1_x*vk1_x + vk1_y*vk1_y + vk1_z*vk1_z);
-      k2_input = sqrt(vk2_x*vk2_x + vk2_y*vk2_y + vk2_z*vk2_z);
-      k3_input = sqrt(vk3_x*vk3_x + vk3_y*vk3_y + vk3_z*vk3_z);
-
-      mu1_input = (vk1_x*n_x + vk1_y*n_y + vk1_z*n_z)/k1_input;
-      mu2_input = (vk2_x*n_x + vk2_y*n_y + vk2_z*n_z)/k2_input;
-      mu3_input = (vk3_x*n_x + vk3_y*n_y + vk3_z*n_z)/k3_input;
-
-      class_test(fabs(mu1_true)>1 || fabs(mu2_true)>1 || fabs(mu3_true)>1, 
-             pfo->error_message, 
-             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
-
-      // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
-      if (use_IR_resum==0){
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2_true, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3_true, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message);
-      } 
-      else if (use_IR_resum==1){
-        class_test(pfo->has_pk_nw == _FALSE_, 
-        pfo->error_message, 
-        "To use the IR resummed power spectrum you need 'mPknw' as an output");
-
-        // Fill the ln_k vector to which we interpolate the splines
-        ln_k1_input = log(k1_input); 
-        ln_k2_input = log(k2_input); 
-        ln_k3_input = log(k3_input);
-
-        // Get the regular and the no wiggle power spectrum for the ln_k's by interpolation of the logarithmic splines
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k1_input,
-                                                         &last_indices_interpolation[0],
-                                                         P_full_and_nw_1,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k2_input,
-                                                         &last_indices_interpolation[1],
-                                                         P_full_and_nw_2,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k3_input,
-                                                         &last_indices_interpolation[2],
-                                                         P_full_and_nw_3,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        // Exponentiate the logarithmic interpolations
-        P_full_and_nw_1[index_pk_full] = exp(P_full_and_nw_1[index_pk_full]);
-        P_full_and_nw_2[index_pk_full] = exp(P_full_and_nw_2[index_pk_full]);
-        P_full_and_nw_3[index_pk_full] = exp(P_full_and_nw_3[index_pk_full]);
-        P_full_and_nw_1[index_pk_nw] = exp(P_full_and_nw_1[index_pk_nw]);
-        P_full_and_nw_2[index_pk_nw] = exp(P_full_and_nw_2[index_pk_nw]);
-        P_full_and_nw_3[index_pk_nw] = exp(P_full_and_nw_3[index_pk_nw]);
-
-        // Calculate the wiggle power spetrum (P = P_w + P_nw)
-        P_w_1 = P_full_and_nw_1[index_pk_full]-P_full_and_nw_1[index_pk_nw];
-        P_w_2 = P_full_and_nw_2[index_pk_full]-P_full_and_nw_2[index_pk_nw];
-        P_w_3 = P_full_and_nw_3[index_pk_full]-P_full_and_nw_3[index_pk_nw];
-        
-        // Calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
-        mu1_input_sq = mu1_input*mu1_input;
-        mu2_input_sq = mu2_input*mu2_input;
-        mu3_input_sq = mu3_input*mu3_input;
-        f_sq = f*f;
-        Sigma2_total_mu1_input = (1. + f*(f+2.)*mu1_input_sq) * sigma2_ir_at_z + f_sq * mu1_input_sq * (mu1_input_sq-1.) * dsigma2_ir_at_z;
-        Sigma2_total_mu2_input = (1. + f*(f+2.)*mu2_input_sq) * sigma2_ir_at_z + f_sq * mu2_input_sq * (mu2_input_sq-1.) * dsigma2_ir_at_z;
-        Sigma2_total_mu3_input = (1. + f*(f+2.)*mu3_input_sq) * sigma2_ir_at_z + f_sq * mu3_input_sq * (mu3_input_sq-1.) * dsigma2_ir_at_z;
-        
-        P1 = P_full_and_nw_1[index_pk_nw] + P_w_1 * exp(-k1_input*k1_input*Sigma2_total_mu1_input);
-        P2 = P_full_and_nw_2[index_pk_nw] + P_w_2 * exp(-k2_input*k2_input*Sigma2_total_mu2_input);
-        P3 = P_full_and_nw_3[index_pk_nw] + P_w_3 * exp(-k3_input*k3_input*Sigma2_total_mu3_input);
-      } 
-      else {
-        class_test(use_IR_resum!=0 && use_IR_resum!=1, 
-        pfo->error_message, 
-        "use_IR_resum must be either 0 or 1, you entered use_IR_resum=%d", use_IR_resum);
-      }
-      
-      class_call(fourier_B_tree_and_derivs_at_k_and_z(pfo, 
-                                                      linear, 
-                                                      f, 
-                                                      b1, 
-                                                      b2, 
-                                                      bG2, 
-                                                      s1, 
-                                                      s2, 
-                                                      s3, 
-                                                      P_shot,
-                                                      c1_FoG,
-                                                      k_nonlinear,
-                                                      k1_input, 
-                                                      k2_input, 
-                                                      k3_input, 
-                                                      mu1_input, 
-                                                      mu2_input, 
-                                                      mu3_input,
-                                                      P1, 
-                                                      P2, 
-                                                      P3, 
-                                                      z, 
-                                                      &bispectrum_treelevel,
-                                                      &deriv_s1_wedges,
-                                                      &deriv_s3_wedges), 
-                 pfo->error_message,
-                 pfo->error_message);
-                              
-      B_l_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * bispectrum_treelevel;
-      deriv_s1_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * deriv_s1_wedges;
-      deriv_s3_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * deriv_s3_wedges;
-
-      // FILE *fp = fopen("Bispec_debug.dat","a");
-      // fprintf(fp, "%.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e, %.6e\n", f, b1, b2, bG2, s1, s2, s3, P_shot, k1_input, k2_input, k3_input, mu1_input, mu2_input, mu3_input, P1, P2, P3, z);
-      // fclose(fp);
-
-    }
-  } 
-  
-  // Appy normalization factors and AP factors
-  *B_l = B_l_temp * 0.25 * (2.*l+1.) * AP*AP; 
-  *deriv_s1 = deriv_s1_temp * 0.25 * (2.*l+1.) * AP*AP; 
-  *deriv_s3 = deriv_s3_temp * 0.25 * (2.*l+1.) * AP*AP; 
-
-  if (mode==logarithmic){
-    *B_l = log(abs(*B_l));
-    *deriv_s1 = log(abs(*deriv_s1));
-    *deriv_s3 = log(abs(*deriv_s3));
-  }
-
-  free(P_full_and_nw_1);
-  free(P_full_and_nw_2);
-  free(P_full_and_nw_3);
-
-  return _SUCCESS_;
-}
-
-/** Tree level bispectrum multipoles with AP effect for one specific combination of k1, k2, k3, l and z, implemented by Louis Christoph.
- *  Returns bispectrum for clustering only, not for the full matter. 
- *  Is equivalent to the full matter bispec in the case of 0 non-cold-dark-matter species.
- * @param pba                            Input: pointer to background structure
- * @param ppm                            Input: pointer to primordial structure
- * @param pfo                            Input: pointer to fourier structure
- * @param mode                           Input: linear or logarithmic for the output
- * @param use_IR_resum                   Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk                       Input: index of required P(k) type (_m, _cb)
- * @param pk_type_size                   Input: size of the types of power spectra which are being interpolated (i.e. 2: full and nw)
- * @param index_pk_full                  Input: index in the interpolation routine, at which the full power spectrum is stored
- * @param index_pk_nw                    Input: same for the nw power spectrum
- * @param mu_GL_i                        Input: Gauss-Legendre Quadrature sampling points for mu
- * @param w_mu_GL_i                      Input: Gauss-Legendre Quadrature sampling weights for mu
- * @param phi_GL_i                       Input: Gauss-Legendre Quadrature sampling points for phi (after transforming s.t. the integral boundaries are -1 and 1)
- * @param w_phi_GL_i                     Input: Gauss-Legendre Quadrature sampling weights for phi (after transforming s.t. the integral boundaries are -1 and 1)
- * @param lnpk_l_full_and_nw_at_z        Input: log linear power spectrum of type index_pk, full and nowiggle, at the input z and at pfo->k, 
- *                                              indexed as p[index_k*pk_type_size+index_pk_wiggliness], with pk_type_size=2 and index_pk_wiggliness = 0 (full) and =1 (nw)
- * @param lnddpk_l_full_and_nw_at_z      Input: second derivative of the quantity above, indexed the same
- * @param b1                             Input: first order bias parameter
- * @param b2                             Input: second order bias parameter
- * @param bG2                            Input: second order bias parameter
- * @param s1                             Input: noise bias parameter
- * @param s2                             Input: noise bias parameter
- * @param s3                             Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_shot                         Input: noise power spectrum with AP applied
- * @param c1_FoG                         Input: 1st counter term parameter value for the FOG effect
- * @param k_nonlinear                    Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
- * @param k1                             Input: wavenumber k1
- * @param k2                             Input: wavenumber k2
- * @param k3                             Input: wavenumber k3
- * @param l                              Input: multipole l
- * @param z                              Input: redshift
- * @param q_perp                         Input: Alcock Pacinsky factor at z in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param q_parr                         Input: Alcock Pacinsky factor at z in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param AP                             Input: AP factor at z that multiplies the bispecrum 
- * @param last_indices_interpolation     Input: Pointer to array of 3 last indices for the interpolation, 
- *                                              needs to be initialized once (to e.g. [0,0,0]), then the first call will set the indices
- * @param B_l                            Output: multipoles bispectrum for given type/time/wavenumber
- * @param deriv_s1                       Output: derivative of B after the noise bias parameter s1, for indices z, k1, k2 and k3
- * @param deriv_s3                       Output: same as above for s3
- * @return the error status
-*/
-
-int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
-                                                struct background * pba,
-                                                struct primordial * ppm,
-                                                struct fourier * pfo,
-                                                enum linear_or_logarithmic mode,
-                                                int use_IR_resum,
-                                                int index_pk,
-                                                int pk_type_size,
-                                                int index_pk_full,
-                                                int index_pk_nw,
-                                                double *mu_GL_i,
-                                                double *w_mu_GL_i,
-                                                double *phi_GL_i,
-                                                double *w_phi_GL_i,
-                                                double *P_l,
-                                                double *lnpk_l_full_and_nw_at_z,
-                                                double *lnddpk_l_full_and_nw_at_z,
-                                                double b1,
-                                                double b2,
-                                                double bG2,
-                                                double s1,
-                                                double s2,
-                                                double s3,
-                                                double P_shot,
-                                                double c1_FoG,
-                                                double k_nonlinear,
-                                                double k1,
-                                                double k2,
-                                                double k3,
-                                                int l,
-                                                double z,
-                                                double q_perp,
-                                                double q_parr,
-                                                double AP,
-                                                int *last_indices_interpolation,
-                                                double *B_l,
-                                                double *deriv_s1,
-                                                double *deriv_s3
-                                                ) {
-  // Declare variables
-  int index_phi, index_mu, n_phi_GL=10, n_mu_GL=10, last_index;
-  double mu1, mu2, mu3, sin_phi, sin12, cos12, B_l_temp=0, bispectrum_treelevel, P1, P2, P3, 
-         deriv_s1_wedges, deriv_s2_wedges, deriv_s3_wedges, deriv_s1_temp=0, deriv_s2_temp=0, deriv_s3_temp=0;
-  // Variables relevant for IR resummation:
-  double f, f_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z, 
-         P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3;
-  double * pvecback;
-  // Variables relevant for the AP effect:
-  double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true, mu1_true_sq, mu2_true_sq, mu3_true_sq, ln_k1_true, ln_k2_true, ln_k3_true;
-
-  // Allocate space for power spectra
-  class_alloc(P_full_and_nw_1, pk_type_size*sizeof(double),
-              pfo->error_message)
-  class_alloc(P_full_and_nw_2, pk_type_size*sizeof(double),
-              pfo->error_message)
-  class_alloc(P_full_and_nw_3, pk_type_size*sizeof(double),
-              pfo->error_message)
-
-  // Calculate the value of the growth factor f
-  class_alloc(pvecback,pba->bg_size*sizeof(double),
-              pfo->error_message);
-
-  class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
-             pba->error_message,
-             pfo->error_message);
-
-  f = pvecback[pba->index_bg_f];
-  free(pvecback);
-
-  // Test whether the triangle configuration is senseful (triangle inequality)
-  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
-             pfo->error_message,
-             "triangle inequalities are not satisfied");
-
-  class_test(k3<=0,
-             pfo->error_message,
-             "you have k3=%e",k3);
-
-  // Define angles in parametrization, note that these are calculated from the undistorted k's:
-  // They are needed in undistorted coordinates as an input for the distorted coordinates 
-  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2); // cos12 = vec_k1*vec_k2/(k1*k2) -> angle between the vectors and not inside the triangle
-  sin12 = sqrt(1-cos12*cos12);                 // note that sin12 > 0 since the angle must be between 0 and pi
-  
-  if (use_IR_resum==1){ 
-    // Define sigma and dsigma for IR resummation
-    k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
-    k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
-    sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
-    dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
-  }
-
-  // Gauss Legendre Quadrature over phi:
-  for (index_phi=0; index_phi<n_phi_GL; index_phi++){
-    sin_phi = sin(phi_GL_i[index_phi]);
-
-    for (index_mu=0; index_mu<n_mu_GL; index_mu++){
-      // Note: different parametrization than https://arxiv.org/pdf/2110.10161, look Master's thesis Fynn
-      mu1 = mu_GL_i[index_mu];
-      mu2 = mu1*cos12 + sqrt(1-mu1*mu1)*sin12*sin_phi;
-      mu3 = -(k1*mu1 + k2*mu2)/k3;
-
-      // Coordinate distortion according to the AP effect
-      k1_true = k1*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp));
-      k2_true = k2*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp));
-      k3_true = k3*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp));
-      mu1_true = mu1/(q_parr*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp)));
-      mu2_true = mu2/(q_parr*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp)));
-      mu3_true = mu3/(q_parr*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp)));
-
-      class_test(fabs(mu1_true)>1 || fabs(mu2_true)>1 || fabs(mu3_true)>1, 
-             pfo->error_message, 
-             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
-
-      // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
-      if (use_IR_resum==0){
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2_true, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3_true, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message);
-      } 
-      else if (use_IR_resum==1){
-        class_test(pfo->has_pk_nw == _FALSE_, 
-        pfo->error_message, 
-        "To use the IR resummed power spectrum you need 'mPknw' as an output");
-
-        // Fill the ln_k vector to which we interpolate the splines
-        ln_k1_true = log(k1_true); 
-        ln_k2_true = log(k2_true); 
-        ln_k3_true = log(k3_true);
-
-        // Get the regular and the no wiggle power spectrum for the ln_k's by interpolation of the logarithmic splines
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k1_true,
-                                                         &last_indices_interpolation[0],
-                                                         P_full_and_nw_1,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k2_true,
-                                                         &last_indices_interpolation[1],
-                                                         P_full_and_nw_2,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k3_true,
-                                                         &last_indices_interpolation[2],
-                                                         P_full_and_nw_3,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        // Exponentiate the logarithmic interpolations
-        P_full_and_nw_1[index_pk_full] = exp(P_full_and_nw_1[index_pk_full]);
-        P_full_and_nw_2[index_pk_full] = exp(P_full_and_nw_2[index_pk_full]);
-        P_full_and_nw_3[index_pk_full] = exp(P_full_and_nw_3[index_pk_full]);
-        P_full_and_nw_1[index_pk_nw] = exp(P_full_and_nw_1[index_pk_nw]);
-        P_full_and_nw_2[index_pk_nw] = exp(P_full_and_nw_2[index_pk_nw]);
-        P_full_and_nw_3[index_pk_nw] = exp(P_full_and_nw_3[index_pk_nw]);
-
-        // Calculate the wiggle power spetrum (P = P_w + P_nw)
-        P_w_1 = P_full_and_nw_1[index_pk_full]-P_full_and_nw_1[index_pk_nw];
-        P_w_2 = P_full_and_nw_2[index_pk_full]-P_full_and_nw_2[index_pk_nw];
-        P_w_3 = P_full_and_nw_3[index_pk_full]-P_full_and_nw_3[index_pk_nw];
-        
-        // Calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
-        mu1_true_sq = mu1_true*mu1_true;
-        mu2_true_sq = mu2_true*mu2_true;
-        mu3_true_sq = mu3_true*mu3_true;
-        f_sq = f*f;
-        Sigma2_total_mu1_true = (1. + f*(f+2.)*mu1_true_sq) * sigma2_ir_at_z + f_sq * mu1_true_sq * (mu1_true_sq-1.) * dsigma2_ir_at_z;
-        Sigma2_total_mu2_true = (1. + f*(f+2.)*mu2_true_sq) * sigma2_ir_at_z + f_sq * mu2_true_sq * (mu2_true_sq-1.) * dsigma2_ir_at_z;
-        Sigma2_total_mu3_true = (1. + f*(f+2.)*mu3_true_sq) * sigma2_ir_at_z + f_sq * mu3_true_sq * (mu3_true_sq-1.) * dsigma2_ir_at_z;
-        
-        P1 = P_full_and_nw_1[index_pk_nw] + P_w_1 * exp(-k1_true*k1_true*Sigma2_total_mu1_true);
-        P2 = P_full_and_nw_2[index_pk_nw] + P_w_2 * exp(-k2_true*k2_true*Sigma2_total_mu2_true);
-        P3 = P_full_and_nw_3[index_pk_nw] + P_w_3 * exp(-k3_true*k3_true*Sigma2_total_mu3_true);
-      } 
-      else {
-        class_test(use_IR_resum!=0 && use_IR_resum!=1, 
-        pfo->error_message, 
-        "use_IR_resum must be either 0 or 1, you entered use_IR_resum=%d", use_IR_resum);
-      }
-      
-      class_call(fourier_B_tree_and_derivs_at_k_and_z(pfo, 
-                                                      linear, 
-                                                      f, 
-                                                      b1, 
-                                                      b2, 
-                                                      bG2, 
-                                                      s1, 
-                                                      s2, 
-                                                      s3, 
-                                                      P_shot,
-                                                      c1_FoG,
-                                                      k_nonlinear,
-                                                      k1_true, 
-                                                      k2_true, 
-                                                      k3_true, 
-                                                      mu1_true, 
-                                                      mu2_true, 
-                                                      mu3_true,
-                                                      P1, 
-                                                      P2, 
-                                                      P3, 
-                                                      z, 
-                                                      &bispectrum_treelevel,
-                                                      &deriv_s1_wedges,
-                                                      &deriv_s3_wedges), 
-                 pfo->error_message,
-                 pfo->error_message);
-                              
-      B_l_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * bispectrum_treelevel;
-      deriv_s1_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * deriv_s1_wedges;
-      deriv_s3_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * deriv_s3_wedges;
-    }
-  } 
-
-  // Appy normalization factors and AP factors
-  *B_l = B_l_temp * 0.25 * (2.*l+1.) * AP*AP; 
-  *deriv_s1 = deriv_s1_temp * 0.25 * (2.*l+1.) * AP*AP; 
-  *deriv_s3 = deriv_s3_temp * 0.25 * (2.*l+1.) * AP*AP; 
-
-  if (mode==logarithmic){
-    *B_l = log(abs(*B_l));
-    *deriv_s1 = log(abs(*deriv_s1));
-    *deriv_s3 = log(abs(*deriv_s3));
-  }
-
-  free(P_full_and_nw_1);
-  free(P_full_and_nw_2);
-  free(P_full_and_nw_3);
-
-  return _SUCCESS_;
-}
-
-/** Tree level bispectrum multipoles with AP effect for one specific combination of k1, k2, k3, l and z, implemented by Louis Christoph.
- *  Returns bispectrum for clustering only, not for the full matter. 
- *  Is equivalent to the full matter bispec in the case of 0 non-cold-dark-matter species.
- *  Uses Gauss-Chebychev quadrature for approximating the integration in phi
- * @param pba                            Input: pointer to background structure
- * @param ppm                            Input: pointer to primordial structure
- * @param pfo                            Input: pointer to fourier structure
- * @param mode                           Input: linear or logarithmic for the output
- * @param use_IR_resum                   Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk                       Input: index of required P(k) type (_m, _cb)
- * @param pk_type_size                   Input: size of the types of power spectra which are being interpolated (i.e. 2: full and nw)
- * @param index_pk_full                  Input: index in the interpolation routine, at which the full power spectrum is stored
- * @param index_pk_nw                    Input: same for the nw power spectrum
- * @param mu_GL_i                        Input: Gauss-Legendre Quadrature sampling points for mu
- * @param w_mu_GL_i                      Input: Gauss-Legendre Quadrature sampling weights for mu
- * @param lnpk_l_full_and_nw_at_z        Input: log linear power spectrum of type index_pk, full and nowiggle, at the input z and at pfo->k, 
- *                                              indexed as p[index_k*pk_type_size+index_pk_wiggliness], with pk_type_size=2 and index_pk_wiggliness = 0 (full) and =1 (nw)
- * @param lnddpk_l_full_and_nw_at_z      Input: second derivative of the quantity above, indexed the same
- * @param b1                             Input: first order bias parameter
- * @param b2                             Input: second order bias parameter
- * @param bG2                            Input: second order bias parameter
- * @param s1                             Input: noise bias parameter
- * @param s2                             Input: noise bias parameter
- * @param s3                             Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
- * @param P_shot                         Input: noise power spectrum with AP applied
- * @param c1_FoG                         Input: 1st counter term parameter value for the FOG effect
- * @param k_nonlinear                    Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
- * @param k1                             Input: wavenumber k1
- * @param k2                             Input: wavenumber k2
- * @param k3                             Input: wavenumber k3
- * @param l                              Input: multipole l
- * @param z                              Input: redshift
- * @param q_perp                         Input: Alcock Pacinsky factor at z in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param q_parr                         Input: Alcock Pacinsky factor at z in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param AP                             Input: AP factor at z that multiplies the bispecrum 
- * @param last_indices_interpolation     Input: Pointer to array of 3 last indices for the interpolation, 
- *                                              needs to be initialized once (to e.g. [0,0,0]), then the first call will set the indices
- * @param B_l                            Output: multipoles bispectrum for given type/time/wavenumber
- * @param deriv_s1                       Output: derivative of B after the noise bias parameter s1, for indices z, k1, k2 and k3
- * @param deriv_s3                       Output: same as above for s3
- * @return the error status
-*/
-
-int fourier_B_ell_tree_AP_and_derivs_at_k_and_z_GC(
-                                                   struct background * pba,
-                                                   struct primordial * ppm,
-                                                   struct fourier * pfo,
-                                                   enum linear_or_logarithmic mode,
-                                                   int use_IR_resum,
-                                                   int index_pk,
-                                                   int pk_type_size,
-                                                   int index_pk_full,
-                                                   int index_pk_nw,
-                                                   double *mu_GL_i,
-                                                   double *w_mu_GL_i,
-                                                   double *P_l,
-                                                   double *lnpk_l_full_and_nw_at_z,
-                                                   double *lnddpk_l_full_and_nw_at_z,
-                                                   double b1,
-                                                   double b2,
-                                                   double bG2,
-                                                   double s1,
-                                                   double s2,
-                                                   double s3,
-                                                   double P_shot,
-                                                   double c1_FoG,
-                                                   double k_nonlinear,
-                                                   double k1,
-                                                   double k2,
-                                                   double k3,
-                                                   int l,
-                                                   double z,
-                                                   double q_perp,
-                                                   double q_parr,
-                                                   double AP,
-                                                   int *last_indices_interpolation,
-                                                   double *B_l,
-                                                   double *deriv_s1,
-                                                   double *deriv_s3
-                                                   ) {
-  // Declare variables
-  int index_phi, index_mu, n_phi_GC=5, n_mu_GL=10, last_index;
-  double mu1, mu2, mu3, sin_phi, sin12, cos12, B_l_temp=0, bispectrum_treelevel, P1, P2, P3, 
-         deriv_s1_wedges, deriv_s2_wedges, deriv_s3_wedges, deriv_s1_temp=0, deriv_s2_temp=0, deriv_s3_temp=0;
-  // Variables relevant for IR resummation:
-  double f, f_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z, 
-         P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3;
-  double * pvecback;
-  // Variables relevant for the AP effect:
-  double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true, mu1_true_sq, mu2_true_sq, mu3_true_sq, ln_k1_true, ln_k2_true, ln_k3_true;
-
-  // Allocate space for power spectra
-  class_alloc(P_full_and_nw_1, pk_type_size*sizeof(double),
-              pfo->error_message)
-  class_alloc(P_full_and_nw_2, pk_type_size*sizeof(double),
-              pfo->error_message)
-  class_alloc(P_full_and_nw_3, pk_type_size*sizeof(double),
-              pfo->error_message)
-
-  // Calculate the value of the growth factor f
-  class_alloc(pvecback,pba->bg_size*sizeof(double),
-              pfo->error_message);
-
-  class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
-             pba->error_message,
-             pfo->error_message);
-
-  f = pvecback[pba->index_bg_f];
-  free(pvecback);
-
-  // Test whether the triangle configuration is senseful (triangle inequality)
-  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
-             pfo->error_message,
-             "triangle inequalities are not satisfied");
-
-  class_test(k3<=0,
-             pfo->error_message,
-             "you have k3=%e",k3);
-
-  // Define angles in parametrization, note that these are calculated from the undistorted k's:
-  // They are needed in undistorted coordinates as an input for the distorted coordinates 
-  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2); // cos12 = vec_k1*vec_k2/(k1*k2) -> angle between the vectors and not inside the triangle
-  sin12 = sqrt(1-cos12*cos12);                 // note that sin12 > 0 since the angle must be between 0 and pi
-  
-  if (use_IR_resum==1){ 
-    // Define sigma and dsigma for IR resummation
-    k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
-    k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
-    sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
-    dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
-  }
-
-  // Gauss-Chebychev Quadrature over phi:
-  for (index_phi=1; index_phi<n_phi_GC+1; index_phi++){
-    sin_phi = cos((2.*index_phi - 1.)/(2.*n_phi_GC)*_PI_);
-
-    for (index_mu=0; index_mu<n_mu_GL; index_mu++){
-      // Note: different parametrization than https://arxiv.org/pdf/2110.10161, look Master's thesis Fynn
-      mu1 = mu_GL_i[index_mu];
-      mu2 = mu1*cos12 + sqrt(1-mu1*mu1)*sin12*sin_phi;
-      mu3 = -(k1*mu1 + k2*mu2)/k3;
-
-      // Coordinate distortion according to the AP effect
-      k1_true = k1*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp));
-      k2_true = k2*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp));
-      k3_true = k3*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp));
-      mu1_true = mu1/(q_parr*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp)));
-      mu2_true = mu2/(q_parr*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp)));
-      mu3_true = mu3/(q_parr*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp)));
-
-      class_test(fabs(mu1_true)>1 || fabs(mu2_true)>1 || fabs(mu3_true)>1, 
-             pfo->error_message, 
-             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
-
-      // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
-      if (use_IR_resum==0){
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2_true, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
-        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3_true, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message);
-      } 
-      else if (use_IR_resum==1){
-        class_test(pfo->has_pk_nw == _FALSE_, 
-        pfo->error_message, 
-        "To use the IR resummed power spectrum you need 'mPknw' as an output");
-
-        // Fill the ln_k vector to which we interpolate the splines
-        ln_k1_true = log(k1_true); 
-        ln_k2_true = log(k2_true); 
-        ln_k3_true = log(k3_true);
-
-        // Get the regular and the no wiggle power spectrum for the ln_k's by interpolation of the logarithmic splines
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k1_true,
-                                                         &last_indices_interpolation[0],
-                                                         P_full_and_nw_1,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k2_true,
-                                                         &last_indices_interpolation[1],
-                                                         P_full_and_nw_2,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
-                                                         pfo->k_size,
-                                                         lnpk_l_full_and_nw_at_z,
-                                                         lnddpk_l_full_and_nw_at_z,
-                                                         pk_type_size,
-                                                         ln_k3_true,
-                                                         &last_indices_interpolation[2],
-                                                         P_full_and_nw_3,
-                                                         pk_type_size,
-                                                         pfo->error_message),
-                   pfo->error_message,
-                   pfo->error_message);
-
-        // Exponentiate the logarithmic interpolations
-        P_full_and_nw_1[index_pk_full] = exp(P_full_and_nw_1[index_pk_full]);
-        P_full_and_nw_2[index_pk_full] = exp(P_full_and_nw_2[index_pk_full]);
-        P_full_and_nw_3[index_pk_full] = exp(P_full_and_nw_3[index_pk_full]);
-        P_full_and_nw_1[index_pk_nw] = exp(P_full_and_nw_1[index_pk_nw]);
-        P_full_and_nw_2[index_pk_nw] = exp(P_full_and_nw_2[index_pk_nw]);
-        P_full_and_nw_3[index_pk_nw] = exp(P_full_and_nw_3[index_pk_nw]);
-
-        // Calculate the wiggle power spetrum (P = P_w + P_nw)
-        P_w_1 = P_full_and_nw_1[index_pk_full]-P_full_and_nw_1[index_pk_nw];
-        P_w_2 = P_full_and_nw_2[index_pk_full]-P_full_and_nw_2[index_pk_nw];
-        P_w_3 = P_full_and_nw_3[index_pk_full]-P_full_and_nw_3[index_pk_nw];
-        
-        // Calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
-        mu1_true_sq = mu1_true*mu1_true;
-        mu2_true_sq = mu2_true*mu2_true;
-        mu3_true_sq = mu3_true*mu3_true;
-        f_sq = f*f;
-        Sigma2_total_mu1_true = (1. + f*(f+2.)*mu1_true_sq) * sigma2_ir_at_z + f_sq * mu1_true_sq * (mu1_true_sq-1.) * dsigma2_ir_at_z;
-        Sigma2_total_mu2_true = (1. + f*(f+2.)*mu2_true_sq) * sigma2_ir_at_z + f_sq * mu2_true_sq * (mu2_true_sq-1.) * dsigma2_ir_at_z;
-        Sigma2_total_mu3_true = (1. + f*(f+2.)*mu3_true_sq) * sigma2_ir_at_z + f_sq * mu3_true_sq * (mu3_true_sq-1.) * dsigma2_ir_at_z;
-        
-        P1 = P_full_and_nw_1[index_pk_nw] + P_w_1 * exp(-k1_true*k1_true*Sigma2_total_mu1_true);
-        P2 = P_full_and_nw_2[index_pk_nw] + P_w_2 * exp(-k2_true*k2_true*Sigma2_total_mu2_true);
-        P3 = P_full_and_nw_3[index_pk_nw] + P_w_3 * exp(-k3_true*k3_true*Sigma2_total_mu3_true);
-      } 
-      else {
-        class_test(use_IR_resum!=0 && use_IR_resum!=1, 
-        pfo->error_message, 
-        "use_IR_resum must be either 0 or 1, you entered use_IR_resum=%d", use_IR_resum);
-      }
-      
-      class_call(fourier_B_tree_and_derivs_at_k_and_z(pfo, 
-                                                      linear, 
-                                                      f, 
-                                                      b1, 
-                                                      b2, 
-                                                      bG2, 
-                                                      s1, 
-                                                      s2, 
-                                                      s3, 
-                                                      P_shot,
-                                                      c1_FoG,
-                                                      k_nonlinear,
-                                                      k1_true, 
-                                                      k2_true, 
-                                                      k3_true, 
-                                                      mu1_true, 
-                                                      mu2_true, 
-                                                      mu3_true,
-                                                      P1, 
-                                                      P2, 
-                                                      P3, 
-                                                      z, 
-                                                      &bispectrum_treelevel,
-                                                      &deriv_s1_wedges,
-                                                      &deriv_s3_wedges), 
-                 pfo->error_message,
-                 pfo->error_message);
-                              
-      B_l_temp += w_mu_GL_i[index_mu] * P_l[index_mu] * bispectrum_treelevel;
-      deriv_s1_temp += w_mu_GL_i[index_mu] * P_l[index_mu] * deriv_s1_wedges;
-      deriv_s3_temp += w_mu_GL_i[index_mu] * P_l[index_mu] * deriv_s3_wedges;
-    }
-  } 
-
-  // Appy normalization factors and AP factors
-  *B_l = B_l_temp * (2.*l+1.)/(2*n_phi_GC) * AP*AP; 
-  *deriv_s1 = deriv_s1_temp * (2.*l+1.)/(2*n_phi_GC) * AP*AP; 
-  *deriv_s3 = deriv_s3_temp * (2.*l+1.)/(2*n_phi_GC) * AP*AP; 
-
-  if (mode==logarithmic){
-    *B_l = log(abs(*B_l));
-    *deriv_s1 = log(abs(*deriv_s1));
-    *deriv_s3 = log(abs(*deriv_s3));
-  }
-
-  free(P_full_and_nw_1);
-  free(P_full_and_nw_2);
-  free(P_full_and_nw_3);
-
-  return _SUCCESS_;
-}
-
-/** The treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
+/** 
+ *  The treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
  *  Returns bispectrum for clustering or for the full matter, depending on index_pk AND the 'nowiggle_pk_species' setting (total or clustering)
  *  Also returns the derivatives of B after the linear nuisance parameters s1, s2 and s3
+ * 
  * @param pba           Input: pointer to background structure
  * @param ppm           Input: pointer to primordial structure
  * @param pfo           Input: pointer to fourier structure
@@ -3446,474 +2107,431 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
   return _SUCCESS_;
 }
 
-/** The treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
- *  Returns bispectrum for clustering or for the full matter, depending on index_pk AND the 'nowiggle_pk_species' setting (total or clustering)
- *  Also returns the derivatives of B after the linear nuisance parameters s1, s2 and s3
- *  Uses Gauss-Chebychev quadrature for approximating the integration in phi
- * @param pba           Input: pointer to background structure
- * @param ppm           Input: pointer to primordial structure
- * @param pfo           Input: pointer to fourier structure
- * @param mode          Input: linear or logarithmic for the output
- * @param use_IR_resum  Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk      Input: index of required P(k) type (_m, _cb)
- * @param b1            Input: first order bias parameter array in z
- * @param b2            Input: second order bias parameter array in z
- * @param bG2           Input: second order bias parameter array in z
- * @param s1            Input: noise bias parameter array in z
- * @param s2            Input: noise bias parameter array in z
- * @param s3            Input: noise bias parameter array in z (TODO: Ivanov and Rizzo have different parametrization)
- * @param c1_FoG        Input: 1st counter term parameter values for the FOG effect
- * @param k_nonlinear  Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
- * @param P_shot        Input: noise power spectrum array in z with AP applied
- * @param k             Input: points at the first of 3·n_triangles doubles for the triangle wavenumber values
- * @param n_triangles   Input: number of triangles
- * @param z             Input: z array
- * @param z_size        Input: size of the z array
- * @param l             Input: ell of corresponding multipole
- * @param q_perp        Input: array in z of Alcock Pacinsky factor in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param q_parr        Input: array in z of Alcock Pacinsky factor in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param AP            Input: array in z of AP factors that multiply the bispecrum
- * @param B_l           Output: multipoles bispectrum, indexed as [index_z*n_triangles+index_triangle]
- * @param deriv_s1      Output: derivative of B after the noise bias parameter s1, indexed as [index_z*n_triangles+index_triangle]
- * @param deriv_s2      Output: same as above for s2
- * @param deriv_s3      Output: same as above for s3
+/** 
+ *  The tree level bispectrum multipoles with AP effect for one specific combination of k1, k2, k3, l and z, implemented by Fynn Jansen and Louis Christoph.
+ *  Returns bispectrum for clustering only, not for the full matter. 
+ *  Is equivalent to the full matter bispec in the case of 0 non-cold-dark-matter species.
+ * 
+ * @param pba                            Input: pointer to background structure
+ * @param ppm                            Input: pointer to primordial structure
+ * @param pfo                            Input: pointer to fourier structure
+ * @param mode                           Input: linear or logarithmic for the output
+ * @param use_IR_resum                   Input: 0 for no IR resummation, 1 for IR resummation
+ * @param index_pk                       Input: index of required P(k) type (_m, _cb)
+ * @param pk_type_size                   Input: size of the types of power spectra which are being interpolated (i.e. 2: full and nw)
+ * @param index_pk_full                  Input: index in the interpolation routine, at which the full power spectrum is stored
+ * @param index_pk_nw                    Input: same for the nw power spectrum
+ * @param mu_GL_i                        Input: Gauss-Legendre Quadrature sampling points for mu
+ * @param w_mu_GL_i                      Input: Gauss-Legendre Quadrature sampling weights for mu
+ * @param phi_GL_i                       Input: Gauss-Legendre Quadrature sampling points for phi (after transforming s.t. the integral boundaries are -1 and 1)
+ * @param w_phi_GL_i                     Input: Gauss-Legendre Quadrature sampling weights for phi (after transforming s.t. the integral boundaries are -1 and 1)
+ * @param lnpk_l_full_and_nw_at_z        Input: log linear power spectrum of type index_pk, full and nowiggle, at the input z and at pfo->k, 
+ *                                              indexed as p[index_k*pk_type_size+index_pk_wiggliness], with pk_type_size=2 and index_pk_wiggliness = 0 (full) and =1 (nw)
+ * @param lnddpk_l_full_and_nw_at_z      Input: second derivative of the quantity above, indexed the same
+ * @param b1                             Input: first order bias parameter
+ * @param b2                             Input: second order bias parameter
+ * @param bG2                            Input: second order bias parameter
+ * @param s1                             Input: noise bias parameter
+ * @param s2                             Input: noise bias parameter
+ * @param s3                             Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_shot                         Input: noise power spectrum with AP applied
+ * @param c1_FoG                         Input: 1st counter term parameter value for the FOG effect
+ * @param k_nonlinear                    Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
+ * @param k1                             Input: wavenumber k1
+ * @param k2                             Input: wavenumber k2
+ * @param k3                             Input: wavenumber k3
+ * @param l                              Input: multipole l
+ * @param z                              Input: redshift
+ * @param q_perp                         Input: Alcock Pacinsky factor at z in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
+ * @param q_parr                         Input: Alcock Pacinsky factor at z in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
+ * @param AP                             Input: AP factor at z that multiplies the bispecrum 
+ * @param last_indices_interpolation     Input: Pointer to array of 3 last indices for the interpolation, 
+ *                                              needs to be initialized once (to e.g. [0,0,0]), then the first call will set the indices
+ * @param B_l                            Output: multipoles bispectrum for given type/time/wavenumber
+ * @param deriv_s1                       Output: derivative of B after the noise bias parameter s1, for indices z, k1, k2 and k3
+ * @param deriv_s3                       Output: same as above for s3
  * @return the error status
 */
 
-int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec_GC(
-                                                         struct background *pba,
-                                                         struct primordial * ppm,
-                                                         struct fourier * pfo,
-                                                         enum linear_or_logarithmic mode,
-                                                         int use_IR_resum,
-                                                         int index_pk,
-                                                         double *b1,
-                                                         double *b2,
-                                                         double *bG2,
-                                                         double *s1,
-                                                         double *s2,
-                                                         double *s3,
-                                                         double *P_shot,
-                                                         double *c1_FoG,
-                                                         double k_nonlinear,
-                                                         double *k,
-                                                         int n_triangles,
-                                                         double *z,
-                                                         int z_size,
-                                                         int l,
-                                                         double *q_perp, 
-                                                         double *q_parr,
-                                                         double *AP,
-                                                         double *B_l,
-                                                         double *deriv_s1,
-                                                         double *deriv_s2,
-                                                         double *deriv_s3 
-                                                         ) {
+int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
+                                                struct background * pba,
+                                                struct primordial * ppm,
+                                                struct fourier * pfo,
+                                                enum linear_or_logarithmic mode,
+                                                int use_IR_resum,
+                                                int index_pk,
+                                                int pk_type_size,
+                                                int index_pk_full,
+                                                int index_pk_nw,
+                                                double *mu_GL_i,
+                                                double *w_mu_GL_i,
+                                                double *phi_GL_i,
+                                                double *w_phi_GL_i,
+                                                double *P_l,
+                                                double *lnpk_l_full_and_nw_at_z,
+                                                double *lnddpk_l_full_and_nw_at_z,
+                                                double b1,
+                                                double b2,
+                                                double bG2,
+                                                double s1,
+                                                double s2,
+                                                double s3,
+                                                double P_shot,
+                                                double c1_FoG,
+                                                double k_nonlinear,
+                                                double k1,
+                                                double k2,
+                                                double k3,
+                                                int l,
+                                                double z,
+                                                double q_perp,
+                                                double q_parr,
+                                                double AP,
+                                                int *last_indices_interpolation,
+                                                double *B_l,
+                                                double *deriv_s1,
+                                                double *deriv_s3
+                                                ) {
   // Declare variables
-  int index_z, index_t, index_k, index_mu, index_l=l/2, index_pk_full, index_pk_nw, index_pk_wiggliness=0, n_mu_GL=10, n_phi_GC=5, *last_indices_interpolation;
-  double *pk_both, *ddpk_both, *pk, *pk_nw, *mu_GL_i, *w_mu_GL_i;     
+  int index_phi, index_mu, n_phi_GL=10, n_mu_GL=10, last_index;
+  double mu1, mu2, mu3, sin_phi, sin12, cos12, B_l_temp=0, bispectrum_treelevel, P1, P2, P3, 
+         deriv_s1_wedges, deriv_s2_wedges, deriv_s3_wedges, deriv_s1_temp=0, deriv_s3_temp=0;
+  // Variables relevant for IR resummation:
+  double f, f_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z, 
+         P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3;
+  double * pvecback;
+  // Variables relevant for the AP effect:
+  double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true, mu1_true_sq, mu2_true_sq, mu3_true_sq, ln_k1_true, ln_k2_true, ln_k3_true;
 
-  // Define class indices
-  class_define_index(index_pk_full, _TRUE_, index_pk_wiggliness,1);
-  class_define_index(index_pk_nw, _TRUE_, index_pk_wiggliness,1);
-  int pk_type_size = index_pk_wiggliness;
+  // Allocate space for power spectra
+  class_alloc(P_full_and_nw_1, pk_type_size*sizeof(double),
+              pfo->error_message)
+  class_alloc(P_full_and_nw_2, pk_type_size*sizeof(double),
+              pfo->error_message)
+  class_alloc(P_full_and_nw_3, pk_type_size*sizeof(double),
+              pfo->error_message)
 
-  // Define Gauss Legendre quadrature sample points, weights for mu. Use 10 nodes for mu.
-  // https://pomax.github.io/bezierinfo/legendre-gauss.html
-  double mu_GL_i_vals[] = {-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472, -0.1488743389816312,
-                            0.1488743389816312,  0.4333953941292472,  0.6794095682990244,  0.8650633666889845,  0.9739065285171717};
-  double w_mu_GL_i_vals[] = {0.0666713443086881,  0.1494513491505806,  0.2190863625159820,  0.2692667193099963,  0.2955242247147529,
-                             0.2955242247147529,  0.2692667193099963,  0.2190863625159820,  0.1494513491505806,  0.0666713443086881};
-
-  class_alloc(mu_GL_i, n_mu_GL*sizeof(double),
+  // Calculate the value of the growth factor f
+  class_alloc(pvecback,pba->bg_size*sizeof(double),
               pfo->error_message);
-  class_alloc(w_mu_GL_i, n_mu_GL*sizeof(double),
-              pfo->error_message);
-  memcpy(mu_GL_i, mu_GL_i_vals, n_mu_GL*sizeof(double));
-  memcpy(w_mu_GL_i, w_mu_GL_i_vals, n_mu_GL*sizeof(double));
 
-  // Define Legendre polynomials
-  double P_0[n_mu_GL], P_2[n_mu_GL], P_4[n_mu_GL];
-  for (index_mu=0; index_mu<n_mu_GL; index_mu++){
-    P_0[index_mu] = 1.;
-    P_2[index_mu] = 0.5*(3.*mu_GL_i[index_mu]*mu_GL_i[index_mu] - 1.);
-    P_4[index_mu] = 0.125*(35.*mu_GL_i[index_mu]*mu_GL_i[index_mu]*mu_GL_i[index_mu]*mu_GL_i[index_mu] - 30.*mu_GL_i[index_mu]*mu_GL_i[index_mu] + 3.);
+  class_call(background_at_z(pba, z, long_info, inter_normal, &last_index, pvecback),
+             pba->error_message,
+             pfo->error_message);
+
+  f = pvecback[pba->index_bg_f];
+  free(pvecback);
+
+  // Test whether the triangle configuration is senseful (triangle inequality)
+  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
+             pfo->error_message,
+             "triangle inequalities are not satisfied");
+
+  class_test(k3<=0,
+             pfo->error_message,
+             "you have k3=%e",k3);
+
+  // Define angles in parametrization, note that these are calculated from the undistorted k's:
+  // They are needed in undistorted coordinates as an input for the distorted coordinates 
+  cos12 = -0.5*(k1*k1 + k2*k2 - k3*k3)/(k1*k2); // cos12 = vec_k1*vec_k2/(k1*k2) -> angle between the vectors and not inside the triangle
+  sin12 = sqrt(1-cos12*cos12);                 // note that sin12 > 0 since the angle must be between 0 and pi
+  
+  if (use_IR_resum==1){ 
+    // Define sigma and dsigma for IR resummation
+    k_split = 0.2*pba->h;      // according to Ivanov in arXiv:2110.10161v1 more recent than k_split=0.2 h/Mpc previously used in CLASS
+    k_bao   = pba->h/110.;      // he also states that the result is not very sensitive to variations in k_split 
+    sigma2_ir_at_z   = eft_ir_sigma2(pba, ppm, pfo, z, k_split, k_bao);   /** k_split = 0.2 h/Mpc was the old choice, k_feature = 1/110 h/Mpc */
+    dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
   }
-  double *P_l[3] = {P_0, P_2, P_4};
-  class_test(l!=0 && l!=2 && l!=4,
+
+  // Gauss Legendre Quadrature over phi and mu
+  for (index_phi=0; index_phi<n_phi_GL; index_phi++){
+    sin_phi = sin(phi_GL_i[index_phi]);
+
+    for (index_mu=0; index_mu<n_mu_GL; index_mu++){
+      // Note: different parametrization than https://arxiv.org/pdf/2110.10161, explained in Master's thesis of Fynn Jansen
+      mu1 = mu_GL_i[index_mu];
+      mu2 = mu1*cos12 + sqrt(1-mu1*mu1)*sin12*sin_phi;
+      mu3 = -(k1*mu1 + k2*mu2)/k3;
+
+      // Coordinate distortion according to the AP effect
+      k1_true = k1*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp));
+      k2_true = k2*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp));
+      k3_true = k3*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp));
+      mu1_true = mu1/(q_parr*sqrt(mu1*mu1/(q_parr*q_parr)+(1-mu1*mu1)/(q_perp*q_perp)));
+      mu2_true = mu2/(q_parr*sqrt(mu2*mu2/(q_parr*q_parr)+(1-mu2*mu2)/(q_perp*q_perp)));
+      mu3_true = mu3/(q_parr*sqrt(mu3*mu3/(q_parr*q_parr)+(1-mu3*mu3)/(q_perp*q_perp)));
+
+      class_test(fabs(mu1_true)>1 || fabs(mu2_true)>1 || fabs(mu3_true)>1, 
              pfo->error_message, 
-             "only multipoles l=0, l=2 or l=4 are valid, you have l=%d",l);
+             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
 
-  for (index_z=0; index_z<z_size; index_z++){          
-    // Array alloc
-    class_alloc(pk, pfo->k_size*sizeof(double), 
-                pfo->error_message);
-    class_alloc(pk_nw, pfo->k_size_extra*sizeof(double), 
-                pfo->error_message);
-    class_alloc(pk_both, pk_type_size*pfo->k_size*sizeof(double), 
-                pfo->error_message);
-    class_alloc(ddpk_both, pk_type_size*pfo->k_size*sizeof(double), 
-                pfo->error_message);
-    class_alloc(last_indices_interpolation, 3*sizeof(int),
-                pfo->error_message)
+      // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
+      if (use_IR_resum==0){
+        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
+        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2_true, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
+        class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3_true, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message);
+      } 
+      else if (use_IR_resum==1){
+        class_test(pfo->has_pk_nw == _FALSE_, 
+        pfo->error_message, 
+        "To use the IR resummed power spectrum you need 'mPknw' as an output");
 
-    last_indices_interpolation[0] = 0;
-    last_indices_interpolation[1] = 0;
-    last_indices_interpolation[2] = 0;
-    
-    // Get the linear power spectrum for index_pk type
-    class_call(fourier_pk_at_z(pba,
-                               pfo,
-                               logarithmic,
-                               pk_linear,
-                               z[index_z],
-                               index_pk,
-                               pk,
-                               NULL),
-               pfo->error_message,
-               pfo->error_message);
-    
-    // Get the dewiggled linear power spectrum, 
-    // For CDM and baryons combined set "nowiggle_pk_species":"clustering", for total matter set "nowiggle_pk_species":"total"
-    class_call(fourier_pk_l_nw_extra_at_z(pba,
-                                          pfo,
-                                          logarithmic,
-                                          z[index_z],
-                                          pk_nw),
-               pfo->error_message,
-               pfo->error_message);
-    
-    // Get the derivative after the s2 parameter for index_z for the analytic marginalization routine
-    double deriv_s2_at_z_and_k_tmp = P_shot[index_z]*P_shot[index_z] * AP[index_z]*AP[index_z];
+        // Fill the ln_k vector to which we interpolate the splines
+        ln_k1_true = log(k1_true); 
+        ln_k2_true = log(k2_true); 
+        ln_k3_true = log(k3_true);
 
-    // Fill pk_both[index_k*pk_type_size+index_pk_wiggliness]
-    for (index_k=0; index_k<pfo->k_size; index_k++){
-      pk_both[index_k*pk_type_size+index_pk_full] = pk[index_k];
-      pk_both[index_k*pk_type_size+index_pk_nw] = pk_nw[index_k];
-    }
+        // Get the regular and the no wiggle power spectrum for the ln_k's by interpolation of the logarithmic splines
+        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
+                                                         pfo->k_size,
+                                                         lnpk_l_full_and_nw_at_z,
+                                                         lnddpk_l_full_and_nw_at_z,
+                                                         pk_type_size,
+                                                         ln_k1_true,
+                                                         &last_indices_interpolation[0],
+                                                         P_full_and_nw_1,
+                                                         pk_type_size,
+                                                         pfo->error_message),
+                   pfo->error_message,
+                   pfo->error_message);
 
-    class_call(array_spline_table_lines(pfo->ln_k,
-                                        pfo->k_size,
-                                        pk_both,
-                                        pk_type_size,
-                                        ddpk_both,
-                                        _SPLINE_NATURAL_,
-                                        pfo->error_message),
-               pfo->error_message,
-               pfo->error_message);
-    
-    class_setup_parallel();
-    for (index_t=0; index_t<n_triangles; index_t++){
-      class_run_parallel(=,
-      double k1 = k[3*index_t + 0];
-      double k2 = k[3*index_t + 1];
-      double k3 = k[3*index_t + 2];
+        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
+                                                         pfo->k_size,
+                                                         lnpk_l_full_and_nw_at_z,
+                                                         lnddpk_l_full_and_nw_at_z,
+                                                         pk_type_size,
+                                                         ln_k2_true,
+                                                         &last_indices_interpolation[1],
+                                                         P_full_and_nw_2,
+                                                         pk_type_size,
+                                                         pfo->error_message),
+                   pfo->error_message,
+                   pfo->error_message);
 
-      double B_l_at_z_and_k_tmp;
-      double deriv_s1_at_z_and_k_tmp;
-      double deriv_s3_at_z_and_k_tmp;
+        class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
+                                                         pfo->k_size,
+                                                         lnpk_l_full_and_nw_at_z,
+                                                         lnddpk_l_full_and_nw_at_z,
+                                                         pk_type_size,
+                                                         ln_k3_true,
+                                                         &last_indices_interpolation[2],
+                                                         P_full_and_nw_3,
+                                                         pk_type_size,
+                                                         pfo->error_message),
+                   pfo->error_message,
+                   pfo->error_message);
 
-      class_call(fourier_B_ell_tree_AP_and_derivs_at_k_and_z_GC(pba,
-                                                                ppm,
-                                                                pfo,
-                                                                mode,
-                                                                use_IR_resum,
-                                                                index_pk,
-                                                                pk_type_size,
-                                                                index_pk_full,
-                                                                index_pk_nw,
-                                                                mu_GL_i,
-                                                                w_mu_GL_i,
-                                                                P_l[index_l],
-                                                                pk_both,
-                                                                ddpk_both,
-                                                                b1[index_z],
-                                                                b2[index_z],
-                                                                bG2[index_z],
-                                                                s1[index_z],
-                                                                s2[index_z],
-                                                                s3[index_z],
-                                                                P_shot[index_z],
-                                                                c1_FoG[index_z],
-                                                                k_nonlinear,
-                                                                k1,
-                                                                k2,
-                                                                k3,
-                                                                l,
-                                                                z[index_z],
-                                                                q_perp[index_z],
-                                                                q_parr[index_z],
-                                                                AP[index_z],
-                                                                last_indices_interpolation,
-                                                                &B_l_at_z_and_k_tmp,
-                                                                &deriv_s1_at_z_and_k_tmp,
-                                                                &deriv_s3_at_z_and_k_tmp),
+        // Exponentiate the logarithmic interpolations
+        P_full_and_nw_1[index_pk_full] = exp(P_full_and_nw_1[index_pk_full]);
+        P_full_and_nw_2[index_pk_full] = exp(P_full_and_nw_2[index_pk_full]);
+        P_full_and_nw_3[index_pk_full] = exp(P_full_and_nw_3[index_pk_full]);
+        P_full_and_nw_1[index_pk_nw] = exp(P_full_and_nw_1[index_pk_nw]);
+        P_full_and_nw_2[index_pk_nw] = exp(P_full_and_nw_2[index_pk_nw]);
+        P_full_and_nw_3[index_pk_nw] = exp(P_full_and_nw_3[index_pk_nw]);
+
+        // Calculate the wiggle power spetrum (P = P_w + P_nw)
+        P_w_1 = P_full_and_nw_1[index_pk_full]-P_full_and_nw_1[index_pk_nw];
+        P_w_2 = P_full_and_nw_2[index_pk_full]-P_full_and_nw_2[index_pk_nw];
+        P_w_3 = P_full_and_nw_3[index_pk_full]-P_full_and_nw_3[index_pk_nw];
+        
+        // Calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
+        mu1_true_sq = mu1_true*mu1_true;
+        mu2_true_sq = mu2_true*mu2_true;
+        mu3_true_sq = mu3_true*mu3_true;
+        f_sq = f*f;
+        Sigma2_total_mu1_true = (1. + f*(f+2.)*mu1_true_sq) * sigma2_ir_at_z + f_sq * mu1_true_sq * (mu1_true_sq-1.) * dsigma2_ir_at_z;
+        Sigma2_total_mu2_true = (1. + f*(f+2.)*mu2_true_sq) * sigma2_ir_at_z + f_sq * mu2_true_sq * (mu2_true_sq-1.) * dsigma2_ir_at_z;
+        Sigma2_total_mu3_true = (1. + f*(f+2.)*mu3_true_sq) * sigma2_ir_at_z + f_sq * mu3_true_sq * (mu3_true_sq-1.) * dsigma2_ir_at_z;
+        
+        P1 = P_full_and_nw_1[index_pk_nw] + P_w_1 * exp(-k1_true*k1_true*Sigma2_total_mu1_true);
+        P2 = P_full_and_nw_2[index_pk_nw] + P_w_2 * exp(-k2_true*k2_true*Sigma2_total_mu2_true);
+        P3 = P_full_and_nw_3[index_pk_nw] + P_w_3 * exp(-k3_true*k3_true*Sigma2_total_mu3_true);
+      } 
+      else {
+        class_test(use_IR_resum!=0 && use_IR_resum!=1, 
+        pfo->error_message, 
+        "use_IR_resum must be either 0 or 1, you entered use_IR_resum=%d", use_IR_resum);
+      }
+      
+      class_call(fourier_B_tree_and_derivs_at_k_and_z(pfo, 
+                                                      linear, 
+                                                      f, 
+                                                      b1, 
+                                                      b2, 
+                                                      bG2, 
+                                                      s1, 
+                                                      s2, 
+                                                      s3, 
+                                                      P_shot,
+                                                      c1_FoG,
+                                                      k_nonlinear,
+                                                      k1_true, 
+                                                      k2_true, 
+                                                      k3_true, 
+                                                      mu1_true, 
+                                                      mu2_true, 
+                                                      mu3_true,
+                                                      P1, 
+                                                      P2, 
+                                                      P3, 
+                                                      z, 
+                                                      &bispectrum_treelevel,
+                                                      &deriv_s1_wedges,
+                                                      &deriv_s3_wedges), 
                  pfo->error_message,
                  pfo->error_message);
-                                                                  
-      B_l[index_z*n_triangles+index_t] = B_l_at_z_and_k_tmp;
-      deriv_s1[index_z*n_triangles+index_t] = deriv_s1_at_z_and_k_tmp;
-      deriv_s2[index_z*n_triangles+index_t] = deriv_s2_at_z_and_k_tmp;
-      deriv_s3[index_z*n_triangles+index_t] = deriv_s3_at_z_and_k_tmp;
-      return _SUCCESS_;
-      )
+                              
+      B_l_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * bispectrum_treelevel;
+      deriv_s1_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * deriv_s1_wedges;
+      deriv_s3_temp += w_phi_GL_i[index_phi] * w_mu_GL_i[index_mu] * P_l[index_mu] * deriv_s3_wedges;
     }
-    class_finish_parallel();
+  } 
 
-    free(pk);
-    free(pk_nw);
-    free(pk_both);
-    free(ddpk_both);
-    free(last_indices_interpolation);
-  }  
+  // Appy normalization factors and AP factors
+  *B_l = B_l_temp * 0.25 * (2.*l+1.) * AP*AP; 
+  *deriv_s1 = deriv_s1_temp * 0.25 * (2.*l+1.) * AP*AP; 
+  *deriv_s3 = deriv_s3_temp * 0.25 * (2.*l+1.) * AP*AP; 
 
-  free(mu_GL_i);
-  free(w_mu_GL_i);
+  if (mode==logarithmic){
+    *B_l = log(abs(*B_l));
+    *deriv_s1 = log(abs(*deriv_s1));
+    *deriv_s3 = log(abs(*deriv_s3));
+  }
+
+  free(P_full_and_nw_1);
+  free(P_full_and_nw_2);
+  free(P_full_and_nw_3);
 
   return _SUCCESS_;
 }
 
-/** The treelevel bispectrum multipoles with AP effect for arrays [k1,k2,k3],[z], implemented by Louis Christoph
- *  Uses the standard parametrization of angles and Gauss-Legendre quadrature for both the phi and mu integral
- *  Returns bispectrum for clustering or for the full matter, depending on index_pk AND the 'nowiggle_pk_species' setting (total or clustering)
- *  Also returns the derivatives of B after the linear nuisance parameters s1, s2 and s3
- * @param pba           Input: pointer to background structure
- * @param ppm           Input: pointer to primordial structure
- * @param pfo           Input: pointer to fourier structure
- * @param mode          Input: linear or logarithmic for the output
- * @param use_IR_resum  Input: 0 for no IR resummation, 1 for IR resummation
- * @param index_pk      Input: index of required P(k) type (_m, _cb)
- * @param b1            Input: first order bias parameter array in z
- * @param b2            Input: second order bias parameter array in z
- * @param bG2           Input: second order bias parameter array in z
- * @param s1            Input: noise bias parameter array in z
- * @param s2            Input: noise bias parameter array in z
- * @param s3            Input: noise bias parameter array in z (TODO: Ivanov and Rizzo have different parametrization)
- * @param c1_FoG        Input: 1st counter term parameter values for the FOG effect
- * @param k_nonlinear  Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
- * @param P_shot        Input: noise power spectrum array in z with AP applied
- * @param k             Input: points at the first of 3·n_triangles doubles for the triangle wavenumber values
- * @param n_triangles   Input: number of triangles
- * @param z             Input: z array
- * @param z_size        Input: size of the z array
- * @param l             Input: ell of corresponding multipole
- * @param q_perp        Input: array in z of Alcock Pacinsky factor in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param q_parr        Input: array in z of Alcock Pacinsky factor in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param AP            Input: array in z of AP factors that multiply the bispecrum
- * @param B_l           Output: multipoles bispectrum, indexed as [index_z*n_triangles+index_triangle]
- * @param deriv_s1      Output: derivative of B after the noise bias parameter s1, indexed as [index_z*n_triangles+index_triangle]
- * @param deriv_s2      Output: same as above for s2
- * @param deriv_s3      Output: same as above for s3
+/** 
+ *  The tree level galaxy bispectrum in redshift space at k and z and derivatives after the linear nuisance parameters s1, s2 and s3 with FoG counterterm
+ *  Implemented by Fynn Jansen and Louis Christoph
+ * 
+ * @param pfo                   Input: pointer to fourier structure
+ * @param mode                  Input: linear or logarithmic for the output
+ * @param b1                    Input: first order bias parameter
+ * @param b2                    Input: second order bias parameter
+ * @param bG2                   Input: second order bias parameter
+ * @param s1                    Input: noise bias parameter
+ * @param s2                    Input: noise bias parameter
+ * @param s3                    Input: noise bias parameter (TODO: Ivanov and Rizzo have different parametrization)
+ * @param P_shot                Input: noise power spectrum
+ * @param c1_FoG                Input: 1st counter term parameter value for the FOG effect
+ * @param k_nonlinear           Input: scale in 1/Mpc at which nonlinear RSD become significant (FoG related, see arXiv:2110.00006v2 for details)
+ * @param k1                    Input: wavenumber k1
+ * @param k2                    Input: wavenumber k2
+ * @param k3                    Input: wavenumber k3
+ * @param mu1                   Input: cosine of redshift space angle between k1 and the line of sight
+ * @param mu2                   Input: cosine of redshift space angle between k2 and the line of sight
+ * @param mu3                   Input: cosine of redshift space angle between k3 and the line of sight
+ * @param Pk1                   Input: powerspectrum for k1
+ * @param Pk2                   Input: powerspectrum for k2
+ * @param Pk3                   Input: powerspectrum for k3
+ * @param z                     Input: redshift
+ * @param bispectrum_treelevel  Output: bispectrum for given type/time, for all wavenumbers and angles
+ * @param deriv_s1              Output: derivative of B after the noise bias parameter s1, for indices z, k1, k2 and k3
+ * @param deriv_s3              Output: same as above for s3
  * @return the error status
 */
 
-int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec_standard_param(
-                                                                     struct background *pba,
-                                                                     struct primordial * ppm,
-                                                                     struct fourier * pfo,
-                                                                     enum linear_or_logarithmic mode,
-                                                                     int use_IR_resum,
-                                                                     int index_pk,
-                                                                     double * b1,
-                                                                     double * b2,
-                                                                     double * bG2,
-                                                                     double * s1,
-                                                                     double * s2,
-                                                                     double * s3,
-                                                                     double * P_shot,
-                                                                     double * c1_FoG,
-                                                                     double k_nonlinear,
-                                                                     double * k,
-                                                                     int n_triangles,
-                                                                     double * z,
-                                                                     int z_size,
-                                                                     int l,
-                                                                     double * q_perp, 
-                                                                     double * q_parr,
-                                                                     double * AP,
-                                                                     double * B_l,
-                                                                     double * deriv_s1,
-                                                                     double * deriv_s2,
-                                                                     double * deriv_s3 
-                                                                     ) {
-  // Declare variables
-  int index_z, index_t, index_k, index_mu, index_l=l/2, index_pk_full, index_pk_nw, index_pk_wiggliness=0, n_mu_GL=10, n_phi_GL=8, *last_indices_interpolation;
-  double *pk_both, *ddpk_both, *pk, *pk_nw, *mu_GL_i, *w_mu_GL_i, *phi_GL_i, *w_phi_GL_i;   
+int fourier_B_tree_and_derivs_at_k_and_z(
+                                         struct fourier * pfo,
+                                         enum linear_or_logarithmic mode,
+                                         double f,
+                                         double b1,
+                                         double b2,
+                                         double bG2,
+                                         double s1,
+                                         double s2,
+                                         double s3,
+                                         double P_shot,
+                                         double c1_FoG,
+                                         double k_nonlinear,
+                                         double k1,
+                                         double k2,
+                                         double k3,
+                                         double mu1,
+                                         double mu2,
+                                         double mu3,
+                                         double Pk1,
+                                         double Pk2,
+                                         double Pk3,
+                                         double z,
+                                         double *bispectrum_treelevel,
+                                         double *deriv_s1,
+                                         double *deriv_s3
+                                         ) {
+  int i;
+  double Z1_k1, Z1_k2, Z1_k3, Z2_k1, Z2_k2, Z2_k3, B_tree_SPT_temp, B_tree_noise_temp, B_tree=0, 
+         deriv_s1_temp, deriv_s3_temp, deriv_s1_val=0, deriv_s3_val=0;
 
-  // Define class indices
-  class_define_index(index_pk_full, _TRUE_, index_pk_wiggliness,1);
-  class_define_index(index_pk_nw, _TRUE_, index_pk_wiggliness,1);
-  int pk_type_size = index_pk_wiggliness;
+  class_test(k1+k2<k3 || k3+k1<k2 || k2+k3<k1,
+             pfo->error_message,
+             "triangle inequalities are not satisfied");
 
-  // Define Gauss Legendre quadrature sample points, weights for mu and phi. Use 10 nodes for mu and 8 nodes for phi.
-  // Note that the sample points and weights for phi are x_phi = pi*(x_GL+1), w_phi = pi*w_GL (the pi cancels with the one in the averaging factor 1/(2pi) of the pi integral)
-  // because of the coordinate transofrmation for the integral over phi to boundaries from -1 to 1.
-  // https://pomax.github.io/bezierinfo/legendre-gauss.html
-  double mu_GL_i_vals[] = {-0.9739065285171717, -0.8650633666889845, -0.6794095682990244, -0.4333953941292472, -0.1488743389816312,
-                            0.1488743389816312,  0.4333953941292472,  0.6794095682990244,  0.8650633666889845,  0.9739065285171717};
-  double w_mu_GL_i_vals[] = {0.0666713443086881,  0.1494513491505806,  0.2190863625159820,  0.2692667193099963,  0.2955242247147529,
-                             0.2955242247147529,  0.2692667193099963,  0.2190863625159820,  0.1494513491505806,  0.0666713443086881};
+  class_test(k3<=0,
+             pfo->error_message,
+             "you have k3=%e",k3);
 
-  double phi_GL_i_vals[] = {0.1247530951003366, 0.6387911007858845, 1.4905838953733143, 2.5653157283115897, 
-                            3.7178695788679968, 4.7926014118062722, 5.6443942063937019, 6.1584322120792498};
-  double w_phi_GL_i_vals[] = {0.1012285362903763, 0.2223810344533745, 0.3137066458778873, 0.3626837833783620, 
-                              0.3626837833783620, 0.3137066458778873, 0.2223810344533745, 0.1012285362903763};
-
-  class_alloc(mu_GL_i, n_mu_GL*sizeof(double),
+  // Calculate the SPT RSD kernels at this stage to minimize the number of class calls
+  class_call(fourier_kernel_Z1_w_FoG(f, b1, k1, mu1, c1_FoG, k_nonlinear, &Z1_k1),
+              pfo->error_message, 
               pfo->error_message);
-  class_alloc(w_mu_GL_i, n_mu_GL*sizeof(double),
+  class_call(fourier_kernel_Z1_w_FoG(f, b1, k2, mu2, c1_FoG, k_nonlinear, &Z1_k2),
+              pfo->error_message, 
               pfo->error_message);
-  memcpy(mu_GL_i, mu_GL_i_vals, n_mu_GL*sizeof(double));
-  memcpy(w_mu_GL_i, w_mu_GL_i_vals, n_mu_GL*sizeof(double));
+  class_call(fourier_kernel_Z1_w_FoG(f, b1, k3, mu3, c1_FoG, k_nonlinear, &Z1_k3),
+              pfo->error_message, 
+              pfo->error_message);
 
-  class_alloc(phi_GL_i, n_phi_GL*sizeof(double),
-              pfo->error_message);
-  class_alloc(w_phi_GL_i, n_phi_GL*sizeof(double),
-              pfo->error_message);
-  memcpy(phi_GL_i, phi_GL_i_vals, n_phi_GL*sizeof(double));
-  memcpy(w_phi_GL_i, w_phi_GL_i_vals, n_phi_GL*sizeof(double));
-
-  // Define Legendre polynomials
-  double P_0[10], P_2[10], P_4[10];
-  for (index_mu=0; index_mu<n_mu_GL; index_mu++){
-    P_0[index_mu] = 1.;
-    P_2[index_mu] = 0.5*(3.*mu_GL_i[index_mu]*mu_GL_i[index_mu] - 1.);
-    P_4[index_mu] = 0.125*(35.*mu_GL_i[index_mu]*mu_GL_i[index_mu]*mu_GL_i[index_mu]*mu_GL_i[index_mu] - 30.*mu_GL_i[index_mu]*mu_GL_i[index_mu] + 3.);
-  }
-  double *P_l[3] = {P_0, P_2, P_4};
-  class_test(l!=0 && l!=2 && l!=4,
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &Z2_k1), 
              pfo->error_message, 
-             "only multipoles l=0, l=2 or l=4 are valid, you have l=%d",l);
+             pfo->error_message);
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k2, k3, k1, mu2, mu3, &Z2_k2), 
+             pfo->error_message, 
+             pfo->error_message);
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k3, k1, k2, mu3, mu1, &Z2_k3), 
+             pfo->error_message, 
+             pfo->error_message);
 
-  for (index_z=0; index_z<z_size; index_z++){          
-    // Array alloc
-    class_alloc(pk, pfo->k_size*sizeof(double), 
-                pfo->error_message);
-    class_alloc(pk_nw, pfo->k_size_extra*sizeof(double), 
-                pfo->error_message);
-    class_alloc(pk_both, pk_type_size*pfo->k_size*sizeof(double), 
-                pfo->error_message);
-    class_alloc(ddpk_both, pk_type_size*pfo->k_size*sizeof(double), 
-                pfo->error_message);
-    class_alloc(last_indices_interpolation, 3*sizeof(int),
-                pfo->error_message)
+  double mu_arr[] = {mu1, mu2, mu3};
+  double P_arr[]  = {Pk1, Pk2, Pk3};
+  double Z1_arr[] = {Z1_k1, Z1_k2, Z1_k3};
+  double Z2_arr[] = {Z2_k1, Z2_k2, Z2_k3};
 
-    last_indices_interpolation[0] = 0;
-    last_indices_interpolation[1] = 0;
-    last_indices_interpolation[2] = 0;
-    
-    // Get the linear power spectrum for index_pk type
-    class_call(fourier_pk_at_z(pba,
-                               pfo,
-                               logarithmic,
-                               pk_linear,
-                               z[index_z],
-                               index_pk,
-                               pk,
-                               NULL),
+  class_test(fabs(mu1)>1 || fabs(mu2)>1 || fabs(mu3)>1, 
+             pfo->error_message, 
+             "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
+
+  // Loop over permutations
+  for (i=0; i<3; i++){
+    class_call(fourier_B_tree_det(pfo, f, b1, b2, bG2, Z1_arr[i], Z1_arr[(i+1)%3], Z2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
                pfo->error_message,
                pfo->error_message);
-    
-    // Get the dewiggled linear power spectrum, 
-    // For CDM and baryons combined set "nowiggle_pk_species":"clustering", for total matter set "nowiggle_pk_species":"total"
-    class_call(fourier_pk_l_nw_extra_at_z(pba,
-                                          pfo,
-                                          logarithmic,
-                                          z[index_z],
-                                          pk_nw),
+    class_call(fourier_B_tree_stoch_and_derivs(pfo, f, b1, s1, s3, P_shot, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp, &deriv_s1_temp, &deriv_s3_temp),
                pfo->error_message,
                pfo->error_message);
-    
-    // Get the derivative after the s2 parameter for index_z
-    double deriv_s2_at_z_and_k_tmp = P_shot[index_z]*P_shot[index_z] * AP[index_z]*AP[index_z];
+    B_tree += B_tree_SPT_temp + B_tree_noise_temp;
+    deriv_s1_val += deriv_s1_temp;
+    deriv_s3_val += deriv_s3_temp;
+  }
 
-    // Fill pk_both[index_k*pk_type_size+index_pk_wiggliness]
-    for (index_k=0; index_k<pfo->k_size; index_k++){
-      pk_both[index_k*pk_type_size+index_pk_full] = pk[index_k];
-      pk_both[index_k*pk_type_size+index_pk_nw] = pk_nw[index_k];
-    }
+  // Add the isotropic stochastic contribution, where we do not need to sum over permutations
+  B_tree += (1.+s2) * P_shot*P_shot;
 
-    class_call(array_spline_table_lines(pfo->ln_k,
-                                        pfo->k_size,
-                                        pk_both,
-                                        pk_type_size,
-                                        ddpk_both,
-                                        _SPLINE_NATURAL_,
-                                        pfo->error_message),
-               pfo->error_message,
-               pfo->error_message);
-    
-    class_setup_parallel();
-    for (index_t=0; index_t<n_triangles; index_t++){
-      class_run_parallel(=,
-      double k1 = k[3*index_t + 0];
-      double k2 = k[3*index_t + 1];
-      double k3 = k[3*index_t + 2];
-
-      double B_l_at_z_and_k_tmp;
-      double deriv_s1_at_z_and_k_tmp;
-      double deriv_s3_at_z_and_k_tmp;
-
-      class_call(fourier_B_ell_tree_AP_and_derivs_at_k_and_z_standard_param(pba,
-                                                                            ppm,
-                                                                            pfo,
-                                                                            mode,
-                                                                            use_IR_resum,
-                                                                            index_pk,
-                                                                            pk_type_size,
-                                                                            index_pk_full,
-                                                                            index_pk_nw,
-                                                                            mu_GL_i,
-                                                                            w_mu_GL_i,
-                                                                            phi_GL_i,
-                                                                            w_phi_GL_i,
-                                                                            P_l[index_l],
-                                                                            pk_both,
-                                                                            ddpk_both,
-                                                                            b1[index_z],
-                                                                            b2[index_z],
-                                                                            bG2[index_z],
-                                                                            s1[index_z],
-                                                                            s2[index_z],
-                                                                            s3[index_z],
-                                                                            P_shot[index_z],
-                                                                            c1_FoG[index_z],
-                                                                            k_nonlinear,
-                                                                            k1,
-                                                                            k2,
-                                                                            k3,
-                                                                            l,
-                                                                            z[index_z],
-                                                                            q_perp[index_z],
-                                                                            q_parr[index_z],
-                                                                            AP[index_z],
-                                                                            last_indices_interpolation,
-                                                                            &B_l_at_z_and_k_tmp,
-                                                                            &deriv_s1_at_z_and_k_tmp,
-                                                                            &deriv_s3_at_z_and_k_tmp),
-                 pfo->error_message,
-                 pfo->error_message);
-                                                                  
-      B_l[index_z*n_triangles+index_t] = B_l_at_z_and_k_tmp;
-      deriv_s1[index_z*n_triangles+index_t] = deriv_s1_at_z_and_k_tmp;
-      deriv_s2[index_z*n_triangles+index_t] = deriv_s2_at_z_and_k_tmp;
-      deriv_s3[index_z*n_triangles+index_t] = deriv_s3_at_z_and_k_tmp;
-      return _SUCCESS_;
-      )
-    }
-    class_finish_parallel();
-
-    free(pk);
-    free(pk_nw);
-    free(pk_both);
-    free(ddpk_both);
-    free(last_indices_interpolation);
-  }  
-
-  free(mu_GL_i);
-  free(w_mu_GL_i);
-  free(phi_GL_i);
-  free(w_phi_GL_i);
+  // If you want to use logarithmic output. Note: you lose information about the sign
+  if (mode==logarithmic){
+    *bispectrum_treelevel = log(abs(B_tree));
+    *deriv_s1 = log(abs(deriv_s1_val)); 
+    *deriv_s3 = log(abs(deriv_s3_val));
+  } else {
+    *bispectrum_treelevel = B_tree;
+    *deriv_s1 = deriv_s1_val; 
+    *deriv_s3 = deriv_s3_val;
+  }
 
   return _SUCCESS_;
 }
@@ -5467,27 +4085,6 @@ int fourier_kernel_Z1_w_FoG(
   return _SUCCESS_;
 }
 
-/** Helper function for the bispectrum: first order kernel of delta in redshift space
- * @param pfo           Input: pointer to fourier structure
- * @param f             Input: log derivative of the growth factor
- * @param b1            Input: first order bias parameter
- * @param mu            Input: angle between k and line of sight
- * @param Z1            Output: pointer to the value of Z1
- * @return the error status
- */
-
-int fourier_kernel_Z1(
-                      double f,
-                      double b1,
-                      double mu,
-                      double *Z1
-                      ) {
-
-  *Z1 = b1 + f*mu*mu;
-
-  return _SUCCESS_;
-}
-
 /** Helper function for the bispectrum: second order kernel of delta in redshift space
  * @param pfo           Input: pointer to fourier structure
  * @param f             Input: log derivative of the growth factor
@@ -5572,44 +4169,6 @@ int fourier_B_tree_det(
                       ) {
 
   *B_tree = 2. * Z2 * Z1_k1 * Z1_k2 * Pk1 * Pk2;
-
-  return _SUCCESS_;
-}
-
-/** Helper function for the bispectrum: tree level Bispectrum noise/stochastic contribution 
- * (only the part, of which permutations need to be considered)
- * @param pfo           Input: pointer to fourier structure
- * @param f             Input: log derivative of the growth factor
- * @param b1            Input: first order bias parameter
- * @param s1            Input: first order noise bias parameter
- * @param s3            Input: second order noise parameter
- * @param P_shot        Input: noise power spectrum
- * @param mu            Input: angle between k and line of sight
- * @param Z1            Input: order 1 SPT RSD kernel at k
- * @param Pk            Input: linear power spectrum at k
- * @param z             Input: redshift
- * @param B_tree        Output: pointer to the value of B_tree
- * @return the error status
- */
-
-int fourier_B_tree_stoch(
-                        struct fourier * pfo,
-                        double f,
-                        double b1,
-                        double s1,
-                        double s3,
-                        double P_shot,
-                        double mu,
-                        double Z1,
-                        double Pk,
-                        double z,
-                        double * B_tree
-                        ) {
-
-  // This is the Rizzo (https://arxiv.org/pdf/2204.13628) parametrization, which is different from Ivanov (https://arxiv.org/pdf/2110.10161)
-  // equivalent, except for the case where any alpha=-1 in the Rizzo parametrization,
-  // and Rizzo has one additional parameter: 1-alpha_2, which is given by d1**3 in Ivanov's parametrization
-  *B_tree =  P_shot * ((1.+s1) * b1 + (1.+s3) * f * mu*mu) * Z1 * Pk;
 
   return _SUCCESS_;
 }

@@ -790,31 +790,6 @@ cdef extern from "class.h":
 
     int fourier_k_nl_at_z(void* pba, void* pfo, double z, double* k_nl, double* k_nl_cb)
 
-    int fourier_B_tree_at_k_and_z(
-                                void * pfo,
-                                linear_or_logarithmic mode,
-                                double f,
-                                double b1,
-                                double b2,
-                                double bG2,
-                                double s1,
-                                double s2,
-                                double s3,
-                                double P_shot,
-                                double c1_FoG,
-                                double k_nonlinear,
-                                double k1,
-                                double k2,
-                                double k3,
-                                double mu1,
-                                double mu2,
-                                double Pk1,
-                                double Pk2,
-                                double Pk3,
-                                double z,
-                                double * bispectrum_treelevel
-                                )
-
     int fourier_B_ell_tree_at_k_and_z(
                                     void *pba,
                                     void * ppm,
@@ -866,66 +841,6 @@ cdef extern from "class.h":
                                                           double * deriv_s2,
                                                           double * deriv_s3
                                                           )
-
-    int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec_GC(
-                                                                void *pba,
-                                                                void *ppm,
-                                                                void *pfo,
-                                                                linear_or_logarithmic mode,
-                                                                int use_IR_resum,
-                                                                int index_pk,
-                                                                double *b1,
-                                                                double *b2,
-                                                                double *bG2,
-                                                                double *s1,
-                                                                double *s2,
-                                                                double *s3,
-                                                                double *P_shot,
-                                                                double *c1_FoG,
-                                                                double k_nonlinear,
-                                                                double *k,
-                                                                int n_triangles,
-                                                                double *z,
-                                                                int z_size,
-                                                                int l,
-                                                                double *q_perp, 
-                                                                double *q_parr,
-                                                                double *AP,
-                                                                double *B_l, 
-                                                                double *deriv_s1,
-                                                                double *deriv_s2,
-                                                                double *deriv_s3
-                                                                )
-
-    int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec_standard_param(
-                                                                         void *pba,
-                                                                         void *ppm,
-                                                                         void *pfo,
-                                                                         linear_or_logarithmic mode,
-                                                                         int use_IR_resum,
-                                                                         int index_pk,
-                                                                         double * b1,
-                                                                         double * b2,
-                                                                         double * bG2,
-                                                                         double * s1,
-                                                                         double * s2,
-                                                                         double * s3,
-                                                                         double * P_shot,
-                                                                         double * c1_FoG,
-                                                                         double k_nonlinear,
-                                                                         double * k,
-                                                                         int n_triangles,
-                                                                         double * z,
-                                                                         int z_size,
-                                                                         int l,
-                                                                         double * q_perp, 
-                                                                         double * q_parr,
-                                                                         double * AP,
-                                                                         double * B_l, 
-                                                                         double * deriv_s1,
-                                                                         double * deriv_s2,
-                                                                         double * deriv_s3
-                                                                         )
 
     int fourier_pk_l_nw_extra_at_kvec_and_z(
                                             void * pba,
