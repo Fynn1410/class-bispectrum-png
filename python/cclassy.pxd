@@ -828,6 +828,9 @@ cdef extern from "class.h":
                                                           double * P_shot,
                                                           double * c1_FoG,
                                                           double k_nonlinear,
+                                                          double * bphi,
+                                                          double * bphidelta,
+                                                          double fnl,
                                                           double * k,
                                                           int n_triangles,
                                                           double * z,
@@ -839,7 +842,8 @@ cdef extern from "class.h":
                                                           double * B_l, 
                                                           double * deriv_s1,
                                                           double * deriv_s2,
-                                                          double * deriv_s3
+                                                          double * deriv_s3,
+                                                          double *alpha_k1_out_arr
                                                           )
 
     int fourier_pk_l_nw_extra_at_kvec_and_z(

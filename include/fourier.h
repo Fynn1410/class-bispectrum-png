@@ -434,7 +434,7 @@ extern "C" {
                         double * k_nl,
                         double * k_nl_cb
                         );
-                    
+
   int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                         struct background * pba,
                                                         struct primordial * ppm,
@@ -451,6 +451,9 @@ extern "C" {
                                                         double * P_shot,
                                                         double * c1_FoG,
                                                         double k_nonlinear,
+                                                        double *bphi,
+                                                        double *bphidelta,
+                                                        double fnl,
                                                         double * k,
                                                         int n_triangles,
                                                         double * z,
@@ -462,7 +465,8 @@ extern "C" {
                                                         double * B_l, 
                                                         double * deriv_s1,
                                                         double * deriv_s2,
-                                                        double * deriv_s3
+                                                        double * deriv_s3,
+                                                        double * alpha_k1_out_arr
                                                         );
 
   /* internal functions */
@@ -527,10 +531,13 @@ extern "C" {
   int fourier_kernel_Z1_w_FoG(
                               double f,
                               double b1,
-                              double k,
-                              double mu,
                               double c1_FoG,
                               double k_nonlinear,
+                              double bphi,
+                              double fnl,
+                              double alpha_k,
+                              double k,
+                              double mu,
                               double * Z1
                               );
 
@@ -540,11 +547,17 @@ extern "C" {
                         double b1,
                         double b2,
                         double bG2,
+                        double bphi,
+                        double bphidelta,
+                        double fnl,
                         double k1,
                         double k2,
                         double k3,
                         double mu1,
                         double mu2,
+                        double alpha_k1,
+                        double alpha_k2,
+                        double alpha_k3,
                         double * Z2
                         );
 
@@ -570,6 +583,7 @@ extern "C" {
                                       double s1,
                                       double s3,
                                       double P_shot,
+                                      double fnl,
                                       double mu,
                                       double Z1,
                                       double Pk,
@@ -845,6 +859,9 @@ extern "C" {
                                                   double P_shot,
                                                   double c1_FoG,
                                                   double k_nonlinear,
+                                                  double bphi,
+                                                  double bphidelta,
+                                                  double fnl,
                                                   double k1,
                                                   double k2,
                                                   double k3,
@@ -856,7 +873,8 @@ extern "C" {
                                                   int * last_indices_interpolation,
                                                   double * B_l,
                                                   double * deriv_s1,
-                                                  double * deriv_s3
+                                                  double * deriv_s3,
+                                                  double * alpha_k1_out
                                                   );
 
   int fourier_B_tree_and_derivs_at_k_and_z(
@@ -872,6 +890,12 @@ extern "C" {
                                            double P_shot,
                                            double c1_FoG,
                                            double k_nonlinear,
+                                           double bphi,
+                                           double bphidelta,
+                                           double fnl,
+                                           double alpha_k1,
+                                           double alpha_k2,
+                                           double alpha_k3,
                                            double k1,
                                            double k2,
                                            double k3,
