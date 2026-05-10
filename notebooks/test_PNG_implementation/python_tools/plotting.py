@@ -193,8 +193,8 @@ def plot_multipoles(n_triag,
     labels += [""] * (n_curves - len(labels))
 
     # === Create figure with 3-row GridSpec (Top, Spacer, k-plot) ===
-    fig = plt.figure(figsize=(9, 4.5))
-    gs = GridSpec(3, 3, figure=fig, height_ratios=[3, 0.4, 1], hspace=0.0, wspace=0.0)
+    fig = plt.figure(figsize=(9, 5.5))
+    gs = GridSpec(3, 3, figure=fig, height_ratios=[3, 0.7, 1], hspace=0.0, wspace=0.0)
 
     # === Add top row axes (Plots 1–3) ===
     axes_top = []
@@ -232,7 +232,6 @@ def plot_multipoles(n_triag,
 
         ax_top.set_yscale("log")
         ax_top.set_title(title)
-        ax_top.set_xlabel(xlabel)
         ax_top.set_xticks([0, 2000, 4000])
 
         if i == 0:
@@ -247,8 +246,9 @@ def plot_multipoles(n_triag,
     ax_k.plot(n_triag, k3_arr / h, color=colors_k[2], label="k3")
     ax_k.plot(n_triag, k2_arr / h, color=colors_k[1], label="k2")
     ax_k.plot(n_triag, k1_arr / h, color=colors_k[0], label="k1")
+    ax_k.set_yscale("log")
     ax_k.set_ylabel(r"$k \, [h/\mathrm{Mpc}]$")
-    ax_k.set_xlabel("Triangle Counter")
+    ax_k.set_xlabel(xlabel)
 
     ax_k.set_xticks([0, 1000, 2000, 3000, 4000, 5000])
 
@@ -257,6 +257,6 @@ def plot_multipoles(n_triag,
         fig.suptitle(global_title, fontsize='medium', y=0.98)
     fig.legend(loc='center', bbox_to_anchor=(0.54, 0.0031), ncol=4)
     top_rect = 0.97 if global_title is not None else 1.0
-    fig.tight_layout(rect=[0, 0.03, 1, top_rect])
+    fig.tight_layout(rect=[0, 0.07, 1, top_rect])
     plt.show()
 

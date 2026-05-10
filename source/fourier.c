@@ -2622,11 +2622,11 @@ int fourier_B_tree_and_derivs_at_k_and_z(
              pfo->error_message, 
              pfo->error_message);
 
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, bphi, bphidelta, fnl, k2, k3, k1, mu2, mu3, alpha_k1, alpha_k2, alpha_k3, &Z2_k2), 
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, bphi, bphidelta, fnl, k2, k3, k1, mu2, mu3, alpha_k2, alpha_k3, alpha_k1, &Z2_k2), 
              pfo->error_message, 
              pfo->error_message);
 
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, bphi, bphidelta, fnl, k3, k1, k2, mu3, mu1, alpha_k1, alpha_k2, alpha_k3, &Z2_k3), 
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, bphi, bphidelta, fnl, k3, k1, k2, mu3, mu1, alpha_k3, alpha_k1, alpha_k2, &Z2_k3), 
              pfo->error_message, 
              pfo->error_message);
 
@@ -2634,6 +2634,7 @@ int fourier_B_tree_and_derivs_at_k_and_z(
   double P_arr[]  = {Pk1, Pk2, Pk3};
   double Z1_arr[] = {Z1_k1, Z1_k2, Z1_k3};
   double Z2_arr[] = {Z2_k1, Z2_k2, Z2_k3};
+  double alpha_k_arr[] = {alpha_k1, alpha_k2, alpha_k3};
 
   class_test(fabs(mu1)>1 || fabs(mu2)>1 || fabs(mu3)>1, 
              pfo->error_message, 
@@ -2644,7 +2645,7 @@ int fourier_B_tree_and_derivs_at_k_and_z(
     class_call(fourier_B_tree_det(pfo, f, b1, b2, bG2, Z1_arr[i], Z1_arr[(i+1)%3], Z2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
                pfo->error_message,
                pfo->error_message);
-    class_call(fourier_B_tree_stoch_and_derivs(pfo, f, b1, s1, s3, P_shot, fnl, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp, &deriv_s1_temp, &deriv_s3_temp),
+    class_call(fourier_B_tree_stoch_and_derivs(pfo, f, b1, s1, s3, P_shot, bphi, fnl, alpha_k_arr[i], mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp, &deriv_s1_temp, &deriv_s3_temp),
                pfo->error_message,
                pfo->error_message);
     B_tree += B_tree_SPT_temp + B_tree_noise_temp;
@@ -2661,6 +2662,7 @@ int fourier_B_tree_and_derivs_at_k_and_z(
     *deriv_s1 = log(abs(deriv_s1_val)); 
     *deriv_s3 = log(abs(deriv_s3_val));
   } else {
+    // TODO Fynn: derivatives with PNG?
     *bispectrum_treelevel = B_tree;
     *deriv_s1 = deriv_s1_val; 
     *deriv_s3 = deriv_s3_val;
@@ -4260,6 +4262,8 @@ int fourier_kernel_Z2(
                       double alpha_k3,
                       double *Z2
                       ) {
+  // initialize
+  *Z2 = 0.;
 
   double cos12, F2, G2, Z1_k1, Z1_k2, mu;
 
@@ -4279,19 +4283,30 @@ int fourier_kernel_Z2(
   G2 = 3./7. + 0.5*cos12 * (k2/k1 + k1/k2) + 4./7. * cos12*cos12;     // second order SPT real space kernel of theta
   mu = (mu1*k1+mu2*k2)/k3;
 
+
+  // TODO Fynn: Check if FoG should be included here
   Z1_k1 = b1 + f*mu1*mu1;
   Z1_k2 = b1 + f*mu2*mu2;
 
+  // PNG contributions
   if (fnl!=0){
+    double term_bphi, term_bphidelta, term_F2, term_G2;
+
+    // correction to the Z1 kernel
     Z1_k1 = Z1_k1 + bphi*fnl / alpha_k1;
     Z1_k2 = Z1_k2 + bphi*fnl / alpha_k2;
+
+    term_bphi = 0.5 * bphi * fnl * cos12 * (k1/k2 * 1./alpha_k1 + k2/k1 * 1./alpha_k2);
+    term_bphidelta = 0.5 * bphidelta * fnl * (1./alpha_k1 + 1./alpha_k2);
+
+    // These terms contain the primordial bispectrum contribution
+    term_F2 = b1 * fnl * alpha_k3 / (alpha_k1 * alpha_k2); 
+    term_G2 = f*mu*mu * fnl * alpha_k3 / (alpha_k1 * alpha_k2);
+
+    *Z2 = term_bphi + term_bphidelta + term_F2 + term_G2;
   }
 
-  *Z2 =   b1*F2 + 0.5*b2 + bG2*(cos12*cos12 - 1.) + f*mu*mu*G2 + 0.5*f*mu*k3 * ( mu1/k1 * Z1_k2  + mu2/k2 * Z1_k1 );
-
-  if (fnl != 0){
-    *Z2 = *Z2; // + ...
-  }
+  *Z2 = *Z2 + b1*F2 + 0.5*b2 + bG2*(cos12*cos12 - 1.) + f*mu*mu*G2 + 0.5*f*mu*k3 * ( mu1/k1 * Z1_k2  + mu2/k2 * Z1_k1 );
 
   return _SUCCESS_;
 }
@@ -4357,7 +4372,9 @@ int fourier_B_tree_stoch_and_derivs(
                                     double s1,
                                     double s3,
                                     double P_shot,
+                                    double bphi,
                                     double fnl,
+                                    double alpha_k,
                                     double mu,
                                     double Z1,
                                     double Pk,
@@ -4373,6 +4390,13 @@ int fourier_B_tree_stoch_and_derivs(
   *B_tree =  P_shot * ((1.+s1) * b1 + (1.+s3) * f * mu*mu) * Z1 * Pk;
   *deriv_s1 = P_shot * b1 * Z1 * Pk;
   *deriv_s3 = P_shot * f * mu*mu * Z1 * Pk;
+
+  if (fnl != 0){
+    *B_tree = *B_tree + P_shot * Z1 * Pk * (1.+s1) * bphi * fnl / alpha_k;
+  }
+
+  // TODO Fynn: derivatives, check if this term is correct
+  // TODO Fynn: check FoG term
 
   return _SUCCESS_;
 }
