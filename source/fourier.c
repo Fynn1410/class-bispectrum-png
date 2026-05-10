@@ -2291,8 +2291,6 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
              "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
 
 
-
-      // TODO Fynn
       // if PNG:
       if (fnl != 0){
         // Compute the primordial spectrum for k1, k2, k3
@@ -2311,7 +2309,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
         class_call(primordial_spectrum_at_k(ppm,
                                             pfo->index_md_scalars,
                                             linear,
-                                            k1,
+                                            k1_true,
                                             primordial_pk1),
                     ppm->error_message,
                     pfo->error_message);
@@ -2319,7 +2317,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
         class_call(primordial_spectrum_at_k(ppm,
                                             pfo->index_md_scalars,
                                             linear,
-                                            k2,
+                                            k2_true,
                                             primordial_pk2),
                     ppm->error_message,
                     pfo->error_message);
@@ -2327,7 +2325,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
         class_call(primordial_spectrum_at_k(ppm,
                                             pfo->index_md_scalars,
                                             linear,
-                                            k3,
+                                            k3_true,
                                             primordial_pk3),
                     ppm->error_message,
                     pfo->error_message);
@@ -4296,6 +4294,7 @@ int fourier_kernel_Z2(
     Z1_k1 = Z1_k1 + bphi*fnl / alpha_k1;
     Z1_k2 = Z1_k2 + bphi*fnl / alpha_k2;
 
+    // linear fnl terms. neglect term of O(fnl^2) since they are surpressed by 1/alpha
     term_bphi = 0.5 * bphi * fnl * cos12 * (k1/k2 * 1./alpha_k1 + k2/k1 * 1./alpha_k2);
     term_bphidelta = 0.5 * bphidelta * fnl * (1./alpha_k1 + 1./alpha_k2);
 
