@@ -4383,16 +4383,13 @@ int fourier_B_tree_stoch_and_derivs(
                                     double *deriv_s3
                                     ) {
 
-  // This is the Rizzo (https://arxiv.org/pdf/2204.13628) parametrization, which is different from Ivanov (https://arxiv.org/pdf/2110.10161)
-  // equivalent, except for the case where any alpha=-1 in the Rizzo parametrization,
-  // and Rizzo has one additional parameter: 1-alpha_2, which is given by d1**3 in Ivanov's parametrization
+  // This is the Rizzo (https://arxiv.org/pdf/2204.13628) and Euclid prep (https://arxiv.org/pdf/2605.21436)
+  // Note: all PNG contributions are containedin Z1. Is this correct?
   *B_tree =  P_shot * ((1.+s1) * b1 + (1.+s3) * f * mu*mu) * Z1 * Pk;
   *deriv_s1 = P_shot * b1 * Z1 * Pk;
   *deriv_s3 = P_shot * f * mu*mu * Z1 * Pk;
 
-  if (fnl != 0){
-    *B_tree = *B_tree + P_shot * Z1 * Pk * (1.+s1) * bphi * fnl / alpha_k;
-  }
+
 
   // TODO Fynn: derivatives, check if this term is correct
   // TODO Fynn: check FoG term
