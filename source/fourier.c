@@ -1888,7 +1888,7 @@ int fourier_k_nl_at_z(
  * @param l             Input: ell of corresponding multipole
  * @param q_perp        Input: array in z of Alcock Pacinsky factor in the orthogonal direction for the coordinate distortion (i.e. always without an additional h/h_fid)
  * @param q_parr        Input: array in z of Alcock Pacinsky factor in the radial direction for the coordinate distortion (i.e. always without an additional h/h_fid)
- * @param AP            Input: array in z of AP factors that multiply the bispecrum
+ * @param AP            Input: array in z of AP factors that multiply the bispectrum
  * @param B_l           Output: multipoles bispectrum, indexed as [index_z*n_triangles+index_triangle]
  * @param deriv_s1      Output: derivative of B after the noise bias parameter s1, indexed as [index_z*n_triangles+index_triangle]
  * @param deriv_s2      Output: same as above for s2
@@ -1912,6 +1912,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                       double *P_shot,
                                                       double *c1_FoG,
                                                       double k_nonlinear,
+                                                      double *bphi,
+                                                      double *bphidelta,
+                                                      double fnl,
                                                       double *k,
                                                       int n_triangles,
                                                       double *z,
@@ -1923,7 +1926,8 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                       double *B_l,
                                                       double *deriv_s1,
                                                       double *deriv_s2,
-                                                      double *deriv_s3 
+                                                      double *deriv_s3,
+                                                      double *alpha_k1_out_arr
                                                       ) {
   // Declare variables
   int index_z, index_t, index_k, index_mu, index_l=l/2, index_pk_full, index_pk_nw, index_pk_wiggliness=0, n_mu_GL=10, n_phi_GL=10, *last_indices_interpolation;
@@ -2042,6 +2046,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
       double B_l_at_z_and_k_tmp;
       double deriv_s1_at_z_and_k_tmp;
       double deriv_s3_at_z_and_k_tmp;
+      double alpha_k1_out;
 
       class_call(fourier_B_ell_tree_AP_and_derivs_at_k_and_z(pba,
                                                              ppm,
@@ -2068,6 +2073,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                              P_shot[index_z],
                                                              c1_FoG[index_z],
                                                              k_nonlinear,
+                                                             bphi[index_z],
+                                                             bphidelta[index_z],
+                                                             fnl,
                                                              k1,
                                                              k2,
                                                              k3,
@@ -2079,7 +2087,8 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
                                                              last_indices_interpolation,
                                                              &B_l_at_z_and_k_tmp,
                                                              &deriv_s1_at_z_and_k_tmp,
-                                                             &deriv_s3_at_z_and_k_tmp),
+                                                             &deriv_s3_at_z_and_k_tmp,
+                                                             &alpha_k1_out),
                  pfo->error_message,
                  pfo->error_message);
                                                                   
@@ -2087,6 +2096,8 @@ int fourier_B_ell_tree_AP_and_derivs_at_kvec_and_zvec(
       deriv_s1[index_z*n_triangles+index_t] = deriv_s1_at_z_and_k_tmp;
       deriv_s2[index_z*n_triangles+index_t] = deriv_s2_at_z_and_k_tmp;
       deriv_s3[index_z*n_triangles+index_t] = deriv_s3_at_z_and_k_tmp;
+      alpha_k1_out_arr[index_t] = alpha_k1_out;
+
       return _SUCCESS_;
       )
     }
@@ -2179,6 +2190,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
                                                 double P_shot,
                                                 double c1_FoG,
                                                 double k_nonlinear,
+                                                double bphi,
+                                                double bphidelta,
+                                                double fnl,
                                                 double k1,
                                                 double k2,
                                                 double k3,
@@ -2190,18 +2204,27 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
                                                 int *last_indices_interpolation,
                                                 double *B_l,
                                                 double *deriv_s1,
-                                                double *deriv_s3
+                                                double *deriv_s3,
+                                                double *alpha_k1_out
                                                 ) {
   // Declare variables
   int index_phi, index_mu, n_phi_GL=10, n_mu_GL=10, last_index;
   double mu1, mu2, mu3, sin_phi, sin12, cos12, B_l_temp=0, bispectrum_treelevel, P1, P2, P3, 
          deriv_s1_wedges, deriv_s2_wedges, deriv_s3_wedges, deriv_s1_temp=0, deriv_s3_temp=0;
+
   // Variables relevant for IR resummation:
   double f, f_sq, k_split, k_bao, Sigma2_total_mu1_true, Sigma2_total_mu2_true, Sigma2_total_mu3_true, sigma2_ir_at_z, dsigma2_ir_at_z, 
          P_w_1, P_w_2, P_w_3, *P_full_and_nw_1, *P_full_and_nw_2, *P_full_and_nw_3;
+
   double * pvecback;
+
   // Variables relevant for the AP effect:
   double k1_true, k2_true, k3_true, mu1_true, mu2_true, mu3_true, mu1_true_sq, mu2_true_sq, mu3_true_sq, ln_k1_true, ln_k2_true, ln_k3_true;
+
+  // Variables relevant for PNG
+  double k13, k23, k33, pi_factor, five_over_three,
+         alpha_k1, alpha_k2, alpha_k3,
+         *primordial_pk1, *primordial_pk2, *primordial_pk3;
 
   // Allocate space for power spectra
   class_alloc(P_full_and_nw_1, pk_type_size*sizeof(double),
@@ -2244,6 +2267,7 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
     dsigma2_ir_at_z  = eft_ir_dsigma2(pba, ppm, pfo, z, k_split, k_bao);  /** according to arXiV:1804.05080 by Ivanov & Sibiryakov */
   }
 
+
   // Gauss Legendre Quadrature over phi and mu
   for (index_phi=0; index_phi<n_phi_GL; index_phi++){
     sin_phi = sin(phi_GL_i[index_phi]);
@@ -2266,12 +2290,79 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
              pfo->error_message, 
              "you have mu1, mu2, mu3=%e, %e, %e, k1, k2, k3=%e, %e, %e",mu1,mu2,mu3,k1,k2,k3);
 
+
+      // if PNG:
+      if (fnl != 0){
+        // Compute the primordial spectrum for k1, k2, k3
+        class_alloc(primordial_pk1,
+                    pfo->ic_ic_size * sizeof(double),
+                    pfo->error_message);
+        
+        class_alloc(primordial_pk2,
+                    pfo->ic_ic_size * sizeof(double),
+                    pfo->error_message);
+
+        class_alloc(primordial_pk3,
+                    pfo->ic_ic_size * sizeof(double),
+                    pfo->error_message);
+
+        class_call(primordial_spectrum_at_k(ppm,
+                                            pfo->index_md_scalars,
+                                            linear,
+                                            k1_true,
+                                            primordial_pk1),
+                    ppm->error_message,
+                    pfo->error_message);
+
+        class_call(primordial_spectrum_at_k(ppm,
+                                            pfo->index_md_scalars,
+                                            linear,
+                                            k2_true,
+                                            primordial_pk2),
+                    ppm->error_message,
+                    pfo->error_message);
+        
+        class_call(primordial_spectrum_at_k(ppm,
+                                            pfo->index_md_scalars,
+                                            linear,
+                                            k3_true,
+                                            primordial_pk3),
+                    ppm->error_message,
+                    pfo->error_message);
+
+      }
+      /***
+       */
+      // compute primordial spectrum at k1_true
+      // compute primordial spectrum at k2_true
+      // compute primordial spectrum at k3_true
+
       // IR resum replaces the linear power spectrum with the IR resummed power spectrum which is calculated an external module
       if (use_IR_resum==0){
         class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k1_true, z, index_pk, &P1, NULL), pfo->error_message, pfo->error_message);
         class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k2_true, z, index_pk, &P2, NULL), pfo->error_message, pfo->error_message);
         class_call(fourier_pk_at_k_and_z(pba, ppm, pfo, pk_linear, k3_true, z, index_pk, &P3, NULL), pfo->error_message, pfo->error_message);
-      } 
+
+        // Primordial non-Gaussianity
+        if (fnl != 0.){
+          // compute transfer between primordial potential and matter overdensity alpha = 5/3 sqrt(k^3/2pi^2 P_m / P_prim)
+          five_over_three = 5./3.;
+          k13 = k1_true * k1_true * k1_true;
+          k23 = k2_true * k2_true * k2_true;
+          k33 = k3_true * k3_true * k3_true;
+
+          pi_factor = 0.5 / (_PI_ * _PI_);
+
+          alpha_k1 = five_over_three * sqrt( k13*pi_factor * P1 / primordial_pk1[0]);
+          alpha_k2 = five_over_three * sqrt( k23*pi_factor * P2 / primordial_pk2[0]);
+          alpha_k3 = five_over_three * sqrt( k33*pi_factor * P3 / primordial_pk3[0]);
+
+          *alpha_k1_out = alpha_k1;
+          free(primordial_pk1);
+          free(primordial_pk2);
+          free(primordial_pk3);
+        }
+      }
       else if (use_IR_resum==1){
         class_test(pfo->has_pk_nw == _FALSE_, 
         pfo->error_message, 
@@ -2282,6 +2373,9 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
         ln_k2_true = log(k2_true); 
         ln_k3_true = log(k3_true);
 
+
+
+        // TODO Fynn: rename P_full_and_nw_1 -> ln_P_full_and_nw_1
         // Get the regular and the no wiggle power spectrum for the ln_k's by interpolation of the logarithmic splines
         class_call(array_interpolate_spline_growing_hunt(pfo->ln_k,
                                                          pfo->k_size,
@@ -2331,10 +2425,31 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
         P_full_and_nw_3[index_pk_nw] = exp(P_full_and_nw_3[index_pk_nw]);
 
         // Calculate the wiggle power spetrum (P = P_w + P_nw)
-        P_w_1 = P_full_and_nw_1[index_pk_full]-P_full_and_nw_1[index_pk_nw];
-        P_w_2 = P_full_and_nw_2[index_pk_full]-P_full_and_nw_2[index_pk_nw];
-        P_w_3 = P_full_and_nw_3[index_pk_full]-P_full_and_nw_3[index_pk_nw];
-        
+        P_w_1 = P_full_and_nw_1[index_pk_full] - P_full_and_nw_1[index_pk_nw];
+        P_w_2 = P_full_and_nw_2[index_pk_full] - P_full_and_nw_2[index_pk_nw];
+        P_w_3 = P_full_and_nw_3[index_pk_full] - P_full_and_nw_3[index_pk_nw];
+
+        // Primordial non-Gaussianity
+        if (fnl != 0.){
+          // compute transfer between primordial potential and matter overdensity alpha = 5/3 sqrt(k^3/2pi^2 P_m / P_prim)
+          five_over_three = 5./3.;
+          k13 = k1_true * k1_true * k1_true;
+          k23 = k2_true * k2_true * k2_true;
+          k33 = k3_true * k3_true * k3_true;
+
+          pi_factor = 0.5 / (_PI_ * _PI_);
+
+          alpha_k1 = five_over_three * sqrt( k13*pi_factor * P_full_and_nw_1[index_pk_full] / primordial_pk1[0]);
+          alpha_k2 = five_over_three * sqrt( k23*pi_factor * P_full_and_nw_2[index_pk_full] / primordial_pk2[0]);
+          alpha_k3 = five_over_three * sqrt( k33*pi_factor * P_full_and_nw_3[index_pk_full] / primordial_pk3[0]);
+
+          *alpha_k1_out = alpha_k1;
+          free(primordial_pk1);
+          free(primordial_pk2);
+          free(primordial_pk3);
+        } 
+
+
         // Calculate the IR-resummed power spectrum in redshift space, compare: https://arxiv.org/abs/2110.10161, eq. 3.12
         mu1_true_sq = mu1_true*mu1_true;
         mu2_true_sq = mu2_true*mu2_true;
@@ -2366,6 +2481,12 @@ int fourier_B_ell_tree_AP_and_derivs_at_k_and_z(
                                                       P_shot,
                                                       c1_FoG,
                                                       k_nonlinear,
+                                                      bphi,
+                                                      bphidelta,
+                                                      fnl,
+                                                      alpha_k1,
+                                                      alpha_k2,
+                                                      alpha_k3,
                                                       k1_true, 
                                                       k2_true, 
                                                       k3_true, 
@@ -2450,6 +2571,12 @@ int fourier_B_tree_and_derivs_at_k_and_z(
                                          double P_shot,
                                          double c1_FoG,
                                          double k_nonlinear,
+                                         double bphi,
+                                         double bphidelta,
+                                         double fnl,
+                                         double alpha_k1,
+                                         double alpha_k2,
+                                         double alpha_k3,
                                          double k1,
                                          double k2,
                                          double k3,
@@ -2477,23 +2604,27 @@ int fourier_B_tree_and_derivs_at_k_and_z(
              "you have k3=%e",k3);
 
   // Calculate the SPT RSD kernels at this stage to minimize the number of class calls
-  class_call(fourier_kernel_Z1_w_FoG(f, b1, k1, mu1, c1_FoG, k_nonlinear, &Z1_k1),
-              pfo->error_message, 
-              pfo->error_message);
-  class_call(fourier_kernel_Z1_w_FoG(f, b1, k2, mu2, c1_FoG, k_nonlinear, &Z1_k2),
-              pfo->error_message, 
-              pfo->error_message);
-  class_call(fourier_kernel_Z1_w_FoG(f, b1, k3, mu3, c1_FoG, k_nonlinear, &Z1_k3),
+  class_call(fourier_kernel_Z1_w_FoG(f, b1, c1_FoG, k_nonlinear, bphi, fnl, alpha_k1, k1, mu1, &Z1_k1),
               pfo->error_message, 
               pfo->error_message);
 
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k1, k2, k3, mu1, mu2, &Z2_k1), 
+  class_call(fourier_kernel_Z1_w_FoG(f, b1, c1_FoG, k_nonlinear, bphi, fnl, alpha_k2, k2, mu2, &Z1_k2),
+              pfo->error_message, 
+              pfo->error_message);
+
+  class_call(fourier_kernel_Z1_w_FoG(f, b1, c1_FoG, k_nonlinear, bphi, fnl, alpha_k3, k3, mu3, &Z1_k3),
+              pfo->error_message, 
+              pfo->error_message);
+
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, bphi, bphidelta, fnl, k1, k2, k3, mu1, mu2, alpha_k1, alpha_k2, alpha_k3, &Z2_k1), 
              pfo->error_message, 
              pfo->error_message);
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k2, k3, k1, mu2, mu3, &Z2_k2), 
+
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, bphi, bphidelta, fnl, k2, k3, k1, mu2, mu3, alpha_k2, alpha_k3, alpha_k1, &Z2_k2), 
              pfo->error_message, 
              pfo->error_message);
-  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, k3, k1, k2, mu3, mu1, &Z2_k3), 
+
+  class_call(fourier_kernel_Z2(pfo, f, b1, b2, bG2, bphi, bphidelta, fnl, k3, k1, k2, mu3, mu1, alpha_k3, alpha_k1, alpha_k2, &Z2_k3), 
              pfo->error_message, 
              pfo->error_message);
 
@@ -2501,6 +2632,7 @@ int fourier_B_tree_and_derivs_at_k_and_z(
   double P_arr[]  = {Pk1, Pk2, Pk3};
   double Z1_arr[] = {Z1_k1, Z1_k2, Z1_k3};
   double Z2_arr[] = {Z2_k1, Z2_k2, Z2_k3};
+  double alpha_k_arr[] = {alpha_k1, alpha_k2, alpha_k3};
 
   class_test(fabs(mu1)>1 || fabs(mu2)>1 || fabs(mu3)>1, 
              pfo->error_message, 
@@ -2511,7 +2643,7 @@ int fourier_B_tree_and_derivs_at_k_and_z(
     class_call(fourier_B_tree_det(pfo, f, b1, b2, bG2, Z1_arr[i], Z1_arr[(i+1)%3], Z2_arr[i], P_arr[i], P_arr[(i+1)%3], z, &B_tree_SPT_temp),
                pfo->error_message,
                pfo->error_message);
-    class_call(fourier_B_tree_stoch_and_derivs(pfo, f, b1, s1, s3, P_shot, mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp, &deriv_s1_temp, &deriv_s3_temp),
+    class_call(fourier_B_tree_stoch_and_derivs(pfo, f, b1, s1, s3, P_shot, bphi, fnl, alpha_k_arr[i], mu_arr[i], Z1_arr[i], P_arr[i], z, &B_tree_noise_temp, &deriv_s1_temp, &deriv_s3_temp),
                pfo->error_message,
                pfo->error_message);
     B_tree += B_tree_SPT_temp + B_tree_noise_temp;
@@ -2528,6 +2660,7 @@ int fourier_B_tree_and_derivs_at_k_and_z(
     *deriv_s1 = log(abs(deriv_s1_val)); 
     *deriv_s3 = log(abs(deriv_s3_val));
   } else {
+    // TODO Fynn: derivatives with PNG?
     *bispectrum_treelevel = B_tree;
     *deriv_s1 = deriv_s1_val; 
     *deriv_s3 = deriv_s3_val;
@@ -4073,14 +4206,22 @@ int fourier_pk_linear(
 int fourier_kernel_Z1_w_FoG(
                             double f,
                             double b1,
-                            double k,
-                            double mu,
                             double c1_FoG,
                             double k_nonlinear,
+                            double bphi,
+                            double fnl,
+                            double alpha_k,
+                            double k,
+                            double mu,
                             double *Z1
                             ) {
 
-  *Z1 = b1 + f*mu*mu - c1_FoG*mu*mu*k*k/(k_nonlinear*k_nonlinear);
+  *Z1 = b1 + f*mu*mu - c1_FoG * mu*mu * k*k / (k_nonlinear*k_nonlinear);
+
+  // include PNG for non-zero fnl
+  if (fnl != 0){
+    *Z1 = *Z1 + bphi*fnl / alpha_k;
+  }
 
   return _SUCCESS_;
 }
@@ -4106,15 +4247,23 @@ int fourier_kernel_Z2(
                       double b1,
                       double b2,
                       double bG2,
+                      double bphi,
+                      double bphidelta,
+                      double fnl,
                       double k1,
                       double k2,
                       double k3,
                       double mu1,
                       double mu2,
+                      double alpha_k1,
+                      double alpha_k2,
+                      double alpha_k3,
                       double *Z2
                       ) {
+  // initialize
+  *Z2 = 0.;
 
-  double cos12, F2, G2, mu;
+  double cos12, F2, G2, Z1_k1, Z1_k2, mu;
 
   class_test(k1 <=0,
              pfo->error_message,
@@ -4132,7 +4281,31 @@ int fourier_kernel_Z2(
   G2 = 3./7. + 0.5*cos12 * (k2/k1 + k1/k2) + 4./7. * cos12*cos12;     // second order SPT real space kernel of theta
   mu = (mu1*k1+mu2*k2)/k3;
 
-  *Z2 =   b1*F2 + 0.5*b2 + bG2*(cos12*cos12 - 1.) + f*mu*mu*G2 + 0.5*f*mu*k3 * ( mu1/k1 * (b1 + f*mu2*mu2) + mu2/k2 * (b1 + f*mu1*mu1) );
+
+  // TODO Fynn: Check if FoG should be included here
+  Z1_k1 = b1 + f*mu1*mu1;
+  Z1_k2 = b1 + f*mu2*mu2;
+
+  // PNG contributions
+  if (fnl!=0){
+    double term_bphi, term_bphidelta, term_F2, term_G2;
+
+    // correction to the Z1 kernel
+    Z1_k1 = Z1_k1 + bphi*fnl / alpha_k1;
+    Z1_k2 = Z1_k2 + bphi*fnl / alpha_k2;
+
+    // linear fnl terms. neglect term of O(fnl^2) since they are surpressed by 1/alpha
+    term_bphi = 0.5 * bphi * fnl * cos12 * (k1/k2 * 1./alpha_k1 + k2/k1 * 1./alpha_k2);
+    term_bphidelta = 0.5 * bphidelta * fnl * (1./alpha_k1 + 1./alpha_k2);
+
+    // These terms contain the primordial bispectrum contribution
+    term_F2 = b1 * fnl * alpha_k3 / (alpha_k1 * alpha_k2); 
+    term_G2 = f*mu*mu * fnl * alpha_k3 / (alpha_k1 * alpha_k2);
+
+    *Z2 = term_bphi + term_bphidelta + term_F2 + term_G2;
+  }
+
+  *Z2 = *Z2 + b1*F2 + 0.5*b2 + bG2*(cos12*cos12 - 1.) + f*mu*mu*G2 + 0.5*f*mu*k3 * ( mu1/k1 * Z1_k2  + mu2/k2 * Z1_k1 );
 
   return _SUCCESS_;
 }
@@ -4198,6 +4371,9 @@ int fourier_B_tree_stoch_and_derivs(
                                     double s1,
                                     double s3,
                                     double P_shot,
+                                    double bphi,
+                                    double fnl,
+                                    double alpha_k,
                                     double mu,
                                     double Z1,
                                     double Pk,
@@ -4207,12 +4383,16 @@ int fourier_B_tree_stoch_and_derivs(
                                     double *deriv_s3
                                     ) {
 
-  // This is the Rizzo (https://arxiv.org/pdf/2204.13628) parametrization, which is different from Ivanov (https://arxiv.org/pdf/2110.10161)
-  // equivalent, except for the case where any alpha=-1 in the Rizzo parametrization,
-  // and Rizzo has one additional parameter: 1-alpha_2, which is given by d1**3 in Ivanov's parametrization
+  // This is the Rizzo (https://arxiv.org/pdf/2204.13628) and Euclid prep (https://arxiv.org/pdf/2605.21436)
+  // Note: all PNG contributions are containedin Z1. Is this correct?
   *B_tree =  P_shot * ((1.+s1) * b1 + (1.+s3) * f * mu*mu) * Z1 * Pk;
   *deriv_s1 = P_shot * b1 * Z1 * Pk;
   *deriv_s3 = P_shot * f * mu*mu * Z1 * Pk;
+
+
+
+  // TODO Fynn: derivatives, check if this term is correct
+  // TODO Fynn: check FoG term
 
   return _SUCCESS_;
 }

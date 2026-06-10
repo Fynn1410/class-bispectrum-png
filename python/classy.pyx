@@ -1276,6 +1276,9 @@ cdef class Class:
                                                           double[::1] P_shot, 
                                                           double[::1] c1_FoG,
                                                           double k_nonlinear,
+                                                          double[::1] bphi,
+                                                          double[::1] bphidelta,
+                                                          double fnl,
                                                           double[:, ::1] karray, 
                                                           double[::1] zarray, 
                                                           int l_max, 
@@ -1301,6 +1304,8 @@ cdef class Class:
             index_pk = self.fo.index_pk_total
 
         # Get raw pointers to the first elements of the arrays:
+
+        # Bias
         cdef double *b1_vals = &b1[0]
         cdef double *b2_vals = &b2[0]
         cdef double *bG2_vals = &bG2[0]
@@ -1309,8 +1314,14 @@ cdef class Class:
         cdef double *s3_vals = &s3[0]
         cdef double *P_shot_vals = &P_shot[0]
         cdef double *c1_FoG_vals = &c1_FoG[0]
+        cdef double *bphi_vals = &bphi[0]
+        cdef double *bphidelta_vals = &bphidelta[0]
+
+        # grids
         cdef double *k_vals = &karray[0,0]
         cdef double *z_vals = &zarray[0]
+
+        # AP
         cdef double *q_perp_vals = &q_perp[0]
         cdef double *q_parr_vals = &q_parr[0]
         cdef double *AP_vals = &AP[0]
@@ -1320,14 +1331,18 @@ cdef class Class:
         deriv_s1_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
         deriv_s2_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
         deriv_s3_array = np.empty((z_size, l_max//2+1, n_triangles), dtype=np.double, order="C")
+        Prim_k_out = np.empty((l_max//2+1, n_triangles), dtype=np.double, order="C")
         cdef np.ndarray[DTYPE_t, ndim=2] B_l = np.empty((z_size, n_triangles), dtype=np.double, order="C")
         cdef np.ndarray[DTYPE_t, ndim=2] deriv_s1 = np.empty((z_size, n_triangles), dtype=np.double, order="C")
         cdef np.ndarray[DTYPE_t, ndim=2] deriv_s2 = np.empty((z_size, n_triangles), dtype=np.double, order="C")
         cdef np.ndarray[DTYPE_t, ndim=2] deriv_s3 = np.empty((z_size, n_triangles), dtype=np.double, order="C")
+        cdef np.ndarray[DTYPE_t, ndim=1] Prim_k_arr = np.empty(n_triangles, dtype=np.double, order="C")
         cdef double *B_l_vals = &B_l[0, 0]
         cdef double *deriv_s1_vals = &deriv_s1[0, 0]
         cdef double *deriv_s2_vals = &deriv_s2[0, 0]
         cdef double *deriv_s3_vals = &deriv_s3[0, 0]
+        cdef double *Prim_k_vals = &Prim_k_arr[0]
+        
 
         # Fill output buffer and write to array
         cdef int il, ell
@@ -1348,6 +1363,9 @@ cdef class Class:
                                                                  P_shot_vals,
                                                                  c1_FoG_vals,
                                                                  k_nonlinear,
+                                                                 bphi_vals,
+                                                                 bphidelta_vals,
+                                                                 fnl,
                                                                  k_vals,
                                                                  n_triangles,
                                                                  z_vals,
@@ -1359,7 +1377,8 @@ cdef class Class:
                                                                  B_l_vals,
                                                                  deriv_s1_vals,
                                                                  deriv_s2_vals,
-                                                                 deriv_s3_vals 
+                                                                 deriv_s3_vals,
+                                                                 Prim_k_vals
                                                                  )==_FAILURE_:
                 raise CosmoSevereError(self.fo.error_message)
 
@@ -1367,12 +1386,13 @@ cdef class Class:
             deriv_s1_array[:, il, :] = deriv_s1
             deriv_s2_array[:, il, :] = deriv_s2
             deriv_s3_array[:, il, :] = deriv_s3
+            Prim_k_out[il, :] = Prim_k_arr
         
         deriv_dict = {"s1_B": deriv_s1_array,
                       "s2_B": deriv_s2_array,
                       "s3_B": deriv_s3_array}
 
-        return B_l_array, deriv_dict
+        return B_l_array, deriv_dict, Prim_k_out
 
     def get_T_master(self, double k12, double k22, double k32, double complex M1, double complex M2, double complex M3):
         cdef double complex T_out;
