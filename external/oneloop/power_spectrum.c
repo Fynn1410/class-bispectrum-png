@@ -2514,6 +2514,7 @@ int eft_build_nonlinear_power_spectrum_wedges(
             case Pdd_hh_rsd:
               if (peft->hp->integration_mode == fftlog) {
                 sigma2_tot_z0 = (1. + f_z*mu*mu*(2. + f_z)) * peft->Sigma2_ir + f_z*f_z*mu*mu*(mu*mu - 1.) * peft->dSigma2_ir;  /** D2 * sigma2_tot_z0 = sigma2_tot at z */
+                // Just replace b1 -> b1 + bphi fnl alpha(k) ?
                 pkmu[index_mu*peft->k_size + index_k] = D2 * pow(eft_ip.b1 + f_z*mu*mu, 2.) * peft->pk_l[pkmu_rsd_ir_resummed_nlo][index_mu*peft->k_size + index_k]    \
                   + pkmu_loop[pk_nowiggle*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
                   + exp(-k*k * D2 * sigma2_tot_z0) * (pkmu_loop[pk_lin*eft_spectra_contribution_num + eft_spectra_contribution_num-1][index_mu*peft->k_size + index_k]   \
